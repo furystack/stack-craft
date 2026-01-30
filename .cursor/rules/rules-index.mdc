@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+This file contains a list of helpful information and context that the agent can reference when working in this codebase. Each entry provides specific guidance or rules for different aspects of the project. You can read these files using the readFile tool if the users prompt seems related.
+
+- [Code formatting, naming conventions, and file organization](./CODE_STYLE.md)
+- [TypeScript type safety and strict typing guidelines](./TYPESCRIPT_GUIDELINES.md)
+- [Shades component patterns and frontend development](./SHADES_COMPONENTS.md)
+- [REST service patterns and backend development](./REST_SERVICE.md)
+- [Testing guidelines for Vitest and Playwright](./TESTING_GUIDELINES.md)

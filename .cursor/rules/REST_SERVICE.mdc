@@ -1,0 +1,395 @@
+---
+name: REST Service
+description: Backend REST service patterns using @furystack/rest-service
+globs:
+  - 'service/**/*.ts'
+alwaysApply: false
+---
+
+# REST Service Guidelines
+
+## Service Architecture
+
+### Entry Point Structure
+
+The service entry point (`service/src/service.ts`) sets up the REST API:
+
+```typescript
+import type { BoilerplateApi } from 'common';
+import BoilerplateApiSchemas from 'common/schemas/boilerplate-api.json' with { type: 'json' };
+
+import {
+  useHttpAuthentication,
+  useRestService,
+  useStaticFiles,
+} from '@furystack/rest-service';
+import { injector } from './config.js';
+
+// Set up authentication
+useHttpAuthentication(injector, {
+  getUserStore: (sm) => sm.getStoreFor(User, 'username'),
+  getSessionStore: (sm) => sm.getStoreFor(DefaultSession, 'sessionId'),
+});
+
+// Set up REST API
+useRestService<BoilerplateApi>({
+  injector,
+  root: 'api',
+  port,
+  api: {
+    GET: { /* endpoints */ },
+    POST: { /* endpoints */ },
+  },
+});
+
+// Serve static frontend files
+useStaticFiles({
+  injector,
+  baseUrl: '/',
+  path: '../frontend/dist',
+  port,
+  fallback: 'index.html',
+});
+```
+
+## API Type Definition
+
+### Define API in Common Package
+
+The API contract is defined in `common/src/boilerplate-api.ts`:
+
+```typescript
+import type { RestApi } from '@furystack/rest';
+import type { User } from './models/index.js';
+
+// Define endpoint types
+export type GetUserEndpoint = {
+  url: { id: string };
+  result: User;
+};
+
+export type CreateUserEndpoint = {
+  body: { username: string; email: string };
+  result: User;
+};
+
+// Define the API interface
+export interface BoilerplateApi extends RestApi {
+  GET: {
+    '/isAuthenticated': { result: { isAuthenticated: boolean } };
+    '/currentUser': { result: User };
+    '/users/:id': GetUserEndpoint;
+  };
+  POST: {
+    '/login': { result: User; body: { username: string; password: string } };
+    '/logout': { result: unknown };
+    '/users': CreateUserEndpoint;
+  };
+}
+```
+
+## Endpoint Implementation
+
+### Using Built-in Actions
+
+Use FuryStack's built-in actions when possible:
+
+```typescript
+import {
+  GetCurrentUser,
+  IsAuthenticated,
+  LoginAction,
+  LogoutAction,
+} from '@furystack/rest-service';
+
+useRestService<BoilerplateApi>({
+  injector,
+  api: {
+    GET: {
+      '/currentUser': GetCurrentUser,
+      '/isAuthenticated': IsAuthenticated,
+    },
+    POST: {
+      '/login': LoginAction,
+      '/logout': LogoutAction,
+    },
+  },
+});
+```
+
+### Custom Endpoint Actions
+
+Create custom actions with proper typing:
+
+```typescript
+import { JsonResult, Validate } from '@furystack/rest-service';
+
+useRestService<BoilerplateApi>({
+  injector,
+  api: {
+    GET: {
+      '/testQuery': Validate({ schema: BoilerplateApiSchemas, schemaName: 'TestQueryEndpoint' })(
+        async (options) => JsonResult({ param1Value: options.getQuery().param1 })
+      ),
+      '/testUrlParams/:urlParam': Validate({ schema: BoilerplateApiSchemas, schemaName: 'TestUrlParamsEndpoint' })(
+        async (options) => JsonResult({ urlParamValue: options.getUrlParams().urlParam })
+      ),
+    },
+    POST: {
+      '/testPostBody': Validate({ schema: BoilerplateApiSchemas, schemaName: 'TestPostBodyEndpoint' })(
+        async (options) => {
+          const body = await options.getBody();
+          return JsonResult({ bodyValue: body.value });
+        }
+      ),
+    },
+  },
+});
+```
+
+## Request Validation
+
+### JSON Schema Validation
+
+Use the `Validate` wrapper with JSON schemas:
+
+```typescript
+import { Validate, JsonResult } from '@furystack/rest-service';
+import BoilerplateApiSchemas from 'common/schemas/boilerplate-api.json' with { type: 'json' };
+
+const endpoint = Validate({
+  schema: BoilerplateApiSchemas,
+  schemaName: 'MyEndpointType',
+})(async (options) => {
+  // Request is validated before reaching here
+  const body = await options.getBody();
+  return JsonResult({ success: true });
+});
+```
+
+### Generate Schemas
+
+Generate JSON schemas from TypeScript types:
+
+```bash
+# Generate schemas
+yarn create-schemas
+```
+
+The schema generator is configured in `common/src/bin/create-schemas.ts`.
+
+## Configuration
+
+### Injector Setup
+
+Set up the injector with stores and services in `service/src/config.ts`:
+
+```typescript
+import { addStore, InMemoryStore } from '@furystack/core';
+import { FileSystemStore } from '@furystack/filesystem-store';
+import { Injector } from '@furystack/inject';
+import { useLogging, VerboseConsoleLogger } from '@furystack/logging';
+import { getRepository } from '@furystack/repository';
+import { usePasswordPolicy } from '@furystack/security';
+import { DefaultSession } from '@furystack/rest-service';
+import { User } from 'common';
+
+export const injector = new Injector();
+
+// Set up logging
+useLogging(injector, VerboseConsoleLogger);
+
+// Add stores
+addStore(injector, new FileSystemStore({
+  model: User,
+  primaryKey: 'username',
+  fileName: join(process.cwd(), 'users.json'),
+}));
+
+addStore(injector, new InMemoryStore({
+  model: DefaultSession,
+  primaryKey: 'sessionId',
+}));
+
+// Set up password policy
+usePasswordPolicy(injector);
+```
+
+### Authorization
+
+Define authorization functions for data sets:
+
+```typescript
+import { isAuthenticated } from '@furystack/core';
+import type { AuthorizationResult, DataSetSettings } from '@furystack/repository';
+
+export const authorizedOnly = async (options: { injector: Injector }): Promise<AuthorizationResult> => {
+  const isAllowed = await isAuthenticated(options.injector);
+  return isAllowed
+    ? { isAllowed }
+    : { isAllowed, message: 'You are not authorized' };
+};
+
+export const authorizedDataSet: Partial<DataSetSettings<unknown, unknown>> = {
+  authorizeAdd: authorizedOnly,
+  authorizeGet: authorizedOnly,
+  authorizeRemove: authorizedOnly,
+  authorizeUpdate: authorizedOnly,
+};
+```
+
+## Store Types
+
+### FileSystemStore
+
+Use for persistent data stored as JSON files:
+
+```typescript
+import { FileSystemStore } from '@furystack/filesystem-store';
+
+addStore(injector, new FileSystemStore({
+  model: User,
+  primaryKey: 'username',
+  tickMs: 30 * 1000,  // Save interval
+  fileName: join(process.cwd(), 'users.json'),
+}));
+```
+
+### InMemoryStore
+
+Use for session data or temporary storage:
+
+```typescript
+import { InMemoryStore } from '@furystack/core';
+
+addStore(injector, new InMemoryStore({
+  model: DefaultSession,
+  primaryKey: 'sessionId',
+}));
+```
+
+## Error Handling
+
+### Service Startup Errors
+
+Handle errors during service startup:
+
+```typescript
+useRestService<BoilerplateApi>({
+  injector,
+  // ... config
+}).catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+```
+
+### Graceful Shutdown
+
+Implement graceful shutdown handling:
+
+```typescript
+// service/src/shutdown-handler.ts
+export const attachShutdownHandler = async (injector: Injector): Promise<void> => {
+  const logger = getLogger(injector).withScope('ShutdownHandler');
+  
+  const shutdown = async (signal: string) => {
+    await logger.information({ message: `Received ${signal}, shutting down...` });
+    await injector[Symbol.asyncDispose]();
+    process.exit(0);
+  };
+  
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+};
+
+// In service.ts
+void attachShutdownHandler(injector);
+```
+
+## Data Seeding
+
+### Seed Script
+
+Create a seed script for initial data:
+
+```typescript
+// service/src/seed.ts
+import { StoreManager } from '@furystack/core';
+import { PasswordAuthenticator, PasswordCredential } from '@furystack/security';
+import { User } from 'common';
+import { injector } from './config.js';
+
+export const seed = async (i: Injector): Promise<void> => {
+  const sm = i.getInstance(StoreManager);
+  const userStore = sm.getStoreFor(User, 'username');
+  const pwcStore = sm.getStoreFor(PasswordCredential, 'userName');
+  
+  // Create default user credentials
+  const cred = await i.getInstance(PasswordAuthenticator).hasher.createCredential(
+    'testuser',
+    'password'
+  );
+  
+  // Save to stores
+  await pwcStore.add(cred);
+  await userStore.add({ username: 'testuser', roles: [] });
+};
+
+await seed(injector);
+await injector[Symbol.asyncDispose]();
+```
+
+Run with:
+
+```bash
+yarn seed
+```
+
+## CORS Configuration
+
+### Configure CORS
+
+Set up CORS for frontend access:
+
+```typescript
+useRestService<BoilerplateApi>({
+  injector,
+  cors: {
+    credentials: true,
+    origins: ['http://localhost:8080'],
+    headers: ['cache', 'content-type'],
+  },
+  // ... rest of config
+});
+```
+
+## Summary
+
+**Key Principles:**
+
+1. **Type the API** - Define API in `common` package with `RestApi` interface
+2. **Use built-in actions** - `LoginAction`, `LogoutAction`, `GetCurrentUser`, etc.
+3. **Validate requests** - Use `Validate` wrapper with JSON schemas
+4. **Configure stores** - `FileSystemStore` for persistence, `InMemoryStore` for sessions
+5. **Handle authorization** - Define authorization functions for data sets
+6. **Graceful shutdown** - Implement proper cleanup with `Symbol.asyncDispose`
+7. **CORS setup** - Configure for frontend origins
+
+**Service Checklist:**
+
+- [ ] API types defined in `common` package
+- [ ] JSON schemas generated for validation
+- [ ] Stores configured for all models
+- [ ] Authentication set up with `useHttpAuthentication`
+- [ ] Authorization functions defined
+- [ ] CORS configured for frontend
+- [ ] Graceful shutdown handler attached
+- [ ] Error handling for startup failures
+
+**Commands:**
+
+- Start service: `yarn start:service`
+- Seed data: `yarn seed`
+- Generate schemas: `yarn create-schemas`
+- Build: `yarn build`

@@ -1,0 +1,285 @@
+---
+name: Code Style
+description: Formatting, naming conventions, import ordering, and file organization for the Boilerplate app
+globs:
+  - '**/*.ts'
+  - '**/*.tsx'
+  - '**/*.js'
+  - '**/*.jsx'
+alwaysApply: true
+---
+
+# Code Style Guidelines
+
+## Formatting Standards
+
+### Prettier Configuration
+
+This project uses Prettier for code formatting. **Always use the project's Prettier configuration**.
+
+**Configuration file:** `prettier.config.js`
+
+```bash
+# Format code
+yarn prettier
+
+# Check formatting
+yarn prettier:check
+```
+
+### ESLint Configuration
+
+This project uses ESLint for code quality. **Always use the project's ESLint configuration**.
+
+**Configuration file:** `eslint.config.js`
+
+```bash
+# Lint code
+yarn lint
+```
+
+### Automated Formatting
+
+Code is automatically formatted on commit via Husky and lint-staged:
+
+```json
+{
+  "lint-staged": {
+    "*.{ts,tsx}": ["eslint --ext .tsx,.ts --cache --fix", "prettier --write", "git add"]
+  }
+}
+```
+
+## Naming Conventions
+
+### Files and Directories
+
+#### Source Files
+
+- **kebab-case** for all files
+- `.ts` for TypeScript, `.tsx` for JSX components
+- One main export per file
+
+```
+✅ Good:
+frontend/src/components/theme-switch/index.tsx
+frontend/src/services/session.ts
+service/src/shutdown-handler.ts
+
+❌ Avoid:
+frontend/src/components/ThemeSwitch.tsx
+frontend/src/services/Session.ts
+service/src/ShutdownHandler.ts
+```
+
+#### Test Files
+
+- **Same name as source** with `.spec.ts` suffix
+- Co-located with source file when possible
+
+```
+✅ Good:
+service/src/config.ts
+service/src/config.spec.ts
+
+❌ Avoid:
+service/test/config.spec.ts (not co-located)
+service/src/config.test.ts (use .spec.ts)
+```
+
+### Components and Classes
+
+- **PascalCase** for components, classes, and types
+- Descriptive and clear purpose
+
+```typescript
+// ✅ Good
+export const ThemeSwitch = createComponent(...)
+export class SessionService {}
+export type BoilerplateApi = {}
+
+// ❌ Avoid
+export const themeSwitch = createComponent(...) // Wrong case
+export class sessionService {} // Wrong case
+```
+
+### Functions and Variables
+
+- **camelCase** for functions and variables
+- **UPPER_SNAKE_CASE** for constants
+
+```typescript
+// ✅ Good
+export function getCurrentUser() {}
+export const isAuthenticated = true;
+export const DEFAULT_PORT = 9090;
+
+// ❌ Avoid
+export function GetCurrentUser() {}
+export const IsAuthenticated = true;
+```
+
+## Project Structure
+
+### Workspace Organization
+
+```
+boilerplate/
+├── common/                    # Shared types and API definitions
+│   ├── src/
+│   │   ├── index.ts          # Main exports
+│   │   ├── boilerplate-api.ts # API type definitions
+│   │   └── models/           # Entity models
+│   └── schemas/              # JSON schemas for validation
+├── frontend/                  # Shades-based frontend
+│   └── src/
+│       ├── index.tsx         # App entry point
+│       ├── components/       # Reusable components
+│       ├── pages/            # Page components
+│       └── services/         # Frontend services
+├── service/                   # REST backend service
+│   └── src/
+│       ├── service.ts        # Service entry point
+│       ├── config.ts         # Configuration
+│       └── seed.ts           # Database seeding
+└── e2e/                       # End-to-end tests
+    └── page.spec.ts
+```
+
+### Component File Structure
+
+Components should be organized in directories when they have assets:
+
+```
+components/
+├── theme-switch/
+│   └── index.tsx             # Component with no assets
+├── github-logo/
+│   ├── index.tsx             # Component
+│   ├── gh-dark.png           # Dark theme asset
+│   └── gh-light.png          # Light theme asset
+└── header.tsx                 # Simple component (no directory needed)
+```
+
+## Import Ordering
+
+### Import Order
+
+1. **Node built-ins**
+2. **External dependencies** (npm packages)
+3. **FuryStack packages** (`@furystack/*`)
+4. **Workspace packages** (`common`)
+5. **Relative imports**
+6. **Type imports** (if separated)
+
+```typescript
+// ✅ Good - organized imports
+import { EventEmitter } from 'events';
+
+import { createComponent, Shade } from '@furystack/shades';
+import { Injector } from '@furystack/inject';
+
+import type { BoilerplateApi } from 'common';
+
+import { SessionService } from '../services/session.js';
+import type { UserProps } from './types.js';
+
+// ❌ Avoid - random ordering
+import { SessionService } from '../services/session.js';
+import { EventEmitter } from 'events';
+import { Injector } from '@furystack/inject';
+```
+
+### Import Grouping
+
+Separate import groups with blank lines:
+
+```typescript
+// ✅ Good - separated groups
+import { Injector } from '@furystack/inject';
+import { getLogger, useLogging } from '@furystack/logging';
+
+import type { User } from 'common';
+
+import { SessionService } from './services/session.js';
+```
+
+## Code Organization
+
+### Service Class Structure
+
+```typescript
+// ✅ Good - organized service
+@Injectable({ lifetime: 'singleton' })
+export class SessionService {
+  // 1. Injected dependencies
+  @Injected(ApiClient)
+  private declare apiClient: ApiClient;
+
+  // 2. Public properties
+  public currentUser = new ObservableValue<User | null>(null);
+
+  // 3. Constructor (if needed)
+  constructor() {
+    this.init();
+  }
+
+  // 4. Public methods
+  public async login(credentials: Credentials): Promise<void> {
+    // Implementation
+  }
+
+  // 5. Private methods
+  private async init(): Promise<void> {
+    // Implementation
+  }
+
+  // 6. Disposal
+  public [Symbol.dispose](): void {
+    // Cleanup
+  }
+}
+```
+
+### Component File Structure
+
+```typescript
+// 1. Imports
+import { createComponent, Shade } from '@furystack/shades';
+import { Injected } from '@furystack/inject';
+
+// 2. Types
+type MyComponentProps = {
+  title: string;
+};
+
+// 3. Component
+export const MyComponent = Shade<MyComponentProps>({
+  shadowDomName: 'my-component',
+  render: ({ props }) => {
+    return <div>{props.title}</div>;
+  },
+});
+```
+
+## Summary
+
+**Key Principles:**
+
+1. **Follow project's Prettier and ESLint configs**
+2. **Use consistent naming:**
+   - PascalCase: Components, classes, types
+   - camelCase: Functions, variables
+   - kebab-case: File names
+   - UPPER_SNAKE_CASE: Constants
+3. **Organize imports** by category with blank lines
+4. **Co-locate tests** with source files
+5. **Structure components** in directories when they have assets
+
+**Tools:**
+
+- Prettier: `yarn prettier`
+- ESLint: `yarn lint`
+- Type Check: `yarn build`
+- Unit Tests: `yarn test:unit`
+- E2E Tests: `yarn test:e2e`

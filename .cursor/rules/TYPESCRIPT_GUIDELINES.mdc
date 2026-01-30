@@ -1,0 +1,265 @@
+---
+name: TypeScript Guidelines
+description: Type safety, strict typing, NEVER use any, and type patterns for the Boilerplate app
+globs:
+  - '**/*.ts'
+  - '**/*.tsx'
+alwaysApply: true
+---
+
+# TypeScript Guidelines
+
+## Type Safety
+
+### NEVER use `any`
+
+There are no acceptable uses of `any` in this codebase:
+
+```typescript
+// ✅ Good - use unknown for truly unknown types
+export function processData(data: unknown): string {
+  if (typeof data === 'string') {
+    return data;
+  }
+  return JSON.stringify(data);
+}
+
+// ✅ Good - use generics for flexible types
+export function identity<T>(value: T): T {
+  return value;
+}
+
+// ❌ FORBIDDEN - using any
+export function processData(data: any): string {
+  return data.toString();
+}
+```
+
+### Explicit Types for Public APIs
+
+All exported functions and public methods should have explicit types:
+
+```typescript
+// ✅ Good - explicit types
+export async function getCurrentUser(): Promise<User | null> {
+  // Implementation
+}
+
+export class SessionService {
+  public async login(credentials: LoginCredentials): Promise<LoginResult> {
+    // Implementation
+  }
+}
+
+// ❌ Avoid - implicit return types for public APIs
+export async function getCurrentUser() {
+  // Return type is inferred - not ideal for public APIs
+}
+```
+
+## Type Definitions
+
+### Prefer `type` over `interface`
+
+```typescript
+// ✅ Good
+type UserProps = {
+  name: string;
+  email: string;
+};
+
+type ApiResponse<T> = {
+  data: T;
+  status: number;
+};
+
+// ❌ Avoid
+interface UserProps {
+  name: string;
+  email: string;
+}
+```
+
+### Component Props Types
+
+Define explicit prop types for all components:
+
+```typescript
+// ✅ Good - explicit props type
+type ButtonProps = {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+};
+
+export const Button = Shade<ButtonProps>({
+  shadowDomName: 'app-button',
+  render: ({ props }) => {
+    return (
+      <button disabled={props.disabled} onclick={props.onClick}>
+        {props.label}
+      </button>
+    );
+  },
+});
+```
+
+## API Type Safety
+
+### Using the BoilerplateApi Type
+
+The `common` package defines the API contract. Always import and use it:
+
+```typescript
+// ✅ Good - typed API client
+import type { BoilerplateApi } from 'common';
+
+const client = new RestClient<BoilerplateApi>({
+  baseUrl: '/api',
+});
+
+// Type-safe API calls
+const user = await client.call({ method: 'GET', action: '/currentUser' });
+```
+
+### REST Service Endpoints
+
+Use the typed API definition when creating endpoints:
+
+```typescript
+// ✅ Good - typed REST service
+import type { BoilerplateApi } from 'common';
+
+useRestService<BoilerplateApi>({
+  injector,
+  api: {
+    GET: {
+      '/currentUser': GetCurrentUser,
+      '/isAuthenticated': IsAuthenticated,
+    },
+    POST: {
+      '/login': LoginAction,
+      '/logout': LogoutAction,
+    },
+  },
+});
+```
+
+## Type Guards
+
+### Provide Type Guards for Runtime Checks
+
+```typescript
+// ✅ Good - type guard
+export function isUser(value: unknown): value is User {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'username' in value &&
+    typeof (value as User).username === 'string'
+  );
+}
+
+// Usage
+if (isUser(data)) {
+  console.log(data.username); // TypeScript knows data is User
+}
+```
+
+## Observable Types
+
+### Type Observable Values
+
+Always provide explicit types for ObservableValue:
+
+```typescript
+// ✅ Good - explicit observable type
+public currentUser = new ObservableValue<User | null>(null);
+public isLoading = new ObservableValue<boolean>(false);
+public errors = new ObservableValue<string[]>([]);
+
+// ❌ Avoid - relying on inference for complex types
+public currentUser = new ObservableValue(null); // Type is ObservableValue<null>
+```
+
+## Generic Patterns
+
+### Use Descriptive Generic Names
+
+```typescript
+// ✅ Good - descriptive generic names
+type ApiResponse<TData> = {
+  data: TData;
+  status: number;
+};
+
+type CacheEntry<TValue> = {
+  value: TValue;
+  timestamp: number;
+};
+
+// ❌ Avoid - unclear generic names
+type ApiResponse<T> = {
+  data: T;
+  status: number;
+};
+```
+
+### Constrain Generics When Appropriate
+
+```typescript
+// ✅ Good - constrained generic
+export function getProperty<TObject, TKey extends keyof TObject>(
+  obj: TObject,
+  key: TKey
+): TObject[TKey] {
+  return obj[key];
+}
+```
+
+## Strict Null Checks
+
+### Handle Null and Undefined Explicitly
+
+```typescript
+// ✅ Good - explicit null handling
+export async function getUser(id: string): Promise<User | null> {
+  const user = await fetchUser(id);
+  if (!user) {
+    return null;
+  }
+  return user;
+}
+
+// ✅ Good - use optional chaining
+const userName = user?.name ?? 'Unknown';
+
+// ❌ Avoid - ignoring potential null
+const userName = user.name; // Error if user is null
+```
+
+## Summary
+
+**Key Principles:**
+
+1. **NEVER use `any`** - Use `unknown`, generics, or proper types
+2. **Explicit types for exports** - Document the contract
+3. **Prefer `type` over `interface`**
+4. **Type component props** - Every Shade component should have typed props
+5. **Use the API type** - Import `BoilerplateApi` from `common`
+6. **Type observables** - Always provide explicit types for ObservableValue
+7. **Handle nulls** - Use strict null checks and optional chaining
+
+**Type Safety Checklist:**
+
+- [ ] No `any` types anywhere
+- [ ] All exported functions have explicit return types
+- [ ] Component props are typed
+- [ ] API calls use the `BoilerplateApi` type
+- [ ] Observable values have explicit types
+- [ ] Null/undefined handled explicitly
+
+**Tools:**
+
+- Type checking: `yarn build`
+- Strict mode: Enabled in `tsconfig.json`

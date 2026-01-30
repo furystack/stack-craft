@@ -1,0 +1,343 @@
+---
+name: Shades Components
+description: Frontend component patterns using @furystack/shades and common-components
+globs:
+  - 'frontend/**/*.tsx'
+  - 'frontend/**/*.ts'
+alwaysApply: false
+---
+
+# Shades Component Guidelines
+
+## Component Structure
+
+### Basic Component with Shade
+
+Use the `Shade` function to create components:
+
+```typescript
+import { createComponent, Shade } from '@furystack/shades';
+
+type MyComponentProps = {
+  title: string;
+  onAction?: () => void;
+};
+
+export const MyComponent = Shade<MyComponentProps>({
+  shadowDomName: 'my-component',
+  render: ({ props, injector }) => {
+    return (
+      <div>
+        <h1>{props.title}</h1>
+        {props.onAction && <button onclick={props.onAction}>Action</button>}
+      </div>
+    );
+  },
+});
+```
+
+### Shadow DOM Naming
+
+Always provide a unique `shadowDomName` in kebab-case:
+
+```typescript
+// ✅ Good - unique, descriptive kebab-case names
+shadowDomName: 'shade-app-layout'
+shadowDomName: 'shade-login'
+shadowDomName: 'theme-switch'
+shadowDomName: 'github-logo'
+
+// ❌ Avoid - generic or poorly named
+shadowDomName: 'my-component'
+shadowDomName: 'div'
+shadowDomName: 'Component1'
+```
+
+## Render Function Parameters
+
+### Available Parameters
+
+The render function receives several useful parameters:
+
+```typescript
+render: ({ props, injector, children, element, useState, useObservable, useDisposable }) => {
+  // props - Component props
+  // injector - DI container for accessing services
+  // children - Child elements passed to the component
+  // element - The actual DOM element
+  // useState - Hook for local state
+  // useObservable - Hook for subscribing to ObservableValue
+  // useDisposable - Hook for managing disposable resources
+}
+```
+
+## Using Services with Injector
+
+### Access Services via Injector
+
+Get service instances using the injector:
+
+```typescript
+export const MyComponent = Shade({
+  shadowDomName: 'my-component',
+  render: ({ injector }) => {
+    const themeProvider = injector.getInstance(ThemeProviderService);
+    const sessionService = injector.getInstance(SessionService);
+    
+    return (
+      <div style={{ backgroundColor: themeProvider.theme.background.default }}>
+        {/* Component content */}
+      </div>
+    );
+  },
+});
+```
+
+## State Management
+
+### Local State with useState
+
+Use `useState` for component-local state:
+
+```typescript
+export const Counter = Shade({
+  shadowDomName: 'app-counter',
+  render: ({ useState }) => {
+    const [count, setCount] = useState<number>('count', 0);
+    
+    return (
+      <div>
+        <span>Count: {count}</span>
+        <button onclick={() => setCount(count + 1)}>Increment</button>
+      </div>
+    );
+  },
+});
+```
+
+### Observable State with useObservable
+
+Subscribe to `ObservableValue` from services:
+
+```typescript
+export const UserStatus = Shade({
+  shadowDomName: 'user-status',
+  render: ({ injector, useObservable }) => {
+    const sessionService = injector.getInstance(SessionService);
+    
+    // Subscribe to observable values
+    const [isOperationInProgress] = useObservable(
+      'isOperationInProgress',
+      sessionService.isOperationInProgress
+    );
+    const [currentUser] = useObservable('currentUser', sessionService.currentUser);
+    const [state] = useObservable('state', sessionService.state);
+    
+    if (isOperationInProgress) {
+      return <div>Loading...</div>;
+    }
+    
+    return (
+      <div>
+        {currentUser ? `Welcome, ${currentUser.username}` : 'Not logged in'}
+      </div>
+    );
+  },
+});
+```
+
+## Resource Disposal
+
+### Using useDisposable
+
+Properly manage subscriptions and resources:
+
+```typescript
+export const ThemeSwitch = Shade({
+  shadowDomName: 'theme-switch',
+  render: ({ injector, useState, useDisposable }) => {
+    const themeProvider = injector.getInstance(ThemeProviderService);
+    const [theme, setTheme] = useState<'light' | 'dark'>('theme', 'dark');
+    
+    // Subscribe to theme changes with automatic cleanup
+    useDisposable('traceThemeChange', () =>
+      themeProvider.subscribe('themeChanged', (newTheme) => {
+        setTheme(newTheme.name === 'dark' ? 'dark' : 'light');
+      }),
+    );
+    
+    return <button>{theme === 'dark' ? '☀️' : '🌜'}</button>;
+  },
+});
+```
+
+## Common Components
+
+### Using shades-common-components
+
+Import and use common components from `@furystack/shades-common-components`:
+
+```typescript
+import {
+  Button,
+  Form,
+  Input,
+  Paper,
+  ThemeProviderService,
+  NotyService,
+} from '@furystack/shades-common-components';
+
+export const LoginForm = Shade({
+  shadowDomName: 'login-form',
+  render: ({ injector }) => {
+    const sessionService = injector.getInstance(SessionService);
+    
+    return (
+      <Paper elevation={3}>
+        <Form<{ username: string; password: string }>
+          validate={(data) => data.username?.length > 0 && data.password?.length > 0}
+          onSubmit={({ username, password }) => {
+            void sessionService.login(username, password);
+          }}
+        >
+          <Input labelTitle="Username" name="username" required type="text" />
+          <Input labelTitle="Password" name="password" required type="password" />
+          <Button type="submit">Login</Button>
+        </Form>
+      </Paper>
+    );
+  },
+});
+```
+
+## Theming
+
+### Access Theme Properties
+
+Use `ThemeProviderService` for consistent theming:
+
+```typescript
+export const ThemedComponent = Shade({
+  shadowDomName: 'themed-component',
+  render: ({ injector }) => {
+    const theme = injector.getInstance(ThemeProviderService).theme;
+    
+    return (
+      <div
+        style={{
+          backgroundColor: theme.background.default,
+          color: theme.text.primary,
+          padding: theme.spacing?.(2) ?? '16px',
+        }}
+      >
+        Themed content
+      </div>
+    );
+  },
+});
+```
+
+### Theme Switching
+
+Allow users to switch between themes:
+
+```typescript
+import { defaultDarkTheme, defaultLightTheme } from '@furystack/shades-common-components';
+
+const toggleTheme = (themeProvider: ThemeProviderService, currentTheme: 'light' | 'dark') => {
+  themeProvider.setAssignedTheme(
+    currentTheme === 'dark' ? defaultLightTheme : defaultDarkTheme
+  );
+};
+```
+
+## Page Components
+
+### Organizing Pages
+
+Place page components in `frontend/src/pages/`:
+
+```typescript
+// frontend/src/pages/dashboard.tsx
+import { createComponent, Shade } from '@furystack/shades';
+
+export const Dashboard = Shade({
+  shadowDomName: 'page-dashboard',
+  render: ({ injector }) => {
+    return (
+      <div>
+        <h1>Dashboard</h1>
+        {/* Page content */}
+      </div>
+    );
+  },
+});
+```
+
+### Page Routing
+
+Export pages from an index file:
+
+```typescript
+// frontend/src/pages/index.ts
+export * from './dashboard.js';
+export * from './login.js';
+export * from './hello-world.js';
+```
+
+## Application Entry Point
+
+### Initializing the Shades App
+
+Set up the application in the entry point:
+
+```typescript
+// frontend/src/index.tsx
+import { Injector } from '@furystack/inject';
+import { getLogger, useLogging, VerboseConsoleLogger } from '@furystack/logging';
+import { createComponent, initializeShadeRoot } from '@furystack/shades';
+import { defaultDarkTheme, ThemeProviderService } from '@furystack/shades-common-components';
+import { Layout } from './components/layout.js';
+import { SessionService } from './services/session.js';
+
+const shadeInjector = new Injector();
+
+// Set up logging
+useLogging(shadeInjector, VerboseConsoleLogger);
+
+// Initialize services
+shadeInjector.getInstance(SessionService);
+
+// Set default theme
+shadeInjector.getInstance(ThemeProviderService).setAssignedTheme(defaultDarkTheme);
+
+// Initialize the app
+const rootElement = document.getElementById('root') as HTMLDivElement;
+initializeShadeRoot({
+  injector: shadeInjector,
+  rootElement,
+  jsxElement: <Layout />,
+});
+```
+
+## Summary
+
+**Key Principles:**
+
+1. **Use Shade function** - Create components with `Shade<PropsType>({ ... })`
+2. **Unique shadowDomName** - Every component needs a unique kebab-case name
+3. **Access services via injector** - Use `injector.getInstance(Service)`
+4. **useState for local state** - Simple component state
+5. **useObservable for reactive state** - Subscribe to service observables
+6. **useDisposable for cleanup** - Manage subscriptions properly
+7. **Use common components** - Leverage `@furystack/shades-common-components`
+8. **Consistent theming** - Use `ThemeProviderService` for styles
+
+**Component Checklist:**
+
+- [ ] Props type defined (if any)
+- [ ] Unique `shadowDomName` in kebab-case
+- [ ] Services accessed via `injector.getInstance()`
+- [ ] Observable subscriptions use `useObservable`
+- [ ] Manual subscriptions cleaned up with `useDisposable`
+- [ ] Theme values from `ThemeProviderService`

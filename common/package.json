@@ -1,0 +1,35 @@
+{
+  "name": "common",
+  "version": "1.0.1",
+  "license": "GPL-2.0-only",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./schemas/*": {
+      "import": "./schemas/*"
+    },
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "dist/*"
+      ]
+    }
+  },
+  "scripts": {
+    "create-schemas": "node ./dist/bin/create-schemas.js"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.10",
+    "ts-json-schema-generator": "^2.4.0",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@furystack/rest": "^8.0.32"
+  }
+}

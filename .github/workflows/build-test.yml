@@ -1,0 +1,44 @@
+name: Build and execute tests
+on: [push]
+jobs:
+  build:
+    name: Lint, Build and test
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [22.x, 24.x]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: yarn install
+      - name: Prettier check
+        run: yarn prettier:check
+      - name: Build
+        run: yarn build
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      - name: Lint
+        run: yarn lint
+      - name: Recreate JSON Schemas
+        run: yarn create-schemas && yarn build # an incremental rebuild is neccessary to use the updated schema
+      - name: Test
+        run: yarn test:unit
+      - uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+        env:
+          CI: true
+
+      - name: Install Playwright browsers
+        run: yarn playwright install --with-deps
+      - run: yarn seed
+        name: 'Seed test data'
+      - run: yarn test:e2e
+        name: 'E2E tests'

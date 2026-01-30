@@ -1,0 +1,397 @@
+---
+name: Testing Guidelines
+description: Unit testing with Vitest and E2E testing with Playwright
+globs:
+  - '**/*.spec.ts'
+  - '**/*.spec.tsx'
+  - 'e2e/**/*.ts'
+alwaysApply: false
+---
+
+# Testing Guidelines
+
+## Test Configuration
+
+### Vitest for Unit Tests
+
+The project uses Vitest for unit testing with workspace-based configuration:
+
+```typescript
+// vitest.config.mts
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    coverage: {
+      enabled: true,
+      include: ['common/src/**/*.ts', 'frontend/src/**/*.ts', 'service/src/**/*.ts'],
+    },
+    projects: [
+      {
+        test: {
+          name: 'Common',
+          include: ['common/src/**/*.spec.ts'],
+        },
+      },
+      {
+        test: {
+          name: 'Service',
+          include: ['service/src/**/*.spec.ts'],
+        },
+      },
+      {
+        test: {
+          name: 'Frontend',
+          environment: 'jsdom',
+          include: ['frontend/src/**/*.spec.(ts|tsx)'],
+        },
+      },
+    ],
+  },
+});
+```
+
+### Playwright for E2E Tests
+
+E2E tests use Playwright with the service auto-started:
+
+```typescript
+// playwright.config.ts
+import type { PlaywrightTestConfig } from '@playwright/test';
+import { devices } from '@playwright/test';
+
+const config: PlaywrightTestConfig = {
+  testDir: 'e2e',
+  fullyParallel: true,
+  use: {
+    trace: 'on-first-retry',
+    baseURL: 'http://localhost:9090',
+  },
+  webServer: {
+    command: 'yarn start:service',
+    url: 'http://localhost:9090',
+    reuseExistingServer: !process.env.CI,
+  },
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+  ],
+};
+```
+
+## Unit Testing with Vitest
+
+### Test File Location
+
+Place test files next to source files with `.spec.ts` suffix:
+
+```
+service/src/
+├── config.ts
+├── config.spec.ts     # Co-located test
+├── service.ts
+└── service.spec.ts
+```
+
+### Basic Test Structure
+
+Use `describe`, `it`, and `expect` from Vitest:
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+describe('MyService', () => {
+  describe('methodName', () => {
+    it('should do something when condition', () => {
+      // Arrange
+      const input = 'test';
+      
+      // Act
+      const result = myFunction(input);
+      
+      // Assert
+      expect(result).toBe('expected');
+    });
+  });
+});
+```
+
+### Testing Services
+
+Test service methods with mocked dependencies:
+
+```typescript
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Injector } from '@furystack/inject';
+
+describe('SessionService', () => {
+  let injector: Injector;
+  let sessionService: SessionService;
+  
+  beforeEach(() => {
+    injector = new Injector();
+    // Set up mocks
+    const mockApiClient = {
+      call: vi.fn(),
+    };
+    injector.setExplicitInstance(BoilerplateApiClient, mockApiClient);
+    sessionService = injector.getInstance(SessionService);
+  });
+  
+  it('should initialize with unauthenticated state', async () => {
+    expect(sessionService.state.getValue()).toBe('initializing');
+  });
+});
+```
+
+### Mocking with Vitest
+
+Use `vi.fn()` for function mocks and `vi.spyOn()` for spying:
+
+```typescript
+import { vi } from 'vitest';
+
+// Mock a function
+const mockFn = vi.fn().mockReturnValue('mocked');
+
+// Mock with implementation
+const mockFn = vi.fn().mockImplementation((arg) => `result: ${arg}`);
+
+// Mock async function
+const mockAsync = vi.fn().mockResolvedValue({ data: 'test' });
+
+// Spy on method
+const spy = vi.spyOn(service, 'method');
+
+// Verify calls
+expect(mockFn).toHaveBeenCalled();
+expect(mockFn).toHaveBeenCalledWith('arg');
+expect(mockFn).toHaveBeenCalledTimes(2);
+```
+
+### Testing Observable Values
+
+Test ObservableValue subscriptions:
+
+```typescript
+import { ObservableValue } from '@furystack/utils';
+
+describe('ObservableValue', () => {
+  it('should notify subscribers on value change', () => {
+    const observable = new ObservableValue<string>('initial');
+    const values: string[] = [];
+    
+    const subscription = observable.subscribe((value) => values.push(value));
+    observable.setValue('updated');
+    
+    expect(values).toEqual(['initial', 'updated']);
+    
+    subscription.dispose();
+  });
+});
+```
+
+## E2E Testing with Playwright
+
+### Test File Location
+
+Place E2E tests in the `e2e/` directory:
+
+```
+e2e/
+├── page.spec.ts       # Main page tests
+├── auth.spec.ts       # Authentication tests
+└── fixtures/          # Test fixtures if needed
+```
+
+### Basic E2E Test Structure
+
+Use Playwright's test API:
+
+```typescript
+import { expect, test } from '@playwright/test';
+
+test.describe('Feature Name', () => {
+  test('should do something', async ({ page }) => {
+    // Navigate
+    await page.goto('/');
+    
+    // Find elements
+    const element = page.locator('selector');
+    
+    // Assert visibility
+    await expect(element).toBeVisible();
+    
+    // Interact
+    await element.click();
+    
+    // Assert result
+    await expect(page.locator('.result')).toHaveText('Expected');
+  });
+});
+```
+
+### Locating Shades Components
+
+Use shadow DOM component names as selectors:
+
+```typescript
+test('should interact with Shades components', async ({ page }) => {
+  // Locate by shadow DOM name
+  const loginForm = page.locator('shade-login form');
+  await expect(loginForm).toBeVisible();
+  
+  // Locate inputs within components
+  const usernameInput = loginForm.locator('input[name="userName"]');
+  const passwordInput = loginForm.locator('input[name="password"]');
+  
+  // Fill inputs
+  await usernameInput.type('testuser');
+  await passwordInput.type('password');
+  
+  // Click buttons
+  const submitButton = page.locator('button', { hasText: 'Login' });
+  await submitButton.click();
+});
+```
+
+### Authentication Flow Test
+
+Example of testing login/logout:
+
+```typescript
+import { expect, test } from '@playwright/test';
+
+test.describe('Authentication', () => {
+  test('Login and logout roundtrip', async ({ page }) => {
+    await page.goto('/');
+    
+    // Wait for login form
+    const loginForm = page.locator('shade-login form');
+    await expect(loginForm).toBeVisible();
+    
+    // Fill credentials
+    await loginForm.locator('input[name="userName"]').type('testuser');
+    await loginForm.locator('input[name="password"]').type('password');
+    
+    // Submit
+    await page.locator('button', { hasText: 'Login' }).click();
+    
+    // Verify logged in state
+    const welcomeTitle = page.locator('hello-world div h2');
+    await expect(welcomeTitle).toBeVisible();
+    await expect(welcomeTitle).toHaveText('Hello, testuser !');
+    
+    // Logout
+    const logoutButton = page.locator('shade-app-bar button >> text="Log Out"');
+    await logoutButton.click();
+    
+    // Verify logged out
+    await expect(page.locator('shade-login form')).toBeVisible();
+  });
+});
+```
+
+### Waiting for Elements
+
+Use Playwright's auto-waiting or explicit waits:
+
+```typescript
+// Auto-wait (recommended)
+await expect(element).toBeVisible();
+
+// Explicit wait
+await page.waitForSelector('selector');
+await page.waitForLoadState('networkidle');
+
+// Wait for response
+await page.waitForResponse('**/api/endpoint');
+```
+
+## Running Tests
+
+### Unit Tests
+
+```bash
+# Run all unit tests
+yarn test:unit
+
+# Run with coverage
+yarn test:unit --coverage
+
+# Run specific workspace
+yarn test:unit --project=Service
+
+# Watch mode
+yarn test:unit --watch
+```
+
+### E2E Tests
+
+```bash
+# Run all E2E tests
+yarn test:e2e
+
+# Run specific test file
+yarn playwright test e2e/page.spec.ts
+
+# Run in headed mode (see browser)
+yarn playwright test --headed
+
+# Run specific browser
+yarn playwright test --project=chromium
+
+# Debug mode
+yarn playwright test --debug
+```
+
+## Test Coverage
+
+### Coverage Configuration
+
+Coverage is configured in `vitest.config.mts`:
+
+```typescript
+coverage: {
+  enabled: true,
+  include: [
+    'common/src/**/*.ts',
+    'frontend/src/**/*.ts',
+    'service/src/**/*.ts',
+  ],
+}
+```
+
+### Coverage Goals
+
+- **Service code**: Aim for high coverage on business logic
+- **Frontend components**: Focus on critical user flows
+- **Common types**: Types don't need test coverage
+
+## Summary
+
+**Key Principles:**
+
+1. **Co-locate tests** - Place `.spec.ts` files next to source files
+2. **Use Vitest for unit tests** - Fast, modern test runner
+3. **Use Playwright for E2E** - Cross-browser testing
+4. **Test Shades components** - Use shadow DOM names as locators
+5. **Mock FuryStack services** - Use Injector for DI in tests
+6. **Test Observable values** - Subscribe and verify value changes
+7. **Test auth flows E2E** - Cover login/logout in E2E tests
+
+**Testing Checklist:**
+
+- [ ] Unit tests for service logic
+- [ ] Unit tests for utility functions
+- [ ] E2E tests for critical user flows
+- [ ] E2E tests for authentication
+- [ ] Mocks for external dependencies
+- [ ] Coverage enabled for source files
+
+**Commands:**
+
+- Unit tests: `yarn test:unit`
+- E2E tests: `yarn test:e2e`
+- Coverage: `yarn test:unit --coverage`
+- Debug E2E: `yarn playwright test --debug`

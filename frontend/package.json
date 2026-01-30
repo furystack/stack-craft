@@ -1,0 +1,30 @@
+{
+  "name": "frontend",
+  "version": "1.0.2",
+  "description": "",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b && yarn vite build",
+    "start": "yarn vite --port 8080"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@codecov/vite-plugin": "^1.9.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@furystack/core": "^15.0.32",
+    "@furystack/inject": "^12.0.26",
+    "@furystack/logging": "^8.0.26",
+    "@furystack/rest-client-fetch": "^8.0.32",
+    "@furystack/shades": "^11.0.33",
+    "@furystack/shades-common-components": "^10.0.33",
+    "@furystack/utils": "^8.1.8",
+    "@types/node": "^25.0.10",
+    "common": "workspace:^"
+  }
+}
