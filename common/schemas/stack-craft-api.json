@@ -82,7 +82,7 @@
       "required": ["body", "result"],
       "additionalProperties": false
     },
-    "BoilerplateApi": {
+    "StackCraftApi": {
       "type": "object",
       "properties": {
         "GET": {

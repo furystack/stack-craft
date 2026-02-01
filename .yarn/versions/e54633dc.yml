@@ -1,5 +1,0 @@
-releases:
-  common: patch
-  frontend: patch
-  stack-craft: patch
-  service: patch

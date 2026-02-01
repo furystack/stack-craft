@@ -134,7 +134,7 @@ describe('SessionService', () => {
     const mockApiClient = {
       call: vi.fn(),
     };
-    injector.setExplicitInstance(BoilerplateApiClient, mockApiClient);
+    injector.setExplicitInstance(StackCraftApiClient, mockApiClient);
     sessionService = injector.getInstance(SessionService);
   });
   

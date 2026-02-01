@@ -3,7 +3,7 @@ import { Injectable, Injected } from '@furystack/inject'
 import { NotyService } from '@furystack/shades-common-components'
 import { ObservableValue, usingAsync } from '@furystack/utils'
 import type { User } from 'common'
-import { BoilerplateApiClient } from './boilerplate-api-client.js'
+import { StackCraftApiClient } from './stack-craft-api-client.js'
 
 export type SessionState = 'initializing' | 'offline' | 'unauthenticated' | 'authenticated'
 
@@ -101,8 +101,8 @@ export class SessionService implements IdentityContext {
     return currentUser as unknown as TUser
   }
 
-  @Injected(BoilerplateApiClient)
-  declare private api: BoilerplateApiClient
+  @Injected(StackCraftApiClient)
+  declare private api: StackCraftApiClient
 
   @Injected(NotyService)
   declare private readonly notys: NotyService
