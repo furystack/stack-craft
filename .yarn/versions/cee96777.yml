@@ -1,5 +1,5 @@
 releases:
   common: patch
   frontend: patch
-  furystack-boilerplate-app: patch
+  stack-craft: patch
   service: patch

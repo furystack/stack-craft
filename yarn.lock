@@ -2633,31 +2633,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"furystack-boilerplate-app@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "furystack-boilerplate-app@workspace:."
-  dependencies:
-    "@eslint/js": "npm:^9.39.2"
-    "@playwright/test": "npm:^1.58.0"
-    "@types/node": "npm:^25.0.10"
-    "@vitest/coverage-v8": "npm:^4.0.18"
-    eslint: "npm:^9.39.2"
-    eslint-config-prettier: "npm:^10.1.8"
-    eslint-plugin-import: "npm:2.32.0"
-    eslint-plugin-jsdoc: "npm:^62.4.0"
-    eslint-plugin-playwright: "npm:^2.5.0"
-    eslint-plugin-prettier: "npm:^5.5.5"
-    husky: "npm:^9.1.7"
-    lint-staged: "npm:^16.2.7"
-    prettier: "npm:^3.8.1"
-    rimraf: "npm:^6.1.2"
-    typescript: "npm:^5.9.3"
-    typescript-eslint: "npm:^8.53.1"
-    vite: "npm:^7.3.1"
-    vitest: "npm:^4.0.18"
-  languageName: unknown
-  linkType: soft
-
 "generator-function@npm:^2.0.0":
   version: 2.0.1
   resolution: "generator-function@npm:2.0.1"
@@ -4505,6 +4480,31 @@ __metadata:
   checksum: 10c0/405f3a531cd98b013cecb355d63555dca42fd12c7bc6671738aaa9a82882ff41cdf0ef9a2b734ca4f9a760338f114c29d01d9238a65db3ccac27929bd6e6d4b2
   languageName: node
   linkType: hard
+
+"stack-craft@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "stack-craft@workspace:."
+  dependencies:
+    "@eslint/js": "npm:^9.39.2"
+    "@playwright/test": "npm:^1.58.0"
+    "@types/node": "npm:^25.0.10"
+    "@vitest/coverage-v8": "npm:^4.0.18"
+    eslint: "npm:^9.39.2"
+    eslint-config-prettier: "npm:^10.1.8"
+    eslint-plugin-import: "npm:2.32.0"
+    eslint-plugin-jsdoc: "npm:^62.4.0"
+    eslint-plugin-playwright: "npm:^2.5.0"
+    eslint-plugin-prettier: "npm:^5.5.5"
+    husky: "npm:^9.1.7"
+    lint-staged: "npm:^16.2.7"
+    prettier: "npm:^3.8.1"
+    rimraf: "npm:^6.1.2"
+    typescript: "npm:^5.9.3"
+    typescript-eslint: "npm:^8.53.1"
+    vite: "npm:^7.3.1"
+    vitest: "npm:^4.0.18"
+  languageName: unknown
+  linkType: soft
 
 "stackback@npm:0.0.2":
   version: 0.0.2

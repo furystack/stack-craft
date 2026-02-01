@@ -1,6 +1,6 @@
-# boilerplate
+# Stack Craft
 
-Boilerplate app with common type api definitions, a furystack-based backend service and a Shades-based single page application.
+Example web app with common type API definitions, a FuryStack-based backend service and a Shades-based single page application.
 
 # Usage
 
