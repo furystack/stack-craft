@@ -1,11 +1,9 @@
 ---
 name: Code Style
-description: Formatting, naming conventions, import ordering, and file organization for the Boilerplate app
+description: Formatting, naming conventions, import ordering, and file organization
 globs:
   - '**/*.ts'
   - '**/*.tsx'
-  - '**/*.js'
-  - '**/*.jsx'
 alwaysApply: true
 ---
 
@@ -20,10 +18,10 @@ This project uses Prettier for code formatting. **Always use the project's Prett
 **Configuration file:** `prettier.config.js`
 
 ```bash
-# Format code
+# ✅ Good - format code
 yarn prettier
 
-# Check formatting
+# ✅ Good - check formatting
 yarn prettier:check
 ```
 
@@ -34,18 +32,18 @@ This project uses ESLint for code quality. **Always use the project's ESLint con
 **Configuration file:** `eslint.config.js`
 
 ```bash
-# Lint code
+# ✅ Good - lint code
 yarn lint
 ```
 
 ### Automated Formatting
 
-Code is automatically formatted on commit via Husky and lint-staged:
+Code is automatically formatted on commit via Husky:
 
 ```json
 {
   "lint-staged": {
-    "*.{ts,tsx}": ["eslint --ext .tsx,.ts --cache --fix", "prettier --write", "git add"]
+    "*.{ts,tsx}": ["eslint --fix", "prettier --write", "git add"]
   }
 }
 ```
@@ -54,212 +52,619 @@ Code is automatically formatted on commit via Husky and lint-staged:
 
 ### Files and Directories
 
-#### Source Files
+#### Component Files
 
-- **kebab-case** for all files
-- `.ts` for TypeScript, `.tsx` for JSX components
-- One main export per file
+- **Shades Components:** PascalCase, `.tsx` extension
+- **One component per file**
+- File name matches component name
 
 ```
 ✅ Good:
-frontend/src/components/theme-switch/index.tsx
-frontend/src/services/session.ts
-service/src/shutdown-handler.ts
+frontend/src/components/user-profile.tsx
+frontend/src/pages/dashboard.tsx
+frontend/src/components/routes/settings-routes.tsx
 
 ❌ Avoid:
-frontend/src/components/ThemeSwitch.tsx
-frontend/src/services/Session.ts
-service/src/ShutdownHandler.ts
+frontend/src/components/UserProfile.tsx (should be kebab-case for files)
+frontend/src/components/user_profile.tsx
+frontend/src/components/components.tsx (multiple components)
+```
+
+#### Non-Component Files
+
+- **Utilities:** kebab-case, `.ts` extension
+- **Services:** kebab-case with `-service` suffix, `.ts` extension
+- **Types:** kebab-case, `.ts` extension
+- **Constants:** kebab-case or UPPER_SNAKE_CASE, `.ts` extension
+- **API Clients:** kebab-case with `-api-client` suffix, `.ts` extension
+
+```
+✅ Good:
+service/src/utils/format-currency.ts
+frontend/src/services/session-service.ts
+common/src/models/user.ts
+common/src/constants/api-endpoints.ts
+frontend/src/services/api-clients/media-api-client.ts
+
+❌ Avoid:
+service/src/utils/FormatCurrency.ts
+frontend/src/services/SessionService.ts
+common/src/models/User.ts
 ```
 
 #### Test Files
 
-- **Same name as source** with `.spec.ts` suffix
-- Co-located with source file when possible
+- **Unit Tests:** `*.spec.ts` or `*.spec.tsx`
+- **E2E Tests:** `*.e2e.spec.ts`
+- Co-located with the file being tested
 
 ```
 ✅ Good:
-service/src/config.ts
-service/src/config.spec.ts
+frontend/src/services/session-service.ts
+frontend/src/services/session-service.spec.ts
+e2e/login.e2e.spec.ts
 
 ❌ Avoid:
-service/test/config.spec.ts (not co-located)
-service/src/config.test.ts (use .spec.ts)
+frontend/src/services/session-service-test.ts
+test/session-service.spec.ts (not co-located)
 ```
 
-### Components and Classes
+#### Directory Names
 
-- **PascalCase** for components, classes, and types
+- **Component directories:** kebab-case
+- **Service directories:** kebab-case
+- **Module directories:** kebab-case
+
+```
+✅ Good:
+frontend/src/components/user-profile/
+frontend/src/pages/media-library/
+service/src/app-models/auth/
+common/src/apis/
+
+❌ Avoid:
+frontend/src/components/UserProfile/
+frontend/src/components/user_profile/
+```
+
+### Variables and Functions
+
+#### Variables
+
+- **camelCase** for variables
+- **UPPER_SNAKE_CASE** for constants
+- Descriptive names
+
+```typescript
+// ✅ Good
+const userName = 'John Doe'
+const isAuthenticated = true
+const userList = []
+const MAX_RETRY_COUNT = 3
+const API_BASE_URL = 'https://api.example.com'
+
+// ❌ Avoid
+const user_name = 'John Doe'
+const User = 'John Doe'
+const x = true
+const maxretrycount = 3
+```
+
+#### Functions
+
+- **camelCase** for functions
+- Verb-based names
 - Descriptive and clear purpose
 
 ```typescript
 // ✅ Good
-export const ThemeSwitch = createComponent(...)
-export class SessionService {}
-export type BoilerplateApi = {}
+function getUserProfile() {}
+function calculateTotal() {}
+function validateEmail() {}
+function handleSubmit() {}
+function fetchUserData() {}
 
 // ❌ Avoid
-export const themeSwitch = createComponent(...) // Wrong case
-export class sessionService {} // Wrong case
+function user() {}
+function calc() {}
+function validate() {}
+function submit() {}
+function getData() {}
 ```
 
-### Functions and Variables
+#### Event Handlers
 
-- **camelCase** for functions and variables
+- **Prefix with `handle`** for internal handlers
+- **Prefix with `on`** for prop callbacks
+
+```typescript
+// ✅ Good - Shades component with event handlers
+const MyComponent = Shade({
+  shadowDomName: 'my-component',
+  render: ({ props, injector }) => {
+    const handleButtonClick = () => {
+      // Internal logic
+      props.onSave?.();
+    };
+
+    const handleFormSubmit = (ev: Event) => {
+      ev.preventDefault();
+      // Submit logic
+    };
+
+    return (
+      <form onsubmit={handleFormSubmit}>
+        <button onclick={handleButtonClick}>Save</button>
+        <button onclick={props.onCancel}>Cancel</button>
+      </form>
+    );
+  },
+});
+```
+
+#### Boolean Variables
+
+- Prefix with `is`, `has`, `should`, or `can`
+
+```typescript
+// ✅ Good
+const isAuthenticated = true
+const hasPermission = false
+const shouldRender = true
+const canEdit = false
+const isLoading = true
+const hasError = false
+
+// ❌ Avoid
+const authenticated = true
+const permission = false
+const render = true
+const edit = false
+```
+
+### Shades Components
+
+#### Component Names
+
+- **PascalCase** for components
+- Descriptive and specific
+
+```typescript
+// ✅ Good
+export const UserProfile = Shade({
+  /* ... */
+})
+export const MediaLibrary = Shade({
+  /* ... */
+})
+export const NavigationSidebar = Shade({
+  /* ... */
+})
+
+// ❌ Avoid
+export const userProfile = Shade({
+  /* ... */
+})
+export const Component = Shade({
+  /* ... */
+}) // Too generic
+export const UP = Shade({
+  /* ... */
+}) // Unclear abbreviation
+```
+
+#### Component Props Types
+
+- **PascalCase** with `Props` suffix
+- Use `type` instead of `interface`
+
+```typescript
+// ✅ Good
+type UserProfileProps = {
+  userId: string;
+  onEdit?: () => void;
+  onDelete?: () => void;
+};
+
+export const UserProfile = Shade<UserProfileProps>({
+  shadowDomName: 'user-profile',
+  render: ({ props }) => {
+    // Component implementation
+  },
+});
+
+// ❌ Avoid
+interface UserProfileProps { }  // Use type instead
+type UserProfileProperties { }  // Wrong suffix
+type Props { }  // Not specific enough
+```
+
+### Services and Injectables
+
+- **PascalCase** for class names
+- **Suffix with `Service`** for services
+- Use `@Injectable` decorator
+
+```typescript
+// ✅ Good
+@Injectable({ lifetime: 'singleton' })
+export class SessionService {
+  // Service implementation
+}
+
+@Injectable({ lifetime: 'singleton' })
+export class MediaApiClient {
+  // API client implementation
+}
+
+// ❌ Avoid
+export class session {} // Wrong case
+export class Session {} // Missing suffix
+export class SessionServiceClass {} // Redundant suffix
+```
+
+### TypeScript Types and Interfaces
+
+- **PascalCase** for types and interfaces
+- **Prefer `type` over `interface`**
+- Descriptive names
+
+```typescript
+// ✅ Good
+type User = {
+  id: string
+  name: string
+  email: string
+}
+
+type UserWithProfile = User & {
+  avatar?: string
+  bio?: string
+}
+
+type RequestState<T> =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; data: T }
+  | { status: 'error'; error: string }
+
+// ❌ Avoid
+interface User {} // Use type instead (per project guidelines)
+type user = {} // Wrong case
+type UserType = {} // Redundant suffix
+type T = {} // Not descriptive
+```
+
+### Enums and Constants
+
+- **PascalCase** for enum names
+- **UPPER_SNAKE_CASE** for enum values
 - **UPPER_SNAKE_CASE** for constants
 
 ```typescript
 // ✅ Good
-export function getCurrentUser() {}
-export const isAuthenticated = true;
-export const DEFAULT_PORT = 9090;
+enum UserRole {
+  ADMIN = 'ADMIN',
+  USER = 'USER',
+  GUEST = 'GUEST',
+}
+
+const MAX_RETRY_COUNT = 3
+const API_BASE_URL = 'https://api.example.com'
+const DEFAULT_PAGE_SIZE = 10
 
 // ❌ Avoid
-export function GetCurrentUser() {}
-export const IsAuthenticated = true;
+enum userRole {} // Wrong case
+enum UserRole {
+  admin = 'admin', // Wrong case for values
+}
+const maxRetryCount = 3 // Should be UPPER_SNAKE_CASE
 ```
 
-## Project Structure
+## File Organization Patterns
 
-### Workspace Organization
+### Component Directory Structure
 
 ```
-boilerplate/
-├── common/                    # Shared types and API definitions
+frontend/src/components/user-profile/
+├── user-profile.tsx           # Main component
+├── user-profile.spec.tsx      # Unit tests
+└── components/                # Sub-components (if any)
+    ├── user-avatar.tsx
+    └── user-stats.tsx
+```
+
+### Project Structure
+
+```
+stack-craft/
+├── common/              # Shared types and APIs
 │   ├── src/
-│   │   ├── index.ts          # Main exports
-│   │   ├── boilerplate-api.ts # API type definitions
-│   │   └── models/           # Entity models
-│   └── schemas/              # JSON schemas for validation
-├── frontend/                  # Shades-based frontend
-│   └── src/
-│       ├── index.tsx         # App entry point
-│       ├── components/       # Reusable components
-│       ├── pages/            # Page components
-│       └── services/         # Frontend services
-├── service/                   # REST backend service
-│   └── src/
-│       ├── service.ts        # Service entry point
-│       ├── config.ts         # Configuration
-│       └── seed.ts           # Database seeding
-└── e2e/                       # End-to-end tests
-    └── page.spec.ts
+│   │   ├── apis/       # API type definitions
+│   │   ├── models/     # Shared models
+│   │   └── schemas/    # Generated schemas
+├── frontend/           # Frontend application
+│   ├── src/
+│   │   ├── components/ # Reusable components
+│   │   ├── pages/      # Page components
+│   │   ├── services/   # Business logic
+│   │   └── styles/     # Global styles
+├── service/            # Backend service
+│   ├── src/
+│   │   ├── app-models/ # Domain models
+│   │   ├── actions/    # REST actions
+│   │   └── utils/      # Utility functions
+└── e2e/               # End-to-end tests
 ```
 
-### Component File Structure
-
-Components should be organized in directories when they have assets:
-
-```
-components/
-├── theme-switch/
-│   └── index.tsx             # Component with no assets
-├── github-logo/
-│   ├── index.tsx             # Component
-│   ├── gh-dark.png           # Dark theme asset
-│   └── gh-light.png          # Light theme asset
-└── header.tsx                 # Simple component (no directory needed)
-```
-
-## Import Ordering
+## Import Ordering and Grouping
 
 ### Import Order
 
-1. **Node built-ins**
-2. **External dependencies** (npm packages)
-3. **FuryStack packages** (`@furystack/*`)
-4. **Workspace packages** (`common`)
+Group imports in the following order:
+
+1. **FuryStack framework imports**
+2. **Third-party libraries**
+3. **Common package imports** (from `common`)
+4. **Absolute imports from the project** (frontend/service)
 5. **Relative imports**
 6. **Type imports** (if separated)
 
 ```typescript
 // ✅ Good - organized imports
-import { EventEmitter } from 'events';
+import { Injectable, Injected } from '@furystack/inject'
+import { ObservableValue } from '@furystack/utils'
+import { Shade } from '@furystack/shades'
 
-import { createComponent, Shade } from '@furystack/shades';
-import { Injector } from '@furystack/inject';
+import type { FindOptions } from '@furystack/core'
+import { Cache } from '@furystack/cache'
 
-import type { BoilerplateApi } from 'common';
+import type { User, Series } from 'common'
 
-import { SessionService } from '../services/session.js';
-import type { UserProps } from './types.js';
+import { SessionService } from '../services/session-service.js'
+import { formatDate } from '../utils/format-date.js'
+
+import { UserAvatar } from './components/user-avatar.js'
+import { UserStats } from './components/user-stats.js'
 
 // ❌ Avoid - random ordering
-import { SessionService } from '../services/session.js';
-import { EventEmitter } from 'events';
-import { Injector } from '@furystack/inject';
+import { UserStats } from './components/user-stats.js'
+import { ObservableValue } from '@furystack/utils'
+import type { User } from 'common'
+import { SessionService } from '../services/session-service.js'
 ```
 
-### Import Grouping
+### Import Grouping with Blank Lines
 
 Separate import groups with blank lines:
 
 ```typescript
 // ✅ Good - separated groups
-import { Injector } from '@furystack/inject';
-import { getLogger, useLogging } from '@furystack/logging';
+import { Injectable } from '@furystack/inject'
+import { Shade } from '@furystack/shades'
 
-import type { User } from 'common';
+import { Cache } from '@furystack/cache'
 
-import { SessionService } from './services/session.js';
+import type { User } from 'common'
+
+import { SessionService } from '../services/session-service.js'
+
+import { UserAvatar } from './components/user-avatar.js'
 ```
 
-## Code Organization
+### Named Imports
 
-### Service Class Structure
+Use named imports and group them logically:
 
 ```typescript
-// ✅ Good - organized service
-@Injectable({ lifetime: 'singleton' })
-export class SessionService {
-  // 1. Injected dependencies
-  @Injected(ApiClient)
-  private declare apiClient: ApiClient;
+// ✅ Good - grouped FuryStack imports
+import { Injectable, Injected } from '@furystack/inject'
+import { ObservableValue, usingAsync } from '@furystack/utils'
 
-  // 2. Public properties
-  public currentUser = new ObservableValue<User | null>(null);
+// ✅ Good - alphabetically sorted when many imports
+import { Cache } from '@furystack/cache'
+import { getCurrentUser } from '@furystack/core'
+import { getLogger } from '@furystack/logging'
+import { JsonResult, RequestError } from '@furystack/rest-service'
 
-  // 3. Constructor (if needed)
-  constructor() {
-    this.init();
-  }
-
-  // 4. Public methods
-  public async login(credentials: Credentials): Promise<void> {
-    // Implementation
-  }
-
-  // 5. Private methods
-  private async init(): Promise<void> {
-    // Implementation
-  }
-
-  // 6. Disposal
-  public [Symbol.dispose](): void {
-    // Cleanup
-  }
-}
+// ❌ Avoid - separate imports for same package
+import { Injectable } from '@furystack/inject'
+import { Injected } from '@furystack/inject'
 ```
+
+## Code Organization Within Files
 
 ### Component File Structure
 
+Organize Shades components with this structure:
+
 ```typescript
 // 1. Imports
-import { createComponent, Shade } from '@furystack/shades';
-import { Injected } from '@furystack/inject';
+import { Shade } from '@furystack/shades';
+import { ObservableValue } from '@furystack/utils';
+
+import type { User } from 'common';
 
 // 2. Types
-type MyComponentProps = {
-  title: string;
+type UserProfileProps = {
+  userId: string;
+  onEdit?: () => void;
 };
 
-// 3. Component
-export const MyComponent = Shade<MyComponentProps>({
-  shadowDomName: 'my-component',
-  render: ({ props }) => {
-    return <div>{props.title}</div>;
+// 3. Constants (if any)
+const MAX_BIO_LENGTH = 500;
+
+// 4. Helper functions (if any)
+const formatDate = (date: Date): string => {
+  // ...
+};
+
+// 5. Main component
+export const UserProfile = Shade<UserProfileProps>({
+  shadowDomName: 'user-profile',
+  render: ({ props, injector, useObservable, useDisposable }) => {
+    // Services
+    const userService = injector.getInstance(UserService);
+
+    // Observable subscriptions
+    const [user] = useObservable('user', userService.getUserById(props.userId));
+
+    // Local state
+    const isEditing = useDisposable('isEditing', () => new ObservableValue(false));
+    const error = useDisposable('error', () => new ObservableValue(''));
+
+    // Handlers
+    const handleEditClick = () => {
+      isEditing.setValue(true);
+      props.onEdit?.();
+    };
+
+    // Render
+    return (
+      <div data-testid="user-profile">
+        {/* Component content */}
+      </div>
+    );
   },
 });
+```
+
+### Service File Structure
+
+Organize services with this structure:
+
+```typescript
+// 1. Imports
+import { Injectable, Injected } from '@furystack/inject'
+import { ObservableValue } from '@furystack/utils'
+import { Cache } from '@furystack/cache'
+
+// 2. Types
+type UserData = {
+  id: string
+  name: string
+}
+
+// 3. Service class
+@Injectable({ lifetime: 'singleton' })
+export class UserService {
+  // Injected dependencies
+  @Injected(ApiClient)
+  declare private apiClient: ApiClient
+
+  // Cache instances
+  public userCache = new Cache({
+    capacity: 100,
+    load: async (id: string) => {
+      const { result } = await this.apiClient.call({
+        method: 'GET',
+        action: '/users/:id',
+        url: { id },
+        query: {},
+      })
+      return result
+    },
+  })
+
+  // Observable state
+  public currentUser = new ObservableValue<UserData | null>(null)
+
+  // Public methods
+  public getUser = this.userCache.get.bind(this.userCache)
+  public getUserAsObservable = this.userCache.getObservable.bind(this.userCache)
+}
+```
+
+## JSX/TSX Code Style
+
+### JSX Formatting
+
+```tsx
+// ✅ Good - multi-line for readability
+<button
+  type="button"
+  onclick={handleClick}
+  style={{ padding: '8px 16px' }}
+>
+  Save Changes
+</button>
+
+// ✅ Good - single line for simple cases
+<button onclick={handleClick}>Save</button>
+
+// ❌ Avoid - hard to read
+<button type="button" onclick={handleClick} style={{ padding: '8px 16px' }}>Save Changes</button>
+```
+
+### Conditional Rendering
+
+```tsx
+// ✅ Good - logical AND for simple cases
+{
+  isLoading && <div>Loading...</div>
+}
+
+// ✅ Good - ternary for if-else
+{
+  isLoading ? <div>Loading...</div> : <div>Content</div>
+}
+
+// ✅ Good - early return for complex cases
+if (isLoading) return <div>Loading...</div>
+if (error) return <div>Error: {error}</div>
+return <div>Content</div>
+
+// ❌ Avoid - nested ternaries
+{
+  isLoading ? <div>Loading...</div> : error ? <div>Error</div> : <div>Content</div>
+}
+```
+
+## Comments and Documentation
+
+### JSDoc for Functions
+
+```typescript
+/**
+ * Formats a currency value with the specified currency code
+ * @param value - The numeric value to format
+ * @param currency - The ISO currency code (e.g., 'USD', 'EUR')
+ * @returns Formatted currency string
+ */
+export const formatCurrency = (value: number, currency: string): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+  }).format(value)
+}
+```
+
+### Component Documentation
+
+```typescript
+/**
+ * UserProfile component displays user information and allows editing
+ */
+export const UserProfile = Shade<UserProfileProps>({
+  shadowDomName: 'user-profile',
+  render: ({ props }) => {
+    // Component implementation
+  },
+})
+```
+
+### Inline Comments
+
+Use inline comments sparingly and only for complex logic:
+
+```typescript
+// ✅ Good - explaining complex logic
+// Calculate exponential backoff: 1s, 2s, 4s, 8s...
+const delay = Math.min(1000 * 2 ** attempt, 30000)
+
+// ❌ Avoid - stating the obvious
+// Set count to 0
+const count = 0
 ```
 
 ## Summary
@@ -267,19 +672,20 @@ export const MyComponent = Shade<MyComponentProps>({
 **Key Principles:**
 
 1. **Follow project's Prettier and ESLint configs**
-2. **Use consistent naming:**
-   - PascalCase: Components, classes, types
-   - camelCase: Functions, variables
+2. **Use consistent naming conventions:**
+   - PascalCase: Components, services, types
+   - camelCase: Variables, functions
    - kebab-case: File names
    - UPPER_SNAKE_CASE: Constants
-3. **Organize imports** by category with blank lines
-4. **Co-locate tests** with source files
-5. **Structure components** in directories when they have assets
+3. **Organize files logically** with direct imports
+4. **Order imports** by category with blank lines (FuryStack → Third-party → Common → Local)
+5. **Structure components** consistently (services → observables → handlers → render)
+6. **Be explicit** with TypeScript where it adds clarity
+7. **Format JSX** for readability
+8. **Document** complex logic and public APIs
 
 **Tools:**
 
 - Prettier: `yarn prettier`
 - ESLint: `yarn lint`
 - Type Check: `yarn build`
-- Unit Tests: `yarn test:unit`
-- E2E Tests: `yarn test:e2e`
