@@ -1,9 +1,9 @@
 {
-  "name": "furystack-boilerplate-app",
+  "name": "stack-craft",
   "version": "1.0.2",
-  "description": "example web app based on furystack",
+  "description": "Example web app based on FuryStack",
   "main": "service/src/index.ts",
-  "repository": "https://github.com/furystack/boilerplate.git",
+  "repository": "https://github.com/furystack/stack-craft.git",
   "author": "Gallay Lajos <gallay.lajos@gmail.com>",
   "license": "GPL-2.0-only",
   "private": true,
@@ -62,9 +62,9 @@
     "clean": "rimraf service/dist frontend/dist **/tsconfig.tsbuildinfo tsconfig.tsbuildinfo common/dist",
     "lint": "eslint .",
     "bumpVersions": "yarn version check --interactive",
-    "applyVersionBumps": "yarn version apply --all && echo TODO: Upgrade changelogs",
-    "prettier": "prettier --write .",
-    "prettier:check": "prettier --check ."
+    "applyReleaseChanges": "yarn version apply --all && yarn changelog apply && yarn format",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "engines": {
     "node": ">=18.0.0"

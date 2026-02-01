@@ -24,7 +24,7 @@ export const Layout = Shade({
           backgroundColor: injector.getInstance(ThemeProviderService).theme.background.default,
         }}
       >
-        <Header title="🧩 FuryStack Boilerplate" links={[]} />
+        <Header title="🧩 Stack Craft" links={[]} />
         <Body style={{ width: '100%', height: '100%', overflow: 'auto' }} />
       </div>
     )

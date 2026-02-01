@@ -5,7 +5,7 @@ export type TestQueryEndpoint = { query: { param1: string }; result: { param1Val
 export type TestUrlParamsEndpoint = { url: { urlParam: string }; result: { urlParamValue: string } }
 export type TestPostBodyEndpoint = { body: { value: string }; result: { bodyValue: string } }
 
-export interface BoilerplateApi extends RestApi {
+export interface StackCraftApi extends RestApi {
   GET: {
     '/isAuthenticated': { result: { isAuthenticated: boolean } }
     '/currentUser': { result: User }

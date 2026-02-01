@@ -21,8 +21,8 @@ export const entityValues: SchemaGenerationSetting[] = [
 
 export const apiValues: SchemaGenerationSetting[] = [
   {
-    inputFile: './src/boilerplate-api.ts',
-    outputFile: './schemas/boilerplate-api.json',
+    inputFile: './src/stack-craft-api.ts',
+    outputFile: './schemas/stack-craft-api.json',
     type: '*',
   },
 ]
