@@ -18,7 +18,7 @@ The project uses Vitest for unit testing with workspace-based configuration:
 
 ```typescript
 // vitest.config.mts
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
@@ -48,7 +48,7 @@ export default defineConfig({
       },
     ],
   },
-});
+})
 ```
 
 ### Playwright for E2E Tests
@@ -57,8 +57,8 @@ E2E tests use Playwright with the service auto-started:
 
 ```typescript
 // playwright.config.ts
-import type { PlaywrightTestConfig } from '@playwright/test';
-import { devices } from '@playwright/test';
+import type { PlaywrightTestConfig } from '@playwright/test'
+import { devices } from '@playwright/test'
 
 const config: PlaywrightTestConfig = {
   testDir: 'e2e',
@@ -76,7 +76,7 @@ const config: PlaywrightTestConfig = {
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
   ],
-};
+}
 ```
 
 ## Unit Testing with Vitest
@@ -98,22 +98,22 @@ service/src/
 Use `describe`, `it`, and `expect` from Vitest:
 
 ```typescript
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 describe('MyService', () => {
   describe('methodName', () => {
     it('should do something when condition', () => {
       // Arrange
-      const input = 'test';
-      
+      const input = 'test'
+
       // Act
-      const result = myFunction(input);
-      
+      const result = myFunction(input)
+
       // Assert
-      expect(result).toBe('expected');
-    });
-  });
-});
+      expect(result).toBe('expected')
+    })
+  })
+})
 ```
 
 ### Testing Services
@@ -121,27 +121,27 @@ describe('MyService', () => {
 Test service methods with mocked dependencies:
 
 ```typescript
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Injector } from '@furystack/inject';
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Injector } from '@furystack/inject'
 
 describe('SessionService', () => {
-  let injector: Injector;
-  let sessionService: SessionService;
-  
+  let injector: Injector
+  let sessionService: SessionService
+
   beforeEach(() => {
-    injector = new Injector();
+    injector = new Injector()
     // Set up mocks
     const mockApiClient = {
       call: vi.fn(),
-    };
-    injector.setExplicitInstance(StackCraftApiClient, mockApiClient);
-    sessionService = injector.getInstance(SessionService);
-  });
-  
+    }
+    injector.setExplicitInstance(StackCraftApiClient, mockApiClient)
+    sessionService = injector.getInstance(SessionService)
+  })
+
   it('should initialize with unauthenticated state', async () => {
-    expect(sessionService.state.getValue()).toBe('initializing');
-  });
-});
+    expect(sessionService.state.getValue()).toBe('initializing')
+  })
+})
 ```
 
 ### Mocking with Vitest
@@ -149,24 +149,24 @@ describe('SessionService', () => {
 Use `vi.fn()` for function mocks and `vi.spyOn()` for spying:
 
 ```typescript
-import { vi } from 'vitest';
+import { vi } from 'vitest'
 
 // Mock a function
-const mockFn = vi.fn().mockReturnValue('mocked');
+const mockFn = vi.fn().mockReturnValue('mocked')
 
 // Mock with implementation
-const mockFn = vi.fn().mockImplementation((arg) => `result: ${arg}`);
+const mockFn = vi.fn().mockImplementation((arg) => `result: ${arg}`)
 
 // Mock async function
-const mockAsync = vi.fn().mockResolvedValue({ data: 'test' });
+const mockAsync = vi.fn().mockResolvedValue({ data: 'test' })
 
 // Spy on method
-const spy = vi.spyOn(service, 'method');
+const spy = vi.spyOn(service, 'method')
 
 // Verify calls
-expect(mockFn).toHaveBeenCalled();
-expect(mockFn).toHaveBeenCalledWith('arg');
-expect(mockFn).toHaveBeenCalledTimes(2);
+expect(mockFn).toHaveBeenCalled()
+expect(mockFn).toHaveBeenCalledWith('arg')
+expect(mockFn).toHaveBeenCalledTimes(2)
 ```
 
 ### Testing Observable Values
@@ -174,21 +174,21 @@ expect(mockFn).toHaveBeenCalledTimes(2);
 Test ObservableValue subscriptions:
 
 ```typescript
-import { ObservableValue } from '@furystack/utils';
+import { ObservableValue } from '@furystack/utils'
 
 describe('ObservableValue', () => {
   it('should notify subscribers on value change', () => {
-    const observable = new ObservableValue<string>('initial');
-    const values: string[] = [];
-    
-    const subscription = observable.subscribe((value) => values.push(value));
-    observable.setValue('updated');
-    
-    expect(values).toEqual(['initial', 'updated']);
-    
-    subscription.dispose();
-  });
-});
+    const observable = new ObservableValue<string>('initial')
+    const values: string[] = []
+
+    const subscription = observable.subscribe((value) => values.push(value))
+    observable.setValue('updated')
+
+    expect(values).toEqual(['initial', 'updated'])
+
+    subscription.dispose()
+  })
+})
 ```
 
 ## E2E Testing with Playwright
@@ -209,26 +209,26 @@ e2e/
 Use Playwright's test API:
 
 ```typescript
-import { expect, test } from '@playwright/test';
+import { expect, test } from '@playwright/test'
 
 test.describe('Feature Name', () => {
   test('should do something', async ({ page }) => {
     // Navigate
-    await page.goto('/');
-    
+    await page.goto('/')
+
     // Find elements
-    const element = page.locator('selector');
-    
+    const element = page.locator('selector')
+
     // Assert visibility
-    await expect(element).toBeVisible();
-    
+    await expect(element).toBeVisible()
+
     // Interact
-    await element.click();
-    
+    await element.click()
+
     // Assert result
-    await expect(page.locator('.result')).toHaveText('Expected');
-  });
-});
+    await expect(page.locator('.result')).toHaveText('Expected')
+  })
+})
 ```
 
 ### Locating Shades Components
@@ -238,21 +238,21 @@ Use shadow DOM component names as selectors:
 ```typescript
 test('should interact with Shades components', async ({ page }) => {
   // Locate by shadow DOM name
-  const loginForm = page.locator('shade-login form');
-  await expect(loginForm).toBeVisible();
-  
+  const loginForm = page.locator('shade-login form')
+  await expect(loginForm).toBeVisible()
+
   // Locate inputs within components
-  const usernameInput = loginForm.locator('input[name="userName"]');
-  const passwordInput = loginForm.locator('input[name="password"]');
-  
+  const usernameInput = loginForm.locator('input[name="userName"]')
+  const passwordInput = loginForm.locator('input[name="password"]')
+
   // Fill inputs
-  await usernameInput.type('testuser');
-  await passwordInput.type('password');
-  
+  await usernameInput.type('testuser')
+  await passwordInput.type('password')
+
   // Click buttons
-  const submitButton = page.locator('button', { hasText: 'Login' });
-  await submitButton.click();
-});
+  const submitButton = page.locator('button', { hasText: 'Login' })
+  await submitButton.click()
+})
 ```
 
 ### Authentication Flow Test
@@ -260,36 +260,36 @@ test('should interact with Shades components', async ({ page }) => {
 Example of testing login/logout:
 
 ```typescript
-import { expect, test } from '@playwright/test';
+import { expect, test } from '@playwright/test'
 
 test.describe('Authentication', () => {
   test('Login and logout roundtrip', async ({ page }) => {
-    await page.goto('/');
-    
+    await page.goto('/')
+
     // Wait for login form
-    const loginForm = page.locator('shade-login form');
-    await expect(loginForm).toBeVisible();
-    
+    const loginForm = page.locator('shade-login form')
+    await expect(loginForm).toBeVisible()
+
     // Fill credentials
-    await loginForm.locator('input[name="userName"]').type('testuser');
-    await loginForm.locator('input[name="password"]').type('password');
-    
+    await loginForm.locator('input[name="userName"]').type('testuser')
+    await loginForm.locator('input[name="password"]').type('password')
+
     // Submit
-    await page.locator('button', { hasText: 'Login' }).click();
-    
+    await page.locator('button', { hasText: 'Login' }).click()
+
     // Verify logged in state
-    const welcomeTitle = page.locator('hello-world div h2');
-    await expect(welcomeTitle).toBeVisible();
-    await expect(welcomeTitle).toHaveText('Hello, testuser !');
-    
+    const welcomeTitle = page.locator('hello-world div h2')
+    await expect(welcomeTitle).toBeVisible()
+    await expect(welcomeTitle).toHaveText('Hello, testuser !')
+
     // Logout
-    const logoutButton = page.locator('shade-app-bar button >> text="Log Out"');
-    await logoutButton.click();
-    
+    const logoutButton = page.locator('shade-app-bar button >> text="Log Out"')
+    await logoutButton.click()
+
     // Verify logged out
-    await expect(page.locator('shade-login form')).toBeVisible();
-  });
-});
+    await expect(page.locator('shade-login form')).toBeVisible()
+  })
+})
 ```
 
 ### Waiting for Elements
@@ -298,14 +298,14 @@ Use Playwright's auto-waiting or explicit waits:
 
 ```typescript
 // Auto-wait (recommended)
-await expect(element).toBeVisible();
+await expect(element).toBeVisible()
 
 // Explicit wait
-await page.waitForSelector('selector');
-await page.waitForLoadState('networkidle');
+await page.waitForSelector('selector')
+await page.waitForLoadState('networkidle')
 
 // Wait for response
-await page.waitForResponse('**/api/endpoint');
+await page.waitForResponse('**/api/endpoint')
 ```
 
 ## Running Tests
