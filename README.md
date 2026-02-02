@@ -10,5 +10,5 @@ Example web app with common type API definitions, a FuryStack-based backend serv
 
 # Testing
 
-- You can execute the example Vitest tests with `yarn test:unit`
+- You can execute the example Vitest tests with `yarn test`
 - You can execute E2E tests with `yarn test:e2e`

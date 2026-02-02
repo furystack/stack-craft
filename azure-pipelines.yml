@@ -28,7 +28,7 @@ steps:
   - script: yarn lint
     displayName: 'Yarn Lint'
 
-  - script: yarn test:unit
+  - script: yarn test
     displayName: 'Unit tests'
 
   - script: yarn playwright install --with-deps
