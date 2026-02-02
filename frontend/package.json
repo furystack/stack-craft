@@ -17,14 +17,14 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "@furystack/core": "^15.0.32",
-    "@furystack/inject": "^12.0.26",
-    "@furystack/logging": "^8.0.26",
-    "@furystack/rest-client-fetch": "^8.0.32",
-    "@furystack/shades": "^11.0.33",
-    "@furystack/shades-common-components": "^10.0.33",
-    "@furystack/utils": "^8.1.8",
-    "@types/node": "^25.0.10",
+    "@furystack/core": "^15.0.34",
+    "@furystack/inject": "^12.0.28",
+    "@furystack/logging": "^8.0.28",
+    "@furystack/rest-client-fetch": "^8.0.34",
+    "@furystack/shades": "^11.1.0",
+    "@furystack/shades-common-components": "^11.0.0",
+    "@furystack/utils": "^8.1.9",
+    "@types/node": "^25.2.0",
     "common": "workspace:^"
   }
 }

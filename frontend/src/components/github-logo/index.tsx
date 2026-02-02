@@ -12,7 +12,15 @@ type GithubLogoProps = Omit<Partial<HTMLImageElement>, 'style' | 'src' | 'alt'> 
 
 export const GithubLogo = Shade<GithubLogoProps>({
   shadowDomName: 'github-logo',
-
+  css: {
+    display: 'inline-block',
+    '& img': {
+      transition: 'opacity 0.2s ease',
+    },
+    '&:hover img': {
+      opacity: '0.8',
+    },
+  },
   render: ({ props, useDisposable, useState, injector }) => {
     const themeProvider = injector.getInstance(ThemeProviderService)
     const [theme, setTheme] = useState(

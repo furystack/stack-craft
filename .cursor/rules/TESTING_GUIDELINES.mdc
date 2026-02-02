@@ -314,16 +314,16 @@ await page.waitForResponse('**/api/endpoint')
 
 ```bash
 # Run all unit tests
-yarn test:unit
+yarn test
 
 # Run with coverage
-yarn test:unit --coverage
+yarn test --coverage
 
 # Run specific workspace
-yarn test:unit --project=Service
+yarn test --project=Service
 
 # Watch mode
-yarn test:unit --watch
+yarn test --watch
 ```
 
 ### E2E Tests
@@ -391,7 +391,7 @@ coverage: {
 
 **Commands:**
 
-- Unit tests: `yarn test:unit`
+- Unit tests: `yarn test`
 - E2E tests: `yarn test:e2e`
-- Coverage: `yarn test:unit --coverage`
+- Coverage: `yarn test --coverage`
 - Debug E2E: `yarn playwright test --debug`

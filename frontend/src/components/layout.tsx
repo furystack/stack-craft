@@ -5,23 +5,29 @@ import { Header } from './header.js'
 
 export const Layout = Shade({
   shadowDomName: 'shade-app-layout',
+  css: {
+    position: 'fixed',
+    top: '0',
+    left: '0',
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    lineHeight: '1.6',
+    overflow: 'hidden',
+    padding: '0',
+    margin: '0',
+  },
   render: ({ injector }) => {
     return (
       <div
         id="Layout"
         style={{
-          position: 'fixed',
-          top: '0',
-          left: '0',
+          backgroundColor: injector.getInstance(ThemeProviderService).theme.background.default,
           width: '100%',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          lineHeight: '1.6',
-          overflow: 'hidden',
-          padding: '0',
-          margin: '0',
-          backgroundColor: injector.getInstance(ThemeProviderService).theme.background.default,
         }}
       >
         <Header title="🧩 Stack Craft" links={[]} />
