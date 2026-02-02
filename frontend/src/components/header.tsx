@@ -10,30 +10,50 @@ export interface HeaderProps {
   links: Array<{ name: string; url: string }>
 }
 
-const urlStyle: Partial<CSSStyleDeclaration> = {
-  color: '#aaa',
-  textDecoration: 'none',
-}
-
 export const Header = Shade<HeaderProps>({
   shadowDomName: 'shade-app-header',
+  css: {
+    '& h3': {
+      margin: '0 2em 0 0',
+      cursor: 'pointer',
+    },
+    '& route-link': {
+      color: '#aaa',
+      textDecoration: 'none',
+      cursor: 'pointer',
+    },
+    '& route-link:hover': {
+      color: '#fff',
+    },
+    '& .nav-link': {
+      padding: '0 8px',
+    },
+    '& .spacer': {
+      flex: '1',
+    },
+    '& .actions': {
+      display: 'flex',
+      placeContent: 'center',
+      marginRight: '24px',
+    },
+  },
   render: ({ props, injector, useObservable }) => {
     const [sessionState] = useObservable('sessionState', injector.getInstance(SessionService).state)
 
     return (
       <AppBar id="header">
-        <h3 style={{ margin: '0 2em 0 0', cursor: 'pointer' }}>
-          <RouteLink title={props.title} href="/" style={urlStyle}>
+        <h3>
+          <RouteLink title={props.title} href="/">
             {props.title}
           </RouteLink>
         </h3>
         {props.links.map((link) => (
-          <RouteLink title={link.name} href={link.url} style={{ ...urlStyle, padding: '0 8px', cursor: 'pointer' }}>
+          <RouteLink className="nav-link" title={link.name} href={link.url}>
             {link.name || ''}
           </RouteLink>
         ))}
-        <div style={{ flex: '1' }} />
-        <div style={{ display: 'flex', placeContent: 'center', marginRight: '24px' }}>
+        <div className="spacer" />
+        <div className="actions">
           <ThemeSwitch variant="outlined" />
           <a href={environmentOptions.repository} target="_blank">
             <Button variant="outlined" style={{ verticalAlign: 'baseline' }}>

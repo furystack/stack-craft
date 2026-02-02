@@ -3,6 +3,16 @@ import { Button } from '@furystack/shades-common-components'
 
 export const ButtonsDemo = Shade({
   shadowDomName: 'buttons-demo',
+  css: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: '5em',
+    flexDirection: 'column',
+    background: 'url(https://talkillustration.com/wp-content/uploads/2015/04/ghtyj.jpg)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+  },
   render: ({ useState }) => {
     const [disabled, setDisabled] = useState('disabled', false)
     const txt = 'Button Text'
@@ -10,16 +20,7 @@ export const ButtonsDemo = Shade({
       /** */
     }
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: '5em',
-          flexDirection: 'column',
-          background: 'url(https://talkillustration.com/wp-content/uploads/2015/04/ghtyj.jpg)',
-        }}
-      >
+      <div>
         <div>
           <div>
             <Button onclick={onclick} disabled={disabled}>
