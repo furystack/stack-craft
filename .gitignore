@@ -79,6 +79,7 @@ vitest.config.d.mts
 vitest.config.mjs.map
 
 service/data.sqlite
+service/data/
 testresults
 
 .pnp.*

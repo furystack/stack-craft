@@ -29,20 +29,19 @@ const setupRestApis = async () => {
   await setupMcp(injector)
 }
 
-setupRestApis().catch((err) => {
-  console.error(err)
-  process.exit(1)
-})
-
-useStaticFiles({
-  injector,
-  baseUrl: '/',
-  path: '../frontend/dist',
-  port,
-  fallback: 'index.html',
-}).catch((err) => {
-  console.error(err)
-  process.exit(1)
-})
+setupRestApis()
+  .then(() =>
+    useStaticFiles({
+      injector,
+      baseUrl: '/',
+      path: '../frontend/dist',
+      port,
+      fallback: 'index.html',
+    }),
+  )
+  .catch((err) => {
+    console.error(err)
+    process.exit(1)
+  })
 
 void attachShutdownHandler(injector)
