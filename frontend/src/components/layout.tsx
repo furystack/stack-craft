@@ -24,7 +24,7 @@ export const Layout = Shade({
     )
 
     if (installState === 'loading') {
-      injector
+      void injector
         .getInstance(InstallService)
         .getServiceStatus()
         .then((result) => setInstallState(result.state))
@@ -65,7 +65,7 @@ const LazyInstallerPage = Shade({
     const [Component, setComponent] = useState<JSX.Element | null>('component', null)
 
     if (!loaded) {
-      import('../pages/installer/index.js').then(({ InstallerPage }) => {
+      void import('../pages/installer/index.js').then(({ InstallerPage }) => {
         setComponent(<InstallerPage />)
         setLoaded(true)
       })

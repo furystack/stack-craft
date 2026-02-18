@@ -19,10 +19,11 @@ export class WebsocketService {
   }
 
   public announce = async (message: WebsocketMessage) => {
+    const data = JSON.stringify(message)
     await this.webSocketApi.broadcast(async (options) => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        options.ws.send(JSON.stringify(message))
+        const ws = options.ws as unknown as { send: (data: string) => void }
+        ws.send(data)
       } catch {
         // Client may have disconnected
       }

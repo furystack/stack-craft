@@ -32,11 +32,10 @@ export class GitService {
       cwd: directory,
       timeout: 10000,
     })
-    const { stdout: remoteOut } = await execFileAsync(
-      'git',
-      ['branch', '-r', '--format=%(refname:short)'],
-      { cwd: directory, timeout: 10000 },
-    )
+    const { stdout: remoteOut } = await execFileAsync('git', ['branch', '-r', '--format=%(refname:short)'], {
+      cwd: directory,
+      timeout: 10000,
+    })
 
     const local = localOut
       .split('\n')

@@ -39,7 +39,11 @@ export const UserSettings = Shade({
             newPassword: data.get('newPassword') as string,
           },
         })
-        notys.emit('onNotyAdded', { title: 'Password changed', body: 'Your password has been updated.', type: 'success' })
+        notys.emit('onNotyAdded', {
+          title: 'Password changed',
+          body: 'Your password has been updated.',
+          type: 'success',
+        })
         form.reset()
       } catch {
         notys.emit('onNotyAdded', { title: 'Error', body: 'Failed to change password.', type: 'error' })
@@ -59,7 +63,7 @@ export const UserSettings = Shade({
         setNewTokenName('')
         notys.emit('onNotyAdded', {
           title: 'Token created',
-          body: 'Copy the token now - it won\'t be shown again.',
+          body: "Copy the token now - it won't be shown again.",
           type: 'success',
         })
       } catch {
@@ -83,7 +87,14 @@ export const UserSettings = Shade({
             onsubmit={(ev) => void handlePasswordChange(ev)}
           >
             <Input name="currentPassword" labelTitle="Current Password" type="password" variant="outlined" required />
-            <Input name="newPassword" labelTitle="New Password" type="password" variant="outlined" required minLength={4} />
+            <Input
+              name="newPassword"
+              labelTitle="New Password"
+              type="password"
+              variant="outlined"
+              required
+              minLength={4}
+            />
             <Button type="submit" variant="contained" style={{ alignSelf: 'flex-start' }}>
               Change Password
             </Button>
@@ -147,7 +158,14 @@ export const UserSettings = Shade({
                 {tokens.map((token) => (
                   <tr>
                     <td style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>{token.name}</td>
-                    <td style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '13px', opacity: '0.7' }}>
+                    <td
+                      style={{
+                        padding: '8px',
+                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        fontSize: '13px',
+                        opacity: '0.7',
+                      }}
+                    >
                       {new Date(token.createdAt).toLocaleDateString()}
                     </td>
                     <td style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>

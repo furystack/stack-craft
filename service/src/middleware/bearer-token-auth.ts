@@ -9,10 +9,7 @@ import { createHash } from 'crypto'
  * looks up the matching ApiToken, and returns the associated user.
  * Returns null if no token or token not found.
  */
-export const resolveTokenUser = async (
-  injector: Injector,
-  authHeader: string | undefined,
-): Promise<User | null> => {
+export const resolveTokenUser = async (injector: Injector, authHeader: string | undefined): Promise<User | null> => {
   if (!authHeader?.startsWith('Bearer ')) {
     return null
   }

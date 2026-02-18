@@ -4,10 +4,10 @@ import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { CheckDependencyEndpoint } from 'common'
 import { Dependency } from 'common'
-import { exec } from 'child_process'
+import { execFile } from 'child_process'
 import { promisify } from 'util'
 
-const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
 
 export const CheckDependencyAction: RequestAction<CheckDependencyEndpoint> = async ({ injector, getUrlParams }) => {
   const logger = getLogger(injector).withScope('CheckDependency')
@@ -23,7 +23,7 @@ export const CheckDependencyAction: RequestAction<CheckDependencyEndpoint> = asy
   }
 
   try {
-    const { stdout, stderr } = await execAsync(dep.checkCommand, { timeout: 30000 })
+    const { stdout, stderr } = await execFileAsync('/bin/sh', ['-c', dep.checkCommand], { timeout: 30000 })
     const output = (stdout || stderr).trim()
     await logger.information({ message: `Dependency check passed: ${dep.name}`, data: { output } })
     return JsonResult({ satisfied: true, output })

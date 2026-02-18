@@ -43,6 +43,10 @@ export const ServiceLifecycleAction =
           await injector.getInstance(GitService).pull(svc.workingDirectory)
           break
         }
+        default: {
+          const _exhaustive: never = action
+          throw new RequestError(`Unknown action: ${String(_exhaustive)}`, 400)
+        }
       }
     } catch (error) {
       if (error instanceof RequestError) throw error

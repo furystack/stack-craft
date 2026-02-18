@@ -1,4 +1,5 @@
 import { getStoreManager } from '@furystack/core'
+import type { Injector } from '@furystack/inject'
 import { Injectable, Injected } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { Service } from 'common'
@@ -29,7 +30,7 @@ export class GitWatcher {
   declare private pm: ProcessManager
 
   @Injected((i: unknown) => i)
-  declare private injector: import('@furystack/inject').Injector
+  declare private injector: Injector
 
   public async startWatching(serviceId: string): Promise<void> {
     if (this.watchers.has(serviceId)) return

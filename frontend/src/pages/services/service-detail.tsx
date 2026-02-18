@@ -76,10 +76,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           >
             Restart
           </Button>
-          <Button
-            variant="outlined"
-            onclick={() => history.pushState(null, '', `/services/${service.id}/logs`)}
-          >
+          <Button variant="outlined" onclick={() => history.pushState(null, '', `/services/${service.id}/logs`)}>
             View Logs
           </Button>
         </div>
@@ -88,18 +85,10 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           <span style={{ fontFamily: 'monospace' }}>{service.workingDirectory}</span>
           <strong>Run Command</strong>
           <span style={{ fontFamily: 'monospace' }}>{service.runCommand}</span>
-          {service.installCommand ? (
-            <strong>Install Command</strong>
-          ) : null}
-          {service.installCommand ? (
-            <span style={{ fontFamily: 'monospace' }}>{service.installCommand}</span>
-          ) : null}
-          {service.buildCommand ? (
-            <strong>Build Command</strong>
-          ) : null}
-          {service.buildCommand ? (
-            <span style={{ fontFamily: 'monospace' }}>{service.buildCommand}</span>
-          ) : null}
+          {service.installCommand ? <strong>Install Command</strong> : null}
+          {service.installCommand ? <span style={{ fontFamily: 'monospace' }}>{service.installCommand}</span> : null}
+          {service.buildCommand ? <strong>Build Command</strong> : null}
+          {service.buildCommand ? <span style={{ fontFamily: 'monospace' }}>{service.buildCommand}</span> : null}
           <strong>Install Status</strong>
           <span>{service.installStatus}</span>
           <strong>Build Status</strong>

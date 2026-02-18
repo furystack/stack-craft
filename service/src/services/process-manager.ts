@@ -1,4 +1,5 @@
 import { getStoreManager } from '@furystack/core'
+import type { Injector } from '@furystack/inject'
 import { Injectable, Injected } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import type { InstallStatus, BuildStatus, RunStatus } from 'common'
@@ -248,5 +249,5 @@ export class ProcessManager {
   }
 
   @Injected((i: unknown) => i)
-  declare private injector: import('@furystack/inject').Injector
+  declare private injector: Injector
 }

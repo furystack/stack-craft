@@ -17,9 +17,7 @@ export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ in
   }
 
   const services = await sm.getStoreFor(Service, 'id').find({ filter: { stackName: { $eq: stackName } } })
-  const repositories = await sm
-    .getStoreFor(GitHubRepository, 'id')
-    .find({ filter: { stackName: { $eq: stackName } } })
+  const repositories = await sm.getStoreFor(GitHubRepository, 'id').find({ filter: { stackName: { $eq: stackName } } })
   const dependencies = await sm.getStoreFor(Dependency, 'id').find({ filter: { stackName: { $eq: stackName } } })
 
   return JsonResult({ stack, services, repositories, dependencies })

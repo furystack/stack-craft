@@ -40,9 +40,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
         '/stacks': Validate({ schema: stacksApiSchema, schemaName: 'PostStackEndpoint' })(
           createPostEndpoint({ model: Stack, primaryKey: 'name' }),
         ),
-        '/stacks/import': Validate({ schema: stacksApiSchema, schemaName: 'ImportStackEndpoint' })(
-          ImportStackAction,
-        ),
+        '/stacks/import': Validate({ schema: stacksApiSchema, schemaName: 'ImportStackEndpoint' })(ImportStackAction),
       },
       PATCH: {
         '/stacks/:id': Validate({

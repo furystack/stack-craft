@@ -11,17 +11,15 @@ export const setupMcp = async (injector: Injector) => {
   const logger = getLogger(injector).withScope('MCP')
   const port = parseInt(process.env.MCP_PORT as string, 10) || 9091
 
-  const server = createServer(async (req, res) => {
+  const server = createServer((req, res) => {
     if (req.url === '/mcp' || req.url?.startsWith('/mcp?')) {
-      try {
-        await handleMcpRequest(injector, req, res)
-      } catch (error) {
-        await logger.error({ message: 'MCP request error', data: { error } })
+      handleMcpRequest(injector, req, res).catch((error) => {
+        void logger.error({ message: 'MCP request error', data: { error } })
         if (!res.headersSent) {
           res.writeHead(500, { 'Content-Type': 'application/json' })
           res.end(JSON.stringify({ error: 'Internal server error' }))
         }
-      }
+      })
     } else {
       res.writeHead(404)
       res.end('Not found')

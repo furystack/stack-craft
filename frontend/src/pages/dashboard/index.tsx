@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button } from '@furystack/shades-common-components'
+import { Button, NotyService } from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
 import type { Service, Stack } from 'common'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
@@ -44,8 +44,12 @@ export const Dashboard = Shade({
         } else {
           setServices([])
         }
-      } catch {
-        // Handle error silently
+      } catch (error) {
+        injector.getInstance(NotyService).emit('onNotyAdded', {
+          title: 'Error',
+          body: error instanceof Error ? error.message : 'Failed to load data',
+          type: 'error',
+        })
       }
       setIsLoading(false)
     }

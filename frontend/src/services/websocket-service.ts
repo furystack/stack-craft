@@ -1,6 +1,7 @@
 import { Injectable } from '@furystack/inject'
 import { ObservableValue } from '@furystack/utils'
 import type { WebsocketMessage } from 'common'
+import { environmentOptions } from '../environment-options.js'
 
 type WebSocketEventHandler = (message: WebsocketMessage) => void
 
@@ -15,8 +16,9 @@ export class WebSocketService {
   public connect() {
     if (this.ws) return
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const url = `${protocol}//${window.location.hostname}:9090/api/ws`
+    const serviceUrl = new URL(environmentOptions.serviceUrl)
+    const protocol = serviceUrl.protocol === 'https:' ? 'wss:' : 'ws:'
+    const url = `${protocol}//${serviceUrl.host}/api/ws`
 
     this.connectionState.setValue('connecting')
     this.ws = new WebSocket(url)

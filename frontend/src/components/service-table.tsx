@@ -92,12 +92,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
             <span style={{ fontSize: '14px', opacity: '0.8' }}>{selectedIds.size} selected</span>
             <div style={{ flex: '1' }} />
             {hasStopped ? (
-              <Button
-                variant="contained"
-                color="success"
-                disabled={loading}
-                onclick={() => void bulkAction('start')}
-              >
+              <Button variant="contained" color="success" disabled={loading} onclick={() => void bulkAction('start')}>
                 Start
               </Button>
             ) : null}

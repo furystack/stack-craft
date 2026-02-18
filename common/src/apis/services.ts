@@ -1,16 +1,18 @@
 import type { WithOptionalId } from '@furystack/core'
-import type {
-  DeleteEndpoint,
-  GetCollectionEndpoint,
-  GetEntityEndpoint,
-  PatchEndpoint,
-  RestApi,
-} from '@furystack/rest'
+import type { DeleteEndpoint, GetCollectionEndpoint, GetEntityEndpoint, PatchEndpoint, RestApi } from '@furystack/rest'
 import type { Service } from '../models/service.js'
 
 export type ServiceWritableFields = Omit<
   Service,
-  'installStatus' | 'buildStatus' | 'runStatus' | 'lastInstalledAt' | 'lastBuiltAt' | 'lastStartedAt' | 'lastFetchedAt' | 'createdAt' | 'updatedAt'
+  | 'installStatus'
+  | 'buildStatus'
+  | 'runStatus'
+  | 'lastInstalledAt'
+  | 'lastBuiltAt'
+  | 'lastStartedAt'
+  | 'lastFetchedAt'
+  | 'createdAt'
+  | 'updatedAt'
 >
 
 export type PostServiceEndpoint = {

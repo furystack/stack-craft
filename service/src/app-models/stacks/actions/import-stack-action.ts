@@ -17,17 +17,17 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
   await stackStore.add({ ...body.stack, createdAt: now, updatedAt: now })
 
   const repoStore = sm.getStoreFor(GitHubRepository, 'id')
-  for (const repo of body.repositories as GitHubRepository[]) {
+  for (const repo of body.repositories) {
     await repoStore.add({ ...repo, stackName: body.stack.name, createdAt: now, updatedAt: now })
   }
 
   const depStore = sm.getStoreFor(Dependency, 'id')
-  for (const dep of body.dependencies as Dependency[]) {
+  for (const dep of body.dependencies) {
     await depStore.add({ ...dep, stackName: body.stack.name, createdAt: now, updatedAt: now })
   }
 
   const serviceStore = sm.getStoreFor(Service, 'id')
-  for (const svc of body.services as Service[]) {
+  for (const svc of body.services) {
     await serviceStore.add({
       ...svc,
       stackName: body.stack.name,

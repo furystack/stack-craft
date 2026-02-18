@@ -64,6 +64,20 @@ dist
 *.tsbuildinfo
 frontend/bundle/js
 
+# TypeScript compilation artifacts for config/spec files
+e2e/*.js
+e2e/*.d.ts
+e2e/*.js.map
+frontend/vite.config.js
+frontend/vite.config.d.ts
+frontend/vite.config.js.map
+playwright.config.js
+playwright.config.d.ts
+playwright.config.js.map
+vitest.config.mjs
+vitest.config.d.mts
+vitest.config.mjs.map
+
 service/data.sqlite
 testresults
 

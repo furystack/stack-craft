@@ -13,13 +13,7 @@ export const Body = Shade<{ style?: Partial<CSSStyleDeclaration> }>({
         {(() => {
           switch (sessionState) {
             case 'authenticated':
-              return (
-                <Router
-                  routes={[
-                    { url: '/', routingOptions: { end: false }, component: () => <Dashboard /> },
-                  ]}
-                />
-              )
+              return <Router routes={[{ url: '/', routingOptions: { end: false }, component: () => <Dashboard /> }]} />
             case 'offline':
               return <Offline />
             case 'unauthenticated':

@@ -1,11 +1,5 @@
 import type { WithOptionalId } from '@furystack/core'
-import type {
-  DeleteEndpoint,
-  GetCollectionEndpoint,
-  GetEntityEndpoint,
-  PatchEndpoint,
-  RestApi,
-} from '@furystack/rest'
+import type { DeleteEndpoint, GetCollectionEndpoint, GetEntityEndpoint, PatchEndpoint, RestApi } from '@furystack/rest'
 import type { GitHubRepository } from '../models/github-repository.js'
 
 export type GitHubRepoWritableFields = Omit<GitHubRepository, 'createdAt' | 'updatedAt'>
