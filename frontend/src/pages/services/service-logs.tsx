@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, Icon, icons, PageHeader } from '@furystack/shades-common-components'
+import { Button, Icon, icons, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
 
 import { LogViewer } from '../../components/log-viewer.js'
 
@@ -11,7 +11,7 @@ export const ServiceLogs = Shade<ServiceLogsProps>({
   shadowDomName: 'shade-service-logs',
   render: ({ props }) => {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <PageContainer>
         <PageHeader
           icon="📋"
           title="Service Logs"
@@ -25,10 +25,10 @@ export const ServiceLogs = Shade<ServiceLogsProps>({
             </Button>
           }
         />
-        <div style={{ flex: '1', overflow: 'hidden' }}>
+        <Paper style={{ flex: '1', overflow: 'hidden' }}>
           <LogViewer serviceId={props.serviceId} />
-        </div>
-      </div>
+        </Paper>
+      </PageContainer>
     )
   },
 })

@@ -6,6 +6,7 @@ import {
   icons,
   Loader,
   NotyService,
+  PageContainer,
   PageHeader,
   Paper,
 } from '@furystack/shades-common-components'
@@ -37,7 +38,7 @@ export const ExportStack = Shade<ExportStackProps>({
     }
 
     return (
-      <div>
+      <PageContainer>
         <PageHeader
           icon="📤"
           title="Export Stack"
@@ -52,7 +53,7 @@ export const ExportStack = Shade<ExportStackProps>({
             </Button>
           }
         />
-        <div style={{ padding: '16px', maxWidth: '800px' }}>
+        <Paper>
           {isLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
               <Loader />
@@ -94,8 +95,8 @@ export const ExportStack = Shade<ExportStackProps>({
               </div>
             </Paper>
           )}
-        </div>
-      </div>
+        </Paper>
+      </PageContainer>
     )
   },
 })

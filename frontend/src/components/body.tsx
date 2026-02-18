@@ -6,6 +6,7 @@ import { Init, Offline } from '../pages/index.js'
 import { ServiceDetail } from '../pages/services/service-detail.js'
 import { ServiceLogs } from '../pages/services/service-logs.js'
 import { UserSettings } from '../pages/settings/user-settings.js'
+import { CreateStack } from '../pages/stacks/create-stack.js'
 import { SessionService } from '../services/session.js'
 
 const appRoutes = {
@@ -20,6 +21,9 @@ const appRoutes = {
   },
   '/settings': {
     component: () => <UserSettings />,
+  },
+  '/stacks/create': {
+    component: () => <CreateStack />,
   },
   '/stacks/import': {
     component: () => <ImportStack />,

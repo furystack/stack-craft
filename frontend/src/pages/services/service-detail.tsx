@@ -1,5 +1,13 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, Icon, icons, Loader, PageHeader, Paper } from '@furystack/shades-common-components'
+import {
+  Button,
+  Icon,
+  icons,
+  Loader,
+  PageContainer,
+  PageHeader,
+  Paper,
+} from '@furystack/shades-common-components'
 import type { Service } from 'common'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 import { ServiceStatusIndicator } from '../../components/service-status-indicator.js'
@@ -32,15 +40,17 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
 
     if (isLoading) {
       return (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
-          <Loader />
-        </div>
+        <PageContainer>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
+            <Loader />
+          </div>
+        </PageContainer>
       )
     }
 
     if (!service) {
       return (
-        <div>
+        <PageContainer>
           <PageHeader
             title="Service not found"
             actions={
@@ -53,14 +63,14 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
               </Button>
             }
           />
-        </div>
+        </PageContainer>
       )
     }
 
     const api = injector.getInstance(ServicesApiClient)
 
     return (
-      <div>
+      <PageContainer>
         <PageHeader
           title={service.displayName}
           description={service.description}
@@ -105,35 +115,33 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             </div>
           }
         />
-        <div style={{ padding: '16px' }}>
-          <Paper elevation={1}>
-            <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '8px 16px', fontSize: '14px' }}>
-              <strong>Working Directory</strong>
-              <span style={{ fontFamily: 'monospace' }}>{service.workingDirectory}</span>
-              <strong>Run Command</strong>
-              <span style={{ fontFamily: 'monospace' }}>{service.runCommand}</span>
-              {service.installCommand ? (
-                <div style={{ display: 'contents' }}>
-                  <strong>Install Command</strong>
-                  <span style={{ fontFamily: 'monospace' }}>{service.installCommand}</span>
-                </div>
-              ) : null}
-              {service.buildCommand ? (
-                <div style={{ display: 'contents' }}>
-                  <strong>Build Command</strong>
-                  <span style={{ fontFamily: 'monospace' }}>{service.buildCommand}</span>
-                </div>
-              ) : null}
-              <strong>Install Status</strong>
-              <span>{service.installStatus}</span>
-              <strong>Build Status</strong>
-              <span>{service.buildStatus}</span>
-              <strong>Run Status</strong>
-              <span>{service.runStatus}</span>
-            </div>
-          </Paper>
-        </div>
-      </div>
+        <Paper>
+          <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '8px 16px', fontSize: '14px' }}>
+            <strong>Working Directory</strong>
+            <span style={{ fontFamily: 'monospace' }}>{service.workingDirectory}</span>
+            <strong>Run Command</strong>
+            <span style={{ fontFamily: 'monospace' }}>{service.runCommand}</span>
+            {service.installCommand ? (
+              <div style={{ display: 'contents' }}>
+                <strong>Install Command</strong>
+                <span style={{ fontFamily: 'monospace' }}>{service.installCommand}</span>
+              </div>
+            ) : null}
+            {service.buildCommand ? (
+              <div style={{ display: 'contents' }}>
+                <strong>Build Command</strong>
+                <span style={{ fontFamily: 'monospace' }}>{service.buildCommand}</span>
+              </div>
+            ) : null}
+            <strong>Install Status</strong>
+            <span>{service.installStatus}</span>
+            <strong>Build Status</strong>
+            <span>{service.buildStatus}</span>
+            <strong>Run Status</strong>
+            <span>{service.runStatus}</span>
+          </div>
+        </Paper>
+      </PageContainer>
     )
   },
 })

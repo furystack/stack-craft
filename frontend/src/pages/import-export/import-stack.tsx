@@ -1,5 +1,12 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, cssVariableTheme, NotyService, PageHeader, Paper } from '@furystack/shades-common-components'
+import {
+  Button,
+  cssVariableTheme,
+  NotyService,
+  PageContainer,
+  PageHeader,
+  Paper,
+} from '@furystack/shades-common-components'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
 export const ImportStack = Shade({
@@ -34,13 +41,13 @@ export const ImportStack = Shade({
     }
 
     return (
-      <div>
+      <PageContainer>
         <PageHeader
           icon="📥"
           title="Import Stack"
           description="Paste the exported JSON data below to import a stack with all its services, repositories, and dependencies."
         />
-        <div style={{ padding: '16px', maxWidth: '800px' }}>
+        <Paper>
           <Paper elevation={1}>
             <textarea
               style={{
@@ -68,8 +75,8 @@ export const ImportStack = Shade({
               </Button>
             </div>
           </Paper>
-        </div>
-      </div>
+        </Paper>
+      </PageContainer>
     )
   },
 })

@@ -1,5 +1,5 @@
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
-import { Button, Icon, icons, NotyService, PageContainer, PageHeader } from '@furystack/shades-common-components'
+import { Button, Icon, icons, NotyService, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
 import type { Service, Stack } from 'common'
 import { ServiceTable } from '../../components/service-table.js'
@@ -81,22 +81,14 @@ export const Dashboard = Shade({
               </div>
             }
           />
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '40vh',
-              gap: '12px',
-            }}
-          >
+          <Paper>
             <Button variant="contained" onclick={() => history.pushState(null, '', '/stacks/create')}>
               Create Stack
             </Button>
             <NestedRouteLink href="/stacks/import">
               <Button variant="outlined">Import Stack</Button>
             </NestedRouteLink>
-          </div>
+          </Paper>
         </PageContainer>
       )
     }
@@ -104,7 +96,7 @@ export const Dashboard = Shade({
     const currentStack = stacks.find((s) => s.name === selectedStackName)
 
     return (
-      <div>
+      <PageContainer>
         <PageHeader
           icon="🏠"
           title={currentStack?.displayName ?? 'Dashboard'}
@@ -124,15 +116,15 @@ export const Dashboard = Shade({
             </div>
           }
         />
-        <div style={{ padding: '16px' }}>
+        <Paper>
           <ServiceTable
             services={services}
             onRefresh={refresh}
             onViewLogs={(serviceId) => history.pushState(null, '', `/services/${serviceId}/logs`)}
             onEdit={(serviceId) => history.pushState(null, '', `/services/${serviceId}`)}
           />
-        </div>
-      </div>
+        </Paper>
+      </PageContainer>
     )
   },
 })
