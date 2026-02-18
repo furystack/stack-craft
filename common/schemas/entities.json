@@ -23,7 +23,13 @@
           "type": "string"
         }
       },
-      "required": ["id", "username", "name", "tokenHash", "createdAt"],
+      "required": [
+        "id",
+        "username",
+        "name",
+        "tokenHash",
+        "createdAt"
+      ],
       "additionalProperties": false
     },
     "Dependency": {
@@ -51,7 +57,15 @@
           "type": "string"
         }
       },
-      "required": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"],
+      "required": [
+        "id",
+        "stackName",
+        "name",
+        "checkCommand",
+        "installationHelp",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false
     },
     "GitHubRepository": {
@@ -79,7 +93,15 @@
           "type": "string"
         }
       },
-      "required": ["id", "stackName", "url", "displayName", "description", "createdAt", "updatedAt"],
+      "required": [
+        "id",
+        "stackName",
+        "url",
+        "displayName",
+        "description",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false
     },
     "User": {
@@ -95,7 +117,10 @@
           }
         }
       },
-      "required": ["username", "roles"],
+      "required": [
+        "username",
+        "roles"
+      ],
       "additionalProperties": false
     },
     "Stack": {
@@ -120,20 +145,43 @@
           "type": "string"
         }
       },
-      "required": ["name", "displayName", "description", "mainDirectory", "createdAt", "updatedAt"],
+      "required": [
+        "name",
+        "displayName",
+        "description",
+        "mainDirectory",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false
     },
     "InstallStatus": {
       "type": "string",
-      "enum": ["not-installed", "installing", "installed", "failed"]
+      "enum": [
+        "not-installed",
+        "installing",
+        "installed",
+        "failed"
+      ]
     },
     "BuildStatus": {
       "type": "string",
-      "enum": ["not-built", "building", "built", "failed"]
+      "enum": [
+        "not-built",
+        "building",
+        "built",
+        "failed"
+      ]
     },
     "RunStatus": {
       "type": "string",
-      "enum": ["stopped", "starting", "running", "stopping", "error"]
+      "enum": [
+        "stopped",
+        "starting",
+        "running",
+        "stopping",
+        "error"
+      ]
     },
     "Service": {
       "type": "object",
@@ -219,7 +267,6 @@
         "stackName",
         "displayName",
         "description",
-        "workingDirectory",
         "autoFetchEnabled",
         "autoFetchIntervalMinutes",
         "autoRestartOnFetch",
@@ -231,6 +278,33 @@
         "runStatus",
         "createdAt",
         "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "PublicApiToken": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "lastUsedAt": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "name",
+        "createdAt"
       ],
       "additionalProperties": false
     }

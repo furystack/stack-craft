@@ -1,9 +1,14 @@
+import type { Injector } from '@furystack/inject'
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
 import type { IconDefinition } from '@furystack/shades-common-components'
 import { cssVariableTheme, Divider, Icon, icons } from '@furystack/shades-common-components'
 import { Stack } from 'common'
 import { match } from 'path-to-regexp'
+
+type SidebarProps = {
+  injector?: Injector
+}
 
 type SidebarItemProps = {
   href: string
@@ -57,7 +62,7 @@ const SidebarItem = Shade<SidebarItemProps>({
   },
 })
 
-export const Sidebar = Shade({
+export const Sidebar = Shade<SidebarProps>({
   shadowDomName: 'shade-sidebar',
   css: {
     display: 'flex',

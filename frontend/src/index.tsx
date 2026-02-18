@@ -1,5 +1,4 @@
 /** ToDo: Main entry point */
-import { EntitySyncService } from '@furystack/entity-sync-client'
 import { Injector } from '@furystack/inject'
 import { getLogger, useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { createComponent, initializeShadeRoot } from '@furystack/shades'
@@ -16,11 +15,6 @@ void getLogger(shadeInjector).withScope('Startup').verbose({
   message: 'Initializing Shade Frontend...',
   data: { environmentOptions },
 })
-
-const serviceUrl = new URL(environmentOptions.serviceUrl)
-const syncProtocol = serviceUrl.protocol === 'https:' ? 'wss:' : 'ws:'
-const syncWsUrl = `${syncProtocol}//${serviceUrl.host}/api/ws`
-shadeInjector.setExplicitInstance(new EntitySyncService({ wsUrl: syncWsUrl }))
 
 shadeInjector.getInstance(SessionService)
 

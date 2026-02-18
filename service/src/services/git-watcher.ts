@@ -1,7 +1,9 @@
 import { getStoreManager } from '@furystack/core'
 import { Injectable, Injected, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { Service } from 'common'
+import { GitHubRepository, Service, Stack } from 'common'
+import { getServiceCwd } from 'common'
+import { resolvePath } from '../utils/resolve-path.js'
 import { GitService } from './git-service.js'
 import { ProcessManager } from './process-manager.js'
 import { WebsocketService } from './websocket-service.js'
@@ -28,6 +30,27 @@ export class GitWatcher {
   @Injected(ProcessManager)
   declare private pm: ProcessManager
 
+  private async resolveServiceCwd(service: Service): Promise<string> {
+    const sm = getStoreManager(getInjectorReference(this))
+    const stacks = await sm.getStoreFor(Stack, 'name').find({
+      filter: { name: { $eq: service.stackName } },
+      top: 1,
+    })
+    const stack = stacks[0]
+    if (!stack) throw new Error(`Stack not found: ${service.stackName}`)
+
+    let repo: GitHubRepository | null = null
+    if (service.repositoryId) {
+      const repos = await sm.getStoreFor(GitHubRepository, 'id').find({
+        filter: { id: { $eq: service.repositoryId } },
+        top: 1,
+      })
+      repo = repos[0] ?? null
+    }
+
+    return resolvePath(getServiceCwd(stack, service, repo))
+  }
+
   public async startWatching(serviceId: string): Promise<void> {
     if (this.watchers.has(serviceId)) return
 
@@ -35,11 +58,12 @@ export class GitWatcher {
     const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
 
-    if (!svc?.autoFetchEnabled || !svc.workingDirectory) return
+    if (!svc?.autoFetchEnabled || !svc?.repositoryId) return
 
+    const cwd = await this.resolveServiceCwd(svc)
     const intervalMs = (svc.autoFetchIntervalMinutes || 60) * 60 * 1000
 
-    const { remote } = await this.git.getBranches(svc.workingDirectory).catch(() => ({ remote: [] as string[] }))
+    const { remote } = await this.git.getBranches(cwd).catch(() => ({ remote: [] as string[] }))
 
     const entry: WatchEntry = {
       serviceId,
@@ -68,15 +92,17 @@ export class GitWatcher {
     const sm = getStoreManager(getInjectorReference(this))
     const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
-    if (!svc?.workingDirectory) return
+    if (!svc?.repositoryId) return
+
+    const cwd = await this.resolveServiceCwd(svc)
 
     try {
-      await this.git.fetch(svc.workingDirectory)
+      await this.git.fetch(cwd)
       await sm.getStoreFor(Service, 'id').update(serviceId, {
         lastFetchedAt: new Date().toISOString(),
       } as Partial<Service>)
 
-      const { remote } = await this.git.getBranches(svc.workingDirectory)
+      const { remote } = await this.git.getBranches(cwd)
       const newBranches = remote.filter((b) => !entry.lastBranches.has(b))
 
       if (newBranches.length > 0) {
@@ -92,7 +118,7 @@ export class GitWatcher {
       }
 
       if (svc.autoRestartOnFetch) {
-        const { updated } = await this.git.pull(svc.workingDirectory)
+        const { updated } = await this.git.pull(cwd)
         if (updated) {
           await this.logger.information({ message: `Changes pulled, restarting ${svc.displayName}` })
           if (svc.installCommand) await this.pm.installService(serviceId)

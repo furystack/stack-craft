@@ -13,7 +13,7 @@ describe('ProcessManager - Store Operations', () => {
     stackName: 'test-stack',
     displayName: 'Test Service',
     description: '',
-    workingDirectory: '/tmp/test',
+    workingDirectory: 'frontends/public',
     runCommand: 'echo hello',
     installCommand: 'echo install',
     buildCommand: 'echo build',

@@ -25,7 +25,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
             stackName: props.stackName,
             displayName: data.displayName,
             description: data.description,
-            workingDirectory: data.workingDirectory,
+            workingDirectory: data.workingDirectory || undefined,
             repositoryId: data.repositoryId || undefined,
             runCommand: data.runCommand,
             installCommand: data.installCommand || undefined,
@@ -68,9 +68,10 @@ export const ServiceForm = Shade<ServiceFormProps>({
           name="workingDirectory"
           labelTitle="Working Directory"
           variant="outlined"
-          required
           value={props.initial?.workingDirectory ?? ''}
-          getHelperText={() => 'Absolute path where commands will be executed'}
+          getHelperText={() =>
+            'Optional. Relative path within stack for grouping, e.g. frontends/public or services/gateways'
+          }
         />
         <Input
           name="runCommand"

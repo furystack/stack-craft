@@ -1,3 +1,4 @@
+import type { Injector } from '@furystack/inject'
 import { createComponent, NestedRouter, Shade } from '@furystack/shades'
 import { Dashboard } from '../pages/dashboard/index.js'
 import { ExportStack } from '../pages/import-export/export-stack.js'
@@ -53,7 +54,7 @@ const appRoutes = {
   },
 } satisfies Record<string, { component: (options: { match: { params: Record<string, string> } }) => JSX.Element }>
 
-export const Body = Shade<{ style?: Partial<CSSStyleDeclaration> }>({
+export const Body = Shade<{ style?: Partial<CSSStyleDeclaration>; injector?: Injector }>({
   shadowDomName: 'shade-app-body',
   render: ({ injector, useObservable }) => {
     const session = injector.getInstance(SessionService)

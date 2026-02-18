@@ -70,7 +70,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
             stackName: props.stackName,
             displayName: data.displayName,
             description: data.description ?? '',
-            workingDirectory: data.workingDirectory,
+            workingDirectory: data.workingDirectory || undefined,
             runCommand: data.runCommand,
             installCommand: data.installCommand || undefined,
             buildCommand: data.buildCommand || undefined,
@@ -192,8 +192,9 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               name="workingDirectory"
               labelTitle="Working Directory"
               variant="outlined"
-              required
-              getHelperText={() => 'Absolute path where commands will be executed'}
+              getHelperText={() =>
+                'Optional. Relative path within stack for grouping, e.g. frontends/public or services/gateways'
+              }
             />
             <Input
               name="runCommand"

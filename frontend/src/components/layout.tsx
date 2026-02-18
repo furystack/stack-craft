@@ -1,5 +1,7 @@
+import { EntitySyncService } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 import { cssVariableTheme, NotyList, PageLayout } from '@furystack/shades-common-components'
+import { environmentOptions } from '../environment-options.js'
 import { InstallService } from '../services/install-service.js'
 import { SessionService } from '../services/session.js'
 import { Body } from './body.js'
@@ -60,23 +62,42 @@ export const Layout = Shade({
     return (
       <div>
         <NotyList style={{ zIndex: '2' }} />
-        <PageLayout
-          appBar={{
-            variant: 'permanent',
-            component: <Header title="StackCraft" />,
-          }}
-          drawer={{
-            left: {
-              variant: 'collapsible',
-              width: '220px',
-              component: <Sidebar />,
-              collapseOnBreakpoint: 'md',
-            },
-          }}
-        >
-          <Body style={{ width: '100%', height: '100%', overflow: 'auto' }} />
-        </PageLayout>
+        <AuthenticatedLayout />
       </div>
+    )
+  },
+})
+
+const AuthenticatedLayout = Shade({
+  shadowDomName: 'shade-authenticated-layout',
+  render: ({ injector, useDisposable }) => {
+    const serviceUrl = new URL(environmentOptions.serviceUrl)
+    const syncProtocol = serviceUrl.protocol === 'https:' ? 'wss:' : 'ws:'
+    const syncWsUrl = `${syncProtocol}//${serviceUrl.host}/api/ws`
+
+    const authenticatedInjector = useDisposable('authenticatedInjector', () => {
+      const child = injector.createChild()
+      child.setExplicitInstance(new EntitySyncService({ wsUrl: syncWsUrl }), EntitySyncService)
+      return child
+    })
+
+    return (
+      <PageLayout
+        appBar={{
+          variant: 'permanent',
+          component: <Header title="StackCraft" />,
+        }}
+        drawer={{
+          left: {
+            variant: 'collapsible',
+            width: '220px',
+            component: <Sidebar injector={authenticatedInjector} />,
+            collapseOnBreakpoint: 'md',
+          },
+        }}
+      >
+        <Body injector={authenticatedInjector} style={{ width: '100%', height: '100%', overflow: 'auto' }} />
+      </PageLayout>
     )
   },
 })

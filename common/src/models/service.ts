@@ -7,7 +7,7 @@ export class Service {
   stackName!: string
   displayName!: string
   description: string = ''
-  workingDirectory!: string
+  workingDirectory?: string
   repositoryId?: string
 
   autoFetchEnabled: boolean = false

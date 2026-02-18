@@ -71,7 +71,7 @@ test.describe('StackCraft MVP Flow', () => {
     await expect(page.locator('shade-create-service')).toBeVisible({ timeout: 5000 })
 
     await page.locator('input[name="displayName"]').fill('E2E Service')
-    await page.locator('input[name="workingDirectory"]').fill('/tmp/e2e-test/svc')
+    await page.locator('input[name="workingDirectory"]').fill('svc')
     await page.locator('input[name="runCommand"]').fill('echo hello')
     await page.locator('button[type="submit"]').click()
 

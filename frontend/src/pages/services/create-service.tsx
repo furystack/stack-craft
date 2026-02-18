@@ -32,7 +32,7 @@ export const CreateService = Shade<CreateServiceProps>({
             stackName: props.stackName,
             displayName: data.displayName!,
             description: data.description ?? '',
-            workingDirectory: data.workingDirectory!,
+            workingDirectory: data.workingDirectory || undefined,
             runCommand: data.runCommand!,
             installCommand: data.installCommand,
             buildCommand: data.buildCommand,

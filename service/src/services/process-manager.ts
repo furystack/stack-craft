@@ -2,8 +2,10 @@ import { getStoreManager } from '@furystack/core'
 import { Injectable, Injected, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import type { InstallStatus, BuildStatus, RunStatus } from 'common'
-import { Service } from 'common'
+import { GitHubRepository, Service, Stack } from 'common'
+import { getServiceCwd } from 'common'
 import { type ChildProcess, spawn } from 'child_process'
+import { resolvePath } from '../utils/resolve-path.js'
 import { WebsocketService } from './websocket-service.js'
 
 const MAX_LOG_LINES = 10_000
@@ -24,6 +26,27 @@ export class ProcessManager {
 
   @Injected(WebsocketService)
   declare private ws: WebsocketService
+
+  private async resolveServiceCwd(service: Service): Promise<string> {
+    const sm = getStoreManager(getInjectorReference(this))
+    const stacks = await sm.getStoreFor(Stack, 'name').find({
+      filter: { name: { $eq: service.stackName } },
+      top: 1,
+    })
+    const stack = stacks[0]
+    if (!stack) throw new Error(`Stack not found: ${service.stackName}`)
+
+    let repo: GitHubRepository | null = null
+    if (service.repositoryId) {
+      const repos = await sm.getStoreFor(GitHubRepository, 'id').find({
+        filter: { id: { $eq: service.repositoryId } },
+        top: 1,
+      })
+      repo = repos[0] ?? null
+    }
+
+    return resolvePath(getServiceCwd(stack, service, repo))
+  }
 
   public getLogLines(serviceId: string, count?: number): string[] {
     const managed = this.processes.get(serviceId)
@@ -84,7 +107,8 @@ export class ProcessManager {
     await this.logger.information({ message: `Starting service: ${svc.displayName}` })
     await this.updateServiceStatus(serviceId, { runStatus: 'starting' })
 
-    const child = this.spawnCommand(svc.runCommand, svc.workingDirectory)
+    const cwd = await this.resolveServiceCwd(svc)
+    const child = this.spawnCommand(svc.runCommand, cwd)
 
     const managed: ManagedProcess = {
       serviceId,
@@ -159,7 +183,8 @@ export class ProcessManager {
     const svc = services[0]
     if (!svc?.installCommand) throw new Error(`No install command for service: ${serviceId}`)
 
-    await this.runOneShot(serviceId, svc.installCommand, svc.workingDirectory, 'install')
+    const cwd = await this.resolveServiceCwd(svc)
+    await this.runOneShot(serviceId, svc.installCommand, cwd, 'install')
   }
 
   public async buildService(serviceId: string): Promise<void> {
@@ -168,7 +193,8 @@ export class ProcessManager {
     const svc = services[0]
     if (!svc?.buildCommand) throw new Error(`No build command for service: ${serviceId}`)
 
-    await this.runOneShot(serviceId, svc.buildCommand, svc.workingDirectory, 'build')
+    const cwd = await this.resolveServiceCwd(svc)
+    await this.runOneShot(serviceId, svc.buildCommand, cwd, 'build')
   }
 
   private async runOneShot(
@@ -248,10 +274,35 @@ export class ProcessManager {
 
   public async [Symbol.asyncDispose]() {
     await this.logger.information({ message: 'Disposing ProcessManager, killing all child processes...' })
-    for (const [serviceId, managed] of this.processes) {
-      await this.logger.information({ message: `Killing process for service: ${serviceId}` })
-      managed.process.kill('SIGKILL')
+
+    const entries = [...this.processes.entries()]
+    if (entries.length === 0) return
+
+    for (const [serviceId, managed] of entries) {
+      managed.process.kill('SIGTERM')
+      void this.logger.information({ message: `Sent SIGTERM to service: ${serviceId}` })
     }
+
+    await Promise.all(
+      entries.map(
+        ([serviceId, managed]) =>
+          new Promise<void>((resolve) => {
+            const timeout = setTimeout(() => {
+              if (!managed.process.killed) {
+                managed.process.kill('SIGKILL')
+                void this.logger.warning({ message: `Sent SIGKILL to service: ${serviceId}` })
+              }
+              resolve()
+            }, 5000)
+
+            managed.process.on('exit', () => {
+              clearTimeout(timeout)
+              resolve()
+            })
+          }),
+      ),
+    )
+
     this.processes.clear()
   }
 

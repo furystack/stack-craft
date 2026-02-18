@@ -12,7 +12,8 @@ import {
   PageHeader,
   Paper,
 } from '@furystack/shades-common-components'
-import { GitHubRepository, Service } from 'common'
+import { GitHubRepository, Service, Stack } from 'common'
+import { getServiceCwd } from 'common'
 
 import { ConfirmDialog } from '../../components/confirm-dialog.js'
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
@@ -82,11 +83,14 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       )
     }
 
+    const stackState = useEntitySync(options, Stack, service.stackName)
     const reposState = useCollectionSync(options, GitHubRepository, {
       filter: { stackName: { $eq: service.stackName } },
     })
     const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
     const linkedRepo = service.repositoryId ? repos.find((r) => r.id === service.repositoryId) : undefined
+    const stack = stackState.status === 'synced' ? stackState.data : undefined
+    const fullCwd = stack ? getServiceCwd(stack, service, linkedRepo ?? null) : null
 
     const api = injector.getInstance(ServicesApiClient)
 
@@ -244,7 +248,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
               </div>
             ) : null}
             <strong>Working Directory</strong>
-            <span style={{ fontFamily: 'monospace' }}>{service.workingDirectory}</span>
+            <span style={{ fontFamily: 'monospace' }}>{fullCwd ?? '(loading…)'}</span>
             <strong>Run Command</strong>
             <span style={{ fontFamily: 'monospace' }}>{service.runCommand}</span>
             {service.installCommand ? (

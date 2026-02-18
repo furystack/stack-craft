@@ -43,7 +43,14 @@ addStore(
     fileName: join(dataDir, 'users.json'),
   }),
 )
-  .addStore(new InMemoryStore({ model: DefaultSession, primaryKey: 'sessionId' }))
+  .addStore(
+    new FileSystemStore({
+      model: DefaultSession,
+      primaryKey: 'sessionId',
+      tickMs: 10 * 1000,
+      fileName: join(dataDir, 'sessions.json'),
+    }),
+  )
   .addStore(
     new FileSystemStore({
       model: PasswordCredential,
