@@ -1,5 +1,5 @@
-import { getStoreManager } from '@furystack/core'
 import { getLogger } from '@furystack/logging'
+import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ImportStackEndpoint } from 'common'
@@ -8,7 +8,7 @@ import { Dependency, GitHubRepository, Service, Stack } from 'common'
 export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ injector, getBody }) => {
   const logger = getLogger(injector).withScope('ImportStack')
   const body = await getBody()
-  const sm = getStoreManager(injector)
+  const repository = getRepository(injector)
 
   const now = new Date().toISOString()
   const stackName = body.stack.name
@@ -39,36 +39,29 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
     updatedAt: now,
   }))
 
+  const stackDs = repository.getDataSetFor(Stack, 'name')
+  const repoDs = repository.getDataSetFor(GitHubRepository, 'id')
+  const depDs = repository.getDataSetFor(Dependency, 'id')
+  const serviceDs = repository.getDataSetFor(Service, 'id')
+
   try {
-    await sm.getStoreFor(Stack, 'name').add({ ...body.stack, createdAt: now, updatedAt: now })
-    await sm.getStoreFor(GitHubRepository, 'id').add(...repositories)
-    await sm.getStoreFor(Dependency, 'id').add(...dependencies)
-    await sm.getStoreFor(Service, 'id').add(...services)
+    await stackDs.add(injector, { ...body.stack, createdAt: now, updatedAt: now })
+    await repoDs.add(injector, ...repositories)
+    await depDs.add(injector, ...dependencies)
+    await serviceDs.add(injector, ...services)
   } catch (error) {
     await logger.warning({ message: `Import failed for stack ${stackName}, rolling back`, data: { error } })
 
     for (const svc of services) {
-      await sm
-        .getStoreFor(Service, 'id')
-        .remove(svc.id)
-        .catch(() => {})
+      await serviceDs.remove(injector, svc.id).catch(() => {})
     }
     for (const dep of dependencies) {
-      await sm
-        .getStoreFor(Dependency, 'id')
-        .remove(dep.id)
-        .catch(() => {})
+      await depDs.remove(injector, dep.id).catch(() => {})
     }
     for (const repo of repositories) {
-      await sm
-        .getStoreFor(GitHubRepository, 'id')
-        .remove(repo.id)
-        .catch(() => {})
+      await repoDs.remove(injector, repo.id).catch(() => {})
     }
-    await sm
-      .getStoreFor(Stack, 'name')
-      .remove(stackName)
-      .catch(() => {})
+    await stackDs.remove(injector, stackName).catch(() => {})
 
     const message = error instanceof Error ? error.message : 'Unknown error during import'
     throw new RequestError(`Import failed: ${message}`, 500)

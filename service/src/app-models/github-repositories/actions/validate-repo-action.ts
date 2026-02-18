@@ -1,5 +1,5 @@
-import { getStoreManager } from '@furystack/core'
 import { getLogger } from '@furystack/logging'
+import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ValidateRepoEndpoint } from 'common'
@@ -13,9 +13,8 @@ export const ValidateRepoAction: RequestAction<ValidateRepoEndpoint> = async ({ 
   const logger = getLogger(injector).withScope('ValidateRepo')
   const { id } = getUrlParams()
 
-  const sm = getStoreManager(injector)
-  const repoStore = sm.getStoreFor(GitHubRepository, 'id')
-  const results = await repoStore.find({ filter: { id: { $eq: id } }, top: 1 })
+  const repoDs = getRepository(injector).getDataSetFor(GitHubRepository, 'id')
+  const results = await repoDs.find(injector, { filter: { id: { $eq: id } }, top: 1 })
   const repo = results[0]
 
   if (!repo) {

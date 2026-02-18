@@ -35,8 +35,8 @@ const CreateTokenAction: RequestAction<CreateTokenEndpoint> = async ({ injector,
     createdAt: now,
   }
 
-  const sm = getStoreManager(injector)
-  await sm.getStoreFor(ApiToken, 'id').add(tokenEntity)
+  const apiTokenDs = getRepository(injector).getDataSetFor(ApiToken, 'id')
+  await apiTokenDs.add(injector, tokenEntity)
 
   const { tokenHash: _hash, ...publicToken } = tokenEntity
   const publicTokenDs = getRepository(injector).getDataSetFor(PublicApiToken, 'id')
@@ -54,8 +54,8 @@ const GetTokensAction: RequestAction<TokensApi['GET']['/tokens']> = async ({ inj
     throw new RequestError('Not authenticated', 401)
   }
 
-  const sm = getStoreManager(injector)
-  const tokens = await sm.getStoreFor(ApiToken, 'id').find({
+  const apiTokenDs = getRepository(injector).getDataSetFor(ApiToken, 'id')
+  const tokens = await apiTokenDs.find(injector, {
     filter: { username: { $eq: currentUser.username } },
   })
 
@@ -71,17 +71,16 @@ const DeleteTokenAction: RequestAction<TokensApi['DELETE']['/tokens/:id']> = asy
   }
 
   const { id } = getUrlParams()
-  const sm = getStoreManager(injector)
-  const tokenStore = sm.getStoreFor(ApiToken, 'id')
+  const apiTokenDs = getRepository(injector).getDataSetFor(ApiToken, 'id')
 
-  const results = await tokenStore.find({ filter: { id: { $eq: id } }, top: 1 })
+  const results = await apiTokenDs.find(injector, { filter: { id: { $eq: id } }, top: 1 })
   const token = results[0]
 
   if (!token || token.username !== currentUser.username) {
     throw new RequestError('Token not found', 404)
   }
 
-  await tokenStore.remove(id)
+  await apiTokenDs.remove(injector, id)
   const publicTokenDs = getRepository(injector).getDataSetFor(PublicApiToken, 'id')
   await publicTokenDs.remove(injector, id)
   return JsonResult({})

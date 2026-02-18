@@ -1,5 +1,5 @@
-import { getStoreManager } from '@furystack/core'
 import { getLogger } from '@furystack/logging'
+import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { CheckDependencyEndpoint } from 'common'
@@ -13,9 +13,8 @@ export const CheckDependencyAction: RequestAction<CheckDependencyEndpoint> = asy
   const logger = getLogger(injector).withScope('CheckDependency')
   const { id } = getUrlParams()
 
-  const sm = getStoreManager(injector)
-  const depStore = sm.getStoreFor(Dependency, 'id')
-  const results = await depStore.find({ filter: { id: { $eq: id } }, top: 1 })
+  const depDs = getRepository(injector).getDataSetFor(Dependency, 'id')
+  const results = await depDs.find(injector, { filter: { id: { $eq: id } }, top: 1 })
   const dep = results[0]
 
   if (!dep) {
