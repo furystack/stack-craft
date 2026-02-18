@@ -1,6 +1,8 @@
+import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 import { NotyService, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
 import type { Service } from 'common'
+import { GitHubRepository } from 'common'
 
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
@@ -11,7 +13,13 @@ type CreateServiceProps = {
 
 export const CreateService = Shade<CreateServiceProps>({
   shadowDomName: 'shade-create-service',
-  render: ({ props, injector }) => {
+  render: (options) => {
+    const { props, injector } = options
+
+    const reposState = useCollectionSync(options, GitHubRepository, {
+      filter: { stackName: { $eq: props.stackName } },
+    })
+    const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
     const handleSubmit = async (data: Partial<Service>) => {
       try {
         await injector.getInstance(ServicesApiClient).call({
@@ -28,6 +36,7 @@ export const CreateService = Shade<CreateServiceProps>({
             buildCommand: data.buildCommand,
             autoFetchEnabled: data.autoFetchEnabled ?? false,
             autoFetchIntervalMinutes: data.autoFetchIntervalMinutes ?? 60,
+            repositoryId: data.repositoryId,
             autoRestartOnFetch: data.autoRestartOnFetch ?? false,
             dependencyIds: [],
             prerequisiteServiceIds: [],
@@ -59,6 +68,7 @@ export const CreateService = Shade<CreateServiceProps>({
           <ServiceForm
             mode="create"
             stackName={props.stackName}
+            repositories={repos}
             onSubmit={(data) => void handleSubmit(data)}
             onCancel={() => history.pushState(null, '', '/')}
           />

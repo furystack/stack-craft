@@ -161,6 +161,9 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     <Button variant="outlined" onclick={() => props.onViewLogs(svc.id)}>
                       Logs
                     </Button>
+                    <Button variant="outlined" onclick={() => props.onEdit(svc.id)}>
+                      Edit
+                    </Button>
                   </div>
                 </td>
               </tr>

@@ -1,6 +1,5 @@
 import { getStoreManager } from '@furystack/core'
-import type { Injector } from '@furystack/inject'
-import { Injectable, Injected } from '@furystack/inject'
+import { Injectable, Injected, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import type { InstallStatus, BuildStatus, RunStatus } from 'common'
 import { Service } from 'common'
@@ -47,7 +46,7 @@ export class ProcessManager {
     serviceId: string,
     update: { installStatus?: InstallStatus; buildStatus?: BuildStatus; runStatus?: RunStatus },
   ) {
-    const sm = getStoreManager(this.injector)
+    const sm = getStoreManager(getInjectorReference(this))
     const store = sm.getStoreFor(Service, 'id')
 
     const services = await store.find({ filter: { id: { $eq: serviceId } }, top: 1 })
@@ -73,7 +72,7 @@ export class ProcessManager {
   }
 
   public async startService(serviceId: string): Promise<void> {
-    const sm = getStoreManager(this.injector)
+    const sm = getStoreManager(getInjectorReference(this))
     const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc) throw new Error(`Service not found: ${serviceId}`)
@@ -155,7 +154,7 @@ export class ProcessManager {
   }
 
   public async installService(serviceId: string): Promise<void> {
-    const sm = getStoreManager(this.injector)
+    const sm = getStoreManager(getInjectorReference(this))
     const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc?.installCommand) throw new Error(`No install command for service: ${serviceId}`)
@@ -164,7 +163,7 @@ export class ProcessManager {
   }
 
   public async buildService(serviceId: string): Promise<void> {
-    const sm = getStoreManager(this.injector)
+    const sm = getStoreManager(getInjectorReference(this))
     const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc?.buildCommand) throw new Error(`No build command for service: ${serviceId}`)
@@ -256,6 +255,4 @@ export class ProcessManager {
     this.processes.clear()
   }
 
-  @Injected((i: unknown) => i)
-  declare private injector: Injector
 }

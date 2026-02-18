@@ -1,6 +1,5 @@
 import { getStoreManager } from '@furystack/core'
-import type { Injector } from '@furystack/inject'
-import { Injectable, Injected } from '@furystack/inject'
+import { Injectable, Injected, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { Service } from 'common'
 import { GitService } from './git-service.js'
@@ -29,13 +28,10 @@ export class GitWatcher {
   @Injected(ProcessManager)
   declare private pm: ProcessManager
 
-  @Injected((i: unknown) => i)
-  declare private injector: Injector
-
   public async startWatching(serviceId: string): Promise<void> {
     if (this.watchers.has(serviceId)) return
 
-    const sm = getStoreManager(this.injector)
+    const sm = getStoreManager(getInjectorReference(this))
     const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
 
@@ -69,7 +65,7 @@ export class GitWatcher {
     const entry = this.watchers.get(serviceId)
     if (!entry) return
 
-    const sm = getStoreManager(this.injector)
+    const sm = getStoreManager(getInjectorReference(this))
     const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc?.workingDirectory) return

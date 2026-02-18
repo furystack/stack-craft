@@ -1,10 +1,11 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, Input } from '@furystack/shades-common-components'
-import type { Service } from 'common'
+import { Button, Input, Select } from '@furystack/shades-common-components'
+import type { GitHubRepository, Service } from 'common'
 
 type ServiceFormProps = {
   initial?: Partial<Service>
   stackName: string
+  repositories?: GitHubRepository[]
   onSubmit: (data: Partial<Service>) => void | Promise<void>
   onCancel: () => void
   mode: 'create' | 'edit'
@@ -25,6 +26,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
             displayName: data.displayName,
             description: data.description,
             workingDirectory: data.workingDirectory,
+            repositoryId: data.repositoryId || undefined,
             runCommand: data.runCommand,
             installCommand: data.installCommand || undefined,
             buildCommand: data.buildCommand || undefined,
@@ -48,6 +50,20 @@ export const ServiceForm = Shade<ServiceFormProps>({
           variant="outlined"
           value={props.initial?.description ?? ''}
         />
+        {props.repositories && props.repositories.length > 0 ? (
+          <Select
+            name="repositoryId"
+            labelTitle="GitHub Repository"
+            variant="outlined"
+            placeholder="None"
+            value={props.initial?.repositoryId ?? ''}
+            options={[
+              { value: '', label: '(None)' },
+              ...props.repositories.map((r) => ({ value: r.id, label: r.displayName })),
+            ]}
+            getHelperText={() => 'Link this service to a repository'}
+          />
+        ) : null}
         <Input
           name="workingDirectory"
           labelTitle="Working Directory"

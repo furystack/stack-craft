@@ -1,8 +1,9 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
-import { Button, Loader, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
-import { Service, Stack } from 'common'
+import { Button, Icon, icons, Loader, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
+import { GitHubRepository, Service, Stack } from 'common'
 
+import { RepositoryTable } from '../../components/repository-table.js'
 import { ServiceTable } from '../../components/service-table.js'
 import { StackSelector } from '../../components/stack-selector.js'
 
@@ -23,6 +24,11 @@ export const Dashboard = Shade({
       filter: activeStackName ? { stackName: { $eq: activeStackName } } : undefined,
     })
     const services = servicesState.status === 'synced' || servicesState.status === 'cached' ? servicesState.data : []
+
+    const reposState = useCollectionSync(options, GitHubRepository, {
+      filter: activeStackName ? { stackName: { $eq: activeStackName } } : undefined,
+    })
+    const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
 
     const isLoading = stacksState.status === 'connecting'
 
@@ -74,6 +80,15 @@ export const Dashboard = Shade({
               />
               {activeStackName ? (
                 <Button
+                  variant="outlined"
+                  onclick={() => history.pushState(null, '', `/stacks/${activeStackName}/edit`)}
+                  startIcon={<Icon icon={icons.edit} size="small" />}
+                >
+                  Edit Stack
+                </Button>
+              ) : null}
+              {activeStackName ? (
+                <Button
                   variant="contained"
                   onclick={() => history.pushState(null, '', `/services/create/${activeStackName}`)}
                 >
@@ -84,6 +99,16 @@ export const Dashboard = Shade({
           }
         />
         <Paper>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '12px',
+            }}
+          >
+            <h3 style={{ margin: '0', fontSize: '16px' }}>Services</h3>
+          </div>
           {services.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px' }}>
               <p style={{ opacity: '0.5', marginBottom: '16px' }}>No services in this stack yet.</p>
@@ -101,6 +126,44 @@ export const Dashboard = Shade({
               services={services}
               onViewLogs={(serviceId) => history.pushState(null, '', `/services/${serviceId}/logs`)}
               onEdit={(serviceId) => history.pushState(null, '', `/services/${serviceId}`)}
+            />
+          )}
+        </Paper>
+        <Paper style={{ marginTop: '16px' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '12px',
+            }}
+          >
+            <h3 style={{ margin: '0', fontSize: '16px' }}>Repositories</h3>
+            {activeStackName ? (
+              <Button
+                variant="outlined"
+                onclick={() => history.pushState(null, '', `/repositories/create/${activeStackName}`)}
+              >
+                Add Repository
+              </Button>
+            ) : null}
+          </div>
+          {repos.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px' }}>
+              <p style={{ opacity: '0.5', marginBottom: '16px' }}>No repositories in this stack yet.</p>
+              {activeStackName ? (
+                <Button
+                  variant="outlined"
+                  onclick={() => history.pushState(null, '', `/repositories/create/${activeStackName}`)}
+                >
+                  Add Repository
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <RepositoryTable
+              repositories={repos}
+              onEdit={(repoId: string) => history.pushState(null, '', `/repositories/${repoId}`)}
             />
           )}
         </Paper>

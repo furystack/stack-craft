@@ -1,4 +1,4 @@
-import { useEntitySync } from '@furystack/entity-sync-client'
+import { useCollectionSync, useEntitySync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 import {
   Button,
@@ -10,8 +10,9 @@ import {
   PageHeader,
   Paper,
 } from '@furystack/shades-common-components'
-import { Service } from 'common'
+import { GitHubRepository, Service } from 'common'
 
+import { ConfirmDialog } from '../../components/confirm-dialog.js'
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
 import { ServiceStatusIndicator } from '../../components/service-status-indicator.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
@@ -25,6 +26,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
   render: (options) => {
     const { props, injector, useState } = options
     const [isEditing, setIsEditing] = useState('isEditing', false)
+    const [isConfirmingDelete, setIsConfirmingDelete] = useState('isConfirmingDelete', false)
 
     const serviceState = useEntitySync(options, Service, props.serviceId)
 
@@ -78,6 +80,12 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       )
     }
 
+    const reposState = useCollectionSync(options, GitHubRepository, {
+      filter: { stackName: { $eq: service.stackName } },
+    })
+    const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
+    const linkedRepo = service.repositoryId ? repos.find((r) => r.id === service.repositoryId) : undefined
+
     const api = injector.getInstance(ServicesApiClient)
 
     const handleSave = async (data: Partial<Service>) => {
@@ -90,6 +98,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             displayName: data.displayName,
             description: data.description,
             workingDirectory: data.workingDirectory,
+            repositoryId: data.repositoryId,
             runCommand: data.runCommand,
             installCommand: data.installCommand,
             buildCommand: data.buildCommand,
@@ -108,6 +117,28 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
           body: error instanceof Error ? error.message : 'Failed to update service',
+          type: 'error',
+        })
+      }
+    }
+
+    const handleDelete = async () => {
+      try {
+        await api.call({
+          method: 'DELETE',
+          action: '/services/:id',
+          url: { id: service.id },
+        })
+        injector.getInstance(NotyService).emit('onNotyAdded', {
+          title: 'Service deleted',
+          body: `"${service.displayName}" was deleted.`,
+          type: 'success',
+        })
+        history.pushState(null, '', '/')
+      } catch (error) {
+        injector.getInstance(NotyService).emit('onNotyAdded', {
+          title: 'Error',
+          body: error instanceof Error ? error.message : 'Failed to delete service',
           type: 'error',
         })
       }
@@ -132,6 +163,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             <ServiceForm
               mode="edit"
               stackName={service.stackName}
+              repositories={repos}
               initial={service}
               onSubmit={(data) => void handleSave(data)}
               onCancel={() => setIsEditing(false)}
@@ -191,11 +223,28 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
               >
                 Edit
               </Button>
+              <Button variant="outlined" color="error" onclick={() => setIsConfirmingDelete(true)}>
+                Delete
+              </Button>
             </div>
           }
         />
         <Paper>
           <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '8px 16px', fontSize: '14px' }}>
+            {linkedRepo ? (
+              <div style={{ display: 'contents' }}>
+                <strong>Repository</strong>
+                <span>
+                  <a
+                    href="javascript:void(0)"
+                    style={{ color: 'inherit' }}
+                    onclick={() => history.pushState(null, '', `/repositories/${linkedRepo.id}`)}
+                  >
+                    {linkedRepo.displayName}
+                  </a>
+                </span>
+              </div>
+            ) : null}
             <strong>Working Directory</strong>
             <span style={{ fontFamily: 'monospace' }}>{service.workingDirectory}</span>
             <strong>Run Command</strong>
@@ -220,6 +269,16 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             <span>{service.runStatus}</span>
           </div>
         </Paper>
+        {isConfirmingDelete ? (
+          <ConfirmDialog
+            title="Delete Service"
+            message={`Are you sure you want to delete "${service.displayName}"? This action cannot be undone.`}
+            confirmLabel="Delete"
+            variant="danger"
+            onConfirm={() => void handleDelete()}
+            onCancel={() => setIsConfirmingDelete(false)}
+          />
+        ) : null}
       </PageContainer>
     )
   },

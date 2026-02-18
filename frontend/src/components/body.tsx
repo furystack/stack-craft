@@ -3,11 +3,14 @@ import { Dashboard } from '../pages/dashboard/index.js'
 import { ExportStack } from '../pages/import-export/export-stack.js'
 import { ImportStack } from '../pages/import-export/import-stack.js'
 import { Init, Offline } from '../pages/index.js'
+import { CreateRepository } from '../pages/repositories/create-repository.js'
+import { EditRepository } from '../pages/repositories/edit-repository.js'
 import { CreateService } from '../pages/services/create-service.js'
 import { ServiceDetail } from '../pages/services/service-detail.js'
 import { ServiceLogs } from '../pages/services/service-logs.js'
 import { UserSettings } from '../pages/settings/user-settings.js'
 import { CreateStack } from '../pages/stacks/create-stack.js'
+import { EditStack } from '../pages/stacks/edit-stack.js'
 import { SessionService } from '../services/session.js'
 
 const appRoutes = {
@@ -23,6 +26,12 @@ const appRoutes = {
   '/services/:id': {
     component: ({ match }) => <ServiceDetail serviceId={match.params.id} />,
   },
+  '/repositories/create/:stackName': {
+    component: ({ match }) => <CreateRepository stackName={match.params.stackName} />,
+  },
+  '/repositories/:id': {
+    component: ({ match }) => <EditRepository repositoryId={match.params.id} />,
+  },
   '/settings': {
     component: () => <UserSettings />,
   },
@@ -31,6 +40,9 @@ const appRoutes = {
   },
   '/stacks/import': {
     component: () => <ImportStack />,
+  },
+  '/stacks/:name/edit': {
+    component: ({ match }) => <EditStack stackName={match.params.name} />,
   },
   '/stacks/:name/export': {
     component: ({ match }) => <ExportStack stackName={match.params.name} />,
