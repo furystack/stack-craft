@@ -118,7 +118,9 @@ export class ProcessManager {
       this.processes.delete(serviceId)
     })
 
-    await this.updateServiceStatus(serviceId, { runStatus: 'running' })
+    child.on('spawn', () => {
+      void this.updateServiceStatus(serviceId, { runStatus: 'running' })
+    })
   }
 
   public async stopService(serviceId: string): Promise<void> {
@@ -176,11 +178,22 @@ export class ProcessManager {
     cwd: string,
     purpose: 'install' | 'build',
   ): Promise<void> {
-    const statusField = purpose === 'install' ? 'installStatus' : 'buildStatus'
-    const progressValue = purpose === 'install' ? 'installing' : 'building'
-    const doneValue = purpose === 'install' ? 'installed' : 'built'
+    const progressStatus =
+      purpose === 'install'
+        ? ({ installStatus: 'installing' } as const)
+        : ({ buildStatus: 'building' } as const)
 
-    await this.updateServiceStatus(serviceId, { [statusField]: progressValue as never })
+    const doneStatus =
+      purpose === 'install'
+        ? ({ installStatus: 'installed' } as const)
+        : ({ buildStatus: 'built' } as const)
+
+    const failedStatus =
+      purpose === 'install'
+        ? ({ installStatus: 'failed' } as const)
+        : ({ buildStatus: 'failed' } as const)
+
+    await this.updateServiceStatus(serviceId, progressStatus)
 
     const child = this.spawnCommand(command, cwd)
 
@@ -210,19 +223,20 @@ export class ProcessManager {
 
     return new Promise((resolve, reject) => {
       child.on('error', (err) => {
-        void this.updateServiceStatus(serviceId, { [statusField]: 'failed' as never })
+        void this.updateServiceStatus(serviceId, failedStatus)
         this.processes.delete(serviceId)
         reject(err)
       })
 
       child.on('exit', (code) => {
-        if (code === 0) {
-          void this.updateServiceStatus(serviceId, { [statusField]: doneValue as never })
-        } else {
-          void this.updateServiceStatus(serviceId, { [statusField]: 'failed' as never })
-        }
         this.processes.delete(serviceId)
-        resolve()
+        if (code === 0) {
+          void this.updateServiceStatus(serviceId, doneStatus)
+          resolve()
+        } else {
+          void this.updateServiceStatus(serviceId, failedStatus)
+          reject(new Error(`${purpose} command exited with code ${code}`))
+        }
       })
     })
   }

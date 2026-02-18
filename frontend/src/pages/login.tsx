@@ -25,9 +25,6 @@ export const Login = Shade({
       color: 'red',
       fontSize: '12px',
     },
-    '& .helper-text': {
-      fontSize: '10px',
-    },
   },
   render: ({ injector, useObservable }) => {
     const sessionService = injector.getInstance(SessionService)
@@ -67,7 +64,6 @@ export const Login = Shade({
             {error ? <div className="error-message">{error}</div> : <div />}
             <Button type="submit">Login</Button>
           </div>
-          <p className="helper-text">You can login with the default 'testuser' / 'password' credentials</p>
         </Form>
       </Paper>
     )

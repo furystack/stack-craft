@@ -15,6 +15,11 @@ export const LogViewer = Shade<LogViewerProps>({
     const [filter, setFilter] = useState('filter', '')
     const [isLoaded, setIsLoaded] = useState('isLoaded', false)
     const containerRef = useRef<HTMLDivElement>('container')
+    const linesRef = useDisposable('linesRef', () => ({
+      current: lines,
+      [Symbol.dispose]: () => {},
+    }))
+    linesRef.current = lines
 
     if (!isLoaded) {
       const api = injector.getInstance(ServicesApiClient)
@@ -42,7 +47,7 @@ export const LogViewer = Shade<LogViewerProps>({
       ws.connect()
       return ws.addListener((msg: WebsocketMessage) => {
         if (msg.type === 'service-log' && msg.serviceId === props.serviceId) {
-          setLines([...lines, msg.line])
+          setLines([...linesRef.current, msg.line])
           requestAnimationFrame(() => {
             if (containerRef.current) {
               const isNearBottom =
