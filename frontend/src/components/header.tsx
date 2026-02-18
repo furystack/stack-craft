@@ -1,27 +1,18 @@
-import { createComponent, RouteLink, Shade } from '@furystack/shades'
-import { AppBar, Button } from '@furystack/shades-common-components'
+import { createComponent, Shade } from '@furystack/shades'
+import { AppBar, AppBarLink, Button, DrawerToggleButton } from '@furystack/shades-common-components'
 import { SessionService } from '../services/session.js'
 import { ThemeSwitch } from './theme-switch/index.js'
 
 export type HeaderProps = {
   title: string
-  links: Array<{ name: string; url: string }>
 }
 
 export const Header = Shade<HeaderProps>({
   shadowDomName: 'shade-app-header',
   css: {
     '& h3': {
-      margin: '0 2em 0 0',
+      margin: '0 1em 0 0',
       cursor: 'pointer',
-    },
-    '& route-link': {
-      color: '#aaa',
-      textDecoration: 'none',
-      cursor: 'pointer',
-    },
-    '& route-link:hover': {
-      color: '#fff',
     },
     '& .spacer': {
       flex: '1',
@@ -39,11 +30,18 @@ export const Header = Shade<HeaderProps>({
 
     return (
       <AppBar id="header">
+        <DrawerToggleButton position="left" ariaLabel="Toggle navigation" />
         <h3>
-          <RouteLink title={props.title} href="/">
+          <AppBarLink href="/" title={props.title}>
             {props.title}
-          </RouteLink>
+          </AppBarLink>
         </h3>
+        {sessionState === 'authenticated' ? (
+          <div style={{ display: 'contents' }}>
+            <AppBarLink href="/">Dashboard</AppBarLink>
+            <AppBarLink href="/settings">Settings</AppBarLink>
+          </div>
+        ) : null}
         <div className="spacer" />
         <div className="actions">
           <ThemeSwitch variant="outlined" />

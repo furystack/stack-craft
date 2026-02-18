@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, NotyService } from '@furystack/shades-common-components'
+import { Button, cssVariableTheme, NotyService, PageHeader, Paper } from '@furystack/shades-common-components'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
 export const ImportStack = Shade({
@@ -34,34 +34,40 @@ export const ImportStack = Shade({
     }
 
     return (
-      <div style={{ padding: '24px', maxWidth: '800px' }}>
-        <h2 style={{ margin: '0 0 16px 0' }}>Import Stack</h2>
-        <p style={{ opacity: '0.7', marginBottom: '16px' }}>
-          Paste the exported JSON data below to import a stack with all its services, repositories, and dependencies.
-        </p>
-        <textarea
-          style={{
-            width: '100%',
-            height: '300px',
-            fontFamily: 'monospace',
-            fontSize: '13px',
-            padding: '12px',
-            background: '#0d1117',
-            color: '#c9d1d9',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '8px',
-            resize: 'vertical',
-          }}
-          placeholder="Paste exported stack JSON here..."
-          oninput={(ev) => setJsonInput((ev.target as HTMLTextAreaElement).value)}
+      <div>
+        <PageHeader
+          icon="📥"
+          title="Import Stack"
+          description="Paste the exported JSON data below to import a stack with all its services, repositories, and dependencies."
         />
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
-          <Button variant="outlined" onclick={() => history.pushState(null, '', '/')}>
-            Cancel
-          </Button>
-          <Button variant="contained" disabled={!jsonInput || isImporting} onclick={() => void handleImport()}>
-            Import
-          </Button>
+        <div style={{ padding: '16px', maxWidth: '800px' }}>
+          <Paper elevation={1}>
+            <textarea
+              style={{
+                width: '100%',
+                height: '300px',
+                fontFamily: 'monospace',
+                fontSize: '13px',
+                padding: '12px',
+                background: cssVariableTheme.background.default,
+                color: cssVariableTheme.text.primary,
+                border: `1px solid ${cssVariableTheme.divider}`,
+                borderRadius: cssVariableTheme.shape.borderRadius.md,
+                resize: 'vertical',
+                boxSizing: 'border-box',
+              }}
+              placeholder="Paste exported stack JSON here..."
+              oninput={(ev) => setJsonInput((ev.target as HTMLTextAreaElement).value)}
+            />
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <Button variant="outlined" onclick={() => history.pushState(null, '', '/')}>
+                Cancel
+              </Button>
+              <Button variant="contained" disabled={!jsonInput || isImporting} onclick={() => void handleImport()}>
+                Import
+              </Button>
+            </div>
+          </Paper>
         </div>
       </div>
     )

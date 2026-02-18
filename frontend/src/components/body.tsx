@@ -1,7 +1,33 @@
-import { createComponent, Router, Shade } from '@furystack/shades'
-import { Init, Login, Offline } from '../pages/index.js'
-import { SessionService } from '../services/session.js'
+import { createComponent, NestedRouter, Shade } from '@furystack/shades'
 import { Dashboard } from '../pages/dashboard/index.js'
+import { ExportStack } from '../pages/import-export/export-stack.js'
+import { ImportStack } from '../pages/import-export/import-stack.js'
+import { Init, Offline } from '../pages/index.js'
+import { ServiceDetail } from '../pages/services/service-detail.js'
+import { ServiceLogs } from '../pages/services/service-logs.js'
+import { UserSettings } from '../pages/settings/user-settings.js'
+import { SessionService } from '../services/session.js'
+
+const appRoutes = {
+  '/': {
+    component: () => <Dashboard />,
+  },
+  '/services/:id/logs': {
+    component: ({ match }) => <ServiceLogs serviceId={match.params.id} />,
+  },
+  '/services/:id': {
+    component: ({ match }) => <ServiceDetail serviceId={match.params.id} />,
+  },
+  '/settings': {
+    component: () => <UserSettings />,
+  },
+  '/stacks/import': {
+    component: () => <ImportStack />,
+  },
+  '/stacks/:name/export': {
+    component: ({ match }) => <ExportStack stackName={match.params.name} />,
+  },
+} satisfies Record<string, { component: (options: { match: { params: Record<string, string> } }) => JSX.Element }>
 
 export const Body = Shade<{ style?: Partial<CSSStyleDeclaration> }>({
   shadowDomName: 'shade-app-body',
@@ -13,11 +39,9 @@ export const Body = Shade<{ style?: Partial<CSSStyleDeclaration> }>({
         {(() => {
           switch (sessionState) {
             case 'authenticated':
-              return <Router routes={[{ url: '/', routingOptions: { end: false }, component: () => <Dashboard /> }]} />
+              return <NestedRouter routes={appRoutes} notFound={<Dashboard />} />
             case 'offline':
               return <Offline />
-            case 'unauthenticated':
-              return <Login />
             default:
               return <Init />
           }

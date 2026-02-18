@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button } from '@furystack/shades-common-components'
+import { Button, Icon, icons, Loader, PageHeader, Paper } from '@furystack/shades-common-components'
 import type { Service } from 'common'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 import { ServiceStatusIndicator } from '../../components/service-status-indicator.js'
@@ -31,70 +31,107 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     }
 
     if (isLoading) {
-      return <div style={{ padding: '24px' }}>Loading...</div>
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
+          <Loader />
+        </div>
+      )
     }
 
     if (!service) {
-      return <div style={{ padding: '24px' }}>Service not found.</div>
+      return (
+        <div>
+          <PageHeader
+            title="Service not found"
+            actions={
+              <Button
+                variant="outlined"
+                onclick={() => history.back()}
+                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
+              >
+                Back
+              </Button>
+            }
+          />
+        </div>
+      )
     }
 
     const api = injector.getInstance(ServicesApiClient)
 
     return (
-      <div style={{ padding: '24px', maxWidth: '800px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-          <h2 style={{ margin: '0' }}>{service.displayName}</h2>
-          <ServiceStatusIndicator service={service} />
-        </div>
-        {service.description ? <p style={{ opacity: '0.7', marginBottom: '24px' }}>{service.description}</p> : null}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-          {service.runStatus !== 'running' ? (
-            <Button
-              variant="contained"
-              color="success"
-              onclick={() => {
-                void api.call({ method: 'POST', action: '/services/:id/start', url: { id: service.id } })
-              }}
-            >
-              Start
-            </Button>
-          ) : (
-            <Button
-              variant="outlined"
-              onclick={() => {
-                void api.call({ method: 'POST', action: '/services/:id/stop', url: { id: service.id } })
-              }}
-            >
-              Stop
-            </Button>
-          )}
-          <Button
-            variant="outlined"
-            onclick={() => {
-              void api.call({ method: 'POST', action: '/services/:id/restart', url: { id: service.id } })
-            }}
-          >
-            Restart
-          </Button>
-          <Button variant="outlined" onclick={() => history.pushState(null, '', `/services/${service.id}/logs`)}>
-            View Logs
-          </Button>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '8px 16px', fontSize: '14px' }}>
-          <strong>Working Directory</strong>
-          <span style={{ fontFamily: 'monospace' }}>{service.workingDirectory}</span>
-          <strong>Run Command</strong>
-          <span style={{ fontFamily: 'monospace' }}>{service.runCommand}</span>
-          {service.installCommand ? <strong>Install Command</strong> : null}
-          {service.installCommand ? <span style={{ fontFamily: 'monospace' }}>{service.installCommand}</span> : null}
-          {service.buildCommand ? <strong>Build Command</strong> : null}
-          {service.buildCommand ? <span style={{ fontFamily: 'monospace' }}>{service.buildCommand}</span> : null}
-          <strong>Install Status</strong>
-          <span>{service.installStatus}</span>
-          <strong>Build Status</strong>
-          <span>{service.buildStatus}</span>
-          <strong>Run Status</strong>
-          <span>{service.runStatus}</span>
+      <div>
+        <PageHeader
+          title={service.displayName}
+          description={service.description}
+          actions={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ServiceStatusIndicator service={service} />
+              {service.runStatus !== 'running' ? (
+                <Button
+                  variant="contained"
+                  color="success"
+                  onclick={() => {
+                    void api.call({ method: 'POST', action: '/services/:id/start', url: { id: service.id } })
+                  }}
+                >
+                  Start
+                </Button>
+              ) : (
+                <Button
+                  variant="outlined"
+                  onclick={() => {
+                    void api.call({ method: 'POST', action: '/services/:id/stop', url: { id: service.id } })
+                  }}
+                >
+                  Stop
+                </Button>
+              )}
+              <Button
+                variant="outlined"
+                onclick={() => {
+                  void api.call({ method: 'POST', action: '/services/:id/restart', url: { id: service.id } })
+                }}
+              >
+                Restart
+              </Button>
+              <Button
+                variant="outlined"
+                onclick={() => history.pushState(null, '', `/services/${service.id}/logs`)}
+                startIcon={<Icon icon={icons.file} size="small" />}
+              >
+                View Logs
+              </Button>
+            </div>
+          }
+        />
+        <div style={{ padding: '16px' }}>
+          <Paper elevation={1}>
+            <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '8px 16px', fontSize: '14px' }}>
+              <strong>Working Directory</strong>
+              <span style={{ fontFamily: 'monospace' }}>{service.workingDirectory}</span>
+              <strong>Run Command</strong>
+              <span style={{ fontFamily: 'monospace' }}>{service.runCommand}</span>
+              {service.installCommand ? (
+                <div style={{ display: 'contents' }}>
+                  <strong>Install Command</strong>
+                  <span style={{ fontFamily: 'monospace' }}>{service.installCommand}</span>
+                </div>
+              ) : null}
+              {service.buildCommand ? (
+                <div style={{ display: 'contents' }}>
+                  <strong>Build Command</strong>
+                  <span style={{ fontFamily: 'monospace' }}>{service.buildCommand}</span>
+                </div>
+              ) : null}
+              <strong>Install Status</strong>
+              <span>{service.installStatus}</span>
+              <strong>Build Status</strong>
+              <span>{service.buildStatus}</span>
+              <strong>Run Status</strong>
+              <span>{service.runStatus}</span>
+            </div>
+          </Paper>
         </div>
       </div>
     )

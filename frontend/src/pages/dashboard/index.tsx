@@ -1,11 +1,11 @@
-import { createComponent, Shade } from '@furystack/shades'
-import { Button, NotyService } from '@furystack/shades-common-components'
+import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+import { Button, Icon, icons, NotyService, PageContainer, PageHeader } from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
 import type { Service, Stack } from 'common'
-import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
-import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 import { ServiceTable } from '../../components/service-table.js'
 import { StackSelector } from '../../components/stack-selector.js'
+import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
+import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
 export const Dashboard = Shade({
   shadowDomName: 'shade-dashboard',
@@ -65,64 +65,73 @@ export const Dashboard = Shade({
 
     if (stacks.length === 0 && !isLoading) {
       return (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '60vh',
-            gap: '16px',
-          }}
-        >
-          <h2 style={{ margin: '0', opacity: '0.7' }}>No stacks yet</h2>
-          <p style={{ opacity: '0.5', margin: '0' }}>Create a stack to start managing your services.</p>
-          <div style={{ display: 'flex', gap: '8px' }}>
+        <PageContainer>
+          <PageHeader
+            icon="🏠"
+            title="Dashboard"
+            description="No stacks yet. Create a stack to start managing your services."
+            actions={
+              <div>
+                <Button variant="contained" onclick={() => history.pushState(null, '', '/stacks/create')}>
+                  Create Stack
+                </Button>
+                <NestedRouteLink href="/stacks/import">
+                  <Button variant="outlined">Import Stack</Button>
+                </NestedRouteLink>
+              </div>
+            }
+          />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '40vh',
+              gap: '12px',
+            }}
+          >
             <Button variant="contained" onclick={() => history.pushState(null, '', '/stacks/create')}>
               Create Stack
             </Button>
-            <Button variant="outlined" onclick={() => history.pushState(null, '', '/stacks/import')}>
-              Import Stack
-            </Button>
+            <NestedRouteLink href="/stacks/import">
+              <Button variant="outlined">Import Stack</Button>
+            </NestedRouteLink>
           </div>
-        </div>
+        </PageContainer>
       )
     }
 
     const currentStack = stacks.find((s) => s.name === selectedStackName)
 
     return (
-      <div style={{ padding: '0 24px' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            padding: '16px 0',
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
-            marginBottom: '16px',
-          }}
-        >
-          <h2 style={{ margin: '0', fontSize: '20px' }}>{currentStack?.displayName ?? 'Dashboard'}</h2>
-          <StackSelector
-            stacks={stacks}
-            selectedStack={selectedStackName}
-            onSelect={(name) => {
-              setSelectedStackName(name)
-              void loadData()
-            }}
-          />
-          <div style={{ flex: '1' }} />
-          <Button variant="outlined" onclick={refresh}>
-            Refresh
-          </Button>
-        </div>
-        <ServiceTable
-          services={services}
-          onRefresh={refresh}
-          onViewLogs={(serviceId) => history.pushState(null, '', `/services/${serviceId}/logs`)}
-          onEdit={(serviceId) => history.pushState(null, '', `/services/${serviceId}`)}
+      <div>
+        <PageHeader
+          icon="🏠"
+          title={currentStack?.displayName ?? 'Dashboard'}
+          actions={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <StackSelector
+                stacks={stacks}
+                selectedStack={selectedStackName}
+                onSelect={(name) => {
+                  setSelectedStackName(name)
+                  void loadData()
+                }}
+              />
+              <Button variant="outlined" onclick={refresh} startIcon={<Icon icon={icons.refresh} size="small" />}>
+                Refresh
+              </Button>
+            </div>
+          }
         />
+        <div style={{ padding: '16px' }}>
+          <ServiceTable
+            services={services}
+            onRefresh={refresh}
+            onViewLogs={(serviceId) => history.pushState(null, '', `/services/${serviceId}/logs`)}
+            onEdit={(serviceId) => history.pushState(null, '', `/services/${serviceId}`)}
+          />
+        </div>
       </div>
     )
   },

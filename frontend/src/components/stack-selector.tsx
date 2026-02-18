@@ -1,4 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
+import { Select } from '@furystack/shades-common-components'
 import type { Stack } from 'common'
 
 type StackSelectorProps = {
@@ -13,27 +14,15 @@ export const StackSelector = Shade<StackSelectorProps>({
     if (props.stacks.length <= 1) return null
 
     return (
-      <select
-        style={{
-          background: 'transparent',
-          color: 'inherit',
-          border: '1px solid rgba(255,255,255,0.2)',
-          borderRadius: '4px',
-          padding: '4px 8px',
-          fontSize: '14px',
-          cursor: 'pointer',
-        }}
-        onchange={(e) => {
-          const target = e.target as HTMLSelectElement
-          props.onSelect(target.value)
-        }}
-      >
-        {props.stacks.map((stack) => (
-          <option value={stack.name} selected={stack.name === props.selectedStack}>
-            {stack.displayName}
-          </option>
-        ))}
-      </select>
+      <Select
+        variant="outlined"
+        value={props.selectedStack ?? undefined}
+        options={props.stacks.map((stack) => ({
+          value: stack.name,
+          label: stack.displayName,
+        }))}
+        onValueChange={(value) => props.onSelect(value)}
+      />
     )
   },
 })

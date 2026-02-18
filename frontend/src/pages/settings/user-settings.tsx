@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, Input, NotyService } from '@furystack/shades-common-components'
+import { Alert, Button, Icon, icons, Input, NotyService, PageHeader, Paper } from '@furystack/shades-common-components'
 import { IdentityApiClient } from '../../services/api-clients/identity-api-client.js'
 import { TokensApiClient } from '../../services/api-clients/tokens-api-client.js'
 import type { PublicApiToken } from 'common'
@@ -77,108 +77,107 @@ export const UserSettings = Shade({
     }
 
     return (
-      <div style={{ padding: '24px', maxWidth: '700px' }}>
-        <h2 style={{ margin: '0 0 24px 0' }}>User Settings</h2>
+      <div>
+        <PageHeader icon="⚙️" title="User Settings" />
 
-        <section style={{ marginBottom: '32px' }}>
-          <h3 style={{ margin: '0 0 16px 0' }}>Change Password</h3>
-          <form
-            style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
-            onsubmit={(ev) => void handlePasswordChange(ev)}
-          >
-            <Input name="currentPassword" labelTitle="Current Password" type="password" variant="outlined" required />
-            <Input
-              name="newPassword"
-              labelTitle="New Password"
-              type="password"
-              variant="outlined"
-              required
-              minLength={4}
-            />
-            <Button type="submit" variant="contained" style={{ alignSelf: 'flex-start' }}>
+        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '700px' }}>
+          <Paper elevation={1}>
+            <h3 style={{ margin: '0 0 16px 0' }}>
+              <Icon icon={icons.lock} size="small" style={{ marginRight: '8px', verticalAlign: 'middle' }} />
               Change Password
-            </Button>
-          </form>
-        </section>
-
-        <section>
-          <h3 style={{ margin: '0 0 16px 0' }}>API Tokens</h3>
-          <p style={{ opacity: '0.7', marginBottom: '16px', fontSize: '14px' }}>
-            API tokens allow external tools (e.g. MCP clients) to authenticate with StackCraft.
-          </p>
-
-          {createdToken ? (
-            <div
-              style={{
-                padding: '12px 16px',
-                background: '#1a472a',
-                border: '1px solid #2ea043',
-                borderRadius: '8px',
-                marginBottom: '16px',
-                fontFamily: 'monospace',
-                fontSize: '13px',
-                wordBreak: 'break-all',
-              }}
+            </h3>
+            <form
+              style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+              onsubmit={(ev) => void handlePasswordChange(ev)}
             >
-              <strong>New token (copy now):</strong>
-              <br />
-              {createdToken}
+              <Input name="currentPassword" labelTitle="Current Password" type="password" variant="outlined" required />
+              <Input
+                name="newPassword"
+                labelTitle="New Password"
+                type="password"
+                variant="outlined"
+                required
+                minLength={4}
+              />
+              <Button type="submit" variant="contained" style={{ alignSelf: 'flex-start' }}>
+                Change Password
+              </Button>
+            </form>
+          </Paper>
+
+          <Paper elevation={1}>
+            <h3 style={{ margin: '0 0 16px 0' }}>
+              <Icon icon={icons.link} size="small" style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+              API Tokens
+            </h3>
+            <p style={{ opacity: '0.7', marginBottom: '16px', fontSize: '14px' }}>
+              API tokens allow external tools (e.g. MCP clients) to authenticate with StackCraft.
+            </p>
+
+            {createdToken ? (
+              <Alert
+                severity="success"
+                title="New token (copy now)"
+                style={{ marginBottom: '16px', fontFamily: 'monospace', fontSize: '13px', wordBreak: 'break-all' }}
+              >
+                {createdToken}
+              </Alert>
+            ) : null}
+
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              <Input
+                variant="outlined"
+                labelTitle="Token name"
+                value={newTokenName}
+                oninput={(ev) => setNewTokenName((ev.target as HTMLInputElement).value)}
+                style={{ flex: '1' }}
+              />
+              <Button variant="contained" onclick={() => void handleCreateToken()}>
+                Create Token
+              </Button>
             </div>
-          ) : null}
 
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            <Input
-              variant="outlined"
-              labelTitle="Token name"
-              value={newTokenName}
-              oninput={(ev) => setNewTokenName((ev.target as HTMLInputElement).value)}
-              style={{ flex: '1' }}
-            />
-            <Button variant="contained" onclick={() => void handleCreateToken()}>
-              Create Token
-            </Button>
-          </div>
-
-          {tokens.length === 0 ? (
-            <p style={{ opacity: '0.5' }}>No tokens yet.</p>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                    Name
-                  </th>
-                  <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                    Created
-                  </th>
-                  <th style={{ width: '80px', padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }} />
-                </tr>
-              </thead>
-              <tbody>
-                {tokens.map((token) => (
+            {tokens.length === 0 ? (
+              <p style={{ opacity: '0.5' }}>No tokens yet.</p>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
                   <tr>
-                    <td style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>{token.name}</td>
-                    <td
-                      style={{
-                        padding: '8px',
-                        borderBottom: '1px solid rgba(255,255,255,0.05)',
-                        fontSize: '13px',
-                        opacity: '0.7',
-                      }}
-                    >
-                      {new Date(token.createdAt).toLocaleDateString()}
-                    </td>
-                    <td style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <Button variant="outlined" color="error" onclick={() => void handleDeleteToken(token.id)}>
-                        Revoke
-                      </Button>
-                    </td>
+                    <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                      Name
+                    </th>
+                    <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                      Created
+                    </th>
+                    <th style={{ width: '80px', padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }} />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </section>
+                </thead>
+                <tbody>
+                  {tokens.map((token) => (
+                    <tr>
+                      <td style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>{token.name}</td>
+                      <td
+                        style={{
+                          padding: '8px',
+                          borderBottom: '1px solid rgba(255,255,255,0.05)',
+                          fontSize: '13px',
+                          opacity: '0.7',
+                        }}
+                      >
+                        {new Date(token.createdAt).toLocaleDateString()}
+                      </td>
+                      <td style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <Button variant="outlined" color="error" onclick={() => void handleDeleteToken(token.id)}>
+                          Revoke
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Paper>
+        </div>
       </div>
     )
   },

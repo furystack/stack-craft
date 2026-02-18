@@ -1,5 +1,14 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, NotyService } from '@furystack/shades-common-components'
+import {
+  Button,
+  cssVariableTheme,
+  Icon,
+  icons,
+  Loader,
+  NotyService,
+  PageHeader,
+  Paper,
+} from '@furystack/shades-common-components'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
 type ExportStackProps = {
@@ -28,44 +37,63 @@ export const ExportStack = Shade<ExportStackProps>({
     }
 
     return (
-      <div style={{ padding: '24px', maxWidth: '800px' }}>
-        <h2 style={{ margin: '0 0 16px 0' }}>Export Stack</h2>
-        <p style={{ opacity: '0.7', marginBottom: '16px' }}>
-          Copy the JSON below and share it with other developers to quickly set up the same stack.
-        </p>
-        <textarea
-          style={{
-            width: '100%',
-            height: '300px',
-            fontFamily: 'monospace',
-            fontSize: '13px',
-            padding: '12px',
-            background: '#0d1117',
-            color: '#c9d1d9',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '8px',
-            resize: 'vertical',
-          }}
-          readOnly
-          value={isLoading ? 'Loading...' : jsonOutput}
+      <div>
+        <PageHeader
+          icon="📤"
+          title="Export Stack"
+          description="Copy the JSON below and share it with other developers to quickly set up the same stack."
+          actions={
+            <Button
+              variant="outlined"
+              onclick={() => history.back()}
+              startIcon={<Icon icon={icons.chevronLeft} size="small" />}
+            >
+              Back
+            </Button>
+          }
         />
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
-          <Button variant="outlined" onclick={() => history.back()}>
-            Back
-          </Button>
-          <Button
-            variant="contained"
-            onclick={() => {
-              void navigator.clipboard.writeText(jsonOutput)
-              injector.getInstance(NotyService).emit('onNotyAdded', {
-                title: 'Copied',
-                body: 'Stack export data copied to clipboard.',
-                type: 'success',
-              })
-            }}
-          >
-            Copy to Clipboard
-          </Button>
+        <div style={{ padding: '16px', maxWidth: '800px' }}>
+          {isLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
+              <Loader />
+            </div>
+          ) : (
+            <Paper elevation={1}>
+              <textarea
+                style={{
+                  width: '100%',
+                  height: '300px',
+                  fontFamily: 'monospace',
+                  fontSize: '13px',
+                  padding: '12px',
+                  background: cssVariableTheme.background.default,
+                  color: cssVariableTheme.text.primary,
+                  border: `1px solid ${cssVariableTheme.divider}`,
+                  borderRadius: cssVariableTheme.shape.borderRadius.md,
+                  resize: 'vertical',
+                  boxSizing: 'border-box',
+                }}
+                readOnly
+                value={jsonOutput}
+              />
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
+                <Button
+                  variant="contained"
+                  onclick={() => {
+                    void navigator.clipboard.writeText(jsonOutput)
+                    injector.getInstance(NotyService).emit('onNotyAdded', {
+                      title: 'Copied',
+                      body: 'Stack export data copied to clipboard.',
+                      type: 'success',
+                    })
+                  }}
+                  startIcon={<Icon icon={icons.clipboard} size="small" />}
+                >
+                  Copy to Clipboard
+                </Button>
+              </div>
+            </Paper>
+          )}
         </div>
       </div>
     )

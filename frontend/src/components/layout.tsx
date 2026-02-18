@@ -1,9 +1,12 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { cssVariableTheme, NotyList, PageLayout } from '@furystack/shades-common-components'
 import { InstallService } from '../services/install-service.js'
+import { SessionService } from '../services/session.js'
 import { Body } from './body.js'
 import { Header } from './header.js'
+import { Sidebar } from './sidebar.js'
 import { Init } from '../pages/init.js'
+import { Login } from '../pages/login.js'
 
 export const Layout = Shade({
   shadowDomName: 'shade-app-layout',
@@ -17,7 +20,7 @@ export const Layout = Shade({
     margin: '0',
     background: cssVariableTheme.background.default,
   },
-  render: ({ injector, useState }) => {
+  render: ({ injector, useState, useObservable }) => {
     const [installState, setInstallState] = useState<'loading' | 'installed' | 'needsInstall' | 'error'>(
       'installState',
       'loading',
@@ -42,13 +45,33 @@ export const Layout = Shade({
       )
     }
 
+    const session = injector.getInstance(SessionService)
+    const [sessionState] = useObservable('sessionState', session.state)
+
+    if (sessionState === 'unauthenticated') {
+      return (
+        <div>
+          <NotyList style={{ zIndex: '2' }} />
+          <Login />
+        </div>
+      )
+    }
+
     return (
       <div>
         <NotyList style={{ zIndex: '2' }} />
         <PageLayout
           appBar={{
             variant: 'permanent',
-            component: <Header title="StackCraft" links={[]} />,
+            component: <Header title="StackCraft" />,
+          }}
+          drawer={{
+            left: {
+              variant: 'collapsible',
+              width: '220px',
+              component: <Sidebar />,
+              collapseOnBreakpoint: 'md',
+            },
           }}
         >
           <Body style={{ width: '100%', height: '100%', overflow: 'auto' }} />
