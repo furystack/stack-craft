@@ -179,19 +179,13 @@ export class ProcessManager {
     purpose: 'install' | 'build',
   ): Promise<void> {
     const progressStatus =
-      purpose === 'install'
-        ? ({ installStatus: 'installing' } as const)
-        : ({ buildStatus: 'building' } as const)
+      purpose === 'install' ? ({ installStatus: 'installing' } as const) : ({ buildStatus: 'building' } as const)
 
     const doneStatus =
-      purpose === 'install'
-        ? ({ installStatus: 'installed' } as const)
-        : ({ buildStatus: 'built' } as const)
+      purpose === 'install' ? ({ installStatus: 'installed' } as const) : ({ buildStatus: 'built' } as const)
 
     const failedStatus =
-      purpose === 'install'
-        ? ({ installStatus: 'failed' } as const)
-        : ({ buildStatus: 'failed' } as const)
+      purpose === 'install' ? ({ installStatus: 'failed' } as const) : ({ buildStatus: 'failed' } as const)
 
     await this.updateServiceStatus(serviceId, progressStatus)
 
