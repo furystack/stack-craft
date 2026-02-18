@@ -1,5 +1,7 @@
 import { useEntitySync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
+
+import { navigate } from '../../utils/navigate.js'
 import {
   Button,
   Icon,
@@ -48,7 +50,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
             actions={
               <Button
                 variant="outlined"
-                onclick={() => history.pushState(null, '', '/')}
+                onclick={() => navigate(injector, '/')}
                 startIcon={<Icon icon={icons.chevronLeft} size="small" />}
               >
                 Back
@@ -68,7 +70,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
             actions={
               <Button
                 variant="outlined"
-                onclick={() => history.pushState(null, '', '/')}
+                onclick={() => navigate(injector, '/')}
                 startIcon={<Icon icon={icons.chevronLeft} size="small" />}
               >
                 Back
@@ -98,7 +100,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           body: `"${data.displayName ?? repo.displayName}" was updated successfully.`,
           type: 'success',
         })
-        history.pushState(null, '', '/')
+        navigate(injector, '/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -120,7 +122,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           body: `"${repo.displayName}" was deleted.`,
           type: 'success',
         })
-        history.pushState(null, '', '/')
+        navigate(injector, '/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -138,7 +140,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
             <div style={{ display: 'flex', gap: '8px' }}>
               <Button
                 variant="outlined"
-                onclick={() => history.pushState(null, '', '/')}
+                onclick={() => navigate(injector, '/')}
                 startIcon={<Icon icon={icons.chevronLeft} size="small" />}
               >
                 Back
@@ -155,7 +157,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
             stackName={repo.stackName}
             initial={repo}
             onSubmit={(data) => void handleSave(data)}
-            onCancel={() => history.pushState(null, '', '/')}
+            onCancel={() => navigate(injector, '/')}
           />
         </Paper>
         {isConfirmingDelete ? (

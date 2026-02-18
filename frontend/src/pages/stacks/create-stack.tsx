@@ -1,4 +1,6 @@
 import { createComponent, Shade } from '@furystack/shades'
+
+import { navigate } from '../../utils/navigate.js'
 import { NotyService, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
 import type { Stack } from 'common'
 import { StackForm } from '../../components/entity-forms/stack-form.js'
@@ -27,7 +29,7 @@ export const CreateStack = Shade({
           body: `Stack "${data.displayName}" was created successfully.`,
           type: 'success',
         })
-        history.pushState(null, '', '/')
+        navigate(injector, '/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -44,7 +46,7 @@ export const CreateStack = Shade({
           <StackForm
             mode="create"
             onSubmit={(data) => void handleSubmit(data)}
-            onCancel={() => history.pushState(null, '', '/')}
+            onCancel={() => navigate(injector, '/')}
           />
         </Paper>
       </PageContainer>

@@ -1,4 +1,6 @@
 import { createComponent, Shade } from '@furystack/shades'
+
+import { navigate } from '../../utils/navigate.js'
 import {
   Button,
   cssVariableTheme,
@@ -29,7 +31,7 @@ export const ImportStack = Shade({
           body: 'The stack was imported successfully.',
           type: 'success',
         })
-        history.pushState(null, '', '/')
+        navigate(injector, '/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Import failed',
@@ -67,7 +69,7 @@ export const ImportStack = Shade({
               oninput={(ev) => setJsonInput((ev.target as HTMLTextAreaElement).value)}
             />
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
-              <Button variant="outlined" onclick={() => history.pushState(null, '', '/')}>
+              <Button variant="outlined" onclick={() => navigate(injector, '/')}>
                 Cancel
               </Button>
               <Button variant="contained" disabled={!jsonInput || isImporting} onclick={() => void handleImport()}>

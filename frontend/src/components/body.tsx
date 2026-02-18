@@ -11,6 +11,7 @@ import { ServiceLogs } from '../pages/services/service-logs.js'
 import { UserSettings } from '../pages/settings/user-settings.js'
 import { CreateStack } from '../pages/stacks/create-stack.js'
 import { EditStack } from '../pages/stacks/edit-stack.js'
+import { CreateServiceWizard } from '../pages/wizards/create-service-wizard.js'
 import { SessionService } from '../services/session.js'
 
 const appRoutes = {
@@ -19,6 +20,9 @@ const appRoutes = {
   },
   '/services/create/:stackName': {
     component: ({ match }) => <CreateService stackName={match.params.stackName} />,
+  },
+  '/services/wizard/:stackName': {
+    component: ({ match }) => <CreateServiceWizard stackName={match.params.stackName} />,
   },
   '/services/:id/logs': {
     component: ({ match }) => <ServiceLogs serviceId={match.params.id} />,

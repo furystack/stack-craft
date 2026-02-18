@@ -1,5 +1,7 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+
+import { navigate } from '../../utils/navigate.js'
 import { Button, Icon, icons, Loader, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
 import { GitHubRepository, Service, Stack } from 'common'
 
@@ -51,7 +53,7 @@ export const Dashboard = Shade({
             description="No stacks yet. Create a stack to start managing your services."
             actions={
               <div style={{ display: 'flex', gap: '8px' }}>
-                <Button variant="contained" onclick={() => history.pushState(null, '', '/stacks/create')}>
+                <Button variant="contained" onclick={() => navigate(options.injector, '/stacks/create')}>
                   Create Stack
                 </Button>
                 <NestedRouteLink href="/stacks/import">
@@ -81,7 +83,7 @@ export const Dashboard = Shade({
               {activeStackName ? (
                 <Button
                   variant="outlined"
-                  onclick={() => history.pushState(null, '', `/stacks/${activeStackName}/edit`)}
+                  onclick={() => navigate(options.injector, `/stacks/${activeStackName}/edit`)}
                   startIcon={<Icon icon={icons.edit} size="small" />}
                 >
                   Edit Stack
@@ -90,7 +92,7 @@ export const Dashboard = Shade({
               {activeStackName ? (
                 <Button
                   variant="contained"
-                  onclick={() => history.pushState(null, '', `/services/create/${activeStackName}`)}
+                  onclick={() => navigate(options.injector, `/services/wizard/${activeStackName}`)}
                 >
                   Create Service
                 </Button>
@@ -115,7 +117,7 @@ export const Dashboard = Shade({
               {activeStackName ? (
                 <Button
                   variant="contained"
-                  onclick={() => history.pushState(null, '', `/services/create/${activeStackName}`)}
+                  onclick={() => navigate(options.injector, `/services/wizard/${activeStackName}`)}
                 >
                   Create Service
                 </Button>
@@ -124,8 +126,8 @@ export const Dashboard = Shade({
           ) : (
             <ServiceTable
               services={services}
-              onViewLogs={(serviceId) => history.pushState(null, '', `/services/${serviceId}/logs`)}
-              onEdit={(serviceId) => history.pushState(null, '', `/services/${serviceId}`)}
+              onViewLogs={(serviceId) => navigate(options.injector, `/services/${serviceId}/logs`)}
+              onEdit={(serviceId) => navigate(options.injector, `/services/${serviceId}`)}
             />
           )}
         </Paper>
@@ -142,7 +144,7 @@ export const Dashboard = Shade({
             {activeStackName ? (
               <Button
                 variant="outlined"
-                onclick={() => history.pushState(null, '', `/repositories/create/${activeStackName}`)}
+                onclick={() => navigate(options.injector, `/repositories/create/${activeStackName}`)}
               >
                 Add Repository
               </Button>
@@ -154,7 +156,7 @@ export const Dashboard = Shade({
               {activeStackName ? (
                 <Button
                   variant="outlined"
-                  onclick={() => history.pushState(null, '', `/repositories/create/${activeStackName}`)}
+                  onclick={() => navigate(options.injector, `/repositories/create/${activeStackName}`)}
                 >
                   Add Repository
                 </Button>
@@ -163,7 +165,7 @@ export const Dashboard = Shade({
           ) : (
             <RepositoryTable
               repositories={repos}
-              onEdit={(repoId: string) => history.pushState(null, '', `/repositories/${repoId}`)}
+              onEdit={(repoId: string) => navigate(options.injector, `/repositories/${repoId}`)}
             />
           )}
         </Paper>

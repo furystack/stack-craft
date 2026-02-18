@@ -1,5 +1,7 @@
 import { useCollectionSync, useEntitySync } from '@furystack/entity-sync-client'
-import { createComponent, Shade } from '@furystack/shades'
+import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+
+import { navigate } from '../../utils/navigate.js'
 import {
   Button,
   Icon,
@@ -134,7 +136,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           body: `"${service.displayName}" was deleted.`,
           type: 'success',
         })
-        history.pushState(null, '', '/')
+        navigate(injector, '/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -211,7 +213,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
               </Button>
               <Button
                 variant="outlined"
-                onclick={() => history.pushState(null, '', `/services/${service.id}/logs`)}
+                onclick={() => navigate(injector, `/services/${service.id}/logs`)}
                 startIcon={<Icon icon={icons.file} size="small" />}
               >
                 View Logs
@@ -235,13 +237,9 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
               <div style={{ display: 'contents' }}>
                 <strong>Repository</strong>
                 <span>
-                  <a
-                    href="javascript:void(0)"
-                    style={{ color: 'inherit' }}
-                    onclick={() => history.pushState(null, '', `/repositories/${linkedRepo.id}`)}
-                  >
+                  <NestedRouteLink href="/repositories/:id" params={{ id: linkedRepo.id }} style={{ color: 'inherit' }}>
                     {linkedRepo.displayName}
-                  </a>
+                  </NestedRouteLink>
                 </span>
               </div>
             ) : null}
