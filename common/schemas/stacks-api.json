@@ -146,15 +146,21 @@
             },
             "services": {
               "type": "array",
-              "items": {}
+              "items": {
+                "$ref": "#/definitions/Service"
+              }
             },
             "repositories": {
               "type": "array",
-              "items": {}
+              "items": {
+                "$ref": "#/definitions/GitHubRepository"
+              }
             },
             "dependencies": {
               "type": "array",
-              "items": {}
+              "items": {
+                "$ref": "#/definitions/Dependency"
+              }
             }
           },
           "required": ["stack", "services", "repositories", "dependencies"],
@@ -162,6 +168,173 @@
         }
       },
       "required": ["url", "result"],
+      "additionalProperties": false
+    },
+    "Service": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "workingDirectory": {
+          "type": "string"
+        },
+        "repositoryId": {
+          "type": "string"
+        },
+        "autoFetchEnabled": {
+          "type": "boolean"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number"
+        },
+        "lastFetchedAt": {
+          "type": "string"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean"
+        },
+        "dependencyIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "installCommand": {
+          "type": "string"
+        },
+        "buildCommand": {
+          "type": "string"
+        },
+        "runCommand": {
+          "type": "string"
+        },
+        "installStatus": {
+          "$ref": "#/definitions/InstallStatus"
+        },
+        "buildStatus": {
+          "$ref": "#/definitions/BuildStatus"
+        },
+        "runStatus": {
+          "$ref": "#/definitions/RunStatus"
+        },
+        "lastInstalledAt": {
+          "type": "string"
+        },
+        "lastBuiltAt": {
+          "type": "string"
+        },
+        "lastStartedAt": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "stackName",
+        "displayName",
+        "description",
+        "workingDirectory",
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch",
+        "dependencyIds",
+        "prerequisiteServiceIds",
+        "runCommand",
+        "installStatus",
+        "buildStatus",
+        "runStatus",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "InstallStatus": {
+      "type": "string",
+      "enum": ["not-installed", "installing", "installed", "failed"]
+    },
+    "BuildStatus": {
+      "type": "string",
+      "enum": ["not-built", "building", "built", "failed"]
+    },
+    "RunStatus": {
+      "type": "string",
+      "enum": ["stopped", "starting", "running", "stopping", "error"]
+    },
+    "GitHubRepository": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "stackName", "url", "displayName", "description", "createdAt", "updatedAt"],
+      "additionalProperties": false
+    },
+    "Dependency": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "checkCommand": {
+          "type": "string"
+        },
+        "installationHelp": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"],
       "additionalProperties": false
     },
     "ImportStackEndpoint": {
@@ -185,15 +358,21 @@
             },
             "services": {
               "type": "array",
-              "items": {}
+              "items": {
+                "$ref": "#/definitions/Service"
+              }
             },
             "repositories": {
               "type": "array",
-              "items": {}
+              "items": {
+                "$ref": "#/definitions/GitHubRepository"
+              }
             },
             "dependencies": {
               "type": "array",
-              "items": {}
+              "items": {
+                "$ref": "#/definitions/Dependency"
+              }
             }
           },
           "required": ["stack", "services", "repositories", "dependencies"],
