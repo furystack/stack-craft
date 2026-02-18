@@ -7,6 +7,7 @@ import { randomUUID } from 'crypto'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { ProcessManager } from '../services/process-manager.js'
 import { GitService } from '../services/git-service.js'
+import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { resolveTokenUser } from '../middleware/bearer-token-auth.js'
 import { z } from 'zod'
 
@@ -118,11 +119,12 @@ export const createMcpServer = (injector: Injector) => {
     const sm = getStoreManager(injector)
     const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
-    if (!svc?.workingDirectory) {
-      return { content: [{ type: 'text', text: 'Service not found or no working directory' }], isError: true }
+    if (!svc) {
+      return { content: [{ type: 'text', text: 'Service not found' }], isError: true }
     }
     try {
-      const result = await injector.getInstance(GitService).pull(svc.workingDirectory)
+      const cwd = await resolveServiceCwd(injector, svc)
+      const result = await injector.getInstance(GitService).pull(cwd)
       return { content: [{ type: 'text', text: result.updated ? 'Changes pulled' : 'Already up to date' }] }
     } catch (error) {
       return { content: [{ type: 'text', text: `Failed: ${(error as Error).message}` }], isError: true }
@@ -175,7 +177,25 @@ export const createMcpServer = (injector: Injector) => {
   return mcp
 }
 
-const transports = new Map<string, StreamableHTTPServerTransport>()
+const SESSION_TTL_MS = 30 * 60 * 1000
+
+type TransportEntry = {
+  transport: StreamableHTTPServerTransport
+  lastActivityAt: number
+}
+
+const transports = new Map<string, TransportEntry>()
+
+const sweepInterval = setInterval(() => {
+  const now = Date.now()
+  for (const [id, entry] of transports) {
+    if (now - entry.lastActivityAt > SESSION_TTL_MS) {
+      void entry.transport.close?.()
+      transports.delete(id)
+    }
+  }
+}, 60_000)
+sweepInterval.unref()
 
 export const handleMcpRequest = async (injector: Injector, req: IncomingMessage, res: ServerResponse) => {
   const authHeader = req.headers.authorization
@@ -197,7 +217,7 @@ export const handleMcpRequest = async (injector: Injector, req: IncomingMessage,
     await mcp.connect(transport)
 
     if (transport.sessionId) {
-      transports.set(transport.sessionId, transport)
+      transports.set(transport.sessionId, { transport, lastActivityAt: Date.now() })
     }
 
     transport.onclose = () => {
@@ -211,9 +231,10 @@ export const handleMcpRequest = async (injector: Injector, req: IncomingMessage,
   }
 
   if (sessionId) {
-    const transport = transports.get(sessionId)
-    if (transport) {
-      await transport.handleRequest(req, res)
+    const entry = transports.get(sessionId)
+    if (entry) {
+      entry.lastActivityAt = Date.now()
+      await entry.transport.handleRequest(req, res)
       return
     }
   }

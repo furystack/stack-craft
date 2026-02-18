@@ -21,13 +21,8 @@ export class WebsocketService {
   public announce = async (message: WebsocketMessage) => {
     if (!this.webSocketApi) return
     const data = JSON.stringify(message)
-    await this.webSocketApi.broadcast(async (options) => {
-      try {
-        const ws = options.ws as unknown as { send: (data: string) => void }
-        ws.send(data)
-      } catch {
-        // Client may have disconnected
-      }
-    })
+    // ws type comes from transitive @furystack/websocket-api -> ws dependency
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
+    await this.webSocketApi.broadcast(({ ws }) => ws.send(data))
   }
 }

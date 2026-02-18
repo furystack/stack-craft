@@ -1,6 +1,6 @@
 import type { GitHubRepository, Service, Stack } from '../models/index.js'
 
-function joinPath(...parts: (string | undefined)[]): string {
+function joinPath(...parts: Array<string | undefined>): string {
   return parts
     .filter((p): p is string => typeof p === 'string' && p !== '')
     .map((p) => p.replace(/\\/g, '/'))
@@ -25,11 +25,7 @@ export function getRepoNameFromUrl(url: string): string {
  * - Service workingDirectory is optional, for grouping (e.g. "frontends/public", "services/gateways")
  * - When cloning from Git, the repo name is added as a subdirectory
  */
-export function getServiceCwd(
-  stack: Stack,
-  service: Service,
-  repo?: GitHubRepository | null,
-): string {
+export function getServiceCwd(stack: Stack, service: Service, repo?: GitHubRepository | null): string {
   const base = joinPath(stack.mainDirectory, service.workingDirectory)
   if (repo?.url) {
     return joinPath(base, getRepoNameFromUrl(repo.url))

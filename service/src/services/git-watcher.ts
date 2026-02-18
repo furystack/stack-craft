@@ -1,9 +1,8 @@
 import { getStoreManager } from '@furystack/core'
 import { Injectable, Injected, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { GitHubRepository, Service, Stack } from 'common'
-import { getServiceCwd } from 'common'
-import { resolvePath } from '../utils/resolve-path.js'
+import { Service } from 'common'
+import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { GitService } from './git-service.js'
 import { ProcessManager } from './process-manager.js'
 import { WebsocketService } from './websocket-service.js'
@@ -30,27 +29,6 @@ export class GitWatcher {
   @Injected(ProcessManager)
   declare private pm: ProcessManager
 
-  private async resolveServiceCwd(service: Service): Promise<string> {
-    const sm = getStoreManager(getInjectorReference(this))
-    const stacks = await sm.getStoreFor(Stack, 'name').find({
-      filter: { name: { $eq: service.stackName } },
-      top: 1,
-    })
-    const stack = stacks[0]
-    if (!stack) throw new Error(`Stack not found: ${service.stackName}`)
-
-    let repo: GitHubRepository | null = null
-    if (service.repositoryId) {
-      const repos = await sm.getStoreFor(GitHubRepository, 'id').find({
-        filter: { id: { $eq: service.repositoryId } },
-        top: 1,
-      })
-      repo = repos[0] ?? null
-    }
-
-    return resolvePath(getServiceCwd(stack, service, repo))
-  }
-
   public async startWatching(serviceId: string): Promise<void> {
     if (this.watchers.has(serviceId)) return
 
@@ -60,7 +38,7 @@ export class GitWatcher {
 
     if (!svc?.autoFetchEnabled || !svc?.repositoryId) return
 
-    const cwd = await this.resolveServiceCwd(svc)
+    const cwd = await resolveServiceCwd(getInjectorReference(this), svc)
     const intervalMs = (svc.autoFetchIntervalMinutes || 60) * 60 * 1000
 
     const { remote } = await this.git.getBranches(cwd).catch(() => ({ remote: [] as string[] }))
@@ -94,7 +72,7 @@ export class GitWatcher {
     const svc = services[0]
     if (!svc?.repositoryId) return
 
-    const cwd = await this.resolveServiceCwd(svc)
+    const cwd = await resolveServiceCwd(getInjectorReference(this), svc)
 
     try {
       await this.git.fetch(cwd)

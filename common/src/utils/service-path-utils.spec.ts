@@ -57,9 +57,7 @@ describe('service-path-utils', () => {
         createdAt: '',
         updatedAt: '',
       }
-      expect(getServiceCwd(stack, service, repo)).toBe(
-        '/workspace/stacks/my-stack/frontends/public/my-frontend',
-      )
+      expect(getServiceCwd(stack, service, repo)).toBe('/workspace/stacks/my-stack/frontends/public/my-frontend')
     })
 
     it('should use stack root when service has no workingDirectory and no repo', () => {

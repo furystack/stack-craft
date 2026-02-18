@@ -29,7 +29,7 @@ const setupRestApis = async () => {
 
   setupEntitySync(injector)
 
-  await setupMcp(injector)
+  setupMcp(injector)
 }
 
 setupRestApis()

@@ -67,10 +67,7 @@ export const ServiceLifecycleAction =
           }
 
           if (!repo?.url) {
-            throw new RequestError(
-              `No repository linked. Link a GitHub repository to enable clone/pull.`,
-              400,
-            )
+            throw new RequestError(`No repository linked. Link a GitHub repository to enable clone/pull.`, 400)
           }
 
           const cwd = resolvePath(getServiceCwd(stack, svc, repo))

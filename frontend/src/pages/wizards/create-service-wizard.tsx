@@ -2,14 +2,7 @@ import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 
 import { navigate } from '../../utils/navigate.js'
-import {
-  Button,
-  Input,
-  NotyService,
-  Paper,
-  Select,
-  cssVariableTheme,
-} from '@furystack/shades-common-components'
+import { Button, Input, NotyService, Paper, Select, cssVariableTheme } from '@furystack/shades-common-components'
 import type { GitHubRepository } from 'common'
 import { GitHubRepository as GitHubRepositoryModel } from 'common'
 
@@ -119,7 +112,8 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
         }
 
         if (state.repoChoice === 'new') {
-          const form = document.querySelector('shade-create-service-wizard')
+          const form = document
+            .querySelector('shade-create-service-wizard')
             ?.shadowRoot?.querySelector('form[data-repo-form]') as HTMLFormElement | null
           if (form) {
             const formData = new FormData(form)
@@ -172,7 +166,13 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
     const stepIndicator = (
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
         <StepDot active={state.step === 0} completed={state.step > 0} label="1. Service" />
-        <div style={{ width: '40px', height: '2px', background: state.step > 0 ? cssVariableTheme.palette.primary.main : 'rgba(255,255,255,0.15)' }} />
+        <div
+          style={{
+            width: '40px',
+            height: '2px',
+            background: state.step > 0 ? cssVariableTheme.palette.primary.main : 'rgba(255,255,255,0.15)',
+          }}
+        />
         <StepDot active={state.step === 1} completed={false} label="2. Repository" />
       </div>
     )
@@ -364,7 +364,9 @@ const RepoChoiceOption = Shade<RepoChoiceOptionProps>({
           padding: '10px 14px',
           borderRadius: '8px',
           cursor: 'pointer',
-          border: props.selected ? `2px solid ${cssVariableTheme.palette.primary.main}` : '2px solid rgba(255,255,255,0.1)',
+          border: props.selected
+            ? `2px solid ${cssVariableTheme.palette.primary.main}`
+            : '2px solid rgba(255,255,255,0.1)',
           background: props.selected ? 'rgba(255,255,255,0.03)' : 'transparent',
           transition: 'all 0.15s',
         }}

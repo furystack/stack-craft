@@ -2,10 +2,9 @@ import { getStoreManager } from '@furystack/core'
 import { Injectable, Injected, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import type { InstallStatus, BuildStatus, RunStatus } from 'common'
-import { GitHubRepository, Service, Stack } from 'common'
-import { getServiceCwd } from 'common'
+import { Service } from 'common'
 import { type ChildProcess, spawn } from 'child_process'
-import { resolvePath } from '../utils/resolve-path.js'
+import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { WebsocketService } from './websocket-service.js'
 
 const MAX_LOG_LINES = 10_000
@@ -26,27 +25,6 @@ export class ProcessManager {
 
   @Injected(WebsocketService)
   declare private ws: WebsocketService
-
-  private async resolveServiceCwd(service: Service): Promise<string> {
-    const sm = getStoreManager(getInjectorReference(this))
-    const stacks = await sm.getStoreFor(Stack, 'name').find({
-      filter: { name: { $eq: service.stackName } },
-      top: 1,
-    })
-    const stack = stacks[0]
-    if (!stack) throw new Error(`Stack not found: ${service.stackName}`)
-
-    let repo: GitHubRepository | null = null
-    if (service.repositoryId) {
-      const repos = await sm.getStoreFor(GitHubRepository, 'id').find({
-        filter: { id: { $eq: service.repositoryId } },
-        top: 1,
-      })
-      repo = repos[0] ?? null
-    }
-
-    return resolvePath(getServiceCwd(stack, service, repo))
-  }
 
   public getLogLines(serviceId: string, count?: number): string[] {
     const managed = this.processes.get(serviceId)
@@ -107,7 +85,7 @@ export class ProcessManager {
     await this.logger.information({ message: `Starting service: ${svc.displayName}` })
     await this.updateServiceStatus(serviceId, { runStatus: 'starting' })
 
-    const cwd = await this.resolveServiceCwd(svc)
+    const cwd = await resolveServiceCwd(getInjectorReference(this), svc)
     const child = this.spawnCommand(svc.runCommand, cwd)
 
     const managed: ManagedProcess = {
@@ -183,7 +161,7 @@ export class ProcessManager {
     const svc = services[0]
     if (!svc?.installCommand) throw new Error(`No install command for service: ${serviceId}`)
 
-    const cwd = await this.resolveServiceCwd(svc)
+    const cwd = await resolveServiceCwd(getInjectorReference(this), svc)
     await this.runOneShot(serviceId, svc.installCommand, cwd, 'install')
   }
 
@@ -193,7 +171,7 @@ export class ProcessManager {
     const svc = services[0]
     if (!svc?.buildCommand) throw new Error(`No build command for service: ${serviceId}`)
 
-    const cwd = await this.resolveServiceCwd(svc)
+    const cwd = await resolveServiceCwd(getInjectorReference(this), svc)
     await this.runOneShot(serviceId, svc.buildCommand, cwd, 'build')
   }
 
@@ -203,6 +181,13 @@ export class ProcessManager {
     cwd: string,
     purpose: 'install' | 'build',
   ): Promise<void> {
+    const existing = this.processes.get(serviceId)
+    if (existing) {
+      throw new Error(
+        `Service ${serviceId} already has a ${existing.purpose} process running. Stop it before starting a ${purpose}.`,
+      )
+    }
+
     const progressStatus =
       purpose === 'install' ? ({ installStatus: 'installing' } as const) : ({ buildStatus: 'building' } as const)
 
@@ -305,5 +290,4 @@ export class ProcessManager {
 
     this.processes.clear()
   }
-
 }
