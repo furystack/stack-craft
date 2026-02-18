@@ -42,7 +42,10 @@ appear before simple list items within each section.
 <!-- PLACEHOLDER: Describe CI configuration changes (ci:) -->
 
 ## ⬆️ Dependencies
-<!-- PLACEHOLDER: Describe dependency updates (deps:) -->
+
+- Bumped `@furystack/rest` from ^8.0.34 to ^8.0.36
+- Bumped `@types/node` from ^25.2.0 to ^25.2.3
+- Bumped `ts-json-schema-generator` from ^2.4.0 to ^2.5.0
 
 ## 🔧 Chores
 <!-- PLACEHOLDER: Describe other changes (chore:) -->
