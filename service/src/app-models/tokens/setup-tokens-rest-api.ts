@@ -1,0 +1,102 @@
+import { getCurrentUser, getStoreManager } from '@furystack/core'
+import type { Injector } from '@furystack/inject'
+import { getLogger } from '@furystack/logging'
+import { RequestError } from '@furystack/rest'
+import { JsonResult, type RequestAction, useRestService, Validate } from '@furystack/rest-service'
+import type { CreateTokenEndpoint, TokensApi } from 'common'
+import { ApiToken } from 'common'
+import tokensApiSchema from 'common/schemas/tokens-api.json' with { type: 'json' }
+import { randomBytes, createHash } from 'crypto'
+
+import { getCorsOptions } from '../../get-cors-options.js'
+import { getPort } from '../../get-port.js'
+
+const CreateTokenAction: RequestAction<CreateTokenEndpoint> = async ({ injector, getBody }) => {
+  const logger = getLogger(injector).withScope('CreateToken')
+  const currentUser = await getCurrentUser(injector)
+
+  if (!currentUser) {
+    throw new RequestError('Not authenticated', 401)
+  }
+
+  const { name } = (await getBody()) as { name: string }
+  const plainTextToken = randomBytes(32).toString('hex')
+  const tokenHash = createHash('sha256').update(plainTextToken).digest('hex')
+
+  const now = new Date().toISOString()
+  const id = randomBytes(16).toString('hex')
+
+  const tokenEntity: ApiToken = {
+    id,
+    username: currentUser.username,
+    name,
+    tokenHash,
+    createdAt: now,
+  }
+
+  const sm = getStoreManager(injector)
+  await sm.getStoreFor(ApiToken, 'id').add(tokenEntity)
+
+  await logger.information({ message: `Token created: ${name} for user ${currentUser.username}` })
+
+  const { tokenHash: _hash, ...publicToken } = tokenEntity
+  return JsonResult({ token: publicToken, plainTextToken })
+}
+
+const GetTokensAction: RequestAction<TokensApi['GET']['/tokens']> = async ({ injector }) => {
+  const currentUser = await getCurrentUser(injector)
+
+  if (!currentUser) {
+    throw new RequestError('Not authenticated', 401)
+  }
+
+  const sm = getStoreManager(injector)
+  const tokens = await sm.getStoreFor(ApiToken, 'id').find({
+    filter: { username: { $eq: currentUser.username } },
+  })
+
+  const publicTokens = tokens.map(({ tokenHash: _hash, ...rest }) => rest)
+  return JsonResult({ count: publicTokens.length, entries: publicTokens })
+}
+
+const DeleteTokenAction: RequestAction<TokensApi['DELETE']['/tokens/:id']> = async ({ injector, getUrlParams }) => {
+  const currentUser = await getCurrentUser(injector)
+
+  if (!currentUser) {
+    throw new RequestError('Not authenticated', 401)
+  }
+
+  const { id } = getUrlParams()
+  const sm = getStoreManager(injector)
+  const tokenStore = sm.getStoreFor(ApiToken, 'id')
+
+  const results = await tokenStore.find({ filter: { id: { $eq: id } }, top: 1 })
+  const token = results[0]
+
+  if (!token || token.username !== currentUser.username) {
+    throw new RequestError('Token not found', 404)
+  }
+
+  await tokenStore.remove(id)
+  return JsonResult({})
+}
+
+export const setupTokensRestApi = async (injector: Injector) => {
+  await useRestService<TokensApi>({
+    injector,
+    root: 'api/tokens',
+    port: getPort(),
+    cors: getCorsOptions(),
+    api: {
+      GET: {
+        '/tokens': GetTokensAction,
+      },
+      POST: {
+        '/tokens': Validate({ schema: tokensApiSchema, schemaName: 'CreateTokenEndpoint' })(CreateTokenAction),
+      },
+      DELETE: {
+        '/tokens/:id': DeleteTokenAction,
+      },
+    },
+  })
+}

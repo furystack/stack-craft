@@ -1,0 +1,959 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "GitHubRepoWritableFields": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "stackName",
+        "url",
+        "displayName",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "PostGitHubRepoEndpoint": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/GitHubRepository"
+        },
+        "body": {
+          "$ref": "#/definitions/WithOptionalId%3CGitHubRepoWritableFields%2C%22id%22%3E"
+        }
+      },
+      "required": [
+        "result",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "GitHubRepository": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "stackName",
+        "url",
+        "displayName",
+        "description",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "WithOptionalId<GitHubRepoWritableFields,\"id\">": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "displayName",
+        "stackName",
+        "url"
+      ]
+    },
+    "PatchGitHubRepoEndpoint": {
+      "$ref": "#/definitions/PatchEndpoint%3CGitHubRepoWritableFields%2C%22id%22%3E"
+    },
+    "PatchEndpoint<GitHubRepoWritableFields,\"id\">": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "stackName": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "displayName": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "body",
+        "url",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Endpoint model for updating entities"
+    },
+    "ValidateRepoEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "accessible": {
+              "type": "boolean"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "accessible"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "url",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "GitHubRepositoriesApi": {
+      "type": "object",
+      "properties": {
+        "GET": {
+          "type": "object",
+          "properties": {
+            "/github-repositories": {
+              "$ref": "#/definitions/GetCollectionEndpoint%3CGitHubRepository%3E"
+            },
+            "/github-repositories/:id": {
+              "$ref": "#/definitions/GetEntityEndpoint%3CGitHubRepository%2C%22id%22%3E"
+            }
+          },
+          "required": [
+            "/github-repositories",
+            "/github-repositories/:id"
+          ],
+          "additionalProperties": false
+        },
+        "POST": {
+          "type": "object",
+          "properties": {
+            "/github-repositories": {
+              "$ref": "#/definitions/PostGitHubRepoEndpoint"
+            },
+            "/github-repositories/:id/validate": {
+              "$ref": "#/definitions/ValidateRepoEndpoint"
+            }
+          },
+          "required": [
+            "/github-repositories",
+            "/github-repositories/:id/validate"
+          ],
+          "additionalProperties": false
+        },
+        "PATCH": {
+          "type": "object",
+          "properties": {
+            "/github-repositories/:id": {
+              "$ref": "#/definitions/PatchGitHubRepoEndpoint"
+            }
+          },
+          "required": [
+            "/github-repositories/:id"
+          ],
+          "additionalProperties": false
+        },
+        "PUT": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "DELETE": {
+          "type": "object",
+          "properties": {
+            "/github-repositories/:id": {
+              "$ref": "#/definitions/DeleteEndpoint%3CGitHubRepository%2C%22id%22%3E"
+            }
+          },
+          "required": [
+            "/github-repositories/:id"
+          ],
+          "additionalProperties": false
+        },
+        "HEAD": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "CONNECT": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "TRACE": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "OPTIONS": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "additionalProperties": false
+    },
+    "GetCollectionEndpoint<GitHubRepository>": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "object",
+          "properties": {
+            "findOptions": {
+              "$ref": "#/definitions/FindOptions%3CGitHubRepository%2C(%22id%22%7C%22stackName%22%7C%22url%22%7C%22displayName%22%7C%22description%22%7C%22createdAt%22%7C%22updatedAt%22)%5B%5D%3E"
+            }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "$ref": "#/definitions/GetCollectionResult%3CGitHubRepository%3E"
+        }
+      },
+      "required": [
+        "query",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Rest endpoint model for getting / querying collections"
+    },
+    "FindOptions<GitHubRepository,(\"id\"|\"stackName\"|\"url\"|\"displayName\"|\"description\"|\"createdAt\"|\"updatedAt\")[]>": {
+      "type": "object",
+      "properties": {
+        "top": {
+          "type": "number",
+          "description": "Limits the hits"
+        },
+        "skip": {
+          "type": "number",
+          "description": "Skips the first N hit"
+        },
+        "order": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "stackName": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "url": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "displayName": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "description": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "createdAt": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "updatedAt": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "description": "Sets up an order by a field and a direction"
+        },
+        "select": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "id",
+              "stackName",
+              "url",
+              "displayName",
+              "description",
+              "createdAt",
+              "updatedAt"
+            ]
+          },
+          "description": "The result set will be limited to these fields"
+        },
+        "filter": {
+          "$ref": "#/definitions/FilterType%3CGitHubRepository%3E",
+          "description": "The fields should match this filter"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Type for default filtering model"
+    },
+    "FilterType<GitHubRepository>": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$and": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CGitHubRepository%3E"
+          }
+        },
+        "$not": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CGitHubRepository%3E"
+          }
+        },
+        "$nor": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CGitHubRepository%3E"
+          }
+        },
+        "$or": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CGitHubRepository%3E"
+          }
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "stackName": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "displayName": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "createdAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "updatedAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "GetCollectionResult<GitHubRepository>": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "number",
+          "description": "The Total count of entities"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GitHubRepository"
+          },
+          "description": "List of the selected entities"
+        }
+      },
+      "required": [
+        "count",
+        "entries"
+      ],
+      "additionalProperties": false,
+      "description": "Response Model for GetCollection"
+    },
+    "GetEntityEndpoint<GitHubRepository,\"id\">": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "object",
+          "properties": {
+            "select": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "id",
+                  "stackName",
+                  "url",
+                  "displayName",
+                  "description",
+                  "createdAt",
+                  "updatedAt"
+                ]
+              },
+              "description": "The list of fields to select"
+            }
+          },
+          "additionalProperties": false
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The entity's unique identifier"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "$ref": "#/definitions/GitHubRepository"
+        }
+      },
+      "required": [
+        "query",
+        "url",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Endpoint model for getting a single entity"
+    },
+    "DeleteEndpoint<GitHubRepository,\"id\">": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "url",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Endpoint model for deleting entities"
+    }
+  }
+}

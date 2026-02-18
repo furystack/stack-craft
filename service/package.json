@@ -24,6 +24,8 @@
     "@furystack/repository": "^10.0.36",
     "@furystack/rest-service": "^11.0.4",
     "@furystack/security": "^6.0.36",
+    "@furystack/websocket-api": "^13.1.8",
+    "@modelcontextprotocol/sdk": "1.26.0",
     "common": "workspace:^"
   }
 }

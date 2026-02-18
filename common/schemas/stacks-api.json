@@ -1,0 +1,956 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "StackWritableFields": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "mainDirectory": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "displayName",
+        "description",
+        "mainDirectory"
+      ],
+      "additionalProperties": false
+    },
+    "PostStackEndpoint": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/Stack"
+        },
+        "body": {
+          "$ref": "#/definitions/WithOptionalId%3CStack%2C%22name%22%3E"
+        }
+      },
+      "required": [
+        "result",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "Stack": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "mainDirectory": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "displayName",
+        "description",
+        "mainDirectory",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "WithOptionalId<Stack,\"name\">": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "mainDirectory": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "createdAt",
+        "description",
+        "displayName",
+        "mainDirectory",
+        "updatedAt"
+      ]
+    },
+    "PatchStackEndpoint": {
+      "$ref": "#/definitions/PatchEndpoint%3CStackWritableFields%2C%22name%22%3E"
+    },
+    "PatchEndpoint<StackWritableFields,\"name\">": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "displayName": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "mainDirectory": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "body",
+        "url",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Endpoint model for updating entities"
+    },
+    "ExportStackEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "stack": {
+              "$ref": "#/definitions/Stack"
+            },
+            "services": {
+              "type": "array",
+              "items": {}
+            },
+            "repositories": {
+              "type": "array",
+              "items": {}
+            },
+            "dependencies": {
+              "type": "array",
+              "items": {}
+            }
+          },
+          "required": [
+            "stack",
+            "services",
+            "repositories",
+            "dependencies"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "url",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "ImportStackEndpoint": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "success"
+          ],
+          "additionalProperties": false
+        },
+        "body": {
+          "type": "object",
+          "properties": {
+            "stack": {
+              "$ref": "#/definitions/Stack"
+            },
+            "services": {
+              "type": "array",
+              "items": {}
+            },
+            "repositories": {
+              "type": "array",
+              "items": {}
+            },
+            "dependencies": {
+              "type": "array",
+              "items": {}
+            }
+          },
+          "required": [
+            "stack",
+            "services",
+            "repositories",
+            "dependencies"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "result",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "StacksApi": {
+      "type": "object",
+      "properties": {
+        "GET": {
+          "type": "object",
+          "properties": {
+            "/stacks": {
+              "$ref": "#/definitions/GetCollectionEndpoint%3CStack%3E"
+            },
+            "/stacks/:id": {
+              "$ref": "#/definitions/GetEntityEndpoint%3CStack%2C%22name%22%3E"
+            },
+            "/stacks/:id/export": {
+              "$ref": "#/definitions/ExportStackEndpoint"
+            }
+          },
+          "required": [
+            "/stacks",
+            "/stacks/:id",
+            "/stacks/:id/export"
+          ],
+          "additionalProperties": false
+        },
+        "POST": {
+          "type": "object",
+          "properties": {
+            "/stacks": {
+              "$ref": "#/definitions/PostStackEndpoint"
+            },
+            "/stacks/import": {
+              "$ref": "#/definitions/ImportStackEndpoint"
+            }
+          },
+          "required": [
+            "/stacks",
+            "/stacks/import"
+          ],
+          "additionalProperties": false
+        },
+        "PATCH": {
+          "type": "object",
+          "properties": {
+            "/stacks/:id": {
+              "$ref": "#/definitions/PatchStackEndpoint"
+            }
+          },
+          "required": [
+            "/stacks/:id"
+          ],
+          "additionalProperties": false
+        },
+        "PUT": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "DELETE": {
+          "type": "object",
+          "properties": {
+            "/stacks/:id": {
+              "$ref": "#/definitions/DeleteEndpoint%3CStack%2C%22name%22%3E"
+            }
+          },
+          "required": [
+            "/stacks/:id"
+          ],
+          "additionalProperties": false
+        },
+        "HEAD": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "CONNECT": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "TRACE": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "OPTIONS": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "additionalProperties": false
+    },
+    "GetCollectionEndpoint<Stack>": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "object",
+          "properties": {
+            "findOptions": {
+              "$ref": "#/definitions/FindOptions%3CStack%2C(%22name%22%7C%22displayName%22%7C%22description%22%7C%22mainDirectory%22%7C%22createdAt%22%7C%22updatedAt%22)%5B%5D%3E"
+            }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "$ref": "#/definitions/GetCollectionResult%3CStack%3E"
+        }
+      },
+      "required": [
+        "query",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Rest endpoint model for getting / querying collections"
+    },
+    "FindOptions<Stack,(\"name\"|\"displayName\"|\"description\"|\"mainDirectory\"|\"createdAt\"|\"updatedAt\")[]>": {
+      "type": "object",
+      "properties": {
+        "top": {
+          "type": "number",
+          "description": "Limits the hits"
+        },
+        "skip": {
+          "type": "number",
+          "description": "Skips the first N hit"
+        },
+        "order": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "displayName": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "description": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "mainDirectory": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "createdAt": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "updatedAt": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "description": "Sets up an order by a field and a direction"
+        },
+        "select": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "name",
+              "displayName",
+              "description",
+              "mainDirectory",
+              "createdAt",
+              "updatedAt"
+            ]
+          },
+          "description": "The result set will be limited to these fields"
+        },
+        "filter": {
+          "$ref": "#/definitions/FilterType%3CStack%3E",
+          "description": "The fields should match this filter"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Type for default filtering model"
+    },
+    "FilterType<Stack>": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$and": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CStack%3E"
+          }
+        },
+        "$not": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CStack%3E"
+          }
+        },
+        "$nor": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CStack%3E"
+          }
+        },
+        "$or": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CStack%3E"
+          }
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "displayName": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "mainDirectory": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "createdAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "updatedAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "GetCollectionResult<Stack>": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "number",
+          "description": "The Total count of entities"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Stack"
+          },
+          "description": "List of the selected entities"
+        }
+      },
+      "required": [
+        "count",
+        "entries"
+      ],
+      "additionalProperties": false,
+      "description": "Response Model for GetCollection"
+    },
+    "GetEntityEndpoint<Stack,\"name\">": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "object",
+          "properties": {
+            "select": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "name",
+                  "displayName",
+                  "description",
+                  "mainDirectory",
+                  "createdAt",
+                  "updatedAt"
+                ]
+              },
+              "description": "The list of fields to select"
+            }
+          },
+          "additionalProperties": false
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The entity's unique identifier"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "$ref": "#/definitions/Stack"
+        }
+      },
+      "required": [
+        "query",
+        "url",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Endpoint model for getting a single entity"
+    },
+    "DeleteEndpoint<Stack,\"name\">": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "url",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Endpoint model for deleting entities"
+    }
+  }
+}

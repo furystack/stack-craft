@@ -1,7 +1,109 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$ref": "#/definitions/User",
   "definitions": {
+    "ApiToken": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "tokenHash": {
+          "type": "string"
+        },
+        "lastUsedAt": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "name",
+        "tokenHash",
+        "createdAt"
+      ],
+      "additionalProperties": false
+    },
+    "Dependency": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "checkCommand": {
+          "type": "string"
+        },
+        "installationHelp": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "stackName",
+        "name",
+        "checkCommand",
+        "installationHelp",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "GitHubRepository": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "stackName",
+        "url",
+        "displayName",
+        "description",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
     "User": {
       "type": "object",
       "properties": {
@@ -15,7 +117,169 @@
           }
         }
       },
-      "required": ["username", "roles"],
+      "required": [
+        "username",
+        "roles"
+      ],
+      "additionalProperties": false
+    },
+    "Stack": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "mainDirectory": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "displayName",
+        "description",
+        "mainDirectory",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "InstallStatus": {
+      "type": "string",
+      "enum": [
+        "not-installed",
+        "installing",
+        "installed",
+        "failed"
+      ]
+    },
+    "BuildStatus": {
+      "type": "string",
+      "enum": [
+        "not-built",
+        "building",
+        "built",
+        "failed"
+      ]
+    },
+    "RunStatus": {
+      "type": "string",
+      "enum": [
+        "stopped",
+        "starting",
+        "running",
+        "stopping",
+        "error"
+      ]
+    },
+    "Service": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "workingDirectory": {
+          "type": "string"
+        },
+        "repositoryId": {
+          "type": "string"
+        },
+        "autoFetchEnabled": {
+          "type": "boolean"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number"
+        },
+        "lastFetchedAt": {
+          "type": "string"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean"
+        },
+        "dependencyIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "installCommand": {
+          "type": "string"
+        },
+        "buildCommand": {
+          "type": "string"
+        },
+        "runCommand": {
+          "type": "string"
+        },
+        "installStatus": {
+          "$ref": "#/definitions/InstallStatus"
+        },
+        "buildStatus": {
+          "$ref": "#/definitions/BuildStatus"
+        },
+        "runStatus": {
+          "$ref": "#/definitions/RunStatus"
+        },
+        "lastInstalledAt": {
+          "type": "string"
+        },
+        "lastBuiltAt": {
+          "type": "string"
+        },
+        "lastStartedAt": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "stackName",
+        "displayName",
+        "description",
+        "workingDirectory",
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch",
+        "dependencyIds",
+        "prerequisiteServiceIds",
+        "runCommand",
+        "installStatus",
+        "buildStatus",
+        "runStatus",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false
     }
   }

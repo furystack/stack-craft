@@ -1,0 +1,2133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ServiceWritableFields": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "workingDirectory": {
+          "type": "string"
+        },
+        "repositoryId": {
+          "type": "string"
+        },
+        "autoFetchEnabled": {
+          "type": "boolean"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean"
+        },
+        "dependencyIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "installCommand": {
+          "type": "string"
+        },
+        "buildCommand": {
+          "type": "string"
+        },
+        "runCommand": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "stackName",
+        "displayName",
+        "description",
+        "workingDirectory",
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch",
+        "dependencyIds",
+        "prerequisiteServiceIds",
+        "runCommand"
+      ],
+      "additionalProperties": false
+    },
+    "PostServiceEndpoint": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/Service"
+        },
+        "body": {
+          "$ref": "#/definitions/WithOptionalId%3CServiceWritableFields%2C%22id%22%3E"
+        }
+      },
+      "required": [
+        "result",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "Service": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "workingDirectory": {
+          "type": "string"
+        },
+        "repositoryId": {
+          "type": "string"
+        },
+        "autoFetchEnabled": {
+          "type": "boolean"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number"
+        },
+        "lastFetchedAt": {
+          "type": "string"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean"
+        },
+        "dependencyIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "installCommand": {
+          "type": "string"
+        },
+        "buildCommand": {
+          "type": "string"
+        },
+        "runCommand": {
+          "type": "string"
+        },
+        "installStatus": {
+          "$ref": "#/definitions/InstallStatus"
+        },
+        "buildStatus": {
+          "$ref": "#/definitions/BuildStatus"
+        },
+        "runStatus": {
+          "$ref": "#/definitions/RunStatus"
+        },
+        "lastInstalledAt": {
+          "type": "string"
+        },
+        "lastBuiltAt": {
+          "type": "string"
+        },
+        "lastStartedAt": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "stackName",
+        "displayName",
+        "description",
+        "workingDirectory",
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch",
+        "dependencyIds",
+        "prerequisiteServiceIds",
+        "runCommand",
+        "installStatus",
+        "buildStatus",
+        "runStatus",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "InstallStatus": {
+      "type": "string",
+      "enum": [
+        "not-installed",
+        "installing",
+        "installed",
+        "failed"
+      ]
+    },
+    "BuildStatus": {
+      "type": "string",
+      "enum": [
+        "not-built",
+        "building",
+        "built",
+        "failed"
+      ]
+    },
+    "RunStatus": {
+      "type": "string",
+      "enum": [
+        "stopped",
+        "starting",
+        "running",
+        "stopping",
+        "error"
+      ]
+    },
+    "WithOptionalId<ServiceWritableFields,\"id\">": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "workingDirectory": {
+          "type": "string"
+        },
+        "repositoryId": {
+          "type": "string"
+        },
+        "autoFetchEnabled": {
+          "type": "boolean"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean"
+        },
+        "dependencyIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "installCommand": {
+          "type": "string"
+        },
+        "buildCommand": {
+          "type": "string"
+        },
+        "runCommand": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch",
+        "dependencyIds",
+        "description",
+        "displayName",
+        "prerequisiteServiceIds",
+        "runCommand",
+        "stackName",
+        "workingDirectory"
+      ]
+    },
+    "PatchServiceEndpoint": {
+      "$ref": "#/definitions/PatchEndpoint%3CServiceWritableFields%2C%22id%22%3E"
+    },
+    "PatchEndpoint<ServiceWritableFields,\"id\">": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "stackName": {
+              "type": "string"
+            },
+            "displayName": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "workingDirectory": {
+              "type": "string"
+            },
+            "repositoryId": {
+              "type": "string"
+            },
+            "autoFetchEnabled": {
+              "type": "boolean"
+            },
+            "autoFetchIntervalMinutes": {
+              "type": "number"
+            },
+            "autoRestartOnFetch": {
+              "type": "boolean"
+            },
+            "dependencyIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "prerequisiteServiceIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "installCommand": {
+              "type": "string"
+            },
+            "buildCommand": {
+              "type": "string"
+            },
+            "runCommand": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "body",
+        "url",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Endpoint model for updating entities"
+    },
+    "ServiceActionEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "serviceId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "success",
+            "serviceId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "url",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "ServiceLogsEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "query": {
+          "type": "object",
+          "properties": {
+            "lines": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "lines": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "lines"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "url",
+        "query",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "ServicesApi": {
+      "type": "object",
+      "properties": {
+        "GET": {
+          "type": "object",
+          "properties": {
+            "/services": {
+              "$ref": "#/definitions/GetCollectionEndpoint%3CService%3E"
+            },
+            "/services/:id": {
+              "$ref": "#/definitions/GetEntityEndpoint%3CService%2C%22id%22%3E"
+            },
+            "/services/:id/logs": {
+              "$ref": "#/definitions/ServiceLogsEndpoint"
+            }
+          },
+          "required": [
+            "/services",
+            "/services/:id",
+            "/services/:id/logs"
+          ],
+          "additionalProperties": false
+        },
+        "POST": {
+          "type": "object",
+          "properties": {
+            "/services": {
+              "$ref": "#/definitions/PostServiceEndpoint"
+            },
+            "/services/:id/start": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/stop": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/restart": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/install": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/build": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/pull": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            }
+          },
+          "required": [
+            "/services",
+            "/services/:id/start",
+            "/services/:id/stop",
+            "/services/:id/restart",
+            "/services/:id/install",
+            "/services/:id/build",
+            "/services/:id/pull"
+          ],
+          "additionalProperties": false
+        },
+        "PATCH": {
+          "type": "object",
+          "properties": {
+            "/services/:id": {
+              "$ref": "#/definitions/PatchServiceEndpoint"
+            }
+          },
+          "required": [
+            "/services/:id"
+          ],
+          "additionalProperties": false
+        },
+        "PUT": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "DELETE": {
+          "type": "object",
+          "properties": {
+            "/services/:id": {
+              "$ref": "#/definitions/DeleteEndpoint%3CService%2C%22id%22%3E"
+            }
+          },
+          "required": [
+            "/services/:id"
+          ],
+          "additionalProperties": false
+        },
+        "HEAD": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "CONNECT": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "TRACE": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "OPTIONS": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "additionalProperties": false
+    },
+    "GetCollectionEndpoint<Service>": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "object",
+          "properties": {
+            "findOptions": {
+              "$ref": "#/definitions/FindOptions%3CService%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22lastFetchedAt%22%7C%22autoRestartOnFetch%22%7C%22dependencyIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22createdAt%22%7C%22updatedAt%22)%5B%5D%3E"
+            }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "$ref": "#/definitions/GetCollectionResult%3CService%3E"
+        }
+      },
+      "required": [
+        "query",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Rest endpoint model for getting / querying collections"
+    },
+    "FindOptions<Service,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"lastFetchedAt\"|\"autoRestartOnFetch\"|\"dependencyIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"createdAt\"|\"updatedAt\")[]>": {
+      "type": "object",
+      "properties": {
+        "top": {
+          "type": "number",
+          "description": "Limits the hits"
+        },
+        "skip": {
+          "type": "number",
+          "description": "Skips the first N hit"
+        },
+        "order": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "stackName": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "displayName": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "description": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "workingDirectory": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "repositoryId": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "autoFetchEnabled": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "autoFetchIntervalMinutes": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "lastFetchedAt": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "autoRestartOnFetch": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "dependencyIds": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "prerequisiteServiceIds": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "installCommand": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "buildCommand": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "runCommand": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "installStatus": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "buildStatus": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "runStatus": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "lastInstalledAt": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "lastBuiltAt": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "lastStartedAt": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "createdAt": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "updatedAt": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "description": "Sets up an order by a field and a direction"
+        },
+        "select": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "id",
+              "stackName",
+              "displayName",
+              "description",
+              "workingDirectory",
+              "repositoryId",
+              "autoFetchEnabled",
+              "autoFetchIntervalMinutes",
+              "lastFetchedAt",
+              "autoRestartOnFetch",
+              "dependencyIds",
+              "prerequisiteServiceIds",
+              "installCommand",
+              "buildCommand",
+              "runCommand",
+              "installStatus",
+              "buildStatus",
+              "runStatus",
+              "lastInstalledAt",
+              "lastBuiltAt",
+              "lastStartedAt",
+              "createdAt",
+              "updatedAt"
+            ]
+          },
+          "description": "The result set will be limited to these fields"
+        },
+        "filter": {
+          "$ref": "#/definitions/FilterType%3CService%3E",
+          "description": "The fields should match this filter"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Type for default filtering model"
+    },
+    "FilterType<Service>": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$and": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CService%3E"
+          }
+        },
+        "$not": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CService%3E"
+          }
+        },
+        "$nor": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CService%3E"
+          }
+        },
+        "$or": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CService%3E"
+          }
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "stackName": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "displayName": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "workingDirectory": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "repositoryId": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "autoFetchEnabled": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "boolean"
+                },
+                "$ne": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "boolean"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "autoFetchIntervalMinutes": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$gt": {
+                  "type": "number"
+                },
+                "$gte": {
+                  "type": "number"
+                },
+                "$lt": {
+                  "type": "number"
+                },
+                "$lte": {
+                  "type": "number"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "number"
+                },
+                "$ne": {
+                  "type": "number"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "lastFetchedAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "autoRestartOnFetch": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "boolean"
+                },
+                "$ne": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "boolean"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "dependencyIds": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$ne": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "prerequisiteServiceIds": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$ne": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "installCommand": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "buildCommand": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "runCommand": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "installStatus": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "$ref": "#/definitions/InstallStatus"
+                },
+                "$endsWith": {
+                  "$ref": "#/definitions/InstallStatus"
+                },
+                "$like": {
+                  "$ref": "#/definitions/InstallStatus"
+                },
+                "$regex": {
+                  "$ref": "#/definitions/InstallStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "$ref": "#/definitions/InstallStatus"
+                },
+                "$ne": {
+                  "$ref": "#/definitions/InstallStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/InstallStatus"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/InstallStatus"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "buildStatus": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "$ref": "#/definitions/BuildStatus"
+                },
+                "$endsWith": {
+                  "$ref": "#/definitions/BuildStatus"
+                },
+                "$like": {
+                  "$ref": "#/definitions/BuildStatus"
+                },
+                "$regex": {
+                  "$ref": "#/definitions/BuildStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "$ref": "#/definitions/BuildStatus"
+                },
+                "$ne": {
+                  "$ref": "#/definitions/BuildStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BuildStatus"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BuildStatus"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "runStatus": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "$ref": "#/definitions/RunStatus"
+                },
+                "$endsWith": {
+                  "$ref": "#/definitions/RunStatus"
+                },
+                "$like": {
+                  "$ref": "#/definitions/RunStatus"
+                },
+                "$regex": {
+                  "$ref": "#/definitions/RunStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "$ref": "#/definitions/RunStatus"
+                },
+                "$ne": {
+                  "$ref": "#/definitions/RunStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/RunStatus"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/RunStatus"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "lastInstalledAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "lastBuiltAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "lastStartedAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "createdAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "updatedAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "GetCollectionResult<Service>": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "number",
+          "description": "The Total count of entities"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Service"
+          },
+          "description": "List of the selected entities"
+        }
+      },
+      "required": [
+        "count",
+        "entries"
+      ],
+      "additionalProperties": false,
+      "description": "Response Model for GetCollection"
+    },
+    "GetEntityEndpoint<Service,\"id\">": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "object",
+          "properties": {
+            "select": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "id",
+                  "stackName",
+                  "displayName",
+                  "description",
+                  "workingDirectory",
+                  "repositoryId",
+                  "autoFetchEnabled",
+                  "autoFetchIntervalMinutes",
+                  "lastFetchedAt",
+                  "autoRestartOnFetch",
+                  "dependencyIds",
+                  "prerequisiteServiceIds",
+                  "installCommand",
+                  "buildCommand",
+                  "runCommand",
+                  "installStatus",
+                  "buildStatus",
+                  "runStatus",
+                  "lastInstalledAt",
+                  "lastBuiltAt",
+                  "lastStartedAt",
+                  "createdAt",
+                  "updatedAt"
+                ]
+              },
+              "description": "The list of fields to select"
+            }
+          },
+          "additionalProperties": false
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The entity's unique identifier"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "$ref": "#/definitions/Service"
+        }
+      },
+      "required": [
+        "query",
+        "url",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Endpoint model for getting a single entity"
+    },
+    "DeleteEndpoint<Service,\"id\">": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "url",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Endpoint model for deleting entities"
+    }
+  }
+}

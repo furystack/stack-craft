@@ -1,0 +1,960 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "DependencyWritableFields": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "checkCommand": {
+          "type": "string"
+        },
+        "installationHelp": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "stackName",
+        "name",
+        "checkCommand",
+        "installationHelp"
+      ],
+      "additionalProperties": false
+    },
+    "PostDependencyEndpoint": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/Dependency"
+        },
+        "body": {
+          "$ref": "#/definitions/WithOptionalId%3CDependencyWritableFields%2C%22id%22%3E"
+        }
+      },
+      "required": [
+        "result",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "Dependency": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "checkCommand": {
+          "type": "string"
+        },
+        "installationHelp": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "stackName",
+        "name",
+        "checkCommand",
+        "installationHelp",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "WithOptionalId<DependencyWritableFields,\"id\">": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stackName": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "checkCommand": {
+          "type": "string"
+        },
+        "installationHelp": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "checkCommand",
+        "installationHelp",
+        "name",
+        "stackName"
+      ]
+    },
+    "PatchDependencyEndpoint": {
+      "$ref": "#/definitions/PatchEndpoint%3CDependencyWritableFields%2C%22id%22%3E"
+    },
+    "PatchEndpoint<DependencyWritableFields,\"id\">": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "stackName": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "checkCommand": {
+              "type": "string"
+            },
+            "installationHelp": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "body",
+        "url",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Endpoint model for updating entities"
+    },
+    "CheckDependencyEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "satisfied": {
+              "type": "boolean"
+            },
+            "output": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "satisfied",
+            "output"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "url",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "DependenciesApi": {
+      "type": "object",
+      "properties": {
+        "GET": {
+          "type": "object",
+          "properties": {
+            "/dependencies": {
+              "$ref": "#/definitions/GetCollectionEndpoint%3CDependency%3E"
+            },
+            "/dependencies/:id": {
+              "$ref": "#/definitions/GetEntityEndpoint%3CDependency%2C%22id%22%3E"
+            }
+          },
+          "required": [
+            "/dependencies",
+            "/dependencies/:id"
+          ],
+          "additionalProperties": false
+        },
+        "POST": {
+          "type": "object",
+          "properties": {
+            "/dependencies": {
+              "$ref": "#/definitions/PostDependencyEndpoint"
+            },
+            "/dependencies/:id/check": {
+              "$ref": "#/definitions/CheckDependencyEndpoint"
+            }
+          },
+          "required": [
+            "/dependencies",
+            "/dependencies/:id/check"
+          ],
+          "additionalProperties": false
+        },
+        "PATCH": {
+          "type": "object",
+          "properties": {
+            "/dependencies/:id": {
+              "$ref": "#/definitions/PatchDependencyEndpoint"
+            }
+          },
+          "required": [
+            "/dependencies/:id"
+          ],
+          "additionalProperties": false
+        },
+        "PUT": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "DELETE": {
+          "type": "object",
+          "properties": {
+            "/dependencies/:id": {
+              "$ref": "#/definitions/DeleteEndpoint%3CDependency%2C%22id%22%3E"
+            }
+          },
+          "required": [
+            "/dependencies/:id"
+          ],
+          "additionalProperties": false
+        },
+        "HEAD": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "CONNECT": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "TRACE": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "OPTIONS": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": [
+              "result"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
+      "additionalProperties": false
+    },
+    "GetCollectionEndpoint<Dependency>": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "object",
+          "properties": {
+            "findOptions": {
+              "$ref": "#/definitions/FindOptions%3CDependency%2C(%22id%22%7C%22stackName%22%7C%22name%22%7C%22checkCommand%22%7C%22installationHelp%22%7C%22createdAt%22%7C%22updatedAt%22)%5B%5D%3E"
+            }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "$ref": "#/definitions/GetCollectionResult%3CDependency%3E"
+        }
+      },
+      "required": [
+        "query",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Rest endpoint model for getting / querying collections"
+    },
+    "FindOptions<Dependency,(\"id\"|\"stackName\"|\"name\"|\"checkCommand\"|\"installationHelp\"|\"createdAt\"|\"updatedAt\")[]>": {
+      "type": "object",
+      "properties": {
+        "top": {
+          "type": "number",
+          "description": "Limits the hits"
+        },
+        "skip": {
+          "type": "number",
+          "description": "Skips the first N hit"
+        },
+        "order": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "stackName": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "name": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "checkCommand": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "installationHelp": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "createdAt": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            },
+            "updatedAt": {
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "description": "Sets up an order by a field and a direction"
+        },
+        "select": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "id",
+              "stackName",
+              "name",
+              "checkCommand",
+              "installationHelp",
+              "createdAt",
+              "updatedAt"
+            ]
+          },
+          "description": "The result set will be limited to these fields"
+        },
+        "filter": {
+          "$ref": "#/definitions/FilterType%3CDependency%3E",
+          "description": "The fields should match this filter"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Type for default filtering model"
+    },
+    "FilterType<Dependency>": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$and": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CDependency%3E"
+          }
+        },
+        "$not": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CDependency%3E"
+          }
+        },
+        "$nor": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CDependency%3E"
+          }
+        },
+        "$or": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CDependency%3E"
+          }
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "stackName": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "checkCommand": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "installationHelp": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "createdAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "updatedAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "GetCollectionResult<Dependency>": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "number",
+          "description": "The Total count of entities"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Dependency"
+          },
+          "description": "List of the selected entities"
+        }
+      },
+      "required": [
+        "count",
+        "entries"
+      ],
+      "additionalProperties": false,
+      "description": "Response Model for GetCollection"
+    },
+    "GetEntityEndpoint<Dependency,\"id\">": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "object",
+          "properties": {
+            "select": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "id",
+                  "stackName",
+                  "name",
+                  "checkCommand",
+                  "installationHelp",
+                  "createdAt",
+                  "updatedAt"
+                ]
+              },
+              "description": "The list of fields to select"
+            }
+          },
+          "additionalProperties": false
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The entity's unique identifier"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "$ref": "#/definitions/Dependency"
+        }
+      },
+      "required": [
+        "query",
+        "url",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Endpoint model for getting a single entity"
+    },
+    "DeleteEndpoint<Dependency,\"id\">": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "url",
+        "result"
+      ],
+      "additionalProperties": false,
+      "description": "Endpoint model for deleting entities"
+    }
+  }
+}

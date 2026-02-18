@@ -17,6 +17,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "@furystack/cache": "^6.0.0",
     "@furystack/core": "^15.0.36",
     "@furystack/inject": "^12.0.30",
     "@furystack/logging": "^8.0.30",

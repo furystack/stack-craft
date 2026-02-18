@@ -1,6 +1,7 @@
 import { createComponent, Router, Shade } from '@furystack/shades'
-import { ButtonsDemo, HelloWorld, Init, Login, Offline } from '../pages/index.js'
+import { Init, Login, Offline } from '../pages/index.js'
 import { SessionService } from '../services/session.js'
+import { Dashboard } from '../pages/dashboard/index.js'
 
 export const Body = Shade<{ style?: Partial<CSSStyleDeclaration> }>({
   shadowDomName: 'shade-app-body',
@@ -15,10 +16,9 @@ export const Body = Shade<{ style?: Partial<CSSStyleDeclaration> }>({
               return (
                 <Router
                   routes={[
-                    { url: '/buttons', routingOptions: { end: false }, component: () => <ButtonsDemo /> },
-                    { url: '/', routingOptions: { end: false }, component: () => <HelloWorld /> },
+                    { url: '/', routingOptions: { end: false }, component: () => <Dashboard /> },
                   ]}
-                ></Router>
+                />
               )
             case 'offline':
               return <Offline />
