@@ -24,10 +24,6 @@ export const Layout = Shade({
         id="Layout"
         style={{
           backgroundColor: injector.getInstance(ThemeProviderService).theme.background.default,
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
         }}
       >
         <Header title="🧩 Stack Craft" links={[]} />

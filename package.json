@@ -24,7 +24,6 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "2.32.0",
     "eslint-plugin-jsdoc": "^62.6.0",
-    "eslint-plugin-playwright": "^2.6.0",
     "eslint-plugin-prettier": "^5.5.5",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",

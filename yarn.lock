@@ -2187,17 +2187,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-playwright@npm:^2.6.0":
-  version: 2.6.0
-  resolution: "eslint-plugin-playwright@npm:2.6.0"
-  dependencies:
-    globals: "npm:^17.3.0"
-  peerDependencies:
-    eslint: ">=8.40.0"
-  checksum: 10c0/16d998c4765a2070f48ebb723f5c2ae99918b0f49466ab236438fb123356808938fe5e96f743f410029f4c9478b28ab7903a9a0db3ee8e3d5d95d460646dce36
-  languageName: node
-  linkType: hard
-
 "eslint-plugin-prettier@npm:^5.5.5":
   version: 5.5.5
   resolution: "eslint-plugin-prettier@npm:5.5.5"
@@ -2642,13 +2631,6 @@ __metadata:
     minipass: "npm:^7.1.2"
     path-scurry: "npm:^2.0.0"
   checksum: 10c0/1388527676127f337877eaf3403d6c54d3fa5e5599e10c1532d73108435b4da66d8fff4b00eb5b306388090a180c6a92d70694df1c19171cf820e285fb1dfee5
-  languageName: node
-  linkType: hard
-
-"globals@npm:^17.3.0":
-  version: 17.3.0
-  resolution: "globals@npm:17.3.0"
-  checksum: 10c0/7f21443ecaa60c6e9ff56d9fb6f10a9b5f9514e7f22e5392f715472bb220ce31c865ebf414a32695150e733fb3e1013e6322dbce70fddd1e066f372b8d55a4b8
   languageName: node
   linkType: hard
 
@@ -4348,7 +4330,6 @@ __metadata:
     eslint-config-prettier: "npm:^10.1.8"
     eslint-plugin-import: "npm:2.32.0"
     eslint-plugin-jsdoc: "npm:^62.6.0"
-    eslint-plugin-playwright: "npm:^2.6.0"
     eslint-plugin-prettier: "npm:^5.5.5"
     husky: "npm:^9.1.7"
     lint-staged: "npm:^16.2.7"
