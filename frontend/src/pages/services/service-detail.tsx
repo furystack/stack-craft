@@ -1,16 +1,20 @@
+import { useEntitySync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 import {
   Button,
   Icon,
   icons,
   Loader,
+  NotyService,
   PageContainer,
   PageHeader,
   Paper,
 } from '@furystack/shades-common-components'
-import type { Service } from 'common'
-import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
+import { Service } from 'common'
+
+import { ServiceForm } from '../../components/entity-forms/service-form.js'
 import { ServiceStatusIndicator } from '../../components/service-status-indicator.js'
+import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
 type ServiceDetailProps = {
   serviceId: string
@@ -18,27 +22,13 @@ type ServiceDetailProps = {
 
 export const ServiceDetail = Shade<ServiceDetailProps>({
   shadowDomName: 'shade-service-detail',
-  render: ({ props, injector, useState }) => {
-    const [service, setService] = useState<Service | null>('service', null)
-    const [isLoading, setIsLoading] = useState('isLoading', true)
+  render: (options) => {
+    const { props, injector, useState } = options
+    const [isEditing, setIsEditing] = useState('isEditing', false)
 
-    if (isLoading && !service) {
-      const api = injector.getInstance(ServicesApiClient)
-      api
-        .call({
-          method: 'GET',
-          action: '/services/:id',
-          url: { id: props.serviceId },
-          query: {},
-        })
-        .then(({ result }) => {
-          setService(result)
-          setIsLoading(false)
-        })
-        .catch(() => setIsLoading(false))
-    }
+    const serviceState = useEntitySync(options, Service, props.serviceId)
 
-    if (isLoading) {
+    if (serviceState.status === 'connecting') {
       return (
         <PageContainer>
           <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
@@ -48,6 +38,27 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       )
     }
 
+    if (serviceState.status === 'error') {
+      return (
+        <PageContainer>
+          <PageHeader
+            title="Error loading service"
+            description={serviceState.error}
+            actions={
+              <Button
+                variant="outlined"
+                onclick={() => history.back()}
+                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
+              >
+                Back
+              </Button>
+            }
+          />
+        </PageContainer>
+      )
+    }
+
+    const service = serviceState.data
     if (!service) {
       return (
         <PageContainer>
@@ -68,6 +79,67 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     }
 
     const api = injector.getInstance(ServicesApiClient)
+
+    const handleSave = async (data: Partial<Service>) => {
+      try {
+        await api.call({
+          method: 'PATCH',
+          action: '/services/:id',
+          url: { id: service.id },
+          body: {
+            displayName: data.displayName,
+            description: data.description,
+            workingDirectory: data.workingDirectory,
+            runCommand: data.runCommand,
+            installCommand: data.installCommand,
+            buildCommand: data.buildCommand,
+            autoFetchEnabled: data.autoFetchEnabled,
+            autoFetchIntervalMinutes: data.autoFetchIntervalMinutes,
+            autoRestartOnFetch: data.autoRestartOnFetch,
+          },
+        })
+        injector.getInstance(NotyService).emit('onNotyAdded', {
+          title: 'Service updated',
+          body: `"${data.displayName ?? service.displayName}" was updated successfully.`,
+          type: 'success',
+        })
+        setIsEditing(false)
+      } catch (error) {
+        injector.getInstance(NotyService).emit('onNotyAdded', {
+          title: 'Error',
+          body: error instanceof Error ? error.message : 'Failed to update service',
+          type: 'error',
+        })
+      }
+    }
+
+    if (isEditing) {
+      return (
+        <PageContainer>
+          <PageHeader
+            title={`Edit: ${service.displayName}`}
+            actions={
+              <Button
+                variant="outlined"
+                onclick={() => setIsEditing(false)}
+                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
+              >
+                Cancel
+              </Button>
+            }
+          />
+          <Paper>
+            <ServiceForm
+              mode="edit"
+              stackName={service.stackName}
+              initial={service}
+              onSubmit={(data) => void handleSave(data)}
+              onCancel={() => setIsEditing(false)}
+            />
+          </Paper>
+        </PageContainer>
+      )
+    }
 
     return (
       <PageContainer>
@@ -111,6 +183,13 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                 startIcon={<Icon icon={icons.file} size="small" />}
               >
                 View Logs
+              </Button>
+              <Button
+                variant="outlined"
+                onclick={() => setIsEditing(true)}
+                startIcon={<Icon icon={icons.edit} size="small" />}
+              >
+                Edit
               </Button>
             </div>
           }

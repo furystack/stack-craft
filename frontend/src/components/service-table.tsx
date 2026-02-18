@@ -6,7 +6,6 @@ import { ServiceStatusIndicator } from './service-status-indicator.js'
 
 type ServiceTableProps = {
   services: Service[]
-  onRefresh: () => void
   onViewLogs: (serviceId: string) => void
   onEdit: (serviceId: string) => void
 }
@@ -64,11 +63,10 @@ export const ServiceTable = Shade<ServiceTableProps>({
             url: { id },
           })
         } catch {
-          // Individual failures are handled by status updates
+          // Individual failures are handled by entity-sync status updates
         }
       }
       setLoading(false)
-      props.onRefresh()
     }
 
     const selectedServices = props.services.filter((s) => selectedIds.has(s.id))
@@ -125,13 +123,6 @@ export const ServiceTable = Shade<ServiceTableProps>({
             </tr>
           </thead>
           <tbody>
-            {props.services.length === 0 ? (
-              <tr>
-                <td colSpan={4} style={{ textAlign: 'center', padding: '32px', opacity: '0.5' }}>
-                  No services in this stack yet.
-                </td>
-              </tr>
-            ) : null}
             {props.services.map((svc) => (
               <tr>
                 <td>
@@ -153,7 +144,6 @@ export const ServiceTable = Shade<ServiceTableProps>({
                         variant="outlined"
                         onclick={() => {
                           void api.call({ method: 'POST', action: '/services/:id/start', url: { id: svc.id } })
-                          setTimeout(props.onRefresh, 500)
                         }}
                       >
                         Start
@@ -163,7 +153,6 @@ export const ServiceTable = Shade<ServiceTableProps>({
                         variant="outlined"
                         onclick={() => {
                           void api.call({ method: 'POST', action: '/services/:id/stop', url: { id: svc.id } })
-                          setTimeout(props.onRefresh, 500)
                         }}
                       >
                         Stop

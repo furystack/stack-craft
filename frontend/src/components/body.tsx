@@ -3,6 +3,7 @@ import { Dashboard } from '../pages/dashboard/index.js'
 import { ExportStack } from '../pages/import-export/export-stack.js'
 import { ImportStack } from '../pages/import-export/import-stack.js'
 import { Init, Offline } from '../pages/index.js'
+import { CreateService } from '../pages/services/create-service.js'
 import { ServiceDetail } from '../pages/services/service-detail.js'
 import { ServiceLogs } from '../pages/services/service-logs.js'
 import { UserSettings } from '../pages/settings/user-settings.js'
@@ -12,6 +13,9 @@ import { SessionService } from '../services/session.js'
 const appRoutes = {
   '/': {
     component: () => <Dashboard />,
+  },
+  '/services/create/:stackName': {
+    component: ({ match }) => <CreateService stackName={match.params.stackName} />,
   },
   '/services/:id/logs': {
     component: ({ match }) => <ServiceLogs serviceId={match.params.id} />,

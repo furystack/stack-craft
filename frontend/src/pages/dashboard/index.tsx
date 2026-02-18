@@ -1,69 +1,42 @@
+import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
-import { Button, Icon, icons, NotyService, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
-import { ObservableValue } from '@furystack/utils'
-import type { Service, Stack } from 'common'
+import { Button, Loader, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
+import { Service, Stack } from 'common'
+
 import { ServiceTable } from '../../components/service-table.js'
 import { StackSelector } from '../../components/stack-selector.js'
-import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
-import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
 export const Dashboard = Shade({
   shadowDomName: 'shade-dashboard',
-  render: ({ injector, useState, useDisposable }) => {
-    const [stacks, setStacks] = useState<Stack[]>('stacks', [])
-    const [selectedStackName, setSelectedStackName] = useState<string | null>('selectedStack', null)
-    const [services, setServices] = useState<Service[]>('services', [])
-    const [isLoading, setIsLoading] = useState('isLoading', true)
-    const refreshTrigger = useDisposable('refreshTrigger', () => new ObservableValue(0))
+  render: (options) => {
+    const [selectedStackName, setSelectedStackName] = options.useState<string | null>('selectedStack', null)
 
-    const stacksApi = injector.getInstance(StacksApiClient)
-    const servicesApi = injector.getInstance(ServicesApiClient)
+    const stacksState = useCollectionSync(options, Stack, {})
+    const stacks = stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data : []
 
-    const loadData = async () => {
-      setIsLoading(true)
-      try {
-        const { result: stackResult } = await stacksApi.call({
-          method: 'GET',
-          action: '/stacks',
-          query: { findOptions: {} },
-        })
-        setStacks(stackResult.entries)
-
-        const activeStack = selectedStackName ?? stackResult.entries[0]?.name ?? null
-        if (activeStack && activeStack !== selectedStackName) {
-          setSelectedStackName(activeStack)
-        }
-
-        if (activeStack) {
-          const { result: serviceResult } = await servicesApi.call({
-            method: 'GET',
-            action: '/services',
-            query: { findOptions: { filter: { stackName: { $eq: activeStack } } } },
-          })
-          setServices(serviceResult.entries)
-        } else {
-          setServices([])
-        }
-      } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
-          title: 'Error',
-          body: error instanceof Error ? error.message : 'Failed to load data',
-          type: 'error',
-        })
-      }
-      setIsLoading(false)
+    const activeStackName = selectedStackName ?? stacks[0]?.name ?? null
+    if (activeStackName && activeStackName !== selectedStackName && stacks.length > 0) {
+      queueMicrotask(() => setSelectedStackName(activeStackName))
     }
 
-    if (isLoading && refreshTrigger.getValue() === 0) {
-      void loadData()
-      refreshTrigger.setValue(1)
+    const servicesState = useCollectionSync(options, Service, {
+      filter: activeStackName ? { stackName: { $eq: activeStackName } } : undefined,
+    })
+    const services = servicesState.status === 'synced' || servicesState.status === 'cached' ? servicesState.data : []
+
+    const isLoading = stacksState.status === 'connecting'
+
+    if (isLoading) {
+      return (
+        <PageContainer>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
+            <Loader />
+          </div>
+        </PageContainer>
+      )
     }
 
-    const refresh = () => {
-      void loadData()
-    }
-
-    if (stacks.length === 0 && !isLoading) {
+    if (stacks.length === 0) {
       return (
         <PageContainer>
           <PageHeader
@@ -71,7 +44,7 @@ export const Dashboard = Shade({
             title="Dashboard"
             description="No stacks yet. Create a stack to start managing your services."
             actions={
-              <div>
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <Button variant="contained" onclick={() => history.pushState(null, '', '/stacks/create')}>
                   Create Stack
                 </Button>
@@ -81,19 +54,11 @@ export const Dashboard = Shade({
               </div>
             }
           />
-          <Paper>
-            <Button variant="contained" onclick={() => history.pushState(null, '', '/stacks/create')}>
-              Create Stack
-            </Button>
-            <NestedRouteLink href="/stacks/import">
-              <Button variant="outlined">Import Stack</Button>
-            </NestedRouteLink>
-          </Paper>
         </PageContainer>
       )
     }
 
-    const currentStack = stacks.find((s) => s.name === selectedStackName)
+    const currentStack = stacks.find((s) => s.name === activeStackName)
 
     return (
       <PageContainer>
@@ -104,25 +69,40 @@ export const Dashboard = Shade({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <StackSelector
                 stacks={stacks}
-                selectedStack={selectedStackName}
-                onSelect={(name) => {
-                  setSelectedStackName(name)
-                  void loadData()
-                }}
+                selectedStack={activeStackName}
+                onSelect={(name) => setSelectedStackName(name)}
               />
-              <Button variant="outlined" onclick={refresh} startIcon={<Icon icon={icons.refresh} size="small" />}>
-                Refresh
-              </Button>
+              {activeStackName ? (
+                <Button
+                  variant="contained"
+                  onclick={() => history.pushState(null, '', `/services/create/${activeStackName}`)}
+                >
+                  Create Service
+                </Button>
+              ) : null}
             </div>
           }
         />
         <Paper>
-          <ServiceTable
-            services={services}
-            onRefresh={refresh}
-            onViewLogs={(serviceId) => history.pushState(null, '', `/services/${serviceId}/logs`)}
-            onEdit={(serviceId) => history.pushState(null, '', `/services/${serviceId}`)}
-          />
+          {services.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px' }}>
+              <p style={{ opacity: '0.5', marginBottom: '16px' }}>No services in this stack yet.</p>
+              {activeStackName ? (
+                <Button
+                  variant="contained"
+                  onclick={() => history.pushState(null, '', `/services/create/${activeStackName}`)}
+                >
+                  Create Service
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <ServiceTable
+              services={services}
+              onViewLogs={(serviceId) => history.pushState(null, '', `/services/${serviceId}/logs`)}
+              onEdit={(serviceId) => history.pushState(null, '', `/services/${serviceId}`)}
+            />
+          )}
         </Paper>
       </PageContainer>
     )

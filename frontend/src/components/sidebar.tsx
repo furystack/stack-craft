@@ -1,6 +1,8 @@
+import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
 import type { IconDefinition } from '@furystack/shades-common-components'
-import { cssVariableTheme, Icon, icons } from '@furystack/shades-common-components'
+import { cssVariableTheme, Divider, Icon, icons } from '@furystack/shades-common-components'
+import { Stack } from 'common'
 import { match } from 'path-to-regexp'
 
 type SidebarItemProps = {
@@ -65,14 +67,30 @@ export const Sidebar = Shade({
     gap: cssVariableTheme.spacing.xs,
     overflowY: 'auto',
   },
-  render: ({ injector, useObservable }) => {
+  render: (options) => {
+    const { injector, useObservable } = options
     const [currentUrl] = useObservable('locationChange', injector.getInstance(LocationService).onLocationPathChanged)
+
+    const stacksState = useCollectionSync(options, Stack, {})
+    const stacks = stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data : []
+    const firstStack = stacks[0]
 
     return (
       <div style={{ display: 'contents' }}>
         <SidebarItem href="/" icon={icons.home} label="Dashboard" currentUrl={currentUrl} />
-        <SidebarItem href="/settings" icon={icons.settings} label="Settings" currentUrl={currentUrl} />
+        <SidebarItem href="/stacks/create" icon={icons.plus} label="Create Stack" currentUrl={currentUrl} />
+        <Divider />
         <SidebarItem href="/stacks/import" icon={icons.upload} label="Import Stack" currentUrl={currentUrl} />
+        {firstStack ? (
+          <SidebarItem
+            href={`/stacks/${firstStack.name}/export`}
+            icon={icons.download}
+            label="Export Stack"
+            currentUrl={currentUrl}
+          />
+        ) : null}
+        <Divider />
+        <SidebarItem href="/settings" icon={icons.settings} label="Settings" currentUrl={currentUrl} />
       </div>
     )
   },
