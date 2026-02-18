@@ -1,7 +1,9 @@
+import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 import { Alert, Button, Form, Icon, icons, Input, NotyService, Paper } from '@furystack/shades-common-components'
-import type { PublicApiToken } from 'common'
+import { PublicApiToken } from 'common'
 
+import { SessionService } from '../../services/session.js'
 import { TokensApiClient } from '../../services/api-clients/tokens-api-client.js'
 
 type CreateTokenPayload = {
@@ -15,23 +17,19 @@ const isCreateTokenPayload = (data: unknown): data is CreateTokenPayload => {
 
 export const ApiTokensSection = Shade({
   shadowDomName: 'shade-api-tokens-section',
-  render: ({ injector, useState }) => {
-    const [tokens, setTokens] = useState<PublicApiToken[]>('tokens', [])
-    const [isLoaded, setIsLoaded] = useState('isLoaded', false)
+  render: (options) => {
+    const { injector, useState, useObservable } = options
+
+    const sessionService = injector.getInstance(SessionService)
+    const [currentUser] = useObservable('currentUser', sessionService.currentUser)
     const [createdToken, setCreatedToken] = useState<string | null>('createdToken', null)
 
     const tokensApi = injector.getInstance(TokensApiClient)
     const notys = injector.getInstance(NotyService)
 
-    if (!isLoaded) {
-      tokensApi
-        .call({ method: 'GET', action: '/tokens', query: { findOptions: {} } })
-        .then(({ result }) => {
-          setTokens(result.entries)
-          setIsLoaded(true)
-        })
-        .catch(() => setIsLoaded(true))
-    }
+    const tokensState = useCollectionSync(options, PublicApiToken, {
+      filter: currentUser ? { username: { $eq: currentUser.username } } : undefined,
+    })
 
     const handleCreateToken = async (payload: CreateTokenPayload) => {
       try {
@@ -41,7 +39,6 @@ export const ApiTokensSection = Shade({
           body: { name: payload.name },
         })
         setCreatedToken(result.plainTextToken)
-        setTokens([...tokens, result.token])
         notys.emit('onNotyAdded', {
           title: 'Token created',
           body: "Copy the token now - it won't be shown again.",
@@ -53,9 +50,14 @@ export const ApiTokensSection = Shade({
     }
 
     const handleDeleteToken = async (id: string) => {
-      await tokensApi.call({ method: 'DELETE', action: '/tokens/:id', url: { id } })
-      setTokens(tokens.filter((t) => t.id !== id))
+      try {
+        await tokensApi.call({ method: 'DELETE', action: '/tokens/:id', url: { id } })
+      } catch {
+        notys.emit('onNotyAdded', { title: 'Error', body: 'Failed to revoke token.', type: 'error' })
+      }
     }
+
+    const tokens = 'data' in tokensState ? tokensState.data : []
 
     return (
       <Paper elevation={1}>
@@ -66,6 +68,14 @@ export const ApiTokensSection = Shade({
         <p style={{ opacity: '0.7', marginBottom: '16px', fontSize: '14px' }}>
           API tokens allow external tools (e.g. MCP clients) to authenticate with StackCraft.
         </p>
+
+        {tokensState.status === 'connecting' ? <p style={{ opacity: '0.5' }}>Loading tokens...</p> : null}
+
+        {tokensState.status === 'error' ? (
+          <Alert severity="error" title="Error loading tokens" style={{ marginBottom: '16px' }}>
+            {tokensState.error}
+          </Alert>
+        ) : null}
 
         {createdToken ? (
           <Alert
@@ -92,9 +102,11 @@ export const ApiTokensSection = Shade({
           </Button>
         </Form>
 
-        {tokens.length === 0 ? (
+        {tokens.length === 0 && tokensState.status !== 'connecting' ? (
           <p style={{ opacity: '0.5' }}>No tokens yet.</p>
-        ) : (
+        ) : null}
+
+        {tokens.length > 0 ? (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
@@ -130,7 +142,7 @@ export const ApiTokensSection = Shade({
               ))}
             </tbody>
           </table>
-        )}
+        ) : null}
       </Paper>
     )
   },

@@ -1,7 +1,6 @@
 import type { DeleteEndpoint, GetCollectionEndpoint, RestApi } from '@furystack/rest'
 import type { ApiToken } from '../models/api-token.js'
-
-export type PublicApiToken = Omit<ApiToken, 'tokenHash'>
+import type { PublicApiToken } from '../models/public-api-token.js'
 
 export type CreateTokenEndpoint = {
   result: { token: PublicApiToken; plainTextToken: string }

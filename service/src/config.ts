@@ -6,7 +6,7 @@ import type { AuthorizationResult } from '@furystack/repository'
 import { getRepository } from '@furystack/repository'
 import { DefaultSession } from '@furystack/rest-service'
 import { PasswordCredential, usePasswordPolicy } from '@furystack/security'
-import { ApiToken, Dependency, GitHubRepository, Service, Stack, User } from 'common'
+import { ApiToken, Dependency, GitHubRepository, PublicApiToken, Service, Stack, User } from 'common'
 import { mkdirSync } from 'fs'
 import { join } from 'path'
 
@@ -91,6 +91,7 @@ addStore(
       fileName: join(dataDir, 'api-tokens.json'),
     }),
   )
+  .addStore(new InMemoryStore({ model: PublicApiToken, primaryKey: 'id' }))
 
 getRepository(injector).createDataSet(User, 'username', { ...authorizedDataSet })
 getRepository(injector).createDataSet(Stack, 'name', { ...authorizedDataSet })
@@ -98,5 +99,6 @@ getRepository(injector).createDataSet(GitHubRepository, 'id', { ...authorizedDat
 getRepository(injector).createDataSet(Dependency, 'id', { ...authorizedDataSet })
 getRepository(injector).createDataSet(Service, 'id', { ...authorizedDataSet })
 getRepository(injector).createDataSet(ApiToken, 'id', { ...authorizedDataSet })
+getRepository(injector).createDataSet(PublicApiToken, 'id', { ...authorizedDataSet })
 
 usePasswordPolicy(injector)

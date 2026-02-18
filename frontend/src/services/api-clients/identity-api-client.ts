@@ -6,7 +6,7 @@ import { environmentOptions } from '../../environment-options.js'
 @Injectable({ lifetime: 'singleton' })
 export class IdentityApiClient {
   public call = createClient<IdentityApi>({
-    endpointUrl: environmentOptions.serviceUrl,
+    endpointUrl: `${environmentOptions.serviceUrl}/identity`,
     requestInit: {
       credentials: 'include',
       mode: 'cors',

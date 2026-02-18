@@ -25,7 +25,7 @@ export const setupIdentityRestApi = async (injector: Injector) => {
 
   await useRestService<IdentityApi>({
     injector,
-    root: 'api',
+    root: 'api/identity',
     port: getPort(),
     name: 'Stack Craft Service',
     version: '1.0.0',

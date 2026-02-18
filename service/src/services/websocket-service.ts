@@ -1,5 +1,6 @@
 import type { Injector } from '@furystack/inject'
 import { Injectable } from '@furystack/inject'
+import { SyncSubscribeAction, SyncUnsubscribeAction } from '@furystack/entity-sync-service'
 import { useWebsockets, WebSocketApi } from '@furystack/websocket-api'
 import type { WebsocketMessage } from 'common'
 import { getPort } from '../get-port.js'
@@ -12,6 +13,7 @@ export class WebsocketService {
     await useWebsockets(injector, {
       port: getPort(),
       path: '/api/ws',
+      actions: [SyncSubscribeAction, SyncUnsubscribeAction],
     })
     this.webSocketApi = injector.getInstance(WebSocketApi)
   }

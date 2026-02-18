@@ -4,7 +4,7 @@ import { getLogger } from '@furystack/logging'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction, useRestService, Validate } from '@furystack/rest-service'
 import type { CreateTokenEndpoint, TokensApi } from 'common'
-import { ApiToken } from 'common'
+import { ApiToken, PublicApiToken } from 'common'
 import tokensApiSchema from 'common/schemas/tokens-api.json' with { type: 'json' }
 import { randomBytes, createHash } from 'crypto'
 
@@ -37,9 +37,11 @@ const CreateTokenAction: RequestAction<CreateTokenEndpoint> = async ({ injector,
   const sm = getStoreManager(injector)
   await sm.getStoreFor(ApiToken, 'id').add(tokenEntity)
 
+  const { tokenHash: _hash, ...publicToken } = tokenEntity
+  await sm.getStoreFor(PublicApiToken, 'id').add(publicToken)
+
   await logger.information({ message: `Token created: ${name} for user ${currentUser.username}` })
 
-  const { tokenHash: _hash, ...publicToken } = tokenEntity
   return JsonResult({ token: publicToken, plainTextToken })
 }
 
@@ -78,10 +80,23 @@ const DeleteTokenAction: RequestAction<TokensApi['DELETE']['/tokens/:id']> = asy
   }
 
   await tokenStore.remove(id)
+  await sm.getStoreFor(PublicApiToken, 'id').remove(id)
   return JsonResult({})
 }
 
+const populatePublicTokenStore = async (injector: Injector) => {
+  const sm = getStoreManager(injector)
+  const allTokens = await sm.getStoreFor(ApiToken, 'id').find({})
+  const publicStore = sm.getStoreFor(PublicApiToken, 'id')
+
+  for (const { tokenHash: _hash, ...publicToken } of allTokens) {
+    await publicStore.add(publicToken)
+  }
+}
+
 export const setupTokensRestApi = async (injector: Injector) => {
+  await populatePublicTokenStore(injector)
+
   await useRestService<TokensApi>({
     injector,
     root: 'api/tokens',
