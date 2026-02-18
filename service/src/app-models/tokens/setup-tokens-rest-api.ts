@@ -1,6 +1,7 @@
 import { getCurrentUser, getStoreManager } from '@furystack/core'
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
+import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction, useRestService, Validate } from '@furystack/rest-service'
 import type { CreateTokenEndpoint, TokensApi } from 'common'
@@ -38,7 +39,8 @@ const CreateTokenAction: RequestAction<CreateTokenEndpoint> = async ({ injector,
   await sm.getStoreFor(ApiToken, 'id').add(tokenEntity)
 
   const { tokenHash: _hash, ...publicToken } = tokenEntity
-  await sm.getStoreFor(PublicApiToken, 'id').add(publicToken)
+  const publicTokenDs = getRepository(injector).getDataSetFor(PublicApiToken, 'id')
+  await publicTokenDs.add(injector, publicToken)
 
   await logger.information({ message: `Token created: ${name} for user ${currentUser.username}` })
 
@@ -80,7 +82,8 @@ const DeleteTokenAction: RequestAction<TokensApi['DELETE']['/tokens/:id']> = asy
   }
 
   await tokenStore.remove(id)
-  await sm.getStoreFor(PublicApiToken, 'id').remove(id)
+  const publicTokenDs = getRepository(injector).getDataSetFor(PublicApiToken, 'id')
+  await publicTokenDs.remove(injector, id)
   return JsonResult({})
 }
 

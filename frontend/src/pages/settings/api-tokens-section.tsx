@@ -3,8 +3,8 @@ import { createComponent, Shade } from '@furystack/shades'
 import { Alert, Button, Form, Icon, icons, Input, NotyService, Paper } from '@furystack/shades-common-components'
 import { PublicApiToken } from 'common'
 
-import { SessionService } from '../../services/session.js'
 import { TokensApiClient } from '../../services/api-clients/tokens-api-client.js'
+import { SessionService } from '../../services/session.js'
 
 type CreateTokenPayload = {
   name: string
@@ -57,7 +57,7 @@ export const ApiTokensSection = Shade({
       }
     }
 
-    const tokens = 'data' in tokensState ? tokensState.data : []
+    const tokens = tokensState?.status === 'cached' || tokensState.status === 'synced' ? tokensState.data || [] : []
 
     return (
       <Paper elevation={1}>
@@ -93,11 +93,7 @@ export const ApiTokensSection = Shade({
           style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}
         >
           <Input variant="outlined" labelTitle="Token name" name="name" style={{ flex: '1' }} required />
-          <Button
-            variant="contained"
-            type="submit"
-            style={{ height: '100%', display: 'flex', alignItems: 'center' }}
-          >
+          <Button variant="contained" type="submit" style={{ height: '100%', display: 'flex', alignItems: 'center' }}>
             Create Token
           </Button>
         </Form>
