@@ -10,8 +10,6 @@ export const ButtonsDemo = Shade({
     marginTop: '5em',
     flexDirection: 'column',
     background: 'url(https://talkillustration.com/wp-content/uploads/2015/04/ghtyj.jpg)',
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
   },
   render: ({ useState }) => {
     const [disabled, setDisabled] = useState('disabled', false)

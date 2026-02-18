@@ -3,14 +3,9 @@
 import eslint from '@eslint/js'
 import prettierConfig from 'eslint-config-prettier'
 import jsdoc from 'eslint-plugin-jsdoc'
-import playwright from 'eslint-plugin-playwright'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  {
-    ...playwright.configs['flat/recommended'],
-    files: ['e2e'],
-  },
   {
     ignores: [
       'coverage',
