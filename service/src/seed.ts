@@ -5,7 +5,7 @@ import { PasswordAuthenticator, PasswordCredential } from '@furystack/security'
 import { User } from 'common'
 
 import { injector } from './config.js'
-import { createElevatedContext } from './utils/elevated-context.js'
+import { useSystemIdentityContext } from '@furystack/core'
 
 /**
  * Seeds the databases with predefined values
@@ -15,7 +15,7 @@ export const seed = async (i: Injector): Promise<void> => {
   const logger = getLogger(i).withScope('seeder')
   await logger.verbose({ message: 'Seeding data...' })
 
-  const elevated = createElevatedContext(i)
+  const elevated = useSystemIdentityContext({ injector: i })
   try {
     const repository = getRepository(elevated)
     const userDs = repository.getDataSetFor(User, 'username')

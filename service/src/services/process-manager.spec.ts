@@ -1,11 +1,9 @@
-import { addStore, InMemoryStore } from '@furystack/core'
+import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { Service } from 'common'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-
-import { createElevatedContext } from '../utils/elevated-context.js'
 
 describe('ProcessManager - Store Operations', () => {
   let injector: Injector
@@ -124,7 +122,7 @@ describe('ProcessManager - Store Operations', () => {
         createTestService({ id: 'svc-c', stackName: 'stack-a' }),
       )
 
-      const elevated = createElevatedContext(injector)
+      const elevated = useSystemIdentityContext({ injector })
       const serviceDs = getRepository(elevated).getDataSetFor(Service, 'id')
       const stackAServices = await serviceDs.find(elevated, { filter: { stackName: { $eq: 'stack-a' } } })
       expect(stackAServices).toHaveLength(2)
@@ -135,14 +133,14 @@ describe('ProcessManager - Store Operations', () => {
     it('should find a single service by id', async () => {
       await serviceStore.add(createTestService())
 
-      const elevated = createElevatedContext(injector)
+      const elevated = useSystemIdentityContext({ injector })
       const [svc] = await getRepository(elevated).getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: 'svc-1' } }, top: 1 })
       expect(svc?.displayName).toBe('Test Service')
       await elevated[Symbol.asyncDispose]()
     })
 
     it('should return empty for nonexistent service', async () => {
-      const elevated = createElevatedContext(injector)
+      const elevated = useSystemIdentityContext({ injector })
       const result = await getRepository(elevated).getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: 'nonexistent' } }, top: 1 })
       expect(result).toHaveLength(0)
       await elevated[Symbol.asyncDispose]()

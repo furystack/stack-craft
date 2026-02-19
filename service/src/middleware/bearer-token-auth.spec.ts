@@ -1,4 +1,4 @@
-import { addStore, InMemoryStore } from '@furystack/core'
+import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
@@ -6,7 +6,6 @@ import { ApiToken, User } from 'common'
 import { createHash } from 'crypto'
 import { describe, expect, it } from 'vitest'
 
-import { createElevatedContext } from '../utils/elevated-context.js'
 import { resolveTokenUser } from './bearer-token-auth.js'
 
 const setupInjector = () => {
@@ -44,7 +43,7 @@ describe('resolveTokenUser', () => {
     const plainToken = 'test-token-12345'
     const tokenHash = createHash('sha256').update(plainToken).digest('hex')
 
-    const elevated = createElevatedContext(injector)
+    const elevated = useSystemIdentityContext({ injector })
     const repository = getRepository(elevated)
 
     await repository.getDataSetFor(User, 'username').add(elevated, { username: 'admin', roles: ['admin'] })
@@ -68,7 +67,7 @@ describe('resolveTokenUser', () => {
     const plainToken = 'orphan-token'
     const tokenHash = createHash('sha256').update(plainToken).digest('hex')
 
-    const elevated = createElevatedContext(injector)
+    const elevated = useSystemIdentityContext({ injector })
     await getRepository(elevated).getDataSetFor(ApiToken, 'id').add(elevated, {
       id: 'token-2',
       username: 'deleted-user',

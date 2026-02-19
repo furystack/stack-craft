@@ -9,7 +9,7 @@ import { ApiToken, PublicApiToken } from 'common'
 import tokensApiSchema from 'common/schemas/tokens-api.json' with { type: 'json' }
 import { randomBytes, createHash } from 'crypto'
 
-import { createElevatedContext } from '../../utils/elevated-context.js'
+import { useSystemIdentityContext } from '@furystack/core'
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getPort } from '../../get-port.js'
 
@@ -88,7 +88,7 @@ const DeleteTokenAction: RequestAction<TokensApi['DELETE']['/tokens/:id']> = asy
 }
 
 const populatePublicTokenStore = async (injector: Injector) => {
-  const elevated = createElevatedContext(injector)
+  const elevated = useSystemIdentityContext({ injector })
   try {
     const repository = getRepository(elevated)
     const allTokens = await repository.getDataSetFor(ApiToken, 'id').find(elevated, {})

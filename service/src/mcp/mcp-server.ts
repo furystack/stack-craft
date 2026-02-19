@@ -8,7 +8,7 @@ import { randomUUID } from 'crypto'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { z } from 'zod'
 
-import { createElevatedContext } from '../utils/elevated-context.js'
+import { useSystemIdentityContext } from '@furystack/core'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { resolveTokenUser } from '../middleware/bearer-token-auth.js'
 import { ProcessManager } from '../services/process-manager.js'
@@ -42,7 +42,7 @@ const registerServiceAction = (
 
 export const createMcpServer = (injector: Injector) => {
   const mcp = new McpServer({ name: 'stackcraft', version: '1.0.0' }, { capabilities: { tools: {} } })
-  const elevated = createElevatedContext(injector)
+  const elevated = useSystemIdentityContext({ injector })
   const repository = getRepository(elevated)
 
   mcp.registerTool('list_stacks', { description: 'List all stacks' }, async () => {

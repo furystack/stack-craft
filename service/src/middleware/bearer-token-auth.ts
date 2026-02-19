@@ -4,7 +4,7 @@ import { getRepository } from '@furystack/repository'
 import { ApiToken, User } from 'common'
 import { createHash } from 'crypto'
 
-import { createElevatedContext } from '../utils/elevated-context.js'
+import { useSystemIdentityContext } from '@furystack/core'
 
 /**
  * Extracts a Bearer token from the Authorization header,
@@ -19,7 +19,7 @@ export const resolveTokenUser = async (injector: Injector, authHeader: string | 
   const plainToken = authHeader.slice(7)
   const tokenHash = createHash('sha256').update(plainToken).digest('hex')
 
-  const elevated = createElevatedContext(injector)
+  const elevated = useSystemIdentityContext({ injector })
   try {
     const repository = getRepository(elevated)
     const tokenDs = repository.getDataSetFor(ApiToken, 'id')

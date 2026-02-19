@@ -4,7 +4,7 @@ import type { Service } from 'common'
 import { GitHubRepository, Stack } from 'common'
 import { getServiceCwd } from 'common'
 
-import { createElevatedContext } from './elevated-context.js'
+import { useSystemIdentityContext } from '@furystack/core'
 import { resolvePath } from './resolve-path.js'
 
 /**
@@ -12,7 +12,7 @@ import { resolvePath } from './resolve-path.js'
  * the parent stack and (optional) linked repository.
  */
 export async function resolveServiceCwd(injector: Injector, service: Service): Promise<string> {
-  const elevated = createElevatedContext(injector)
+  const elevated = useSystemIdentityContext({ injector })
   try {
     const repository = getRepository(elevated)
     const stacks = await repository.getDataSetFor(Stack, 'name').find(elevated, {

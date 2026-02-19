@@ -1,11 +1,9 @@
-import { addStore, InMemoryStore } from '@furystack/core'
+import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { Dependency, GitHubRepository, Service, Stack } from 'common'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-
-import { createElevatedContext } from '../../../utils/elevated-context.js'
 
 describe('Import/Export Stack Actions', () => {
   let injector: Injector
@@ -86,7 +84,7 @@ describe('Import/Export Stack Actions', () => {
         updatedAt: now,
       })
 
-      const elevated = createElevatedContext(injector)
+      const elevated = useSystemIdentityContext({ injector })
       const repository = getRepository(elevated)
       const stack = (await repository.getDataSetFor(Stack, 'name').find(elevated, { filter: { name: { $eq: 'my-stack' } }, top: 1 }))[0]
       const services = await repository.getDataSetFor(Service, 'id').find(elevated, { filter: { stackName: { $eq: 'my-stack' } } })
@@ -148,7 +146,7 @@ describe('Import/Export Stack Actions', () => {
         },
       )
 
-      const elevated = createElevatedContext(injector)
+      const elevated = useSystemIdentityContext({ injector })
       const repository = getRepository(elevated)
       const servicesA = await repository.getDataSetFor(Service, 'id').find(elevated, { filter: { stackName: { $eq: 'stack-a' } } })
       const servicesB = await repository.getDataSetFor(Service, 'id').find(elevated, { filter: { stackName: { $eq: 'stack-b' } } })
@@ -217,7 +215,7 @@ describe('Import/Export Stack Actions', () => {
         ],
       }
 
-      const elevated = createElevatedContext(injector)
+      const elevated = useSystemIdentityContext({ injector })
       const repository = getRepository(elevated)
 
       await repository.getDataSetFor(Stack, 'name').add(elevated, { ...importData.stack, createdAt: now, updatedAt: now })
@@ -262,7 +260,7 @@ describe('Import/Export Stack Actions', () => {
 
     it('should reset service statuses on import', async () => {
       const now = new Date().toISOString()
-      const elevated = createElevatedContext(injector)
+      const elevated = useSystemIdentityContext({ injector })
       const repository = getRepository(elevated)
 
       await repository.getDataSetFor(Stack, 'name').add(elevated, {

@@ -5,12 +5,12 @@ import { PasswordAuthenticator, PasswordCredential } from '@furystack/security'
 import type { ServiceStatus } from 'common'
 import { User } from 'common'
 
-import { createElevatedContext } from '../../utils/elevated-context.js'
+import { useSystemIdentityContext } from '@furystack/core'
 
 @Injectable()
 export class ServiceStatusProvider {
   public async getStatus(): Promise<ServiceStatus> {
-    const elevated = createElevatedContext(getInjectorReference(this))
+    const elevated = useSystemIdentityContext({ injector: getInjectorReference(this) })
     try {
       const userCount = await getRepository(elevated).getDataSetFor(User, 'username').count(elevated)
       return userCount > 0 ? 'installed' : 'needsInstall'
@@ -24,7 +24,7 @@ export class ServiceStatusProvider {
     if (status === 'installed') {
       throw Error('Service is already installed')
     }
-    const elevated = createElevatedContext(getInjectorReference(this))
+    const elevated = useSystemIdentityContext({ injector: getInjectorReference(this) })
     try {
       const repository = getRepository(elevated)
       await repository.getDataSetFor(User, 'username').add(elevated, {

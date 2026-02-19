@@ -273,21 +273,19 @@ const MyAction: RequestAction<MyEndpoint> = async ({ injector }) => {
 
 ### Elevated Context for Background Operations
 
-Background services, middleware, and startup code have no HTTP request context. Use `createElevatedContext()` to create a child injector with system-level privileges:
+Background services, middleware, and startup code have no HTTP request context. Use `useSystemIdentityContext()` from `@furystack/core` to create a child injector with system-level privileges:
 
 ```typescript
-import { createElevatedContext } from '../utils/elevated-context.js'
+import { useSystemIdentityContext } from '@furystack/core'
 import { getRepository } from '@furystack/repository'
+import { usingAsync } from '@furystack/utils'
 
-// One-off operation (dispose after use)
-const elevated = createElevatedContext(injector)
-try {
+// One-off operation (automatic cleanup with usingAsync)
+await usingAsync(useSystemIdentityContext({ injector }), async (elevated) => {
   const repository = getRepository(elevated)
   const items = await repository.getDataSetFor(MyModel, 'id').find(elevated, {})
   await repository.getDataSetFor(MyModel, 'id').update(elevated, id, changes)
-} finally {
-  elevated[Symbol.dispose]()
-}
+})
 
 // Singleton services (cache and dispose with service)
 @Injectable({ lifetime: 'singleton' })
@@ -296,13 +294,13 @@ export class MyService {
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = createElevatedContext(getInjectorReference(this))
+      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
     }
     return this.elevatedInjector
   }
 
   public async [Symbol.asyncDispose]() {
-    this.elevatedInjector?.[Symbol.dispose]()
+    await this.elevatedInjector?.[Symbol.asyncDispose]()
   }
 }
 ```
@@ -390,23 +388,21 @@ Create a seed script for initial data using elevated context:
 
 ```typescript
 // service/src/seed.ts
+import { useSystemIdentityContext } from '@furystack/core'
 import { getRepository } from '@furystack/repository'
+import { usingAsync } from '@furystack/utils'
 import { PasswordAuthenticator, PasswordCredential } from '@furystack/security'
 import { User } from 'common'
 import { injector } from './config.js'
-import { createElevatedContext } from './utils/elevated-context.js'
 
 export const seed = async (i: Injector): Promise<void> => {
-  const elevated = createElevatedContext(i)
-  try {
+  await usingAsync(useSystemIdentityContext({ injector: i }), async (elevated) => {
     const repository = getRepository(elevated)
     const cred = await i.getInstance(PasswordAuthenticator).hasher.createCredential('testuser', 'password')
 
     await repository.getDataSetFor(PasswordCredential, 'userName').add(elevated, cred)
     await repository.getDataSetFor(User, 'username').add(elevated, { username: 'testuser', roles: [] })
-  } finally {
-    elevated[Symbol.dispose]()
-  }
+  })
 }
 
 await seed(injector)
@@ -447,7 +443,7 @@ useRestService<StackCraftApi>({
 4. **Configure stores** - `FileSystemStore` for persistence, `InMemoryStore` for sessions
 5. **Handle authorization** - Define authorization functions for data sets
 6. **NEVER use `getStoreManager()` or `StoreManager` directly** - Always use `getRepository().getDataSetFor()` for data access
-7. **Use `createElevatedContext()`** for background services, middleware, and startup operations that lack an HTTP request context
+7. **Use `useSystemIdentityContext()` from `@furystack/core`** for background services, middleware, and startup operations that lack an HTTP request context
 8. **Graceful shutdown** - Implement proper cleanup with `Symbol.asyncDispose`
 9. **CORS setup** - Configure for frontend origins
 
@@ -460,7 +456,7 @@ useRestService<StackCraftApi>({
 - [ ] Authentication set up with `useHttpAuthentication`
 - [ ] Authorization functions defined
 - [ ] No `getStoreManager()` or `StoreManager` usage — all data access via Repository
-- [ ] Background services use `createElevatedContext()` for data access
+- [ ] Background services use `useSystemIdentityContext()` for data access
 - [ ] CORS configured for frontend
 - [ ] Graceful shutdown handler attached
 - [ ] Error handling for startup failures

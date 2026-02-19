@@ -1,4 +1,4 @@
-import { addStore, InMemoryStore } from '@furystack/core'
+import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
@@ -6,7 +6,6 @@ import { PasswordAuthenticator, PasswordCredential, usePasswordPolicy } from '@f
 import { User } from 'common'
 import { describe, expect, it } from 'vitest'
 
-import { createElevatedContext } from '../../utils/elevated-context.js'
 import { ServiceStatusProvider } from './service-installer.js'
 
 const setupInjector = () => {
@@ -31,7 +30,7 @@ describe('ServiceStatusProvider', () => {
 
     it('should return "installed" when users exist', async () => {
       const injector = setupInjector()
-      const elevated = createElevatedContext(injector)
+      const elevated = useSystemIdentityContext({ injector })
       await getRepository(elevated).getDataSetFor(User, 'username').add(elevated, { username: 'admin', roles: [] })
       await elevated[Symbol.asyncDispose]()
 
@@ -47,7 +46,7 @@ describe('ServiceStatusProvider', () => {
       const provider = injector.getInstance(ServiceStatusProvider)
       await provider.install('admin', 'password123')
 
-      const elevated = createElevatedContext(injector)
+      const elevated = useSystemIdentityContext({ injector })
       const repository = getRepository(elevated)
 
       const users = await repository.getDataSetFor(User, 'username').find(elevated, {})

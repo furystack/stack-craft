@@ -5,7 +5,7 @@ import type { InstallStatus, BuildStatus, RunStatus } from 'common'
 import { Service } from 'common'
 import { type ChildProcess, spawn } from 'child_process'
 
-import { createElevatedContext } from '../utils/elevated-context.js'
+import { useSystemIdentityContext } from '@furystack/core'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { WebsocketService } from './websocket-service.js'
 
@@ -26,7 +26,7 @@ export class ProcessManager {
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = createElevatedContext(getInjectorReference(this))
+      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
     }
     return this.elevatedInjector
   }
