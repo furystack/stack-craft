@@ -10,6 +10,7 @@ export class WebSocketService {
   private ws: WebSocket | null = null
   private listeners = new Set<WebSocketEventHandler>()
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private reconnectAttempt = 0
 
   public connectionState = new ObservableValue<'connecting' | 'connected' | 'disconnected'>('disconnected')
 
@@ -24,6 +25,7 @@ export class WebSocketService {
     this.ws = new WebSocket(url)
 
     this.ws.onopen = () => {
+      this.reconnectAttempt = 0
       this.connectionState.setValue('connected')
     }
 
@@ -52,6 +54,7 @@ export class WebSocketService {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null
     }
+    this.reconnectAttempt = 0
     this.ws?.close()
     this.ws = null
     this.connectionState.setValue('disconnected')
@@ -64,9 +67,11 @@ export class WebSocketService {
 
   private scheduleReconnect() {
     if (this.reconnectTimer) return
+    const delay = Math.min(1000 * 2 ** this.reconnectAttempt, 30_000)
+    this.reconnectAttempt++
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null
       this.connect()
-    }, 3000)
+    }, delay)
   }
 }

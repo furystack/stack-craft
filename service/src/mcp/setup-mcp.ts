@@ -1,3 +1,4 @@
+import { useSystemIdentityContext } from '@furystack/core'
 import { Injectable } from '@furystack/inject'
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
@@ -9,12 +10,14 @@ import { createMcpRequestHandler, McpSessionManager } from './mcp-server.js'
 export class McpHttpServer {
   private server: Server | null = null
   private sessionManager: McpSessionManager | null = null
+  private elevatedInjector: Injector | null = null
 
   public listen(injector: Injector, port: number) {
     const logger = getLogger(injector).withScope('MCP')
 
+    this.elevatedInjector = useSystemIdentityContext({ injector })
     this.sessionManager = new McpSessionManager()
-    const handleRequest = createMcpRequestHandler(injector, this.sessionManager)
+    const handleRequest = createMcpRequestHandler(injector, this.sessionManager, this.elevatedInjector)
 
     this.server = createServer((req, res) => {
       if (req.url === '/mcp' || req.url?.startsWith('/mcp?')) {
@@ -43,6 +46,8 @@ export class McpHttpServer {
       await new Promise<void>((resolve) => this.server!.close(() => resolve()))
       this.server = null
     }
+    await this.elevatedInjector?.[Symbol.asyncDispose]()
+    this.elevatedInjector = null
   }
 }
 

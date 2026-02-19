@@ -10,9 +10,15 @@ import { resolvePath } from './resolve-path.js'
 /**
  * Resolves the absolute working directory for a service by looking up
  * the parent stack and (optional) linked repository.
+ * When an existing elevated injector is provided, it will be reused
+ * instead of creating (and disposing) a temporary one.
  */
-export async function resolveServiceCwd(injector: Injector, service: Service): Promise<string> {
-  const elevated = useSystemIdentityContext({ injector })
+export async function resolveServiceCwd(
+  injector: Injector,
+  service: Service,
+  existingElevated?: Injector,
+): Promise<string> {
+  const elevated = existingElevated ?? useSystemIdentityContext({ injector })
   try {
     const repository = getRepository(elevated)
     const stacks = await repository.getDataSetFor(Stack, 'name').find(elevated, {
@@ -33,6 +39,8 @@ export async function resolveServiceCwd(injector: Injector, service: Service): P
 
     return resolvePath(getServiceCwd(stack, service, repo))
   } finally {
-    await elevated[Symbol.asyncDispose]()
+    if (!existingElevated) {
+      await elevated[Symbol.asyncDispose]()
+    }
   }
 }

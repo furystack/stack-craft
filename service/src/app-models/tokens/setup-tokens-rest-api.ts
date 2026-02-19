@@ -13,7 +13,7 @@ import { useSystemIdentityContext } from '@furystack/core'
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getPort } from '../../get-port.js'
 
-const CreateTokenAction: RequestAction<CreateTokenEndpoint> = async ({ injector, getBody }) => {
+export const CreateTokenAction: RequestAction<CreateTokenEndpoint> = async ({ injector, getBody }) => {
   const logger = getLogger(injector).withScope('CreateToken')
   const currentUser = await getCurrentUser(injector)
 
@@ -48,7 +48,7 @@ const CreateTokenAction: RequestAction<CreateTokenEndpoint> = async ({ injector,
   return JsonResult({ token: publicToken, plainTextToken })
 }
 
-const GetTokensAction: RequestAction<TokensApi['GET']['/tokens']> = async ({ injector }) => {
+export const GetTokensAction: RequestAction<TokensApi['GET']['/tokens']> = async ({ injector }) => {
   const currentUser = await getCurrentUser(injector)
 
   if (!currentUser) {
@@ -64,7 +64,7 @@ const GetTokensAction: RequestAction<TokensApi['GET']['/tokens']> = async ({ inj
   return JsonResult({ count: publicTokens.length, entries: publicTokens })
 }
 
-const DeleteTokenAction: RequestAction<TokensApi['DELETE']['/tokens/:id']> = async ({ injector, getUrlParams }) => {
+export const DeleteTokenAction: RequestAction<TokensApi['DELETE']['/tokens/:id']> = async ({ injector, getUrlParams }) => {
   const currentUser = await getCurrentUser(injector)
 
   if (!currentUser) {

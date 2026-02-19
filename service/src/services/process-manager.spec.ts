@@ -2,34 +2,38 @@ import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/co
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { Service } from 'common'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { GitHubRepository, Service, Stack } from 'common'
+import { tmpdir } from 'os'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { ProcessManager } from './process-manager.js'
+import { WebsocketService } from './websocket-service.js'
+
+const createTestService = (overrides: Partial<Service> = {}): Service => ({
+  id: 'svc-1',
+  stackName: 'test-stack',
+  displayName: 'Test Service',
+  description: '',
+  workingDirectory: '',
+  runCommand: 'echo hello',
+  installCommand: 'echo install',
+  buildCommand: 'echo build',
+  installStatus: 'not-installed',
+  buildStatus: 'not-built',
+  runStatus: 'stopped',
+  autoFetchEnabled: false,
+  autoFetchIntervalMinutes: 60,
+  autoRestartOnFetch: false,
+  dependencyIds: [],
+  prerequisiteServiceIds: [],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  ...overrides,
+})
 
 describe('ProcessManager - Store Operations', () => {
   let injector: Injector
   let serviceStore: InMemoryStore<Service, 'id'>
-
-  const createTestService = (overrides: Partial<Service> = {}): Service => ({
-    id: 'svc-1',
-    stackName: 'test-stack',
-    displayName: 'Test Service',
-    description: '',
-    workingDirectory: 'frontends/public',
-    runCommand: 'echo hello',
-    installCommand: 'echo install',
-    buildCommand: 'echo build',
-    installStatus: 'not-installed',
-    buildStatus: 'not-built',
-    runStatus: 'stopped',
-    autoFetchEnabled: false,
-    autoFetchIntervalMinutes: 60,
-    autoRestartOnFetch: false,
-    dependencyIds: [],
-    prerequisiteServiceIds: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    ...overrides,
-  })
 
   beforeEach(() => {
     injector = new Injector()
@@ -134,16 +138,161 @@ describe('ProcessManager - Store Operations', () => {
       await serviceStore.add(createTestService())
 
       const elevated = useSystemIdentityContext({ injector })
-      const [svc] = await getRepository(elevated).getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: 'svc-1' } }, top: 1 })
+      const [svc] = await getRepository(elevated)
+        .getDataSetFor(Service, 'id')
+        .find(elevated, { filter: { id: { $eq: 'svc-1' } }, top: 1 })
       expect(svc?.displayName).toBe('Test Service')
       await elevated[Symbol.asyncDispose]()
     })
 
     it('should return empty for nonexistent service', async () => {
       const elevated = useSystemIdentityContext({ injector })
-      const result = await getRepository(elevated).getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: 'nonexistent' } }, top: 1 })
+      const result = await getRepository(elevated)
+        .getDataSetFor(Service, 'id')
+        .find(elevated, { filter: { id: { $eq: 'nonexistent' } }, top: 1 })
       expect(result).toHaveLength(0)
       await elevated[Symbol.asyncDispose]()
     })
+  })
+})
+
+describe('ProcessManager', () => {
+  let injector: Injector
+  let pm: ProcessManager
+
+  const seedService = async (overrides: Partial<Service> = {}) => {
+    const elevated = useSystemIdentityContext({ injector })
+    await getRepository(elevated)
+      .getDataSetFor(Service, 'id')
+      .add(elevated, createTestService(overrides))
+    await elevated[Symbol.asyncDispose]()
+  }
+
+  beforeEach(async () => {
+    injector = new Injector()
+    useLogging(injector, VerboseConsoleLogger)
+
+    addStore(injector, new InMemoryStore({ model: Service, primaryKey: 'id' }))
+    addStore(injector, new InMemoryStore({ model: Stack, primaryKey: 'name' }))
+    addStore(injector, new InMemoryStore({ model: GitHubRepository, primaryKey: 'id' }))
+
+    getRepository(injector).createDataSet(Service, 'id', {})
+    getRepository(injector).createDataSet(Stack, 'name', {})
+    getRepository(injector).createDataSet(GitHubRepository, 'id', {})
+
+    const mockWs = { announce: vi.fn().mockResolvedValue(undefined) }
+    injector.setExplicitInstance(mockWs as unknown as WebsocketService, WebsocketService)
+
+    const elevated = useSystemIdentityContext({ injector })
+    await getRepository(elevated)
+      .getDataSetFor(Stack, 'name')
+      .add(elevated, {
+        name: 'test-stack',
+        displayName: 'Test Stack',
+        description: '',
+        mainDirectory: tmpdir(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+    await elevated[Symbol.asyncDispose]()
+
+    await seedService()
+    pm = injector.getInstance(ProcessManager)
+  })
+
+  afterEach(async () => {
+    await injector[Symbol.asyncDispose]()
+  })
+
+  it('should throw when starting a non-existent service', async () => {
+    await expect(pm.startService('nonexistent')).rejects.toThrow('Service not found')
+  })
+
+  it('should throw when stopping a service that is not running', async () => {
+    await expect(pm.stopService('svc-1')).rejects.toThrow('No running process')
+  })
+
+  it('should throw when installCommand is missing', async () => {
+    await seedService({ id: 'no-install', installCommand: undefined })
+    await expect(pm.installService('no-install')).rejects.toThrow('No install command')
+  })
+
+  it('should throw when buildCommand is missing', async () => {
+    await seedService({ id: 'no-build', buildCommand: undefined })
+    await expect(pm.buildService('no-build')).rejects.toThrow('No build command')
+  })
+
+  it('should return empty logs for unknown service', () => {
+    expect(pm.getLogLines('unknown')).toEqual([])
+  })
+
+  it('should run installService successfully', async () => {
+    await pm.installService('svc-1')
+
+    const elevated = useSystemIdentityContext({ injector })
+    const [svc] = await getRepository(elevated)
+      .getDataSetFor(Service, 'id')
+      .find(elevated, { filter: { id: { $eq: 'svc-1' } }, top: 1 })
+    await elevated[Symbol.asyncDispose]()
+
+    expect(svc?.installStatus).toBe('installed')
+    expect(svc?.lastInstalledAt).toBeDefined()
+  })
+
+  it('should run buildService successfully', async () => {
+    await pm.buildService('svc-1')
+
+    const elevated = useSystemIdentityContext({ injector })
+    const [svc] = await getRepository(elevated)
+      .getDataSetFor(Service, 'id')
+      .find(elevated, { filter: { id: { $eq: 'svc-1' } }, top: 1 })
+    await elevated[Symbol.asyncDispose]()
+
+    expect(svc?.buildStatus).toBe('built')
+    expect(svc?.lastBuiltAt).toBeDefined()
+  })
+
+  it('should reject when a one-shot command fails', async () => {
+    await seedService({ id: 'fail-svc', installCommand: 'exit 1' })
+    await expect(pm.installService('fail-svc')).rejects.toThrow('exited with code 1')
+
+    const elevated = useSystemIdentityContext({ injector })
+    const [svc] = await getRepository(elevated)
+      .getDataSetFor(Service, 'id')
+      .find(elevated, { filter: { id: { $eq: 'fail-svc' } }, top: 1 })
+    await elevated[Symbol.asyncDispose]()
+
+    expect(svc?.installStatus).toBe('failed')
+  })
+
+  it('should start a long-running service and stop it', async () => {
+    await seedService({ id: 'long-svc', runCommand: 'sleep 60' })
+    await pm.startService('long-svc')
+
+    await new Promise((r) => setTimeout(r, 200))
+    await pm.stopService('long-svc')
+  })
+
+  it('should prevent double-starting a service', async () => {
+    await seedService({ id: 'double-svc', runCommand: 'sleep 60' })
+    await pm.startService('double-svc')
+    await new Promise((r) => setTimeout(r, 100))
+    await expect(pm.startService('double-svc')).rejects.toThrow('already has a running process')
+    await pm.stopService('double-svc')
+  })
+
+  it('should dispose and kill all running processes', async () => {
+    await seedService({ id: 'dispose-svc', runCommand: 'sleep 60' })
+    await pm.startService('dispose-svc')
+    await new Promise((r) => setTimeout(r, 200))
+    await pm[Symbol.asyncDispose]()
+  })
+
+  it('should prevent one-shot when a process is already running', async () => {
+    await seedService({ id: 'busy-svc', runCommand: 'sleep 60' })
+    await pm.startService('busy-svc')
+    await new Promise((r) => setTimeout(r, 100))
+    await expect(pm.installService('busy-svc')).rejects.toThrow('already has a')
+    await pm.stopService('busy-svc')
   })
 })

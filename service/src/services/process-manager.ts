@@ -85,7 +85,9 @@ export class ProcessManager {
 
   public async startService(serviceId: string): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const services = await getRepository(elevated).getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
+    const services = await getRepository(elevated)
+      .getDataSetFor(Service, 'id')
+      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc) throw new Error(`Service not found: ${serviceId}`)
 
@@ -98,7 +100,7 @@ export class ProcessManager {
       await this.logger.information({ message: `Starting service: ${svc.displayName}` })
       await this.updateServiceStatus(serviceId, { runStatus: 'starting' })
 
-      const cwd = await resolveServiceCwd(getInjectorReference(this), svc)
+      const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
       const child = this.spawnCommand(svc.runCommand, cwd)
 
       const managed: ManagedProcess = {
@@ -173,21 +175,25 @@ export class ProcessManager {
 
   public async installService(serviceId: string): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const services = await getRepository(elevated).getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
+    const services = await getRepository(elevated)
+      .getDataSetFor(Service, 'id')
+      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc?.installCommand) throw new Error(`No install command for service: ${serviceId}`)
 
-    const cwd = await resolveServiceCwd(getInjectorReference(this), svc)
+    const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
     await this.runOneShot(serviceId, svc.installCommand, cwd, 'install')
   }
 
   public async buildService(serviceId: string): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const services = await getRepository(elevated).getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
+    const services = await getRepository(elevated)
+      .getDataSetFor(Service, 'id')
+      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc?.buildCommand) throw new Error(`No build command for service: ${serviceId}`)
 
-    const cwd = await resolveServiceCwd(getInjectorReference(this), svc)
+    const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
     await this.runOneShot(serviceId, svc.buildCommand, cwd, 'build')
   }
 

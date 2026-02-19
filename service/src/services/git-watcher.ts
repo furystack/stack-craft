@@ -43,12 +43,14 @@ export class GitWatcher {
     if (this.watchers.has(serviceId)) return
 
     const elevated = this.getElevatedInjector()
-    const services = await getRepository(elevated).getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
+    const services = await getRepository(elevated)
+      .getDataSetFor(Service, 'id')
+      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
 
     if (!svc?.autoFetchEnabled || !svc?.repositoryId) return
 
-    const cwd = await resolveServiceCwd(getInjectorReference(this), svc)
+    const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
     const intervalMs = (svc.autoFetchIntervalMinutes || 60) * 60 * 1000
 
     const { remote } = await this.git.getBranches(cwd).catch(() => ({ remote: [] as string[] }))
@@ -83,7 +85,7 @@ export class GitWatcher {
     const svc = services[0]
     if (!svc?.repositoryId) return
 
-    const cwd = await resolveServiceCwd(getInjectorReference(this), svc)
+    const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
 
     try {
       await this.git.fetch(cwd)
