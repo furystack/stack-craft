@@ -12,6 +12,7 @@
   "license": "ISC",
   "devDependencies": {
     "@codecov/vite-plugin": "^1.9.1",
+    "@types/node": "^25.2.3",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vitest": "^4.0.18"
@@ -27,7 +28,6 @@
     "@furystack/shades": "^12.0.1",
     "@furystack/shades-common-components": "^12.1.0",
     "@furystack/utils": "^8.1.10",
-    "@types/node": "^25.2.3",
     "common": "workspace:^"
   }
 }

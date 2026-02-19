@@ -8,8 +8,7 @@ import type { PasswordResetAction as PasswordResetActionType } from 'common'
 export const PasswordResetAction: RequestAction<PasswordResetActionType> = async ({ injector, getBody }) => {
   const logger = getLogger(injector).withScope('PasswordReset')
 
-  const postBody = await getBody()
-  const { currentPassword, newPassword } = postBody as { currentPassword: string; newPassword: string }
+  const { currentPassword, newPassword } = await getBody()
 
   const currentUser = await getCurrentUser(injector)
 

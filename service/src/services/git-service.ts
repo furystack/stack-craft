@@ -12,17 +12,17 @@ export class GitService {
 
   public async clone(url: string, directory: string): Promise<void> {
     await this.logger.information({ message: `Cloning ${url} into ${directory}` })
-    await execFileAsync('git', ['clone', url, directory], { timeout: 300000, shell: true })
+    await execFileAsync('git', ['clone', url, directory], { timeout: 300000 })
   }
 
   public async fetch(directory: string): Promise<void> {
     await this.logger.verbose({ message: `Fetching in ${directory}` })
-    await execFileAsync('git', ['fetch', '--all', '--prune'], { cwd: directory, timeout: 60000, shell: true })
+    await execFileAsync('git', ['fetch', '--all', '--prune'], { cwd: directory, timeout: 60000 })
   }
 
   public async pull(directory: string): Promise<{ updated: boolean }> {
     await this.logger.information({ message: `Pulling in ${directory}` })
-    const { stdout } = await execFileAsync('git', ['pull'], { cwd: directory, timeout: 60000, shell: true })
+    const { stdout } = await execFileAsync('git', ['pull'], { cwd: directory, timeout: 60000 })
     const updated = !stdout.includes('Already up to date')
     return { updated }
   }
@@ -31,12 +31,10 @@ export class GitService {
     const { stdout: localOut } = await execFileAsync('git', ['branch', '--format=%(refname:short)'], {
       cwd: directory,
       timeout: 10000,
-      shell: true,
     })
     const { stdout: remoteOut } = await execFileAsync('git', ['branch', '-r', '--format=%(refname:short)'], {
       cwd: directory,
       timeout: 10000,
-      shell: true,
     })
 
     const local = localOut
@@ -55,13 +53,12 @@ export class GitService {
     const { stdout } = await execFileAsync('git', ['branch', '--show-current'], {
       cwd: directory,
       timeout: 10000,
-      shell: true,
     })
     return stdout.trim()
   }
 
   public async checkout(directory: string, branch: string): Promise<void> {
     await this.logger.information({ message: `Checking out ${branch} in ${directory}` })
-    await execFileAsync('git', ['checkout', branch], { cwd: directory, timeout: 30000, shell: true })
+    await execFileAsync('git', ['checkout', branch], { cwd: directory, timeout: 30000 })
   }
 }

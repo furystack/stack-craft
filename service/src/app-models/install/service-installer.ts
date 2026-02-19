@@ -29,11 +29,11 @@ export class ServiceStatusProvider {
   }
 
   @Injected(StoreManager)
-  declare public storeManager: StoreManager
+  declare private storeManager: StoreManager
 
   @Injected(PasswordAuthenticator)
-  declare public authenticator: PasswordAuthenticator
+  declare private authenticator: PasswordAuthenticator
 
   @Injected(LoggerCollection)
-  declare public logger: LoggerCollection
+  declare private logger: LoggerCollection
 }

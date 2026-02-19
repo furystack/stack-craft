@@ -3,18 +3,22 @@ import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import type { Server } from 'http'
 import { createServer } from 'http'
-import { handleMcpRequest } from './mcp-server.js'
+import { createMcpRequestHandler, McpSessionManager } from './mcp-server.js'
 
 @Injectable({ lifetime: 'singleton' })
 export class McpHttpServer {
   private server: Server | null = null
+  private sessionManager: McpSessionManager | null = null
 
   public listen(injector: Injector, port: number) {
     const logger = getLogger(injector).withScope('MCP')
 
+    this.sessionManager = new McpSessionManager()
+    const handleRequest = createMcpRequestHandler(injector, this.sessionManager)
+
     this.server = createServer((req, res) => {
       if (req.url === '/mcp' || req.url?.startsWith('/mcp?')) {
-        handleMcpRequest(injector, req, res).catch((error) => {
+        handleRequest(req, res).catch((error) => {
           void logger.error({ message: 'MCP request error', data: { error } })
           if (!res.headersSent) {
             res.writeHead(500, { 'Content-Type': 'application/json' })
@@ -33,6 +37,8 @@ export class McpHttpServer {
   }
 
   public async [Symbol.asyncDispose]() {
+    this.sessionManager?.dispose()
+    this.sessionManager = null
     if (this.server) {
       await new Promise<void>((resolve) => this.server!.close(() => resolve()))
       this.server = null

@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { getStoreManager } from '@furystack/core'
 import type { Injector } from '@furystack/inject'
+import { getLogger } from '@furystack/logging'
 import { Dependency, GitHubRepository, Service, Stack } from 'common'
 import { randomUUID } from 'crypto'
 import type { IncomingMessage, ServerResponse } from 'http'
@@ -11,36 +12,64 @@ import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { resolveTokenUser } from '../middleware/bearer-token-auth.js'
 import { z } from 'zod'
 
+type TextResult = { content: [{ type: 'text'; text: string }]; isError?: true }
+
+const textResult = (text: string): TextResult => ({ content: [{ type: 'text', text }] })
+const errorResult = (text: string): TextResult => ({ content: [{ type: 'text', text }], isError: true })
+
+const registerServiceAction = (
+  mcp: McpServer,
+  name: string,
+  description: string,
+  injector: Injector,
+  method: keyof Pick<
+    ProcessManager,
+    'startService' | 'stopService' | 'restartService' | 'installService' | 'buildService'
+  >,
+  pastTense: string,
+) => {
+  mcp.registerTool(name, { description, inputSchema: { serviceId: z.string() } }, async ({ serviceId }) => {
+    try {
+      await injector.getInstance(ProcessManager)[method](serviceId)
+      return textResult(`Service ${serviceId} ${pastTense}`)
+    } catch (error) {
+      return errorResult(`Failed: ${(error as Error).message}`)
+    }
+  })
+}
+
 export const createMcpServer = (injector: Injector) => {
   const mcp = new McpServer({ name: 'stackcraft', version: '1.0.0' }, { capabilities: { tools: {} } })
 
-  mcp.tool('list_stacks', 'List all stacks', {}, async () => {
+  mcp.registerTool('list_stacks', { description: 'List all stacks' }, async () => {
     const sm = getStoreManager(injector)
     const stacks = await sm.getStoreFor(Stack, 'name').find({})
-    return { content: [{ type: 'text', text: JSON.stringify(stacks, null, 2) }] }
+    return textResult(JSON.stringify(stacks, null, 2))
   })
 
-  mcp.tool('get_stack', 'Get stack details with all services', { stackName: z.string() }, async ({ stackName }) => {
-    const sm = getStoreManager(injector)
-    const stacks = await sm.getStoreFor(Stack, 'name').find({ filter: { name: { $eq: stackName } }, top: 1 })
-    const stack = stacks[0]
-    if (!stack) return { content: [{ type: 'text', text: `Stack not found: ${stackName}` }], isError: true }
+  mcp.registerTool(
+    'get_stack',
+    {
+      description: 'Get a full stack definition with services, repositories, and dependencies',
+      inputSchema: { stackName: z.string() },
+    },
+    async ({ stackName }) => {
+      const sm = getStoreManager(injector)
+      const stacks = await sm.getStoreFor(Stack, 'name').find({ filter: { name: { $eq: stackName } }, top: 1 })
+      const stack = stacks[0]
+      if (!stack) return errorResult(`Stack not found: ${stackName}`)
 
-    const services = await sm.getStoreFor(Service, 'id').find({ filter: { stackName: { $eq: stackName } } })
-    const repos = await sm.getStoreFor(GitHubRepository, 'id').find({ filter: { stackName: { $eq: stackName } } })
-    const deps = await sm.getStoreFor(Dependency, 'id').find({ filter: { stackName: { $eq: stackName } } })
+      const services = await sm.getStoreFor(Service, 'id').find({ filter: { stackName: { $eq: stackName } } })
+      const repos = await sm.getStoreFor(GitHubRepository, 'id').find({ filter: { stackName: { $eq: stackName } } })
+      const deps = await sm.getStoreFor(Dependency, 'id').find({ filter: { stackName: { $eq: stackName } } })
 
-    return {
-      content: [
-        { type: 'text', text: JSON.stringify({ stack, services, repositories: repos, dependencies: deps }, null, 2) },
-      ],
-    }
-  })
+      return textResult(JSON.stringify({ stack, services, repositories: repos, dependencies: deps }, null, 2))
+    },
+  )
 
-  mcp.tool(
+  mcp.registerTool(
     'list_services',
-    'List services in a stack with status',
-    { stackName: z.string() },
+    { description: 'List services in a stack with status', inputSchema: { stackName: z.string() } },
     async ({ stackName }) => {
       const sm = getStoreManager(injector)
       const services = await sm.getStoreFor(Service, 'id').find({ filter: { stackName: { $eq: stackName } } })
@@ -51,95 +80,62 @@ export const createMcpServer = (injector: Injector) => {
         installStatus: s.installStatus,
         buildStatus: s.buildStatus,
       }))
-      return { content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }] }
+      return textResult(JSON.stringify(summary, null, 2))
     },
   )
 
-  mcp.tool('start_service', 'Start a service', { serviceId: z.string() }, async ({ serviceId }) => {
-    try {
-      await injector.getInstance(ProcessManager).startService(serviceId)
-      return { content: [{ type: 'text', text: `Service ${serviceId} started` }] }
-    } catch (error) {
-      return { content: [{ type: 'text', text: `Failed: ${(error as Error).message}` }], isError: true }
-    }
-  })
-
-  mcp.tool('stop_service', 'Stop a service', { serviceId: z.string() }, async ({ serviceId }) => {
-    try {
-      await injector.getInstance(ProcessManager).stopService(serviceId)
-      return { content: [{ type: 'text', text: `Service ${serviceId} stopped` }] }
-    } catch (error) {
-      return { content: [{ type: 'text', text: `Failed: ${(error as Error).message}` }], isError: true }
-    }
-  })
-
-  mcp.tool('restart_service', 'Restart a service', { serviceId: z.string() }, async ({ serviceId }) => {
-    try {
-      await injector.getInstance(ProcessManager).restartService(serviceId)
-      return { content: [{ type: 'text', text: `Service ${serviceId} restarted` }] }
-    } catch (error) {
-      return { content: [{ type: 'text', text: `Failed: ${(error as Error).message}` }], isError: true }
-    }
-  })
-
-  mcp.tool(
+  registerServiceAction(mcp, 'start_service', 'Start a service', injector, 'startService', 'started')
+  registerServiceAction(mcp, 'stop_service', 'Stop a service', injector, 'stopService', 'stopped')
+  registerServiceAction(mcp, 'restart_service', 'Restart a service', injector, 'restartService', 'restarted')
+  registerServiceAction(
+    mcp,
     'install_service',
     'Install dependencies for a service',
-    { serviceId: z.string() },
+    injector,
+    'installService',
+    'installed',
+  )
+  registerServiceAction(mcp, 'build_service', 'Build a service', injector, 'buildService', 'built')
+
+  mcp.registerTool(
+    'get_service_logs',
+    {
+      description: 'Get recent log output for a service',
+      inputSchema: { serviceId: z.string(), lines: z.number().optional().default(100) },
+    },
+    async ({ serviceId, lines }) => {
+      const logLines = injector.getInstance(ProcessManager).getLogLines(serviceId, lines)
+      return textResult(logLines.join('\n') || '(no logs)')
+    },
+  )
+
+  mcp.registerTool(
+    'pull_service',
+    { description: 'Git pull for a service', inputSchema: { serviceId: z.string() } },
     async ({ serviceId }) => {
+      const sm = getStoreManager(injector)
+      const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
+      const svc = services[0]
+      if (!svc) return errorResult('Service not found')
+
       try {
-        await injector.getInstance(ProcessManager).installService(serviceId)
-        return { content: [{ type: 'text', text: `Service ${serviceId} installed` }] }
+        const cwd = await resolveServiceCwd(injector, svc)
+        const result = await injector.getInstance(GitService).pull(cwd)
+        return textResult(result.updated ? 'Changes pulled' : 'Already up to date')
       } catch (error) {
-        return { content: [{ type: 'text', text: `Failed: ${(error as Error).message}` }], isError: true }
+        return errorResult(`Failed: ${(error as Error).message}`)
       }
     },
   )
 
-  mcp.tool('build_service', 'Build a service', { serviceId: z.string() }, async ({ serviceId }) => {
-    try {
-      await injector.getInstance(ProcessManager).buildService(serviceId)
-      return { content: [{ type: 'text', text: `Service ${serviceId} built` }] }
-    } catch (error) {
-      return { content: [{ type: 'text', text: `Failed: ${(error as Error).message}` }], isError: true }
-    }
-  })
-
-  mcp.tool(
-    'get_service_logs',
-    'Get recent log output for a service',
-    { serviceId: z.string(), lines: z.number().optional().default(100) },
-    async ({ serviceId, lines }) => {
-      const logLines = injector.getInstance(ProcessManager).getLogLines(serviceId, lines)
-      return { content: [{ type: 'text', text: logLines.join('\n') || '(no logs)' }] }
-    },
-  )
-
-  mcp.tool('pull_service', 'Git pull for a service', { serviceId: z.string() }, async ({ serviceId }) => {
-    const sm = getStoreManager(injector)
-    const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
-    const svc = services[0]
-    if (!svc) {
-      return { content: [{ type: 'text', text: 'Service not found' }], isError: true }
-    }
-    try {
-      const cwd = await resolveServiceCwd(injector, svc)
-      const result = await injector.getInstance(GitService).pull(cwd)
-      return { content: [{ type: 'text', text: result.updated ? 'Changes pulled' : 'Already up to date' }] }
-    } catch (error) {
-      return { content: [{ type: 'text', text: `Failed: ${(error as Error).message}` }], isError: true }
-    }
-  })
-
-  mcp.tool(
+  mcp.registerTool(
     'check_dependency',
-    'Run a dependency check command',
-    { dependencyId: z.string() },
+    { description: 'Run a dependency check command', inputSchema: { dependencyId: z.string() } },
     async ({ dependencyId }) => {
       const sm = getStoreManager(injector)
       const deps = await sm.getStoreFor(Dependency, 'id').find({ filter: { id: { $eq: dependencyId } }, top: 1 })
       const dep = deps[0]
-      if (!dep) return { content: [{ type: 'text', text: 'Dependency not found' }], isError: true }
+      if (!dep) return errorResult('Dependency not found')
 
       const { execFile } = await import('child_process')
       const { promisify } = await import('util')
@@ -147,32 +143,12 @@ export const createMcpServer = (injector: Injector) => {
 
       try {
         const { stdout } = await execFileAsync('/bin/sh', ['-c', dep.checkCommand], { timeout: 30000 })
-        return { content: [{ type: 'text', text: `${dep.name}: satisfied\n${stdout.trim()}` }] }
+        return textResult(`${dep.name}: satisfied\n${stdout.trim()}`)
       } catch {
-        return {
-          content: [{ type: 'text', text: `${dep.name}: NOT satisfied\n${dep.installationHelp}` }],
-          isError: true,
-        }
+        return errorResult(`${dep.name}: NOT satisfied\n${dep.installationHelp}`)
       }
     },
   )
-
-  mcp.tool('export_stack', 'Export a stack definition as JSON', { stackName: z.string() }, async ({ stackName }) => {
-    const sm = getStoreManager(injector)
-    const stacks = await sm.getStoreFor(Stack, 'name').find({ filter: { name: { $eq: stackName } }, top: 1 })
-    const stack = stacks[0]
-    if (!stack) return { content: [{ type: 'text', text: `Stack not found: ${stackName}` }], isError: true }
-
-    const services = await sm.getStoreFor(Service, 'id').find({ filter: { stackName: { $eq: stackName } } })
-    const repos = await sm.getStoreFor(GitHubRepository, 'id').find({ filter: { stackName: { $eq: stackName } } })
-    const deps = await sm.getStoreFor(Dependency, 'id').find({ filter: { stackName: { $eq: stackName } } })
-
-    return {
-      content: [
-        { type: 'text', text: JSON.stringify({ stack, services, repositories: repos, dependencies: deps }, null, 2) },
-      ],
-    }
-  })
 
   return mcp
 }
@@ -184,61 +160,91 @@ type TransportEntry = {
   lastActivityAt: number
 }
 
-const transports = new Map<string, TransportEntry>()
+export class McpSessionManager {
+  private transports = new Map<string, TransportEntry>()
+  private sweepInterval: ReturnType<typeof setInterval>
 
-const sweepInterval = setInterval(() => {
-  const now = Date.now()
-  for (const [id, entry] of transports) {
-    if (now - entry.lastActivityAt > SESSION_TTL_MS) {
-      void entry.transport.close?.()
-      transports.delete(id)
-    }
-  }
-}, 60_000)
-sweepInterval.unref()
-
-export const handleMcpRequest = async (injector: Injector, req: IncomingMessage, res: ServerResponse) => {
-  const authHeader = req.headers.authorization
-  const user = await resolveTokenUser(injector, authHeader)
-  if (!user) {
-    res.writeHead(401, { 'Content-Type': 'application/json' })
-    res.end(JSON.stringify({ error: 'Unauthorized. Provide a valid Bearer token.' }))
-    return
+  constructor() {
+    this.sweepInterval = setInterval(() => this.sweep(), 60_000)
+    this.sweepInterval.unref()
   }
 
-  const sessionId = req.headers['mcp-session-id'] as string | undefined
-
-  if (req.method === 'POST' && !sessionId) {
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-    })
-
-    const mcp = createMcpServer(injector)
-    await mcp.connect(transport)
-
-    if (transport.sessionId) {
-      transports.set(transport.sessionId, { transport, lastActivityAt: Date.now() })
-    }
-
-    transport.onclose = () => {
-      if (transport.sessionId) {
-        transports.delete(transport.sessionId)
+  private sweep() {
+    const now = Date.now()
+    for (const [id, entry] of this.transports) {
+      if (now - entry.lastActivityAt > SESSION_TTL_MS) {
+        void entry.transport.close?.()
+        this.transports.delete(id)
       }
     }
-
-    await transport.handleRequest(req, res)
-    return
   }
 
-  if (sessionId) {
-    const entry = transports.get(sessionId)
-    if (entry) {
-      entry.lastActivityAt = Date.now()
-      await entry.transport.handleRequest(req, res)
-      return
+  public register(sessionId: string, transport: StreamableHTTPServerTransport) {
+    this.transports.set(sessionId, { transport, lastActivityAt: Date.now() })
+    transport.onclose = () => this.transports.delete(sessionId)
+  }
+
+  public get(sessionId: string): TransportEntry | undefined {
+    return this.transports.get(sessionId)
+  }
+
+  public dispose() {
+    clearInterval(this.sweepInterval)
+    for (const [, entry] of this.transports) {
+      void entry.transport.close?.()
+    }
+    this.transports.clear()
+  }
+}
+
+export const createMcpRequestHandler = (injector: Injector, sessionManager: McpSessionManager) => {
+  const logger = getLogger(injector).withScope('McpRequestHandler')
+
+  return async (req: IncomingMessage, res: ServerResponse) => {
+    try {
+      const authHeader = req.headers.authorization
+      const user = await resolveTokenUser(injector, authHeader)
+      if (!user) {
+        res.writeHead(401, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Unauthorized. Provide a valid Bearer token.' }))
+        return
+      }
+
+      const sessionId = req.headers['mcp-session-id'] as string | undefined
+
+      if (req.method === 'POST' && !sessionId) {
+        const transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+        })
+
+        const mcp = createMcpServer(injector)
+        await mcp.connect(transport)
+
+        if (transport.sessionId) {
+          sessionManager.register(transport.sessionId, transport)
+        }
+
+        await transport.handleRequest(req, res)
+        return
+      }
+
+      if (sessionId) {
+        const entry = sessionManager.get(sessionId)
+        if (entry) {
+          entry.lastActivityAt = Date.now()
+          await entry.transport.handleRequest(req, res)
+          return
+        }
+      }
+
+      res.writeHead(400, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Invalid or missing session' }))
+    } catch (error) {
+      await logger.error({ message: 'MCP request failed', data: { error } })
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Internal server error' }))
+      }
     }
   }
-
-  res.writeHead(400, { 'Content-Type': 'application/json' })
-  res.end(JSON.stringify({ error: 'Invalid or missing session' }))
 }

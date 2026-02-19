@@ -19,6 +19,7 @@ type ManagedProcess = {
 @Injectable({ lifetime: 'singleton' })
 export class ProcessManager {
   private processes = new Map<string, ManagedProcess>()
+  private pendingOperations = new Set<string>()
 
   @Injected((injector) => getLogger(injector).withScope('ProcessManager'))
   declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
@@ -78,50 +79,55 @@ export class ProcessManager {
     const svc = services[0]
     if (!svc) throw new Error(`Service not found: ${serviceId}`)
 
-    if (this.processes.has(serviceId)) {
+    if (this.processes.has(serviceId) || this.pendingOperations.has(serviceId)) {
       throw new Error(`Service already has a running process: ${serviceId}`)
     }
 
-    await this.logger.information({ message: `Starting service: ${svc.displayName}` })
-    await this.updateServiceStatus(serviceId, { runStatus: 'starting' })
+    this.pendingOperations.add(serviceId)
+    try {
+      await this.logger.information({ message: `Starting service: ${svc.displayName}` })
+      await this.updateServiceStatus(serviceId, { runStatus: 'starting' })
 
-    const cwd = await resolveServiceCwd(getInjectorReference(this), svc)
-    const child = this.spawnCommand(svc.runCommand, cwd)
+      const cwd = await resolveServiceCwd(getInjectorReference(this), svc)
+      const child = this.spawnCommand(svc.runCommand, cwd)
 
-    const managed: ManagedProcess = {
-      serviceId,
-      process: child,
-      purpose: 'run',
-      logBuffer: [],
+      const managed: ManagedProcess = {
+        serviceId,
+        process: child,
+        purpose: 'run',
+        logBuffer: [],
+      }
+      this.processes.set(serviceId, managed)
+
+      child.stdout?.on('data', (data: Buffer) => {
+        const lines = data.toString().split('\n').filter(Boolean)
+        lines.forEach((line) => this.addLogLine(serviceId, 'stdout', line))
+      })
+
+      child.stderr?.on('data', (data: Buffer) => {
+        const lines = data.toString().split('\n').filter(Boolean)
+        lines.forEach((line) => this.addLogLine(serviceId, 'stderr', line))
+      })
+
+      child.on('error', (err) => {
+        void this.logger.error({ message: `Service error: ${svc.displayName}`, data: { error: err } })
+        void this.updateServiceStatus(serviceId, { runStatus: 'error' })
+        this.processes.delete(serviceId)
+      })
+
+      child.on('exit', (code) => {
+        void this.logger.information({ message: `Service exited: ${svc.displayName} (code ${code})` })
+        const newStatus: RunStatus = code === 0 ? 'stopped' : 'error'
+        void this.updateServiceStatus(serviceId, { runStatus: newStatus })
+        this.processes.delete(serviceId)
+      })
+
+      child.on('spawn', () => {
+        void this.updateServiceStatus(serviceId, { runStatus: 'running' })
+      })
+    } finally {
+      this.pendingOperations.delete(serviceId)
     }
-    this.processes.set(serviceId, managed)
-
-    child.stdout?.on('data', (data: Buffer) => {
-      const lines = data.toString().split('\n').filter(Boolean)
-      lines.forEach((line) => this.addLogLine(serviceId, 'stdout', line))
-    })
-
-    child.stderr?.on('data', (data: Buffer) => {
-      const lines = data.toString().split('\n').filter(Boolean)
-      lines.forEach((line) => this.addLogLine(serviceId, 'stderr', line))
-    })
-
-    child.on('error', (err) => {
-      void this.logger.error({ message: `Service error: ${svc.displayName}`, data: { error: err } })
-      void this.updateServiceStatus(serviceId, { runStatus: 'error' })
-      this.processes.delete(serviceId)
-    })
-
-    child.on('exit', (code) => {
-      void this.logger.information({ message: `Service exited: ${svc.displayName} (code ${code})` })
-      const newStatus: RunStatus = code === 0 ? 'stopped' : 'error'
-      void this.updateServiceStatus(serviceId, { runStatus: newStatus })
-      this.processes.delete(serviceId)
-    })
-
-    child.on('spawn', () => {
-      void this.updateServiceStatus(serviceId, { runStatus: 'running' })
-    })
   }
 
   public async stopService(serviceId: string): Promise<void> {
@@ -181,12 +187,14 @@ export class ProcessManager {
     cwd: string,
     purpose: 'install' | 'build',
   ): Promise<void> {
-    const existing = this.processes.get(serviceId)
-    if (existing) {
+    if (this.processes.has(serviceId) || this.pendingOperations.has(serviceId)) {
+      const existing = this.processes.get(serviceId)
       throw new Error(
-        `Service ${serviceId} already has a ${existing.purpose} process running. Stop it before starting a ${purpose}.`,
+        `Service ${serviceId} already has a ${existing?.purpose ?? purpose} process running. Stop it before starting a ${purpose}.`,
       )
     }
+
+    this.pendingOperations.add(serviceId)
 
     const progressStatus =
       purpose === 'install' ? ({ installStatus: 'installing' } as const) : ({ buildStatus: 'building' } as const)
@@ -208,6 +216,7 @@ export class ProcessManager {
       logBuffer: this.processes.get(serviceId)?.logBuffer ?? [],
     }
     this.processes.set(serviceId, managed)
+    this.pendingOperations.delete(serviceId)
 
     child.stdout?.on('data', (data: Buffer) => {
       data

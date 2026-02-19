@@ -1,8 +1,10 @@
 import type { CorsOptions } from '@furystack/rest-service'
 
-export const getCorsOptions = (): CorsOptions => ({
+const DEFAULT_ORIGINS = ['http://localhost:8080']
+
+export const getCorsOptions = (env = process.env): CorsOptions => ({
   credentials: true,
-  origins: ['http://localhost:8080'],
+  origins: env.CORS_ORIGINS ? env.CORS_ORIGINS.split(',').map((o) => o.trim()) : DEFAULT_ORIGINS,
   headers: ['cache', 'content-type'],
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
 })

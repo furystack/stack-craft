@@ -20,7 +20,7 @@ const CreateTokenAction: RequestAction<CreateTokenEndpoint> = async ({ injector,
     throw new RequestError('Not authenticated', 401)
   }
 
-  const { name } = (await getBody()) as { name: string }
+  const { name } = await getBody()
   const plainTextToken = randomBytes(32).toString('hex')
   const tokenHash = createHash('sha256').update(plainTextToken).digest('hex')
 
@@ -91,8 +91,9 @@ const populatePublicTokenStore = async (injector: Injector) => {
   const allTokens = await sm.getStoreFor(ApiToken, 'id').find({})
   const publicStore = sm.getStoreFor(PublicApiToken, 'id')
 
-  for (const { tokenHash: _hash, ...publicToken } of allTokens) {
-    await publicStore.add(publicToken)
+  const publicTokens = allTokens.map(({ tokenHash: _hash, ...rest }) => rest)
+  if (publicTokens.length > 0) {
+    await publicStore.add(...publicTokens)
   }
 }
 

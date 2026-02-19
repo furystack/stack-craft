@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, rmSync } from 'fs'
-import { dirname, join } from 'path'
+import { dirname, join, resolve } from 'path'
 
 import { getLogger } from '@furystack/logging'
 import { resolvePath } from '../../../utils/resolve-path.js'
@@ -71,6 +71,11 @@ export const ServiceLifecycleAction =
           }
 
           const cwd = resolvePath(getServiceCwd(stack, svc, repo))
+          const stackRoot = resolve(resolvePath(stack.mainDirectory))
+          if (!cwd.startsWith(stackRoot)) {
+            throw new RequestError(`Resolved path "${cwd}" is outside the stack directory "${stackRoot}"`, 400)
+          }
+
           const git = injector.getInstance(GitService)
           const isGitRepo = existsSync(cwd) && existsSync(join(cwd, '.git'))
 
