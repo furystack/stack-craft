@@ -126,7 +126,11 @@ export class GitWatcher {
   }
 
   public async [Symbol.asyncDispose]() {
-    await this.elevatedInjector?.[Symbol.asyncDispose]()
+    try {
+      await this.elevatedInjector?.[Symbol.asyncDispose]()
+    } catch {
+      // May already be disposed by the parent injector
+    }
     for (const [, entry] of this.watchers) {
       clearInterval(entry.timer)
     }

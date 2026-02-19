@@ -9,7 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CreateTokenAction, DeleteTokenAction, GetTokensAction } from './setup-tokens-rest-api.js'
 
 vi.mock('@furystack/core', async (importOriginal) => {
-  const actual = (await importOriginal()) as Record<string, unknown>
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const actual = await importOriginal<typeof import('@furystack/core')>()
   return {
     ...actual,
     getCurrentUser: vi.fn(),
@@ -53,9 +54,7 @@ describe('Token CRUD operations', () => {
     it('should create a token and return plainTextToken', async () => {
       mockedGetCurrentUser.mockResolvedValue({ username: 'admin', roles: ['admin'] })
 
-      const actionResult = await CreateTokenAction(
-        createMockActionContext({ injector, body: { name: 'my-token' } }),
-      )
+      const actionResult = await CreateTokenAction(createMockActionContext({ injector, body: { name: 'my-token' } }))
 
       const result = actionResult.chunk as { token: PublicApiToken; plainTextToken: string }
       expect(result.plainTextToken).toBeDefined()
@@ -120,23 +119,19 @@ describe('Token CRUD operations', () => {
       mockedGetCurrentUser.mockResolvedValue({ username: 'admin', roles: ['admin'] })
 
       const elevated = useSystemIdentityContext({ injector })
-      await getRepository(elevated)
-        .getDataSetFor(ApiToken, 'id')
-        .add(elevated, {
-          id: 'tok-del',
-          username: 'admin',
-          name: 'Delete Me',
-          tokenHash: 'hash',
-          createdAt: new Date().toISOString(),
-        })
-      await getRepository(elevated)
-        .getDataSetFor(PublicApiToken, 'id')
-        .add(elevated, {
-          id: 'tok-del',
-          username: 'admin',
-          name: 'Delete Me',
-          createdAt: new Date().toISOString(),
-        })
+      await getRepository(elevated).getDataSetFor(ApiToken, 'id').add(elevated, {
+        id: 'tok-del',
+        username: 'admin',
+        name: 'Delete Me',
+        tokenHash: 'hash',
+        createdAt: new Date().toISOString(),
+      })
+      await getRepository(elevated).getDataSetFor(PublicApiToken, 'id').add(elevated, {
+        id: 'tok-del',
+        username: 'admin',
+        name: 'Delete Me',
+        createdAt: new Date().toISOString(),
+      })
       await elevated[Symbol.asyncDispose]()
 
       await DeleteTokenAction(createMockActionContext({ injector, urlParams: { id: 'tok-del' } }))
@@ -151,15 +146,13 @@ describe('Token CRUD operations', () => {
       mockedGetCurrentUser.mockResolvedValue({ username: 'admin', roles: ['admin'] })
 
       const elevated = useSystemIdentityContext({ injector })
-      await getRepository(elevated)
-        .getDataSetFor(ApiToken, 'id')
-        .add(elevated, {
-          id: 'tok-other',
-          username: 'other-user',
-          name: 'Other Token',
-          tokenHash: 'hash',
-          createdAt: new Date().toISOString(),
-        })
+      await getRepository(elevated).getDataSetFor(ApiToken, 'id').add(elevated, {
+        id: 'tok-other',
+        username: 'other-user',
+        name: 'Other Token',
+        tokenHash: 'hash',
+        createdAt: new Date().toISOString(),
+      })
       await elevated[Symbol.asyncDispose]()
 
       await expect(

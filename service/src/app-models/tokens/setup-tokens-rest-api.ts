@@ -64,7 +64,10 @@ export const GetTokensAction: RequestAction<TokensApi['GET']['/tokens']> = async
   return JsonResult({ count: publicTokens.length, entries: publicTokens })
 }
 
-export const DeleteTokenAction: RequestAction<TokensApi['DELETE']['/tokens/:id']> = async ({ injector, getUrlParams }) => {
+export const DeleteTokenAction: RequestAction<TokensApi['DELETE']['/tokens/:id']> = async ({
+  injector,
+  getUrlParams,
+}) => {
   const currentUser = await getCurrentUser(injector)
 
   if (!currentUser) {

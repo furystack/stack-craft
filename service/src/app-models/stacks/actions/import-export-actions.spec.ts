@@ -185,16 +185,20 @@ describe('Import/Export Stack Actions', () => {
 
   describe('ImportStackAction', () => {
     it('should import a stack with services, repos and dependencies', async () => {
+      const ts = now()
       const importBody = {
         stack: {
           name: 'imported-stack',
           displayName: 'Imported Stack',
           description: 'Imported',
           mainDirectory: '/tmp/imported',
-        },
+          createdAt: ts,
+          updatedAt: ts,
+        } satisfies Stack,
         services: [
           {
             id: 'imp-svc-1',
+            stackName: 'imported-stack',
             displayName: 'Imported Service',
             description: '',
             workingDirectory: 'svc',
@@ -204,30 +208,39 @@ describe('Import/Export Stack Actions', () => {
             autoRestartOnFetch: false,
             dependencyIds: [],
             prerequisiteServiceIds: [],
-          },
+            installStatus: 'installed' as const,
+            buildStatus: 'built' as const,
+            runStatus: 'running' as const,
+            createdAt: ts,
+            updatedAt: ts,
+          } satisfies Service,
         ],
         repositories: [
           {
             id: 'imp-repo-1',
+            stackName: 'imported-stack',
             url: 'https://github.com/test/imported',
             displayName: 'Imported Repo',
             description: '',
-          },
+            createdAt: ts,
+            updatedAt: ts,
+          } satisfies GitHubRepository,
         ],
         dependencies: [
           {
             id: 'imp-dep-1',
+            stackName: 'imported-stack',
             name: 'Git',
             checkCommand: 'git --version',
             installationHelp: 'Install Git',
-          },
+            createdAt: ts,
+            updatedAt: ts,
+          } satisfies Dependency,
         ],
       }
 
       const elevated = useSystemIdentityContext({ injector })
-      const actionResult = await ImportStackAction(
-        createMockActionContext({ injector: elevated, body: importBody }),
-      )
+      const actionResult = await ImportStackAction(createMockActionContext({ injector: elevated, body: importBody }))
       const body = actionResult.chunk as { success: boolean }
       expect(body.success).toBe(true)
 
@@ -248,16 +261,20 @@ describe('Import/Export Stack Actions', () => {
     })
 
     it('should reset service statuses on import', async () => {
+      const ts = now()
       const importBody = {
         stack: {
           name: 'reset-test',
           displayName: 'Reset Test',
           description: '',
           mainDirectory: '/tmp/reset',
-        },
+          createdAt: ts,
+          updatedAt: ts,
+        } satisfies Stack,
         services: [
           {
             id: 'reset-svc',
+            stackName: 'reset-test',
             displayName: 'Reset Service',
             description: '',
             workingDirectory: 'svc',
@@ -267,13 +284,15 @@ describe('Import/Export Stack Actions', () => {
             autoRestartOnFetch: false,
             dependencyIds: [],
             prerequisiteServiceIds: [],
-            installStatus: 'installed',
-            buildStatus: 'built',
-            runStatus: 'running',
-          },
+            installStatus: 'installed' as const,
+            buildStatus: 'built' as const,
+            runStatus: 'running' as const,
+            createdAt: ts,
+            updatedAt: ts,
+          } satisfies Service,
         ],
-        repositories: [],
-        dependencies: [],
+        repositories: [] as GitHubRepository[],
+        dependencies: [] as Dependency[],
       }
 
       const elevated = useSystemIdentityContext({ injector })

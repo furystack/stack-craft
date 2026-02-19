@@ -120,35 +120,31 @@ describe('ServiceLifecycleAction', () => {
     it('should throw 400 when no repository is linked', async () => {
       const elevated = useSystemIdentityContext({ injector })
       const ts = new Date().toISOString()
-      await getRepository(elevated)
-        .getDataSetFor(Stack, 'name')
-        .add(elevated, {
-          name: 'test-stack',
-          displayName: 'Test',
-          description: '',
-          mainDirectory: '/tmp/test',
-          createdAt: ts,
-          updatedAt: ts,
-        })
-      await getRepository(elevated)
-        .getDataSetFor(Service, 'id')
-        .add(elevated, {
-          id: 'no-repo-svc',
-          stackName: 'test-stack',
-          displayName: 'No Repo',
-          description: '',
-          runCommand: 'echo hi',
-          installStatus: 'not-installed',
-          buildStatus: 'not-built',
-          runStatus: 'stopped',
-          autoFetchEnabled: false,
-          autoFetchIntervalMinutes: 60,
-          autoRestartOnFetch: false,
-          dependencyIds: [],
-          prerequisiteServiceIds: [],
-          createdAt: ts,
-          updatedAt: ts,
-        })
+      await getRepository(elevated).getDataSetFor(Stack, 'name').add(elevated, {
+        name: 'test-stack',
+        displayName: 'Test',
+        description: '',
+        mainDirectory: '/tmp/test',
+        createdAt: ts,
+        updatedAt: ts,
+      })
+      await getRepository(elevated).getDataSetFor(Service, 'id').add(elevated, {
+        id: 'no-repo-svc',
+        stackName: 'test-stack',
+        displayName: 'No Repo',
+        description: '',
+        runCommand: 'echo hi',
+        installStatus: 'not-installed',
+        buildStatus: 'not-built',
+        runStatus: 'stopped',
+        autoFetchEnabled: false,
+        autoFetchIntervalMinutes: 60,
+        autoRestartOnFetch: false,
+        dependencyIds: [],
+        prerequisiteServiceIds: [],
+        createdAt: ts,
+        updatedAt: ts,
+      })
       await elevated[Symbol.asyncDispose]()
 
       const action = ServiceLifecycleAction('pull')
@@ -160,54 +156,48 @@ describe('ServiceLifecycleAction', () => {
     it('should reject path traversal attempts', async () => {
       const elevated = useSystemIdentityContext({ injector })
       const ts = new Date().toISOString()
-      await getRepository(elevated)
-        .getDataSetFor(Stack, 'name')
-        .add(elevated, {
-          name: 'traversal-stack',
-          displayName: 'Traversal',
-          description: '',
-          mainDirectory: '/tmp/safe',
-          createdAt: ts,
-          updatedAt: ts,
-        })
-      await getRepository(elevated)
-        .getDataSetFor(GitHubRepository, 'id')
-        .add(elevated, {
-          id: 'repo-1',
-          stackName: 'traversal-stack',
-          url: 'https://github.com/test/repo',
-          displayName: 'Repo',
-          description: '',
-          createdAt: ts,
-          updatedAt: ts,
-        })
-      await getRepository(elevated)
-        .getDataSetFor(Service, 'id')
-        .add(elevated, {
-          id: 'traversal-svc',
-          stackName: 'traversal-stack',
-          displayName: 'Traversal',
-          description: '',
-          workingDirectory: '../../etc',
-          repositoryId: 'repo-1',
-          runCommand: 'echo hi',
-          installStatus: 'not-installed',
-          buildStatus: 'not-built',
-          runStatus: 'stopped',
-          autoFetchEnabled: false,
-          autoFetchIntervalMinutes: 60,
-          autoRestartOnFetch: false,
-          dependencyIds: [],
-          prerequisiteServiceIds: [],
-          createdAt: ts,
-          updatedAt: ts,
-        })
+      await getRepository(elevated).getDataSetFor(Stack, 'name').add(elevated, {
+        name: 'traversal-stack',
+        displayName: 'Traversal',
+        description: '',
+        mainDirectory: '/tmp/safe',
+        createdAt: ts,
+        updatedAt: ts,
+      })
+      await getRepository(elevated).getDataSetFor(GitHubRepository, 'id').add(elevated, {
+        id: 'repo-1',
+        stackName: 'traversal-stack',
+        url: 'https://github.com/test/repo',
+        displayName: 'Repo',
+        description: '',
+        createdAt: ts,
+        updatedAt: ts,
+      })
+      await getRepository(elevated).getDataSetFor(Service, 'id').add(elevated, {
+        id: 'traversal-svc',
+        stackName: 'traversal-stack',
+        displayName: 'Traversal',
+        description: '',
+        workingDirectory: '../../etc',
+        repositoryId: 'repo-1',
+        runCommand: 'echo hi',
+        installStatus: 'not-installed',
+        buildStatus: 'not-built',
+        runStatus: 'stopped',
+        autoFetchEnabled: false,
+        autoFetchIntervalMinutes: 60,
+        autoRestartOnFetch: false,
+        dependencyIds: [],
+        prerequisiteServiceIds: [],
+        createdAt: ts,
+        updatedAt: ts,
+      })
       await elevated[Symbol.asyncDispose]()
 
       const action = ServiceLifecycleAction('pull')
-      await expect(
-        action(createMockActionContext({ injector, urlParams: { id: 'traversal-svc' } })),
-      ).rejects.toThrow('outside the stack directory')
+      await expect(action(createMockActionContext({ injector, urlParams: { id: 'traversal-svc' } }))).rejects.toThrow(
+        'outside the stack directory',
+      )
     })
   })
 })

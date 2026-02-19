@@ -58,29 +58,33 @@ export class ProcessManager {
     serviceId: string,
     update: { installStatus?: InstallStatus; buildStatus?: BuildStatus; runStatus?: RunStatus },
   ) {
-    const elevated = this.getElevatedInjector()
-    const serviceDs = getRepository(elevated).getDataSetFor(Service, 'id')
+    try {
+      const elevated = this.getElevatedInjector()
+      const serviceDs = getRepository(elevated).getDataSetFor(Service, 'id')
 
-    const services = await serviceDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
-    const svc = services[0]
-    if (!svc) return
+      const services = await serviceDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
+      const svc = services[0]
+      if (!svc) return
 
-    const now = new Date().toISOString()
-    const patchData: Partial<Service> = { ...update, updatedAt: now }
+      const now = new Date().toISOString()
+      const patchData: Partial<Service> = { ...update, updatedAt: now }
 
-    if (update.installStatus === 'installed') patchData.lastInstalledAt = now
-    if (update.buildStatus === 'built') patchData.lastBuiltAt = now
-    if (update.runStatus === 'running') patchData.lastStartedAt = now
+      if (update.installStatus === 'installed') patchData.lastInstalledAt = now
+      if (update.buildStatus === 'built') patchData.lastBuiltAt = now
+      if (update.runStatus === 'running') patchData.lastStartedAt = now
 
-    await serviceDs.update(elevated, serviceId, patchData)
+      await serviceDs.update(elevated, serviceId, patchData)
 
-    void this.ws.announce({
-      type: 'service-status-changed',
-      serviceId,
-      installStatus: update.installStatus ?? svc.installStatus,
-      buildStatus: update.buildStatus ?? svc.buildStatus,
-      runStatus: update.runStatus ?? svc.runStatus,
-    })
+      void this.ws.announce({
+        type: 'service-status-changed',
+        serviceId,
+        installStatus: update.installStatus ?? svc.installStatus,
+        buildStatus: update.buildStatus ?? svc.buildStatus,
+        runStatus: update.runStatus ?? svc.runStatus,
+      })
+    } catch {
+      // May fire after disposal during shutdown — safe to ignore
+    }
   }
 
   public async startService(serviceId: string): Promise<void> {
@@ -283,7 +287,11 @@ export class ProcessManager {
   }
 
   public async [Symbol.asyncDispose]() {
-    await this.elevatedInjector?.[Symbol.asyncDispose]()
+    try {
+      await this.elevatedInjector?.[Symbol.asyncDispose]()
+    } catch {
+      // May already be disposed by the parent injector
+    }
     await this.logger.information({ message: 'Disposing ProcessManager, killing all child processes...' })
 
     const entries = [...this.processes.entries()]

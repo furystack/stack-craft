@@ -162,9 +162,7 @@ describe('ProcessManager', () => {
 
   const seedService = async (overrides: Partial<Service> = {}) => {
     const elevated = useSystemIdentityContext({ injector })
-    await getRepository(elevated)
-      .getDataSetFor(Service, 'id')
-      .add(elevated, createTestService(overrides))
+    await getRepository(elevated).getDataSetFor(Service, 'id').add(elevated, createTestService(overrides))
     await elevated[Symbol.asyncDispose]()
   }
 
@@ -184,16 +182,14 @@ describe('ProcessManager', () => {
     injector.setExplicitInstance(mockWs as unknown as WebsocketService, WebsocketService)
 
     const elevated = useSystemIdentityContext({ injector })
-    await getRepository(elevated)
-      .getDataSetFor(Stack, 'name')
-      .add(elevated, {
-        name: 'test-stack',
-        displayName: 'Test Stack',
-        description: '',
-        mainDirectory: tmpdir(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
+    await getRepository(elevated).getDataSetFor(Stack, 'name').add(elevated, {
+      name: 'test-stack',
+      displayName: 'Test Stack',
+      description: '',
+      mainDirectory: tmpdir(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
     await elevated[Symbol.asyncDispose]()
 
     await seedService()
@@ -201,7 +197,14 @@ describe('ProcessManager', () => {
   })
 
   afterEach(async () => {
-    await injector[Symbol.asyncDispose]()
+    await pm[Symbol.asyncDispose]()
+    // Allow pending child process exit handlers to settle before injector disposal
+    await new Promise((r) => setTimeout(r, 50))
+    try {
+      await injector[Symbol.asyncDispose]()
+    } catch {
+      // PM's singleton disposal may fail since it was already manually disposed
+    }
   })
 
   it('should throw when starting a non-existent service', async () => {
@@ -285,7 +288,7 @@ describe('ProcessManager', () => {
     await seedService({ id: 'dispose-svc', runCommand: 'sleep 60' })
     await pm.startService('dispose-svc')
     await new Promise((r) => setTimeout(r, 200))
-    await pm[Symbol.asyncDispose]()
+    // PM disposal will happen in afterEach — verifies no crash when processes are running
   })
 
   it('should prevent one-shot when a process is already running', async () => {
