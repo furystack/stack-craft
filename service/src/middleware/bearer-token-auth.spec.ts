@@ -1,9 +1,12 @@
 import { addStore, InMemoryStore } from '@furystack/core'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
+import { getRepository } from '@furystack/repository'
 import { ApiToken, User } from 'common'
 import { createHash } from 'crypto'
 import { describe, expect, it } from 'vitest'
+
+import { createElevatedContext } from '../utils/elevated-context.js'
 import { resolveTokenUser } from './bearer-token-auth.js'
 
 const setupInjector = () => {
@@ -11,6 +14,8 @@ const setupInjector = () => {
   useLogging(injector, VerboseConsoleLogger)
   addStore(injector, new InMemoryStore({ model: ApiToken, primaryKey: 'id' }))
   addStore(injector, new InMemoryStore({ model: User, primaryKey: 'username' }))
+  getRepository(injector).createDataSet(ApiToken, 'id', {})
+  getRepository(injector).createDataSet(User, 'username', {})
   return injector
 }
 
@@ -39,17 +44,18 @@ describe('resolveTokenUser', () => {
     const plainToken = 'test-token-12345'
     const tokenHash = createHash('sha256').update(plainToken).digest('hex')
 
-    const { getStoreManager } = await import('@furystack/core')
-    const sm = getStoreManager(injector)
+    const elevated = createElevatedContext(injector)
+    const repository = getRepository(elevated)
 
-    await sm.getStoreFor(User, 'username').add({ username: 'admin', roles: ['admin'] })
-    await sm.getStoreFor(ApiToken, 'id').add({
+    await repository.getDataSetFor(User, 'username').add(elevated, { username: 'admin', roles: ['admin'] })
+    await repository.getDataSetFor(ApiToken, 'id').add(elevated, {
       id: 'token-1',
       username: 'admin',
       name: 'test-token',
       tokenHash,
       createdAt: new Date().toISOString(),
     })
+    await elevated[Symbol.asyncDispose]()
 
     const result = await resolveTokenUser(injector, `Bearer ${plainToken}`)
     expect(result).not.toBeNull()
@@ -62,16 +68,15 @@ describe('resolveTokenUser', () => {
     const plainToken = 'orphan-token'
     const tokenHash = createHash('sha256').update(plainToken).digest('hex')
 
-    const { getStoreManager } = await import('@furystack/core')
-    const sm = getStoreManager(injector)
-
-    await sm.getStoreFor(ApiToken, 'id').add({
+    const elevated = createElevatedContext(injector)
+    await getRepository(elevated).getDataSetFor(ApiToken, 'id').add(elevated, {
       id: 'token-2',
       username: 'deleted-user',
       name: 'orphan',
       tokenHash,
       createdAt: new Date().toISOString(),
     })
+    await elevated[Symbol.asyncDispose]()
 
     const result = await resolveTokenUser(injector, `Bearer ${plainToken}`)
     expect(result).toBeNull()

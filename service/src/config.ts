@@ -101,6 +101,7 @@ addStore(
   .addStore(new InMemoryStore({ model: PublicApiToken, primaryKey: 'id' }))
 
 getRepository(injector).createDataSet(User, 'username', { ...authorizedDataSet })
+getRepository(injector).createDataSet(PasswordCredential, 'userName', { ...authorizedDataSet })
 getRepository(injector).createDataSet(Stack, 'name', { ...authorizedDataSet })
 getRepository(injector).createDataSet(GitHubRepository, 'id', { ...authorizedDataSet })
 getRepository(injector).createDataSet(Dependency, 'id', { ...authorizedDataSet })

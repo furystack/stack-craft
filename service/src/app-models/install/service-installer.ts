@@ -1,15 +1,22 @@
-import { StoreManager } from '@furystack/core'
-import { Injectable, Injected } from '@furystack/inject'
+import { Injectable, Injected, getInjectorReference } from '@furystack/inject'
 import { LoggerCollection } from '@furystack/logging'
+import { getRepository } from '@furystack/repository'
 import { PasswordAuthenticator, PasswordCredential } from '@furystack/security'
 import type { ServiceStatus } from 'common'
 import { User } from 'common'
 
+import { createElevatedContext } from '../../utils/elevated-context.js'
+
 @Injectable()
 export class ServiceStatusProvider {
   public async getStatus(): Promise<ServiceStatus> {
-    const userCount = await this.storeManager.getStoreFor(User, 'username').count()
-    return userCount > 0 ? 'installed' : 'needsInstall'
+    const elevated = createElevatedContext(getInjectorReference(this))
+    try {
+      const userCount = await getRepository(elevated).getDataSetFor(User, 'username').count(elevated)
+      return userCount > 0 ? 'installed' : 'needsInstall'
+    } finally {
+      await elevated[Symbol.asyncDispose]()
+    }
   }
 
   public async install(username: string, password: string): Promise<void> {
@@ -17,19 +24,22 @@ export class ServiceStatusProvider {
     if (status === 'installed') {
       throw Error('Service is already installed')
     }
-    await this.storeManager.getStoreFor(User, 'username').add({
-      username,
-      roles: ['admin'],
-    })
-    const credential = await this.authenticator.hasher.createCredential(username, password)
-    await this.storeManager.getStoreFor(PasswordCredential, 'userName').add(credential)
-    await this.logger
-      .withScope(this.constructor.name)
-      .information({ message: `Service installed for user '${username}'` })
+    const elevated = createElevatedContext(getInjectorReference(this))
+    try {
+      const repository = getRepository(elevated)
+      await repository.getDataSetFor(User, 'username').add(elevated, {
+        username,
+        roles: ['admin'],
+      })
+      const credential = await this.authenticator.hasher.createCredential(username, password)
+      await repository.getDataSetFor(PasswordCredential, 'userName').add(elevated, credential)
+      await this.logger
+        .withScope(this.constructor.name)
+        .information({ message: `Service installed for user '${username}'` })
+    } finally {
+      await elevated[Symbol.asyncDispose]()
+    }
   }
-
-  @Injected(StoreManager)
-  declare private storeManager: StoreManager
 
   @Injected(PasswordAuthenticator)
   declare private authenticator: PasswordAuthenticator

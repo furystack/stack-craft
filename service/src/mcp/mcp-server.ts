@@ -1,16 +1,18 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
-import { getStoreManager } from '@furystack/core'
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
+import { getRepository } from '@furystack/repository'
 import { Dependency, GitHubRepository, Service, Stack } from 'common'
 import { randomUUID } from 'crypto'
 import type { IncomingMessage, ServerResponse } from 'http'
-import { ProcessManager } from '../services/process-manager.js'
-import { GitService } from '../services/git-service.js'
+import { z } from 'zod'
+
+import { createElevatedContext } from '../utils/elevated-context.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { resolveTokenUser } from '../middleware/bearer-token-auth.js'
-import { z } from 'zod'
+import { ProcessManager } from '../services/process-manager.js'
+import { GitService } from '../services/git-service.js'
 
 type TextResult = { content: [{ type: 'text'; text: string }]; isError?: true }
 
@@ -40,10 +42,11 @@ const registerServiceAction = (
 
 export const createMcpServer = (injector: Injector) => {
   const mcp = new McpServer({ name: 'stackcraft', version: '1.0.0' }, { capabilities: { tools: {} } })
+  const elevated = createElevatedContext(injector)
+  const repository = getRepository(elevated)
 
   mcp.registerTool('list_stacks', { description: 'List all stacks' }, async () => {
-    const sm = getStoreManager(injector)
-    const stacks = await sm.getStoreFor(Stack, 'name').find({})
+    const stacks = await repository.getDataSetFor(Stack, 'name').find(elevated, {})
     return textResult(JSON.stringify(stacks, null, 2))
   })
 
@@ -54,14 +57,13 @@ export const createMcpServer = (injector: Injector) => {
       inputSchema: { stackName: z.string() },
     },
     async ({ stackName }) => {
-      const sm = getStoreManager(injector)
-      const stacks = await sm.getStoreFor(Stack, 'name').find({ filter: { name: { $eq: stackName } }, top: 1 })
+      const stacks = await repository.getDataSetFor(Stack, 'name').find(elevated, { filter: { name: { $eq: stackName } }, top: 1 })
       const stack = stacks[0]
       if (!stack) return errorResult(`Stack not found: ${stackName}`)
 
-      const services = await sm.getStoreFor(Service, 'id').find({ filter: { stackName: { $eq: stackName } } })
-      const repos = await sm.getStoreFor(GitHubRepository, 'id').find({ filter: { stackName: { $eq: stackName } } })
-      const deps = await sm.getStoreFor(Dependency, 'id').find({ filter: { stackName: { $eq: stackName } } })
+      const services = await repository.getDataSetFor(Service, 'id').find(elevated, { filter: { stackName: { $eq: stackName } } })
+      const repos = await repository.getDataSetFor(GitHubRepository, 'id').find(elevated, { filter: { stackName: { $eq: stackName } } })
+      const deps = await repository.getDataSetFor(Dependency, 'id').find(elevated, { filter: { stackName: { $eq: stackName } } })
 
       return textResult(JSON.stringify({ stack, services, repositories: repos, dependencies: deps }, null, 2))
     },
@@ -71,8 +73,7 @@ export const createMcpServer = (injector: Injector) => {
     'list_services',
     { description: 'List services in a stack with status', inputSchema: { stackName: z.string() } },
     async ({ stackName }) => {
-      const sm = getStoreManager(injector)
-      const services = await sm.getStoreFor(Service, 'id').find({ filter: { stackName: { $eq: stackName } } })
+      const services = await repository.getDataSetFor(Service, 'id').find(elevated, { filter: { stackName: { $eq: stackName } } })
       const summary = services.map((s) => ({
         id: s.id,
         displayName: s.displayName,
@@ -113,8 +114,7 @@ export const createMcpServer = (injector: Injector) => {
     'pull_service',
     { description: 'Git pull for a service', inputSchema: { serviceId: z.string() } },
     async ({ serviceId }) => {
-      const sm = getStoreManager(injector)
-      const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
+      const services = await repository.getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
       const svc = services[0]
       if (!svc) return errorResult('Service not found')
 
@@ -132,8 +132,7 @@ export const createMcpServer = (injector: Injector) => {
     'check_dependency',
     { description: 'Run a dependency check command', inputSchema: { dependencyId: z.string() } },
     async ({ dependencyId }) => {
-      const sm = getStoreManager(injector)
-      const deps = await sm.getStoreFor(Dependency, 'id').find({ filter: { id: { $eq: dependencyId } }, top: 1 })
+      const deps = await repository.getDataSetFor(Dependency, 'id').find(elevated, { filter: { id: { $eq: dependencyId } }, top: 1 })
       const dep = deps[0]
       if (!dep) return errorResult('Dependency not found')
 

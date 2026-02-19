@@ -1,9 +1,12 @@
 import { addStore, InMemoryStore } from '@furystack/core'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
+import { getRepository } from '@furystack/repository'
 import { PasswordAuthenticator, PasswordCredential, usePasswordPolicy } from '@furystack/security'
 import { User } from 'common'
 import { describe, expect, it } from 'vitest'
+
+import { createElevatedContext } from '../../utils/elevated-context.js'
 import { ServiceStatusProvider } from './service-installer.js'
 
 const setupInjector = () => {
@@ -11,6 +14,8 @@ const setupInjector = () => {
   useLogging(injector, VerboseConsoleLogger)
   addStore(injector, new InMemoryStore({ model: User, primaryKey: 'username' }))
   addStore(injector, new InMemoryStore({ model: PasswordCredential, primaryKey: 'userName' }))
+  getRepository(injector).createDataSet(User, 'username', {})
+  getRepository(injector).createDataSet(PasswordCredential, 'userName', {})
   usePasswordPolicy(injector)
   return injector
 }
@@ -26,8 +31,9 @@ describe('ServiceStatusProvider', () => {
 
     it('should return "installed" when users exist', async () => {
       const injector = setupInjector()
-      const { getStoreManager } = await import('@furystack/core')
-      await getStoreManager(injector).getStoreFor(User, 'username').add({ username: 'admin', roles: [] })
+      const elevated = createElevatedContext(injector)
+      await getRepository(elevated).getDataSetFor(User, 'username').add(elevated, { username: 'admin', roles: [] })
+      await elevated[Symbol.asyncDispose]()
 
       const provider = injector.getInstance(ServiceStatusProvider)
       const status = await provider.getStatus()
@@ -41,17 +47,18 @@ describe('ServiceStatusProvider', () => {
       const provider = injector.getInstance(ServiceStatusProvider)
       await provider.install('admin', 'password123')
 
-      const { getStoreManager } = await import('@furystack/core')
-      const sm = getStoreManager(injector)
+      const elevated = createElevatedContext(injector)
+      const repository = getRepository(elevated)
 
-      const users = await sm.getStoreFor(User, 'username').find({})
+      const users = await repository.getDataSetFor(User, 'username').find(elevated, {})
       expect(users).toHaveLength(1)
       expect(users[0].username).toBe('admin')
       expect(users[0].roles).toContain('admin')
 
-      const credentials = await sm.getStoreFor(PasswordCredential, 'userName').find({})
+      const credentials = await repository.getDataSetFor(PasswordCredential, 'userName').find(elevated, {})
       expect(credentials).toHaveLength(1)
       expect(credentials[0].userName).toBe('admin')
+      await elevated[Symbol.asyncDispose]()
     })
 
     it('should throw if service is already installed', async () => {

@@ -1,4 +1,4 @@
-import { getCurrentUser, getStoreManager } from '@furystack/core'
+import { getCurrentUser } from '@furystack/core'
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
@@ -9,6 +9,7 @@ import { ApiToken, PublicApiToken } from 'common'
 import tokensApiSchema from 'common/schemas/tokens-api.json' with { type: 'json' }
 import { randomBytes, createHash } from 'crypto'
 
+import { createElevatedContext } from '../../utils/elevated-context.js'
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getPort } from '../../get-port.js'
 
@@ -87,13 +88,18 @@ const DeleteTokenAction: RequestAction<TokensApi['DELETE']['/tokens/:id']> = asy
 }
 
 const populatePublicTokenStore = async (injector: Injector) => {
-  const sm = getStoreManager(injector)
-  const allTokens = await sm.getStoreFor(ApiToken, 'id').find({})
-  const publicStore = sm.getStoreFor(PublicApiToken, 'id')
+  const elevated = createElevatedContext(injector)
+  try {
+    const repository = getRepository(elevated)
+    const allTokens = await repository.getDataSetFor(ApiToken, 'id').find(elevated, {})
+    const publicTokenDs = repository.getDataSetFor(PublicApiToken, 'id')
 
-  const publicTokens = allTokens.map(({ tokenHash: _hash, ...rest }) => rest)
-  if (publicTokens.length > 0) {
-    await publicStore.add(...publicTokens)
+    const publicTokens = allTokens.map(({ tokenHash: _hash, ...rest }) => rest)
+    for (const token of publicTokens) {
+      await publicTokenDs.add(elevated, token)
+    }
+  } finally {
+    await elevated[Symbol.asyncDispose]()
   }
 }
 

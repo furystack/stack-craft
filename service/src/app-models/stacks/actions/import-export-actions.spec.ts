@@ -1,8 +1,11 @@
-import { addStore, getStoreManager, InMemoryStore } from '@furystack/core'
+import { addStore, InMemoryStore } from '@furystack/core'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
+import { getRepository } from '@furystack/repository'
 import { Dependency, GitHubRepository, Service, Stack } from 'common'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+
+import { createElevatedContext } from '../../../utils/elevated-context.js'
 
 describe('Import/Export Stack Actions', () => {
   let injector: Injector
@@ -21,6 +24,11 @@ describe('Import/Export Stack Actions', () => {
     depStore = new InMemoryStore({ model: Dependency, primaryKey: 'id' })
 
     addStore(injector, stackStore).addStore(serviceStore).addStore(repoStore).addStore(depStore)
+
+    getRepository(injector).createDataSet(Stack, 'name', {})
+    getRepository(injector).createDataSet(Service, 'id', {})
+    getRepository(injector).createDataSet(GitHubRepository, 'id', {})
+    getRepository(injector).createDataSet(Dependency, 'id', {})
   })
 
   afterEach(async () => {
@@ -78,13 +86,13 @@ describe('Import/Export Stack Actions', () => {
         updatedAt: now,
       })
 
-      const sm = getStoreManager(injector)
-      const stack = (await sm.getStoreFor(Stack, 'name').find({ filter: { name: { $eq: 'my-stack' } }, top: 1 }))[0]
-      const services = await sm.getStoreFor(Service, 'id').find({ filter: { stackName: { $eq: 'my-stack' } } })
-      const repositories = await sm
-        .getStoreFor(GitHubRepository, 'id')
-        .find({ filter: { stackName: { $eq: 'my-stack' } } })
-      const dependencies = await sm.getStoreFor(Dependency, 'id').find({ filter: { stackName: { $eq: 'my-stack' } } })
+      const elevated = createElevatedContext(injector)
+      const repository = getRepository(elevated)
+      const stack = (await repository.getDataSetFor(Stack, 'name').find(elevated, { filter: { name: { $eq: 'my-stack' } }, top: 1 }))[0]
+      const services = await repository.getDataSetFor(Service, 'id').find(elevated, { filter: { stackName: { $eq: 'my-stack' } } })
+      const repositories = await repository.getDataSetFor(GitHubRepository, 'id').find(elevated, { filter: { stackName: { $eq: 'my-stack' } } })
+      const dependencies = await repository.getDataSetFor(Dependency, 'id').find(elevated, { filter: { stackName: { $eq: 'my-stack' } } })
+      await elevated[Symbol.asyncDispose]()
 
       expect(stack).toBeDefined()
       expect(stack?.name).toBe('my-stack')
@@ -140,9 +148,11 @@ describe('Import/Export Stack Actions', () => {
         },
       )
 
-      const sm = getStoreManager(injector)
-      const servicesA = await sm.getStoreFor(Service, 'id').find({ filter: { stackName: { $eq: 'stack-a' } } })
-      const servicesB = await sm.getStoreFor(Service, 'id').find({ filter: { stackName: { $eq: 'stack-b' } } })
+      const elevated = createElevatedContext(injector)
+      const repository = getRepository(elevated)
+      const servicesA = await repository.getDataSetFor(Service, 'id').find(elevated, { filter: { stackName: { $eq: 'stack-a' } } })
+      const servicesB = await repository.getDataSetFor(Service, 'id').find(elevated, { filter: { stackName: { $eq: 'stack-b' } } })
+      await elevated[Symbol.asyncDispose]()
 
       expect(servicesA).toHaveLength(1)
       expect(servicesA[0]?.displayName).toBe('Service A')
@@ -207,9 +217,10 @@ describe('Import/Export Stack Actions', () => {
         ],
       }
 
-      const sm = getStoreManager(injector)
+      const elevated = createElevatedContext(injector)
+      const repository = getRepository(elevated)
 
-      await sm.getStoreFor(Stack, 'name').add({ ...importData.stack, createdAt: now, updatedAt: now })
+      await repository.getDataSetFor(Stack, 'name').add(elevated, { ...importData.stack, createdAt: now, updatedAt: now })
 
       const importedServices = importData.services.map((svc) => ({
         ...svc,
@@ -220,37 +231,41 @@ describe('Import/Export Stack Actions', () => {
         createdAt: now,
         updatedAt: now,
       }))
-      await sm.getStoreFor(Service, 'id').add(...importedServices)
+      for (const svc of importedServices) {
+        await repository.getDataSetFor(Service, 'id').add(elevated, svc)
+      }
 
-      await sm
-        .getStoreFor(GitHubRepository, 'id')
-        .add(...importData.repositories.map((r) => ({ ...r, createdAt: now, updatedAt: now })))
-      await sm
-        .getStoreFor(Dependency, 'id')
-        .add(...importData.dependencies.map((d) => ({ ...d, createdAt: now, updatedAt: now })))
+      for (const r of importData.repositories) {
+        await repository.getDataSetFor(GitHubRepository, 'id').add(elevated, { ...r, createdAt: now, updatedAt: now })
+      }
+      for (const d of importData.dependencies) {
+        await repository.getDataSetFor(Dependency, 'id').add(elevated, { ...d, createdAt: now, updatedAt: now })
+      }
 
-      const stacks = await sm.getStoreFor(Stack, 'name').find({})
+      const stacks = await repository.getDataSetFor(Stack, 'name').find(elevated, {})
       expect(stacks).toHaveLength(1)
       expect(stacks[0]?.name).toBe('imported-stack')
 
-      const services = await sm.getStoreFor(Service, 'id').find({ filter: { stackName: { $eq: 'imported-stack' } } })
+      const services = await repository.getDataSetFor(Service, 'id').find(elevated, { filter: { stackName: { $eq: 'imported-stack' } } })
       expect(services).toHaveLength(1)
       expect(services[0]?.installStatus).toBe('not-installed')
       expect(services[0]?.buildStatus).toBe('not-built')
       expect(services[0]?.runStatus).toBe('stopped')
 
-      const repos = await sm.getStoreFor(GitHubRepository, 'id').find({})
+      const repos = await repository.getDataSetFor(GitHubRepository, 'id').find(elevated, {})
       expect(repos).toHaveLength(1)
 
-      const deps = await sm.getStoreFor(Dependency, 'id').find({})
+      const deps = await repository.getDataSetFor(Dependency, 'id').find(elevated, {})
       expect(deps).toHaveLength(1)
+      await elevated[Symbol.asyncDispose]()
     })
 
     it('should reset service statuses on import', async () => {
       const now = new Date().toISOString()
-      const sm = getStoreManager(injector)
+      const elevated = createElevatedContext(injector)
+      const repository = getRepository(elevated)
 
-      await sm.getStoreFor(Stack, 'name').add({
+      await repository.getDataSetFor(Stack, 'name').add(elevated, {
         name: 'reset-test',
         displayName: 'Reset Test',
         description: '',
@@ -259,7 +274,7 @@ describe('Import/Export Stack Actions', () => {
         updatedAt: now,
       })
 
-      await sm.getStoreFor(Service, 'id').add({
+      await repository.getDataSetFor(Service, 'id').add(elevated, {
         id: 'reset-svc',
         stackName: 'reset-test',
         displayName: 'Reset Service',
@@ -278,10 +293,11 @@ describe('Import/Export Stack Actions', () => {
         updatedAt: now,
       })
 
-      const [svc] = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: 'reset-svc' } }, top: 1 })
+      const [svc] = await repository.getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: 'reset-svc' } }, top: 1 })
       expect(svc?.installStatus).toBe('not-installed')
       expect(svc?.buildStatus).toBe('not-built')
       expect(svc?.runStatus).toBe('stopped')
+      await elevated[Symbol.asyncDispose]()
     })
   })
 })

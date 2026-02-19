@@ -237,6 +237,76 @@ export const authorizedDataSet: Partial<DataSetSettings<unknown, unknown>> = {
 }
 ```
 
+## Data Access
+
+### NEVER Use `getStoreManager()` or `StoreManager` Directly
+
+All data access **must** go through the Repository layer (`getRepository()`) using DataSets. Direct `StoreManager` / `getStoreManager()` usage bypasses authorization and is **forbidden**.
+
+```typescript
+// ❌ FORBIDDEN - bypasses authorization
+import { getStoreManager } from '@furystack/core'
+const sm = getStoreManager(injector)
+const users = await sm.getStoreFor(User, 'username').find({})
+
+// ❌ FORBIDDEN - direct StoreManager injection
+@Injected(StoreManager)
+declare private storeManager: StoreManager
+
+// ✅ Good - use Repository DataSets
+import { getRepository } from '@furystack/repository'
+const repository = getRepository(injector)
+const users = await repository.getDataSetFor(User, 'username').find(injector, {})
+```
+
+### REST Action Handlers
+
+REST action handlers receive a scoped `injector` with an `IdentityContext` already set up per-request. Pass it directly to DataSet methods:
+
+```typescript
+const MyAction: RequestAction<MyEndpoint> = async ({ injector }) => {
+  const repository = getRepository(injector)
+  const items = await repository.getDataSetFor(MyModel, 'id').find(injector, {})
+  return JsonResult({ items })
+}
+```
+
+### Elevated Context for Background Operations
+
+Background services, middleware, and startup code have no HTTP request context. Use `createElevatedContext()` to create a child injector with system-level privileges:
+
+```typescript
+import { createElevatedContext } from '../utils/elevated-context.js'
+import { getRepository } from '@furystack/repository'
+
+// One-off operation (dispose after use)
+const elevated = createElevatedContext(injector)
+try {
+  const repository = getRepository(elevated)
+  const items = await repository.getDataSetFor(MyModel, 'id').find(elevated, {})
+  await repository.getDataSetFor(MyModel, 'id').update(elevated, id, changes)
+} finally {
+  elevated[Symbol.dispose]()
+}
+
+// Singleton services (cache and dispose with service)
+@Injectable({ lifetime: 'singleton' })
+export class MyService {
+  private elevatedInjector?: Injector
+
+  private getElevatedInjector(): Injector {
+    if (!this.elevatedInjector) {
+      this.elevatedInjector = createElevatedContext(getInjectorReference(this))
+    }
+    return this.elevatedInjector
+  }
+
+  public async [Symbol.asyncDispose]() {
+    this.elevatedInjector?.[Symbol.dispose]()
+  }
+}
+```
+
 ## Store Types
 
 ### FileSystemStore
@@ -316,26 +386,27 @@ void attachShutdownHandler(injector)
 
 ### Seed Script
 
-Create a seed script for initial data:
+Create a seed script for initial data using elevated context:
 
 ```typescript
 // service/src/seed.ts
-import { StoreManager } from '@furystack/core'
+import { getRepository } from '@furystack/repository'
 import { PasswordAuthenticator, PasswordCredential } from '@furystack/security'
 import { User } from 'common'
 import { injector } from './config.js'
+import { createElevatedContext } from './utils/elevated-context.js'
 
 export const seed = async (i: Injector): Promise<void> => {
-  const sm = i.getInstance(StoreManager)
-  const userStore = sm.getStoreFor(User, 'username')
-  const pwcStore = sm.getStoreFor(PasswordCredential, 'userName')
+  const elevated = createElevatedContext(i)
+  try {
+    const repository = getRepository(elevated)
+    const cred = await i.getInstance(PasswordAuthenticator).hasher.createCredential('testuser', 'password')
 
-  // Create default user credentials
-  const cred = await i.getInstance(PasswordAuthenticator).hasher.createCredential('testuser', 'password')
-
-  // Save to stores
-  await pwcStore.add(cred)
-  await userStore.add({ username: 'testuser', roles: [] })
+    await repository.getDataSetFor(PasswordCredential, 'userName').add(elevated, cred)
+    await repository.getDataSetFor(User, 'username').add(elevated, { username: 'testuser', roles: [] })
+  } finally {
+    elevated[Symbol.dispose]()
+  }
 }
 
 await seed(injector)
@@ -375,16 +446,21 @@ useRestService<StackCraftApi>({
 3. **Validate requests** - Use `Validate` wrapper with JSON schemas
 4. **Configure stores** - `FileSystemStore` for persistence, `InMemoryStore` for sessions
 5. **Handle authorization** - Define authorization functions for data sets
-6. **Graceful shutdown** - Implement proper cleanup with `Symbol.asyncDispose`
-7. **CORS setup** - Configure for frontend origins
+6. **NEVER use `getStoreManager()` or `StoreManager` directly** - Always use `getRepository().getDataSetFor()` for data access
+7. **Use `createElevatedContext()`** for background services, middleware, and startup operations that lack an HTTP request context
+8. **Graceful shutdown** - Implement proper cleanup with `Symbol.asyncDispose`
+9. **CORS setup** - Configure for frontend origins
 
 **Service Checklist:**
 
 - [ ] API types defined in `common` package
 - [ ] JSON schemas generated for validation
 - [ ] Stores configured for all models
+- [ ] DataSets created for all models via `getRepository().createDataSet()`
 - [ ] Authentication set up with `useHttpAuthentication`
 - [ ] Authorization functions defined
+- [ ] No `getStoreManager()` or `StoreManager` usage — all data access via Repository
+- [ ] Background services use `createElevatedContext()` for data access
 - [ ] CORS configured for frontend
 - [ ] Graceful shutdown handler attached
 - [ ] Error handling for startup failures

@@ -1,9 +1,11 @@
-import { getStoreManager } from '@furystack/core'
-import { Injectable, Injected, getInjectorReference } from '@furystack/inject'
+import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
+import { getRepository } from '@furystack/repository'
 import type { InstallStatus, BuildStatus, RunStatus } from 'common'
 import { Service } from 'common'
 import { type ChildProcess, spawn } from 'child_process'
+
+import { createElevatedContext } from '../utils/elevated-context.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { WebsocketService } from './websocket-service.js'
 
@@ -20,6 +22,14 @@ type ManagedProcess = {
 export class ProcessManager {
   private processes = new Map<string, ManagedProcess>()
   private pendingOperations = new Set<string>()
+  private elevatedInjector?: Injector
+
+  private getElevatedInjector(): Injector {
+    if (!this.elevatedInjector) {
+      this.elevatedInjector = createElevatedContext(getInjectorReference(this))
+    }
+    return this.elevatedInjector
+  }
 
   @Injected((injector) => getLogger(injector).withScope('ProcessManager'))
   declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
@@ -48,10 +58,10 @@ export class ProcessManager {
     serviceId: string,
     update: { installStatus?: InstallStatus; buildStatus?: BuildStatus; runStatus?: RunStatus },
   ) {
-    const sm = getStoreManager(getInjectorReference(this))
-    const store = sm.getStoreFor(Service, 'id')
+    const elevated = this.getElevatedInjector()
+    const serviceDs = getRepository(elevated).getDataSetFor(Service, 'id')
 
-    const services = await store.find({ filter: { id: { $eq: serviceId } }, top: 1 })
+    const services = await serviceDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc) return
 
@@ -62,7 +72,7 @@ export class ProcessManager {
     if (update.buildStatus === 'built') patchData.lastBuiltAt = now
     if (update.runStatus === 'running') patchData.lastStartedAt = now
 
-    await store.update(serviceId, patchData)
+    await serviceDs.update(elevated, serviceId, patchData)
 
     void this.ws.announce({
       type: 'service-status-changed',
@@ -74,8 +84,8 @@ export class ProcessManager {
   }
 
   public async startService(serviceId: string): Promise<void> {
-    const sm = getStoreManager(getInjectorReference(this))
-    const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
+    const elevated = this.getElevatedInjector()
+    const services = await getRepository(elevated).getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc) throw new Error(`Service not found: ${serviceId}`)
 
@@ -162,8 +172,8 @@ export class ProcessManager {
   }
 
   public async installService(serviceId: string): Promise<void> {
-    const sm = getStoreManager(getInjectorReference(this))
-    const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
+    const elevated = this.getElevatedInjector()
+    const services = await getRepository(elevated).getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc?.installCommand) throw new Error(`No install command for service: ${serviceId}`)
 
@@ -172,8 +182,8 @@ export class ProcessManager {
   }
 
   public async buildService(serviceId: string): Promise<void> {
-    const sm = getStoreManager(getInjectorReference(this))
-    const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
+    const elevated = this.getElevatedInjector()
+    const services = await getRepository(elevated).getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc?.buildCommand) throw new Error(`No build command for service: ${serviceId}`)
 
@@ -267,6 +277,7 @@ export class ProcessManager {
   }
 
   public async [Symbol.asyncDispose]() {
+    await this.elevatedInjector?.[Symbol.asyncDispose]()
     await this.logger.information({ message: 'Disposing ProcessManager, killing all child processes...' })
 
     const entries = [...this.processes.entries()]

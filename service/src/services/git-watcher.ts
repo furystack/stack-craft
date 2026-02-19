@@ -1,7 +1,9 @@
-import { getStoreManager } from '@furystack/core'
-import { Injectable, Injected, getInjectorReference } from '@furystack/inject'
+import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
+import { getRepository } from '@furystack/repository'
 import { Service } from 'common'
+
+import { createElevatedContext } from '../utils/elevated-context.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { GitService } from './git-service.js'
 import { ProcessManager } from './process-manager.js'
@@ -16,6 +18,14 @@ type WatchEntry = {
 @Injectable({ lifetime: 'singleton' })
 export class GitWatcher {
   private watchers = new Map<string, WatchEntry>()
+  private elevatedInjector?: Injector
+
+  private getElevatedInjector(): Injector {
+    if (!this.elevatedInjector) {
+      this.elevatedInjector = createElevatedContext(getInjectorReference(this))
+    }
+    return this.elevatedInjector
+  }
 
   @Injected((injector) => getLogger(injector).withScope('GitWatcher'))
   declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
@@ -32,8 +42,8 @@ export class GitWatcher {
   public async startWatching(serviceId: string): Promise<void> {
     if (this.watchers.has(serviceId)) return
 
-    const sm = getStoreManager(getInjectorReference(this))
-    const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
+    const elevated = this.getElevatedInjector()
+    const services = await getRepository(elevated).getDataSetFor(Service, 'id').find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
 
     if (!svc?.autoFetchEnabled || !svc?.repositoryId) return
@@ -67,8 +77,9 @@ export class GitWatcher {
     const entry = this.watchers.get(serviceId)
     if (!entry) return
 
-    const sm = getStoreManager(getInjectorReference(this))
-    const services = await sm.getStoreFor(Service, 'id').find({ filter: { id: { $eq: serviceId } }, top: 1 })
+    const elevated = this.getElevatedInjector()
+    const serviceDs = getRepository(elevated).getDataSetFor(Service, 'id')
+    const services = await serviceDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc?.repositoryId) return
 
@@ -76,7 +87,7 @@ export class GitWatcher {
 
     try {
       await this.git.fetch(cwd)
-      await sm.getStoreFor(Service, 'id').update(serviceId, {
+      await serviceDs.update(elevated, serviceId, {
         lastFetchedAt: new Date().toISOString(),
       } as Partial<Service>)
 
@@ -113,6 +124,7 @@ export class GitWatcher {
   }
 
   public async [Symbol.asyncDispose]() {
+    await this.elevatedInjector?.[Symbol.asyncDispose]()
     for (const [, entry] of this.watchers) {
       clearInterval(entry.timer)
     }
