@@ -5,6 +5,7 @@ import { PasswordAuthenticator, PasswordCredential } from '@furystack/security'
 import { User } from 'common'
 
 import { injector } from './config.js'
+import { setupDataStore } from './app-models/data-store/setup-data-store.js'
 import { useSystemIdentityContext } from '@furystack/core'
 
 /**
@@ -12,6 +13,8 @@ import { useSystemIdentityContext } from '@furystack/core'
  * @param i The injector instance
  */
 export const seed = async (i: Injector): Promise<void> => {
+  await setupDataStore(i)
+
   const logger = getLogger(i).withScope('seeder')
   await logger.verbose({ message: 'Seeding data...' })
 

@@ -1,4 +1,4 @@
-import type { InstallStatus, BuildStatus, RunStatus } from '../models/service.js'
+import type { InstallStatus, BuildStatus, RunStatus } from '../models/service-status.js'
 
 export type WebsocketMessage =
   | {

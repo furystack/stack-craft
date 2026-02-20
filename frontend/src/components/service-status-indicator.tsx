@@ -1,13 +1,13 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { Chip } from '@furystack/shades-common-components'
 import type { Palette } from '@furystack/shades-common-components'
-import type { Service } from 'common'
+import type { ServiceView } from 'common'
 
 type ServiceStatusIndicatorProps = {
-  service: Service
+  service: ServiceView
 }
 
-const getAggregateStatus = (svc: Service): { label: string; color: keyof Palette } => {
+const getAggregateStatus = (svc: ServiceView): { label: string; color: keyof Palette } => {
   if (svc.runStatus === 'running') return { label: 'Running', color: 'success' }
   if (svc.runStatus === 'starting') return { label: 'Starting', color: 'warning' }
   if (svc.runStatus === 'stopping') return { label: 'Stopping', color: 'warning' }

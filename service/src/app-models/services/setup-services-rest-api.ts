@@ -1,21 +1,17 @@
 import type { Injector } from '@furystack/inject'
 import '@furystack/repository'
-import {
-  createDeleteEndpoint,
-  createGetCollectionEndpoint,
-  createGetEntityEndpoint,
-  createPatchEndpoint,
-  createPostEndpoint,
-  useRestService,
-  Validate,
-} from '@furystack/rest-service'
-import type { ServicesApi } from 'common'
-import { Service } from 'common'
+import { getRepository } from '@furystack/repository'
+import { RequestError } from '@furystack/rest'
+import { JsonResult, useRestService, Validate } from '@furystack/rest-service'
+import type { ServicesApi, ServiceView } from 'common'
+import { ServiceConfig, ServiceDefinition, ServiceStatus } from 'common'
 import servicesApiSchema from 'common/schemas/services-api.json' with { type: 'json' }
+import { randomUUID } from 'crypto'
 
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getPort } from '../../get-port.js'
 import { ClearServiceLogsAction } from './actions/clear-service-logs-action.js'
+import { ServiceHistoryAction } from './actions/service-history-action.js'
 import { ServiceLifecycleAction } from './actions/service-lifecycle-action.js'
 import { ServiceLogsAction } from './actions/service-logs-action.js'
 
@@ -27,20 +23,100 @@ export const setupServicesRestApi = async (injector: Injector) => {
     cors: getCorsOptions(),
     api: {
       GET: {
-        '/services': Validate({ schema: servicesApiSchema, schemaName: 'GetCollectionEndpoint<Service>' })(
-          createGetCollectionEndpoint({ model: Service, primaryKey: 'id' }),
-        ),
-        '/services/:id': Validate({ schema: servicesApiSchema, schemaName: 'GetEntityEndpoint<Service,"id">' })(
-          createGetEntityEndpoint({ model: Service, primaryKey: 'id' }),
-        ),
+        '/services': async ({ injector: i, getQuery }) => {
+          const query = getQuery()
+          const repo = getRepository(i)
+          const defs = await repo.getDataSetFor(ServiceDefinition, 'id').find(i, {
+            top: query.findOptions?.top,
+            skip: query.findOptions?.skip,
+            order: query.findOptions?.order,
+            filter: query.findOptions?.filter,
+          })
+          const configs = await repo.getDataSetFor(ServiceConfig, 'serviceId').find(i, {})
+          const statuses = await repo.getDataSetFor(ServiceStatus, 'serviceId').find(i, {})
+          const configMap = new Map(configs.map((c) => [c.serviceId, c]))
+          const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
+
+          const entries = defs.map(
+            (def) =>
+              ({
+                ...def,
+                ...configMap.get(def.id),
+                ...statusMap.get(def.id),
+              }) as ServiceView,
+          )
+          const count = await repo.getDataSetFor(ServiceDefinition, 'id').count(i, query.findOptions?.filter)
+          return JsonResult({ count, entries })
+        },
+        '/services/:id': async ({ injector: i, getUrlParams }) => {
+          const { id } = getUrlParams()
+          const repo = getRepository(i)
+          const defs = await repo
+            .getDataSetFor(ServiceDefinition, 'id')
+            .find(i, { filter: { id: { $eq: id } }, top: 1 })
+          const def = defs[0]
+          if (!def) throw new RequestError('Service not found', 404)
+
+          const configs = await repo
+            .getDataSetFor(ServiceConfig, 'serviceId')
+            .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
+          const statuses = await repo
+            .getDataSetFor(ServiceStatus, 'serviceId')
+            .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
+
+          return JsonResult({ ...def, ...configs[0], ...statuses[0] } as ServiceView)
+        },
         '/services/:id/logs': Validate({ schema: servicesApiSchema, schemaName: 'ServiceLogsEndpoint' })(
           ServiceLogsAction,
         ),
+        '/services/:id/history': ServiceHistoryAction,
       },
       POST: {
-        '/services': Validate({ schema: servicesApiSchema, schemaName: 'PostServiceEndpoint' })(
-          createPostEndpoint({ model: Service, primaryKey: 'id' }),
-        ),
+        '/services': async ({ injector: i, getBody }) => {
+          const body = await getBody()
+          const repo = getRepository(i)
+          const now = new Date().toISOString()
+          const id = body.id ?? randomUUID()
+
+          const def = {
+            id,
+            stackName: body.stackName,
+            displayName: body.displayName,
+            description: body.description ?? '',
+            workingDirectory: body.workingDirectory,
+            repositoryId: body.repositoryId,
+            dependencyIds: body.dependencyIds ?? [],
+            prerequisiteServiceIds: body.prerequisiteServiceIds ?? [],
+            installCommand: body.installCommand,
+            buildCommand: body.buildCommand,
+            runCommand: body.runCommand,
+            createdAt: now,
+            updatedAt: now,
+          }
+
+          const config = {
+            serviceId: id,
+            autoFetchEnabled: body.autoFetchEnabled ?? false,
+            autoFetchIntervalMinutes: body.autoFetchIntervalMinutes ?? 60,
+            autoRestartOnFetch: body.autoRestartOnFetch ?? false,
+            createdAt: now,
+            updatedAt: now,
+          }
+
+          const status = {
+            serviceId: id,
+            installStatus: 'not-installed' as const,
+            buildStatus: 'not-built' as const,
+            runStatus: 'stopped' as const,
+            updatedAt: now,
+          }
+
+          await repo.getDataSetFor(ServiceDefinition, 'id').add(i, def)
+          await repo.getDataSetFor(ServiceConfig, 'serviceId').add(i, config)
+          await repo.getDataSetFor(ServiceStatus, 'serviceId').add(i, status)
+
+          return JsonResult({ ...def, ...config, ...status } as ServiceView)
+        },
         '/services/:id/start': ServiceLifecycleAction('start'),
         '/services/:id/stop': ServiceLifecycleAction('stop'),
         '/services/:id/restart': ServiceLifecycleAction('restart'),
@@ -49,13 +125,53 @@ export const setupServicesRestApi = async (injector: Injector) => {
         '/services/:id/pull': ServiceLifecycleAction('pull'),
       },
       PATCH: {
-        '/services/:id': Validate({
-          schema: servicesApiSchema,
-          schemaName: 'PatchServiceEndpoint',
-        })(createPatchEndpoint({ model: Service, primaryKey: 'id' })),
+        '/services/:id': async ({ injector: i, getUrlParams, getBody }) => {
+          const { id } = getUrlParams()
+          const body = await getBody()
+          const repo = getRepository(i)
+
+          const defFields: Partial<ServiceDefinition> = {}
+          if (body.displayName !== undefined) defFields.displayName = body.displayName
+          if (body.description !== undefined) defFields.description = body.description
+          if (body.workingDirectory !== undefined) defFields.workingDirectory = body.workingDirectory
+          if (body.repositoryId !== undefined) defFields.repositoryId = body.repositoryId
+          if (body.dependencyIds !== undefined) defFields.dependencyIds = body.dependencyIds
+          if (body.prerequisiteServiceIds !== undefined) defFields.prerequisiteServiceIds = body.prerequisiteServiceIds
+          if (body.installCommand !== undefined) defFields.installCommand = body.installCommand
+          if (body.buildCommand !== undefined) defFields.buildCommand = body.buildCommand
+          if (body.runCommand !== undefined) defFields.runCommand = body.runCommand
+
+          const configFields: Partial<ServiceConfig> = {}
+          if (body.autoFetchEnabled !== undefined) configFields.autoFetchEnabled = body.autoFetchEnabled
+          if (body.autoFetchIntervalMinutes !== undefined)
+            configFields.autoFetchIntervalMinutes = body.autoFetchIntervalMinutes
+          if (body.autoRestartOnFetch !== undefined) configFields.autoRestartOnFetch = body.autoRestartOnFetch
+
+          if (Object.keys(defFields).length > 0) {
+            await repo.getDataSetFor(ServiceDefinition, 'id').update(i, id, defFields)
+          }
+          if (Object.keys(configFields).length > 0) {
+            await repo.getDataSetFor(ServiceConfig, 'serviceId').update(i, id, configFields)
+          }
+
+          return JsonResult({} as never)
+        },
       },
       DELETE: {
-        '/services/:id': createDeleteEndpoint({ model: Service, primaryKey: 'id' }),
+        '/services/:id': async ({ injector: i, getUrlParams }) => {
+          const { id } = getUrlParams()
+          const repo = getRepository(i)
+          await repo
+            .getDataSetFor(ServiceStatus, 'serviceId')
+            .remove(i, id)
+            .catch(() => {})
+          await repo
+            .getDataSetFor(ServiceConfig, 'serviceId')
+            .remove(i, id)
+            .catch(() => {})
+          await repo.getDataSetFor(ServiceDefinition, 'id').remove(i, id)
+          return JsonResult({} as never)
+        },
         '/services/:id/logs': ClearServiceLogsAction,
       },
     },

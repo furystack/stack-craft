@@ -1,25 +1,18 @@
 import type { FindOptions } from '@furystack/core'
 import { createComponent, Shade } from '@furystack/shades'
-import {
-  Button,
-  CollectionService,
-  DataGrid,
-  Icon,
-  icons,
-  SelectionCell,
-} from '@furystack/shades-common-components'
+import { Button, CollectionService, DataGrid, Icon, icons, SelectionCell } from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
-import type { Service } from 'common'
+import type { ServiceView } from 'common'
 
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
 import { ServiceStatusIndicator } from './service-status-indicator.js'
 
 type ServiceTableProps = {
-  services: Service[]
+  services: ServiceView[]
   onViewLogs: (serviceId: string) => void
   onDetails: (serviceId: string) => void
   onEdit: (serviceId: string) => void
-  onSelectionChange?: (selected: Service[]) => void
+  onSelectionChange?: (selected: ServiceView[]) => void
 }
 
 type ServiceColumn = 'selection' | 'displayName' | 'runStatus' | 'actions'
@@ -31,12 +24,12 @@ export const ServiceTable = Shade<ServiceTableProps>({
 
     const collectionService = useDisposable(
       'collectionService',
-      () => new CollectionService<Service>({ searchField: 'displayName' }),
+      () => new CollectionService<ServiceView>({ searchField: 'displayName' }),
     )
 
     const findOptions = useDisposable(
       'findOptions',
-      () => new ObservableValue<FindOptions<Service, Array<keyof Service>>>({}),
+      () => new ObservableValue<FindOptions<ServiceView, Array<keyof ServiceView>>>({}),
     )
 
     collectionService.data.setValue({ entries: props.services, count: props.services.length })
@@ -45,7 +38,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
     props.onSelectionChange?.(selectedServices)
 
     return (
-      <DataGrid<Service, ServiceColumn>
+      <DataGrid<ServiceView, ServiceColumn>
         columns={['selection', 'displayName', 'runStatus', 'actions']}
         findOptions={findOptions}
         styles={undefined}

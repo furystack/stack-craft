@@ -2,7 +2,7 @@ import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/co
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { GitHubRepository, Service, Stack } from 'common'
+import { GitHubRepository, ServiceDefinition, ServiceStateHistory, ServiceStatus, StackConfig } from 'common'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ServiceLifecycleAction } from './service-lifecycle-action.js'
@@ -36,13 +36,17 @@ describe('ServiceLifecycleAction', () => {
     injector = new Injector()
     useLogging(injector, VerboseConsoleLogger)
 
-    addStore(injector, new InMemoryStore({ model: Service, primaryKey: 'id' }))
-    addStore(injector, new InMemoryStore({ model: Stack, primaryKey: 'name' }))
+    addStore(injector, new InMemoryStore({ model: ServiceDefinition, primaryKey: 'id' }))
+    addStore(injector, new InMemoryStore({ model: StackConfig, primaryKey: 'stackName' }))
     addStore(injector, new InMemoryStore({ model: GitHubRepository, primaryKey: 'id' }))
+    addStore(injector, new InMemoryStore({ model: ServiceStatus, primaryKey: 'serviceId' }))
+    addStore(injector, new InMemoryStore({ model: ServiceStateHistory, primaryKey: 'id' }))
 
-    getRepository(injector).createDataSet(Service, 'id', {})
-    getRepository(injector).createDataSet(Stack, 'name', {})
+    getRepository(injector).createDataSet(ServiceDefinition, 'id', {})
+    getRepository(injector).createDataSet(StackConfig, 'stackName', {})
     getRepository(injector).createDataSet(GitHubRepository, 'id', {})
+    getRepository(injector).createDataSet(ServiceStatus, 'serviceId', {})
+    getRepository(injector).createDataSet(ServiceStateHistory, 'id', {})
 
     mockPm = {
       startService: vi.fn().mockResolvedValue(undefined),
@@ -73,31 +77,31 @@ describe('ServiceLifecycleAction', () => {
 
       expect(body.success).toBe(true)
       expect(body.serviceId).toBe('svc-1')
-      expect(mockPm.startService).toHaveBeenCalledWith('svc-1')
+      expect(mockPm.startService).toHaveBeenCalledWith('svc-1', expect.objectContaining({ triggeredBy: 'user' }))
     })
 
     it('should delegate "stop" to ProcessManager.stopService', async () => {
       const action = ServiceLifecycleAction('stop')
       await action(createMockActionContext({ injector, urlParams: { id: 'svc-2' } }))
-      expect(mockPm.stopService).toHaveBeenCalledWith('svc-2')
+      expect(mockPm.stopService).toHaveBeenCalledWith('svc-2', expect.objectContaining({ triggeredBy: 'user' }))
     })
 
     it('should delegate "restart" to ProcessManager.restartService', async () => {
       const action = ServiceLifecycleAction('restart')
       await action(createMockActionContext({ injector, urlParams: { id: 'svc-3' } }))
-      expect(mockPm.restartService).toHaveBeenCalledWith('svc-3')
+      expect(mockPm.restartService).toHaveBeenCalledWith('svc-3', expect.objectContaining({ triggeredBy: 'user' }))
     })
 
     it('should delegate "install" to ProcessManager.installService', async () => {
       const action = ServiceLifecycleAction('install')
       await action(createMockActionContext({ injector, urlParams: { id: 'svc-4' } }))
-      expect(mockPm.installService).toHaveBeenCalledWith('svc-4')
+      expect(mockPm.installService).toHaveBeenCalledWith('svc-4', expect.objectContaining({ triggeredBy: 'user' }))
     })
 
     it('should delegate "build" to ProcessManager.buildService', async () => {
       const action = ServiceLifecycleAction('build')
       await action(createMockActionContext({ injector, urlParams: { id: 'svc-5' } }))
-      expect(mockPm.buildService).toHaveBeenCalledWith('svc-5')
+      expect(mockPm.buildService).toHaveBeenCalledWith('svc-5', expect.objectContaining({ triggeredBy: 'user' }))
     })
 
     it('should wrap ProcessManager errors into RequestError', async () => {
@@ -120,26 +124,18 @@ describe('ServiceLifecycleAction', () => {
     it('should throw 400 when no repository is linked', async () => {
       const elevated = useSystemIdentityContext({ injector })
       const ts = new Date().toISOString()
-      await getRepository(elevated).getDataSetFor(Stack, 'name').add(elevated, {
-        name: 'test-stack',
-        displayName: 'Test',
-        description: '',
+      await getRepository(elevated).getDataSetFor(StackConfig, 'stackName').add(elevated, {
+        stackName: 'test-stack',
         mainDirectory: '/tmp/test',
         createdAt: ts,
         updatedAt: ts,
       })
-      await getRepository(elevated).getDataSetFor(Service, 'id').add(elevated, {
+      await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').add(elevated, {
         id: 'no-repo-svc',
         stackName: 'test-stack',
         displayName: 'No Repo',
         description: '',
         runCommand: 'echo hi',
-        installStatus: 'not-installed',
-        buildStatus: 'not-built',
-        runStatus: 'stopped',
-        autoFetchEnabled: false,
-        autoFetchIntervalMinutes: 60,
-        autoRestartOnFetch: false,
         dependencyIds: [],
         prerequisiteServiceIds: [],
         createdAt: ts,
@@ -156,10 +152,8 @@ describe('ServiceLifecycleAction', () => {
     it('should reject path traversal attempts', async () => {
       const elevated = useSystemIdentityContext({ injector })
       const ts = new Date().toISOString()
-      await getRepository(elevated).getDataSetFor(Stack, 'name').add(elevated, {
-        name: 'traversal-stack',
-        displayName: 'Traversal',
-        description: '',
+      await getRepository(elevated).getDataSetFor(StackConfig, 'stackName').add(elevated, {
+        stackName: 'traversal-stack',
         mainDirectory: '/tmp/safe',
         createdAt: ts,
         updatedAt: ts,
@@ -173,7 +167,7 @@ describe('ServiceLifecycleAction', () => {
         createdAt: ts,
         updatedAt: ts,
       })
-      await getRepository(elevated).getDataSetFor(Service, 'id').add(elevated, {
+      await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').add(elevated, {
         id: 'traversal-svc',
         stackName: 'traversal-stack',
         displayName: 'Traversal',
@@ -181,12 +175,6 @@ describe('ServiceLifecycleAction', () => {
         workingDirectory: '../../etc',
         repositoryId: 'repo-1',
         runCommand: 'echo hi',
-        installStatus: 'not-installed',
-        buildStatus: 'not-built',
-        runStatus: 'stopped',
-        autoFetchEnabled: false,
-        autoFetchIntervalMinutes: 60,
-        autoRestartOnFetch: false,
         dependencyIds: [],
         prerequisiteServiceIds: [],
         createdAt: ts,

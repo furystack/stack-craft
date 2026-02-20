@@ -2,14 +2,14 @@ import { Injectable, Injected, getInjectorReference } from '@furystack/inject'
 import { LoggerCollection } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { PasswordAuthenticator, PasswordCredential } from '@furystack/security'
-import type { ServiceStatus } from 'common'
+import type { InstallState } from 'common'
 import { User } from 'common'
 
 import { useSystemIdentityContext } from '@furystack/core'
 
 @Injectable()
 export class ServiceStatusProvider {
-  public async getStatus(): Promise<ServiceStatus> {
+  public async getStatus(): Promise<InstallState> {
     const elevated = useSystemIdentityContext({ injector: getInjectorReference(this) })
     try {
       const userCount = await getRepository(elevated).getDataSetFor(User, 'username').count(elevated)

@@ -1,8 +1,8 @@
 import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import type { InstallStatus, BuildStatus, RunStatus } from 'common'
-import { Service } from 'common'
+import type { InstallStatus, BuildStatus, RunStatus, ServiceStateEvent, TriggerSource } from 'common'
+import { ServiceDefinition, ServiceStateHistory, ServiceStatus } from 'common'
 import { type ChildProcess, spawn } from 'child_process'
 import { randomUUID } from 'crypto'
 
@@ -16,6 +16,11 @@ type ManagedProcess = {
   process: ChildProcess
   purpose: 'run' | 'install' | 'build'
   processUid: string
+}
+
+type TriggerContext = {
+  triggeredBy: string
+  triggerSource: TriggerSource
 }
 
 @Injectable({ lifetime: 'singleton' })
@@ -49,40 +54,68 @@ export class ProcessManager {
   private async updateServiceStatus(
     serviceId: string,
     update: { installStatus?: InstallStatus; buildStatus?: BuildStatus; runStatus?: RunStatus },
+    event: ServiceStateEvent,
+    trigger: TriggerContext,
+    metadata?: Record<string, unknown>,
   ) {
     try {
       const elevated = this.getElevatedInjector()
-      const serviceDs = getRepository(elevated).getDataSetFor(Service, 'id')
+      const statusDs = getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId')
+      const historyDs = getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id')
 
-      const services = await serviceDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
-      const svc = services[0]
-      if (!svc) return
+      const statuses = await statusDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+      const current = statuses[0]
+      if (!current) return
 
       const now = new Date().toISOString()
-      const patchData: Partial<Service> = { ...update, updatedAt: now }
+      const patchData: Partial<ServiceStatus> = { ...update, updatedAt: now }
 
       if (update.installStatus === 'installed') patchData.lastInstalledAt = now
       if (update.buildStatus === 'built') patchData.lastBuiltAt = now
       if (update.runStatus === 'running') patchData.lastStartedAt = now
 
-      await serviceDs.update(elevated, serviceId, patchData)
+      const previousState = JSON.stringify({
+        installStatus: current.installStatus,
+        buildStatus: current.buildStatus,
+        runStatus: current.runStatus,
+      })
+
+      await statusDs.update(elevated, serviceId, patchData)
+
+      const newState = JSON.stringify({
+        installStatus: update.installStatus ?? current.installStatus,
+        buildStatus: update.buildStatus ?? current.buildStatus,
+        runStatus: update.runStatus ?? current.runStatus,
+      })
+
+      await historyDs.add(elevated, {
+        id: 0,
+        serviceId,
+        event,
+        previousState,
+        newState,
+        triggeredBy: trigger.triggeredBy,
+        triggerSource: trigger.triggerSource,
+        metadata: metadata ? JSON.stringify(metadata) : undefined,
+        createdAt: now,
+      })
 
       void this.ws.announce({
         type: 'service-status-changed',
         serviceId,
-        installStatus: update.installStatus ?? svc.installStatus,
-        buildStatus: update.buildStatus ?? svc.buildStatus,
-        runStatus: update.runStatus ?? svc.runStatus,
+        installStatus: update.installStatus ?? current.installStatus,
+        buildStatus: update.buildStatus ?? current.buildStatus,
+        runStatus: update.runStatus ?? current.runStatus,
       })
     } catch {
       // May fire after disposal during shutdown — safe to ignore
     }
   }
 
-  public async startService(serviceId: string): Promise<void> {
+  public async startService(serviceId: string, trigger: TriggerContext): Promise<void> {
     const elevated = this.getElevatedInjector()
     const services = await getRepository(elevated)
-      .getDataSetFor(Service, 'id')
+      .getDataSetFor(ServiceDefinition, 'id')
       .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc) throw new Error(`Service not found: ${serviceId}`)
@@ -94,7 +127,7 @@ export class ProcessManager {
     this.pendingOperations.add(serviceId)
     try {
       await this.logger.information({ message: `Starting service: ${svc.displayName}` })
-      await this.updateServiceStatus(serviceId, { runStatus: 'starting' })
+      await this.updateServiceStatus(serviceId, { runStatus: 'starting' }, 'run-started', trigger)
 
       const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
       const child = this.spawnCommand(svc.runCommand, cwd)
@@ -120,33 +153,34 @@ export class ProcessManager {
 
       child.on('error', (err) => {
         void this.logger.error({ message: `Service error: ${svc.displayName}`, data: { error: err } })
-        void this.updateServiceStatus(serviceId, { runStatus: 'error' })
+        void this.updateServiceStatus(serviceId, { runStatus: 'error' }, 'run-crashed', trigger, { error: err.message })
         this.processes.delete(serviceId)
       })
 
       child.on('exit', (code) => {
         void this.logger.information({ message: `Service exited: ${svc.displayName} (code ${code})` })
         const newStatus: RunStatus = code === 0 ? 'stopped' : 'error'
-        void this.updateServiceStatus(serviceId, { runStatus: newStatus })
+        const event: ServiceStateEvent = code === 0 ? 'run-stopped' : 'run-crashed'
+        void this.updateServiceStatus(serviceId, { runStatus: newStatus }, event, trigger, { exitCode: code })
         this.processes.delete(serviceId)
       })
 
       child.on('spawn', () => {
-        void this.updateServiceStatus(serviceId, { runStatus: 'running' })
+        void this.updateServiceStatus(serviceId, { runStatus: 'running' }, 'run-started', trigger)
       })
     } finally {
       this.pendingOperations.delete(serviceId)
     }
   }
 
-  public async stopService(serviceId: string): Promise<void> {
+  public async stopService(serviceId: string, trigger: TriggerContext): Promise<void> {
     const managed = this.processes.get(serviceId)
     if (!managed || managed.purpose !== 'run') {
       throw new Error(`No running process for service: ${serviceId}`)
     }
 
     await this.logger.information({ message: `Stopping service: ${serviceId}` })
-    await this.updateServiceStatus(serviceId, { runStatus: 'stopping' })
+    await this.updateServiceStatus(serviceId, { runStatus: 'stopping' }, 'run-stopped', trigger)
 
     managed.process.kill('SIGTERM')
 
@@ -163,35 +197,35 @@ export class ProcessManager {
     })
   }
 
-  public async restartService(serviceId: string): Promise<void> {
+  public async restartService(serviceId: string, trigger: TriggerContext): Promise<void> {
     if (this.processes.has(serviceId)) {
-      await this.stopService(serviceId)
+      await this.stopService(serviceId, trigger)
     }
-    await this.startService(serviceId)
+    await this.startService(serviceId, trigger)
   }
 
-  public async installService(serviceId: string): Promise<void> {
+  public async installService(serviceId: string, trigger: TriggerContext): Promise<void> {
     const elevated = this.getElevatedInjector()
     const services = await getRepository(elevated)
-      .getDataSetFor(Service, 'id')
+      .getDataSetFor(ServiceDefinition, 'id')
       .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc?.installCommand) throw new Error(`No install command for service: ${serviceId}`)
 
     const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
-    await this.runOneShot(serviceId, svc.installCommand, cwd, 'install')
+    await this.runOneShot(serviceId, svc.installCommand, cwd, 'install', trigger)
   }
 
-  public async buildService(serviceId: string): Promise<void> {
+  public async buildService(serviceId: string, trigger: TriggerContext): Promise<void> {
     const elevated = this.getElevatedInjector()
     const services = await getRepository(elevated)
-      .getDataSetFor(Service, 'id')
+      .getDataSetFor(ServiceDefinition, 'id')
       .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc?.buildCommand) throw new Error(`No build command for service: ${serviceId}`)
 
     const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
-    await this.runOneShot(serviceId, svc.buildCommand, cwd, 'build')
+    await this.runOneShot(serviceId, svc.buildCommand, cwd, 'build', trigger)
   }
 
   private async runOneShot(
@@ -199,6 +233,7 @@ export class ProcessManager {
     command: string,
     cwd: string,
     purpose: 'install' | 'build',
+    trigger: TriggerContext,
   ): Promise<void> {
     if (this.processes.has(serviceId) || this.pendingOperations.has(serviceId)) {
       const existing = this.processes.get(serviceId)
@@ -209,6 +244,10 @@ export class ProcessManager {
 
     this.pendingOperations.add(serviceId)
 
+    const progressEvent: ServiceStateEvent = purpose === 'install' ? 'install-started' : 'build-started'
+    const doneEvent: ServiceStateEvent = purpose === 'install' ? 'install-completed' : 'build-completed'
+    const failedEvent: ServiceStateEvent = purpose === 'install' ? 'install-failed' : 'build-failed'
+
     const progressStatus =
       purpose === 'install' ? ({ installStatus: 'installing' } as const) : ({ buildStatus: 'building' } as const)
 
@@ -218,7 +257,7 @@ export class ProcessManager {
     const failedStatus =
       purpose === 'install' ? ({ installStatus: 'failed' } as const) : ({ buildStatus: 'failed' } as const)
 
-    await this.updateServiceStatus(serviceId, progressStatus)
+    await this.updateServiceStatus(serviceId, progressStatus, progressEvent, trigger)
 
     const child = this.spawnCommand(command, cwd)
     const processUid = randomUUID()
@@ -250,7 +289,7 @@ export class ProcessManager {
 
     return new Promise((resolve, reject) => {
       child.on('error', (err) => {
-        void this.updateServiceStatus(serviceId, failedStatus)
+        void this.updateServiceStatus(serviceId, failedStatus, failedEvent, trigger, { error: err.message })
         this.processes.delete(serviceId)
         reject(err)
       })
@@ -258,10 +297,10 @@ export class ProcessManager {
       child.on('exit', (code) => {
         this.processes.delete(serviceId)
         if (code === 0) {
-          void this.updateServiceStatus(serviceId, doneStatus)
+          void this.updateServiceStatus(serviceId, doneStatus, doneEvent, trigger)
           resolve()
         } else {
-          void this.updateServiceStatus(serviceId, failedStatus)
+          void this.updateServiceStatus(serviceId, failedStatus, failedEvent, trigger, { exitCode: code })
           reject(new Error(`${purpose} command exited with code ${code}`))
         }
       })

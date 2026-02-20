@@ -3,7 +3,8 @@ import { serializeToQueryString } from '@furystack/rest'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 
 import { Button, Icon, icons, Loader, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
-import { GitHubRepository, Service, Stack } from 'common'
+import { GitHubRepository, ServiceDefinition, StackDefinition } from 'common'
+import type { ServiceView } from 'common'
 import { navigate } from '../../utils/navigate.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
@@ -19,7 +20,7 @@ export const Dashboard = Shade<DashboardProps>({
   render: (options) => {
     const { props, injector } = options
 
-    const stacksState = useCollectionSync(options, Stack, {})
+    const stacksState = useCollectionSync(options, StackDefinition, {})
     const stacks = stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data : []
 
     const isLoading = stacksState.status === 'connecting'
@@ -64,10 +65,13 @@ export const Dashboard = Shade<DashboardProps>({
 
     const currentStack = stacks.find((s) => s.name === props.stackName)
 
-    const servicesState = useCollectionSync(options, Service, {
+    const servicesState = useCollectionSync(options, ServiceDefinition, {
       filter: { stackName: { $eq: props.stackName } },
     })
-    const services = servicesState.status === 'synced' || servicesState.status === 'cached' ? servicesState.data : []
+    const services: ServiceView[] =
+      servicesState.status === 'synced' || servicesState.status === 'cached'
+        ? (servicesState.data as ServiceView[])
+        : []
 
     const reposState = useCollectionSync(options, GitHubRepository, {
       filter: { stackName: { $eq: props.stackName } },
@@ -75,7 +79,7 @@ export const Dashboard = Shade<DashboardProps>({
     const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
 
     const api = injector.getInstance(ServicesApiClient)
-    const [selectedServices, setSelectedServices] = options.useState<Service[]>('selectedServices', [])
+    const [selectedServices, setSelectedServices] = options.useState<ServiceView[]>('selectedServices', [])
     const [isBulkLoading, setIsBulkLoading] = options.useState('isBulkLoading', false)
 
     const hasRunning = selectedServices.some((s) => s.runStatus === 'running')
@@ -180,7 +184,7 @@ export const Dashboard = Shade<DashboardProps>({
               onEdit={(serviceId) =>
                 navigate(injector, `/services/${serviceId}?${serializeToQueryString({ edit: true })}`)
               }
-              onSelectionChange={(selected: Service[]) => setSelectedServices(selected)}
+              onSelectionChange={(selected: ServiceView[]) => setSelectedServices(selected)}
             />
           )}
         </Paper>

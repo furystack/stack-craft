@@ -2,15 +2,14 @@ import { createComponent, Shade } from '@furystack/shades'
 
 import { navigate } from '../../utils/navigate.js'
 import { NotyService, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
-import type { Stack } from 'common'
+import type { StackView } from 'common'
 import { StackForm } from '../../components/entity-forms/stack-form.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
 export const CreateStack = Shade({
   shadowDomName: 'shade-create-stack',
   render: ({ injector }) => {
-    const handleSubmit = async (data: Partial<Stack>) => {
-      const now = new Date().toISOString()
+    const handleSubmit = async (data: Partial<StackView>) => {
       try {
         await injector.getInstance(StacksApiClient).call({
           method: 'POST',
@@ -20,8 +19,6 @@ export const CreateStack = Shade({
             displayName: data.displayName!,
             description: data.description ?? '',
             mainDirectory: data.mainDirectory!,
-            createdAt: now,
-            updatedAt: now,
           },
         })
         injector.getInstance(NotyService).emit('onNotyAdded', {

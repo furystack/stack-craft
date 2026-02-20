@@ -1,12 +1,12 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { Button, Input, Select } from '@furystack/shades-common-components'
-import type { GitHubRepository, Service } from 'common'
+import type { GitHubRepository, ServiceView } from 'common'
 
 type ServiceFormProps = {
-  initial?: Partial<Service>
+  initial?: Partial<ServiceView>
   stackName: string
   repositories?: GitHubRepository[]
-  onSubmit: (data: Partial<Service>) => void | Promise<void>
+  onSubmit: (data: Partial<ServiceView>) => void | Promise<void>
   onCancel: () => void
   mode: 'create' | 'edit'
 }
@@ -37,6 +37,8 @@ export const ServiceForm = Shade<ServiceFormProps>({
         }}
       >
         <h2 style={{ margin: '0' }}>{props.mode === 'create' ? 'Create Service' : 'Edit Service'}</h2>
+
+        <h4 style={{ margin: '0', opacity: '0.7' }}>Definition</h4>
         <Input
           name="displayName"
           labelTitle="Display Name"
@@ -95,6 +97,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
           value={props.initial?.buildCommand ?? ''}
           getHelperText={() => 'e.g., npm run build, yarn build, dotnet build'}
         />
+        <h4 style={{ margin: '0', opacity: '0.7' }}>Configuration</h4>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <input type="checkbox" name="autoFetchEnabled" checked={props.initial?.autoFetchEnabled ?? false} />

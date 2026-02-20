@@ -15,7 +15,10 @@ describe('LogStorageService', () => {
     injector = new Injector()
     useLogging(injector, VerboseConsoleLogger)
     addStore(injector, new InMemoryStore({ model: ServiceLogEntry, primaryKey: 'id' }))
-    getRepository(injector).createDataSet(ServiceLogEntry, 'id', {})
+    let autoId = 0
+    getRepository(injector).createDataSet(ServiceLogEntry, 'id', {
+      modifyOnAdd: async ({ entity }) => ({ ...entity, id: ++autoId }),
+    })
     logStorage = injector.getInstance(LogStorageService)
   })
 

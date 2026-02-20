@@ -2,6 +2,7 @@ import { useStaticFiles } from '@furystack/rest-service'
 import { injector } from './config.js'
 import { attachShutdownHandler } from './shutdown-handler.js'
 import { getPort } from './get-port.js'
+import { setupDataStore } from './app-models/data-store/setup-data-store.js'
 import { setupInstallRestApi } from './app-models/install/setup-install-rest-api.js'
 import { setupIdentityRestApi } from './app-models/identity/setup-identity-rest-api.js'
 import { setupStacksRestApi } from './app-models/stacks/setup-stacks-rest-api.js'
@@ -17,6 +18,7 @@ import { setupMcp } from './mcp/setup-mcp.js'
 const port = getPort()
 
 const setupRestApis = async () => {
+  await setupDataStore(injector)
   await setupLogStore(injector)
 
   await setupInstallRestApi(injector)

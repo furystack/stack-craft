@@ -1,56 +1,58 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
-    "ServiceWritableFields": {
+    "ServiceDefinitionWritableFields": {
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "UUID primary key"
         },
         "stackName": {
-          "type": "string"
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
         },
         "displayName": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Optional description of what this service does"
         },
         "workingDirectory": {
-          "type": "string"
+          "type": "string",
+          "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
         },
         "repositoryId": {
-          "type": "string"
-        },
-        "autoFetchEnabled": {
-          "type": "boolean"
-        },
-        "autoFetchIntervalMinutes": {
-          "type": "number"
-        },
-        "autoRestartOnFetch": {
-          "type": "boolean"
+          "type": "string",
+          "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
         "dependencyIds": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "IDs of  {@link  Dependency  }  entities required by this service"
         },
         "prerequisiteServiceIds": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
         },
         "installCommand": {
-          "type": "string"
+          "type": "string",
+          "description": "Shell command to install dependencies (e.g. \"npm install\")"
         },
         "buildCommand": {
-          "type": "string"
+          "type": "string",
+          "description": "Shell command to build the service (e.g. \"npm run build\")"
         },
         "runCommand": {
-          "type": "string"
+          "type": "string",
+          "description": "Shell command to run the service (e.g. \"npm start\")"
         }
       },
       "required": [
@@ -58,84 +60,135 @@
         "stackName",
         "displayName",
         "description",
-        "autoFetchEnabled",
-        "autoFetchIntervalMinutes",
-        "autoRestartOnFetch",
         "dependencyIds",
         "prerequisiteServiceIds",
         "runCommand"
       ],
       "additionalProperties": false
     },
-    "PostServiceEndpoint": {
+    "ServiceConfigWritableFields": {
       "type": "object",
       "properties": {
-        "result": {
-          "$ref": "#/definitions/Service"
-        },
-        "body": {
-          "$ref": "#/definitions/WithOptionalId%3CServiceWritableFields%2C%22id%22%3E"
-        }
-      },
-      "required": [
-        "result",
-        "body"
-      ],
-      "additionalProperties": false
-    },
-    "Service": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "stackName": {
-          "type": "string"
-        },
-        "displayName": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "workingDirectory": {
-          "type": "string"
-        },
-        "repositoryId": {
-          "type": "string"
+        "serviceId": {
+          "type": "string",
+          "description": "FK to  {@link  ServiceDefinition.id  }"
         },
         "autoFetchEnabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether automatic git fetch is enabled"
         },
         "autoFetchIntervalMinutes": {
-          "type": "number"
-        },
-        "lastFetchedAt": {
-          "type": "string"
+          "type": "number",
+          "description": "Interval in minutes between automatic git fetches"
         },
         "autoRestartOnFetch": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether to automatically restart the service when new commits are fetched"
+        }
+      },
+      "required": ["serviceId", "autoFetchEnabled", "autoFetchIntervalMinutes", "autoRestartOnFetch"],
+      "additionalProperties": false
+    },
+    "ServiceWritableFields": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "autoFetchEnabled": {
+          "type": "boolean",
+          "description": "Whether automatic git fetch is enabled"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number",
+          "description": "Interval in minutes between automatic git fetches"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean",
+          "description": "Whether to automatically restart the service when new commits are fetched"
+        },
+        "id": {
+          "type": "string",
+          "description": "UUID primary key"
+        },
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this service does"
+        },
+        "workingDirectory": {
+          "type": "string",
+          "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+        },
+        "repositoryId": {
+          "type": "string",
+          "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
         "dependencyIds": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "IDs of  {@link  Dependency  }  entities required by this service"
         },
         "prerequisiteServiceIds": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
         },
         "installCommand": {
-          "type": "string"
+          "type": "string",
+          "description": "Shell command to install dependencies (e.g. \"npm install\")"
         },
         "buildCommand": {
-          "type": "string"
+          "type": "string",
+          "description": "Shell command to build the service (e.g. \"npm run build\")"
         },
         "runCommand": {
-          "type": "string"
+          "type": "string",
+          "description": "Shell command to run the service (e.g. \"npm start\")"
+        }
+      },
+      "required": [
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch",
+        "dependencyIds",
+        "description",
+        "displayName",
+        "id",
+        "prerequisiteServiceIds",
+        "runCommand",
+        "stackName"
+      ]
+    },
+    "PostServiceEndpoint": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/ServiceView"
+        },
+        "body": {
+          "$ref": "#/definitions/WithOptionalId%3CServiceWritableFields%2C%22id%22%3E"
+        }
+      },
+      "required": ["result", "body"],
+      "additionalProperties": false
+    },
+    "ServiceView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "description": "FK to  {@link  ServiceDefinition.id  }"
         },
         "installStatus": {
           "$ref": "#/definitions/InstallStatus"
@@ -155,111 +208,175 @@
         "lastStartedAt": {
           "type": "string"
         },
-        "createdAt": {
+        "lastFetchedAt": {
           "type": "string"
         },
         "updatedAt": {
           "type": "string"
+        },
+        "autoFetchEnabled": {
+          "type": "boolean",
+          "description": "Whether automatic git fetch is enabled"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number",
+          "description": "Interval in minutes between automatic git fetches"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean",
+          "description": "Whether to automatically restart the service when new commits are fetched"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "description": "UUID primary key"
+        },
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this service does"
+        },
+        "workingDirectory": {
+          "type": "string",
+          "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+        },
+        "repositoryId": {
+          "type": "string",
+          "description": "Optional FK to  {@link  GitHubRepository.id  }"
+        },
+        "dependencyIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of  {@link  Dependency  }  entities required by this service"
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+        },
+        "installCommand": {
+          "type": "string",
+          "description": "Shell command to install dependencies (e.g. \"npm install\")"
+        },
+        "buildCommand": {
+          "type": "string",
+          "description": "Shell command to build the service (e.g. \"npm run build\")"
+        },
+        "runCommand": {
+          "type": "string",
+          "description": "Shell command to run the service (e.g. \"npm start\")"
         }
       },
       "required": [
-        "id",
-        "stackName",
-        "displayName",
-        "description",
         "autoFetchEnabled",
         "autoFetchIntervalMinutes",
         "autoRestartOnFetch",
+        "buildStatus",
+        "createdAt",
         "dependencyIds",
+        "description",
+        "displayName",
+        "id",
+        "installStatus",
         "prerequisiteServiceIds",
         "runCommand",
-        "installStatus",
-        "buildStatus",
         "runStatus",
-        "createdAt",
+        "serviceId",
+        "stackName",
         "updatedAt"
       ],
-      "additionalProperties": false
+      "description": "Full service view combining definition, config, and status for API responses"
     },
     "InstallStatus": {
       "type": "string",
-      "enum": [
-        "not-installed",
-        "installing",
-        "installed",
-        "failed"
-      ]
+      "enum": ["not-installed", "installing", "installed", "failed"]
     },
     "BuildStatus": {
       "type": "string",
-      "enum": [
-        "not-built",
-        "building",
-        "built",
-        "failed"
-      ]
+      "enum": ["not-built", "building", "built", "failed"]
     },
     "RunStatus": {
       "type": "string",
-      "enum": [
-        "stopped",
-        "starting",
-        "running",
-        "stopping",
-        "error"
-      ]
+      "enum": ["stopped", "starting", "running", "stopping", "error"]
     },
     "WithOptionalId<ServiceWritableFields,\"id\">": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "UUID primary key"
         },
         "stackName": {
-          "type": "string"
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
         },
         "displayName": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Optional description of what this service does"
         },
         "workingDirectory": {
-          "type": "string"
+          "type": "string",
+          "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
         },
         "repositoryId": {
-          "type": "string"
-        },
-        "autoFetchEnabled": {
-          "type": "boolean"
-        },
-        "autoFetchIntervalMinutes": {
-          "type": "number"
-        },
-        "autoRestartOnFetch": {
-          "type": "boolean"
+          "type": "string",
+          "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
         "dependencyIds": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "IDs of  {@link  Dependency  }  entities required by this service"
         },
         "prerequisiteServiceIds": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
         },
         "installCommand": {
-          "type": "string"
+          "type": "string",
+          "description": "Shell command to install dependencies (e.g. \"npm install\")"
         },
         "buildCommand": {
-          "type": "string"
+          "type": "string",
+          "description": "Shell command to build the service (e.g. \"npm run build\")"
         },
         "runCommand": {
-          "type": "string"
+          "type": "string",
+          "description": "Shell command to run the service (e.g. \"npm start\")"
+        },
+        "autoFetchEnabled": {
+          "type": "boolean",
+          "description": "Whether automatic git fetch is enabled"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number",
+          "description": "Interval in minutes between automatic git fetches"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean",
+          "description": "Whether to automatically restart the service when new commits are fetched"
         }
       },
       "required": [
@@ -284,52 +401,66 @@
           "type": "object",
           "properties": {
             "id": {
-              "type": "string"
+              "type": "string",
+              "description": "UUID primary key"
             },
             "stackName": {
-              "type": "string"
+              "type": "string",
+              "description": "FK to  {@link  StackDefinition.name  }"
             },
             "displayName": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable name shown in the UI"
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Optional description of what this service does"
             },
             "workingDirectory": {
-              "type": "string"
+              "type": "string",
+              "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
             },
             "repositoryId": {
-              "type": "string"
-            },
-            "autoFetchEnabled": {
-              "type": "boolean"
-            },
-            "autoFetchIntervalMinutes": {
-              "type": "number"
-            },
-            "autoRestartOnFetch": {
-              "type": "boolean"
+              "type": "string",
+              "description": "Optional FK to  {@link  GitHubRepository.id  }"
             },
             "dependencyIds": {
               "type": "array",
               "items": {
                 "type": "string"
-              }
+              },
+              "description": "IDs of  {@link  Dependency  }  entities required by this service"
             },
             "prerequisiteServiceIds": {
               "type": "array",
               "items": {
                 "type": "string"
-              }
+              },
+              "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
             },
             "installCommand": {
-              "type": "string"
+              "type": "string",
+              "description": "Shell command to install dependencies (e.g. \"npm install\")"
             },
             "buildCommand": {
-              "type": "string"
+              "type": "string",
+              "description": "Shell command to build the service (e.g. \"npm run build\")"
             },
             "runCommand": {
-              "type": "string"
+              "type": "string",
+              "description": "Shell command to run the service (e.g. \"npm start\")"
+            },
+            "autoFetchEnabled": {
+              "type": "boolean",
+              "description": "Whether automatic git fetch is enabled"
+            },
+            "autoFetchIntervalMinutes": {
+              "type": "number",
+              "description": "Interval in minutes between automatic git fetches"
+            },
+            "autoRestartOnFetch": {
+              "type": "boolean",
+              "description": "Whether to automatically restart the service when new commits are fetched"
             }
           },
           "additionalProperties": false
@@ -338,23 +469,18 @@
           "type": "object",
           "properties": {
             "id": {
-              "type": "string"
+              "type": "string",
+              "description": "UUID primary key"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": [
-        "body",
-        "url",
-        "result"
-      ],
+      "required": ["body", "url", "result"],
       "additionalProperties": false,
       "description": "Endpoint model for updating entities"
     },
@@ -368,9 +494,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
@@ -383,17 +507,11 @@
               "type": "string"
             }
           },
-          "required": [
-            "success",
-            "serviceId"
-          ],
+          "required": ["success", "serviceId"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "url",
-        "result"
-      ],
+      "required": ["url", "result"],
       "additionalProperties": false
     },
     "ServiceLogsEndpoint": {
@@ -406,9 +524,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "query": {
@@ -436,17 +552,11 @@
               }
             }
           },
-          "required": [
-            "entries"
-          ],
+          "required": ["entries"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "url",
-        "query",
-        "result"
-      ],
+      "required": ["url", "query", "result"],
       "additionalProperties": false
     },
     "ServiceLogEntry": {
@@ -463,10 +573,7 @@
         },
         "stream": {
           "type": "string",
-          "enum": [
-            "stdout",
-            "stderr"
-          ]
+          "enum": ["stdout", "stderr"]
         },
         "line": {
           "type": "string"
@@ -475,14 +582,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "serviceId",
-        "processUid",
-        "stream",
-        "line",
-        "createdAt"
-      ],
+      "required": ["id", "serviceId", "processUid", "stream", "line", "createdAt"],
       "additionalProperties": false
     },
     "ClearServiceLogsEndpoint": {
@@ -495,9 +595,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
@@ -507,17 +605,116 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "success"
-          ],
+          "required": ["success"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "url",
-        "result"
-      ],
+      "required": ["url", "result"],
       "additionalProperties": false
+    },
+    "ServiceHistoryEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "query": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "entries": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ServiceStateHistory"
+              }
+            }
+          },
+          "required": ["entries"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["url", "query", "result"],
+      "additionalProperties": false
+    },
+    "ServiceStateHistory": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number",
+          "description": "Auto-increment primary key"
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "FK to  {@link  ServiceDefinition.id  }"
+        },
+        "event": {
+          "$ref": "#/definitions/ServiceStateEvent",
+          "description": "The lifecycle event that occurred"
+        },
+        "previousState": {
+          "type": "string",
+          "description": "JSON snapshot of relevant status fields before the change"
+        },
+        "newState": {
+          "type": "string",
+          "description": "JSON snapshot of relevant status fields after the change"
+        },
+        "triggeredBy": {
+          "type": "string",
+          "description": "Username of the user who triggered the action, or 'system'"
+        },
+        "triggerSource": {
+          "$ref": "#/definitions/TriggerSource",
+          "description": "How the action was triggered"
+        },
+        "metadata": {
+          "type": "string",
+          "description": "Optional JSON with extra context (exit code, error message, etc.)"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "serviceId", "event", "triggeredBy", "triggerSource", "createdAt"],
+      "additionalProperties": false,
+      "description": "Audit log entry for service state transitions. Records every lifecycle event (start, stop, crash, install, build, pull) with full context: who triggered it, how, and any relevant metadata. Entries are never deleted and not included in exports."
+    },
+    "ServiceStateEvent": {
+      "type": "string",
+      "enum": [
+        "run-started",
+        "run-stopped",
+        "run-crashed",
+        "run-restarted",
+        "install-started",
+        "install-completed",
+        "install-failed",
+        "build-started",
+        "build-completed",
+        "build-failed",
+        "pull-completed"
+      ],
+      "description": "Event types for service state transitions. Each value represents a discrete lifecycle event that can occur."
+    },
+    "TriggerSource": {
+      "type": "string",
+      "enum": ["api", "mcp", "auto-fetch", "auto-restart", "system"],
+      "description": "How a state change was triggered. Used to distinguish user actions from automated system behavior."
     },
     "ServicesApi": {
       "type": "object",
@@ -526,20 +723,19 @@
           "type": "object",
           "properties": {
             "/services": {
-              "$ref": "#/definitions/GetCollectionEndpoint%3CService%3E"
+              "$ref": "#/definitions/GetCollectionEndpoint%3CServiceView%3E"
             },
             "/services/:id": {
-              "$ref": "#/definitions/GetEntityEndpoint%3CService%2C%22id%22%3E"
+              "$ref": "#/definitions/GetEntityEndpoint%3CServiceView%2C%22id%22%3E"
             },
             "/services/:id/logs": {
               "$ref": "#/definitions/ServiceLogsEndpoint"
+            },
+            "/services/:id/history": {
+              "$ref": "#/definitions/ServiceHistoryEndpoint"
             }
           },
-          "required": [
-            "/services",
-            "/services/:id",
-            "/services/:id/logs"
-          ],
+          "required": ["/services", "/services/:id", "/services/:id/logs", "/services/:id/history"],
           "additionalProperties": false
         },
         "POST": {
@@ -585,9 +781,7 @@
               "$ref": "#/definitions/PatchServiceEndpoint"
             }
           },
-          "required": [
-            "/services/:id"
-          ],
+          "required": ["/services/:id"],
           "additionalProperties": false
         },
         "PUT": {
@@ -601,9 +795,7 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -611,16 +803,13 @@
           "type": "object",
           "properties": {
             "/services/:id": {
-              "$ref": "#/definitions/DeleteEndpoint%3CService%2C%22id%22%3E"
+              "$ref": "#/definitions/DeleteEndpoint%3CServiceDefinition%2C%22id%22%3E"
             },
             "/services/:id/logs": {
               "$ref": "#/definitions/ClearServiceLogsEndpoint"
             }
           },
-          "required": [
-            "/services/:id",
-            "/services/:id/logs"
-          ],
+          "required": ["/services/:id", "/services/:id/logs"],
           "additionalProperties": false
         },
         "HEAD": {
@@ -634,9 +823,7 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -651,9 +838,7 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -668,9 +853,7 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -685,45 +868,35 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         }
       },
-      "required": [
-        "GET",
-        "POST",
-        "PATCH",
-        "DELETE"
-      ],
+      "required": ["GET", "POST", "PATCH", "DELETE"],
       "additionalProperties": false
     },
-    "GetCollectionEndpoint<Service>": {
+    "GetCollectionEndpoint<ServiceView>": {
       "type": "object",
       "properties": {
         "query": {
           "type": "object",
           "properties": {
             "findOptions": {
-              "$ref": "#/definitions/FindOptions%3CService%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22lastFetchedAt%22%7C%22autoRestartOnFetch%22%7C%22dependencyIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22createdAt%22%7C%22updatedAt%22)%5B%5D%3E"
+              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22dependencyIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22)%5B%5D%3E"
             }
           },
           "additionalProperties": false
         },
         "result": {
-          "$ref": "#/definitions/GetCollectionResult%3CService%3E"
+          "$ref": "#/definitions/GetCollectionResult%3CServiceView%3E"
         }
       },
-      "required": [
-        "query",
-        "result"
-      ],
+      "required": ["query", "result"],
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
-    "FindOptions<Service,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"lastFetchedAt\"|\"autoRestartOnFetch\"|\"dependencyIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"createdAt\"|\"updatedAt\")[]>": {
+    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"dependencyIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\")[]>": {
       "type": "object",
       "properties": {
         "top": {
@@ -739,164 +912,99 @@
           "properties": {
             "id": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "stackName": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "displayName": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "description": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "workingDirectory": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "repositoryId": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
-            },
-            "autoFetchEnabled": {
-              "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
-            },
-            "autoFetchIntervalMinutes": {
-              "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
-            },
-            "lastFetchedAt": {
-              "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
-            },
-            "autoRestartOnFetch": {
-              "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "dependencyIds": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "prerequisiteServiceIds": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "installCommand": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "buildCommand": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "runCommand": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
-            },
-            "installStatus": {
-              "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
-            },
-            "buildStatus": {
-              "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
-            },
-            "runStatus": {
-              "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
-            },
-            "lastInstalledAt": {
-              "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
-            },
-            "lastBuiltAt": {
-              "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
-            },
-            "lastStartedAt": {
-              "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "createdAt": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "updatedAt": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
+            },
+            "serviceId": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "autoFetchEnabled": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "autoFetchIntervalMinutes": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "autoRestartOnFetch": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "installStatus": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "buildStatus": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "runStatus": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "lastInstalledAt": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "lastBuiltAt": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "lastStartedAt": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "lastFetchedAt": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
             }
           },
           "additionalProperties": false,
@@ -913,61 +1021,62 @@
               "description",
               "workingDirectory",
               "repositoryId",
-              "autoFetchEnabled",
-              "autoFetchIntervalMinutes",
-              "lastFetchedAt",
-              "autoRestartOnFetch",
               "dependencyIds",
               "prerequisiteServiceIds",
               "installCommand",
               "buildCommand",
               "runCommand",
+              "createdAt",
+              "updatedAt",
+              "serviceId",
+              "autoFetchEnabled",
+              "autoFetchIntervalMinutes",
+              "autoRestartOnFetch",
               "installStatus",
               "buildStatus",
               "runStatus",
               "lastInstalledAt",
               "lastBuiltAt",
               "lastStartedAt",
-              "createdAt",
-              "updatedAt"
+              "lastFetchedAt"
             ]
           },
           "description": "The result set will be limited to these fields"
         },
         "filter": {
-          "$ref": "#/definitions/FilterType%3CService%3E",
+          "$ref": "#/definitions/FilterType%3CServiceView%3E",
           "description": "The fields should match this filter"
         }
       },
       "additionalProperties": false,
       "description": "Type for default filtering model"
     },
-    "FilterType<Service>": {
+    "FilterType<ServiceView>": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "$and": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/FilterType%3CService%3E"
+            "$ref": "#/definitions/FilterType%3CServiceView%3E"
           }
         },
         "$not": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/FilterType%3CService%3E"
+            "$ref": "#/definitions/FilterType%3CServiceView%3E"
           }
         },
         "$nor": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/FilterType%3CService%3E"
+            "$ref": "#/definitions/FilterType%3CServiceView%3E"
           }
         },
         "$or": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/FilterType%3CService%3E"
+            "$ref": "#/definitions/FilterType%3CServiceView%3E"
           }
         },
         "id": {
@@ -976,16 +1085,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 }
               },
               "additionalProperties": false
@@ -994,10 +1107,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 }
               },
               "additionalProperties": false
@@ -1008,13 +1123,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "UUID primary key"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "UUID primary key"
                   }
                 }
               },
@@ -1028,16 +1145,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 }
               },
               "additionalProperties": false
@@ -1046,10 +1167,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 }
               },
               "additionalProperties": false
@@ -1060,13 +1183,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
                   }
                 }
               },
@@ -1080,16 +1205,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
                 }
               },
               "additionalProperties": false
@@ -1098,10 +1227,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
                 }
               },
               "additionalProperties": false
@@ -1112,13 +1243,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Human-readable name shown in the UI"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Human-readable name shown in the UI"
                   }
                 }
               },
@@ -1132,16 +1265,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional description of what this service does"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional description of what this service does"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional description of what this service does"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional description of what this service does"
                 }
               },
               "additionalProperties": false
@@ -1150,10 +1287,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional description of what this service does"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional description of what this service does"
                 }
               },
               "additionalProperties": false
@@ -1164,13 +1303,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Optional description of what this service does"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Optional description of what this service does"
                   }
                 }
               },
@@ -1184,10 +1325,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
                 }
               },
               "additionalProperties": false
@@ -1205,7 +1348,8 @@
                       {
                         "not": {}
                       }
-                    ]
+                    ],
+                    "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
                   }
                 },
                 "$nin": {
@@ -1218,7 +1362,8 @@
                       {
                         "not": {}
                       }
-                    ]
+                    ],
+                    "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
                   }
                 }
               },
@@ -1232,10 +1377,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional FK to  {@link  GitHubRepository.id  }"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional FK to  {@link  GitHubRepository.id  }"
                 }
               },
               "additionalProperties": false
@@ -1253,7 +1400,8 @@
                       {
                         "not": {}
                       }
-                    ]
+                    ],
+                    "description": "Optional FK to  {@link  GitHubRepository.id  }"
                   }
                 },
                 "$nin": {
@@ -1266,175 +1414,8 @@
                       {
                         "not": {}
                       }
-                    ]
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
-        },
-        "autoFetchEnabled": {
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "$eq": {
-                  "type": "boolean"
-                },
-                "$ne": {
-                  "type": "boolean"
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "$in": {
-                  "type": "array",
-                  "items": {
-                    "type": "boolean"
-                  }
-                },
-                "$nin": {
-                  "type": "array",
-                  "items": {
-                    "type": "boolean"
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
-        },
-        "autoFetchIntervalMinutes": {
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "$gt": {
-                  "type": "number"
-                },
-                "$gte": {
-                  "type": "number"
-                },
-                "$lt": {
-                  "type": "number"
-                },
-                "$lte": {
-                  "type": "number"
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "$eq": {
-                  "type": "number"
-                },
-                "$ne": {
-                  "type": "number"
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "$in": {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                },
-                "$nin": {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
-        },
-        "lastFetchedAt": {
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "$eq": {
-                  "type": "string"
-                },
-                "$ne": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "$in": {
-                  "type": "array",
-                  "items": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "not": {}
-                      }
-                    ]
-                  }
-                },
-                "$nin": {
-                  "type": "array",
-                  "items": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "not": {}
-                      }
-                    ]
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
-        },
-        "autoRestartOnFetch": {
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "$eq": {
-                  "type": "boolean"
-                },
-                "$ne": {
-                  "type": "boolean"
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "$in": {
-                  "type": "array",
-                  "items": {
-                    "type": "boolean"
-                  }
-                },
-                "$nin": {
-                  "type": "array",
-                  "items": {
-                    "type": "boolean"
+                    ],
+                    "description": "Optional FK to  {@link  GitHubRepository.id  }"
                   }
                 }
               },
@@ -1451,13 +1432,15 @@
                   "type": "array",
                   "items": {
                     "type": "string"
-                  }
+                  },
+                  "description": "IDs of  {@link  Dependency  }  entities required by this service"
                 },
                 "$ne": {
                   "type": "array",
                   "items": {
                     "type": "string"
-                  }
+                  },
+                  "description": "IDs of  {@link  Dependency  }  entities required by this service"
                 }
               },
               "additionalProperties": false
@@ -1471,7 +1454,8 @@
                     "type": "array",
                     "items": {
                       "type": "string"
-                    }
+                    },
+                    "description": "IDs of  {@link  Dependency  }  entities required by this service"
                   }
                 },
                 "$nin": {
@@ -1480,7 +1464,8 @@
                     "type": "array",
                     "items": {
                       "type": "string"
-                    }
+                    },
+                    "description": "IDs of  {@link  Dependency  }  entities required by this service"
                   }
                 }
               },
@@ -1497,13 +1482,15 @@
                   "type": "array",
                   "items": {
                     "type": "string"
-                  }
+                  },
+                  "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
                 },
                 "$ne": {
                   "type": "array",
                   "items": {
                     "type": "string"
-                  }
+                  },
+                  "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
                 }
               },
               "additionalProperties": false
@@ -1517,7 +1504,8 @@
                     "type": "array",
                     "items": {
                       "type": "string"
-                    }
+                    },
+                    "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
                   }
                 },
                 "$nin": {
@@ -1526,7 +1514,8 @@
                     "type": "array",
                     "items": {
                       "type": "string"
-                    }
+                    },
+                    "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
                   }
                 }
               },
@@ -1540,10 +1529,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Shell command to install dependencies (e.g. \"npm install\")"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Shell command to install dependencies (e.g. \"npm install\")"
                 }
               },
               "additionalProperties": false
@@ -1561,7 +1552,8 @@
                       {
                         "not": {}
                       }
-                    ]
+                    ],
+                    "description": "Shell command to install dependencies (e.g. \"npm install\")"
                   }
                 },
                 "$nin": {
@@ -1574,7 +1566,8 @@
                       {
                         "not": {}
                       }
-                    ]
+                    ],
+                    "description": "Shell command to install dependencies (e.g. \"npm install\")"
                   }
                 }
               },
@@ -1588,10 +1581,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Shell command to build the service (e.g. \"npm run build\")"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Shell command to build the service (e.g. \"npm run build\")"
                 }
               },
               "additionalProperties": false
@@ -1609,7 +1604,8 @@
                       {
                         "not": {}
                       }
-                    ]
+                    ],
+                    "description": "Shell command to build the service (e.g. \"npm run build\")"
                   }
                 },
                 "$nin": {
@@ -1622,7 +1618,8 @@
                       {
                         "not": {}
                       }
-                    ]
+                    ],
+                    "description": "Shell command to build the service (e.g. \"npm run build\")"
                   }
                 }
               },
@@ -1631,6 +1628,66 @@
           ]
         },
         "runCommand": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string",
+                  "description": "Shell command to run the service (e.g. \"npm start\")"
+                },
+                "$endsWith": {
+                  "type": "string",
+                  "description": "Shell command to run the service (e.g. \"npm start\")"
+                },
+                "$like": {
+                  "type": "string",
+                  "description": "Shell command to run the service (e.g. \"npm start\")"
+                },
+                "$regex": {
+                  "type": "string",
+                  "description": "Shell command to run the service (e.g. \"npm start\")"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "Shell command to run the service (e.g. \"npm start\")"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "Shell command to run the service (e.g. \"npm start\")"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Shell command to run the service (e.g. \"npm start\")"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Shell command to run the service (e.g. \"npm start\")"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "createdAt": {
           "anyOf": [
             {
               "type": "object",
@@ -1675,6 +1732,254 @@
                   "type": "array",
                   "items": {
                     "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "updatedAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "serviceId": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string",
+                  "description": "FK to  {@link  ServiceDefinition.id  }"
+                },
+                "$endsWith": {
+                  "type": "string",
+                  "description": "FK to  {@link  ServiceDefinition.id  }"
+                },
+                "$like": {
+                  "type": "string",
+                  "description": "FK to  {@link  ServiceDefinition.id  }"
+                },
+                "$regex": {
+                  "type": "string",
+                  "description": "FK to  {@link  ServiceDefinition.id  }"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "FK to  {@link  ServiceDefinition.id  }"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "FK to  {@link  ServiceDefinition.id  }"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "FK to  {@link  ServiceDefinition.id  }"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "FK to  {@link  ServiceDefinition.id  }"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "autoFetchEnabled": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "boolean",
+                  "description": "Whether automatic git fetch is enabled"
+                },
+                "$ne": {
+                  "type": "boolean",
+                  "description": "Whether automatic git fetch is enabled"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "boolean",
+                    "description": "Whether automatic git fetch is enabled"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "boolean",
+                    "description": "Whether automatic git fetch is enabled"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "autoFetchIntervalMinutes": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$gt": {
+                  "type": "number",
+                  "description": "Interval in minutes between automatic git fetches"
+                },
+                "$gte": {
+                  "type": "number",
+                  "description": "Interval in minutes between automatic git fetches"
+                },
+                "$lt": {
+                  "type": "number",
+                  "description": "Interval in minutes between automatic git fetches"
+                },
+                "$lte": {
+                  "type": "number",
+                  "description": "Interval in minutes between automatic git fetches"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "number",
+                  "description": "Interval in minutes between automatic git fetches"
+                },
+                "$ne": {
+                  "type": "number",
+                  "description": "Interval in minutes between automatic git fetches"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "description": "Interval in minutes between automatic git fetches"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "description": "Interval in minutes between automatic git fetches"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "autoRestartOnFetch": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "boolean",
+                  "description": "Whether to automatically restart the service when new commits are fetched"
+                },
+                "$ne": {
+                  "type": "boolean",
+                  "description": "Whether to automatically restart the service when new commits are fetched"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "boolean",
+                    "description": "Whether to automatically restart the service when new commits are fetched"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "boolean",
+                    "description": "Whether to automatically restart the service when new commits are fetched"
                   }
                 }
               },
@@ -1982,26 +2287,8 @@
             }
           ]
         },
-        "createdAt": {
+        "lastFetchedAt": {
           "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "$startsWith": {
-                  "type": "string"
-                },
-                "$endsWith": {
-                  "type": "string"
-                },
-                "$like": {
-                  "type": "string"
-                },
-                "$regex": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            },
             {
               "type": "object",
               "properties": {
@@ -2020,65 +2307,27 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
-        },
-        "updatedAt": {
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "$startsWith": {
-                  "type": "string"
-                },
-                "$endsWith": {
-                  "type": "string"
-                },
-                "$like": {
-                  "type": "string"
-                },
-                "$regex": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "$eq": {
-                  "type": "string"
-                },
-                "$ne": {
-                  "type": "string"
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "$in": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "$nin": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
                   }
                 }
               },
@@ -2088,7 +2337,7 @@
         }
       }
     },
-    "GetCollectionResult<Service>": {
+    "GetCollectionResult<ServiceView>": {
       "type": "object",
       "properties": {
         "count": {
@@ -2098,19 +2347,16 @@
         "entries": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Service"
+            "$ref": "#/definitions/ServiceView"
           },
           "description": "List of the selected entities"
         }
       },
-      "required": [
-        "count",
-        "entries"
-      ],
+      "required": ["count", "entries"],
       "additionalProperties": false,
       "description": "Response Model for GetCollection"
     },
-    "GetEntityEndpoint<Service,\"id\">": {
+    "GetEntityEndpoint<ServiceView,\"id\">": {
       "type": "object",
       "properties": {
         "query": {
@@ -2127,23 +2373,24 @@
                   "description",
                   "workingDirectory",
                   "repositoryId",
-                  "autoFetchEnabled",
-                  "autoFetchIntervalMinutes",
-                  "lastFetchedAt",
-                  "autoRestartOnFetch",
                   "dependencyIds",
                   "prerequisiteServiceIds",
                   "installCommand",
                   "buildCommand",
                   "runCommand",
+                  "createdAt",
+                  "updatedAt",
+                  "serviceId",
+                  "autoFetchEnabled",
+                  "autoFetchIntervalMinutes",
+                  "autoRestartOnFetch",
                   "installStatus",
                   "buildStatus",
                   "runStatus",
                   "lastInstalledAt",
                   "lastBuiltAt",
                   "lastStartedAt",
-                  "createdAt",
-                  "updatedAt"
+                  "lastFetchedAt"
                 ]
               },
               "description": "The list of fields to select"
@@ -2159,46 +2406,36 @@
               "description": "The entity's unique identifier"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
-          "$ref": "#/definitions/Service"
+          "$ref": "#/definitions/ServiceView"
         }
       },
-      "required": [
-        "query",
-        "url",
-        "result"
-      ],
+      "required": ["query", "url", "result"],
       "additionalProperties": false,
       "description": "Endpoint model for getting a single entity"
     },
-    "DeleteEndpoint<Service,\"id\">": {
+    "DeleteEndpoint<ServiceDefinition,\"id\">": {
       "type": "object",
       "properties": {
         "url": {
           "type": "object",
           "properties": {
             "id": {
-              "type": "string"
+              "type": "string",
+              "description": "UUID primary key"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": [
-        "url",
-        "result"
-      ],
+      "required": ["url", "result"],
       "additionalProperties": false,
       "description": "Endpoint model for deleting entities"
     }

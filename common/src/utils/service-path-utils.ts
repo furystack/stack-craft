@@ -1,4 +1,4 @@
-import type { GitHubRepository, Service, Stack } from '../models/index.js'
+import type { GitHubRepository } from '../models/index.js'
 
 function joinPath(...parts: Array<string | undefined>): string {
   return parts
@@ -19,14 +19,18 @@ export function getRepoNameFromUrl(url: string): string {
 
 /**
  * Computes the full working directory (CWD) for a service.
- * Formula: join(stack.mainDirectory, service.workingDirectory ?? '', repoName when cloned)
+ * Formula: join(mainDirectory, workingDirectory ?? '', repoName when cloned)
  *
- * - Stack mainDirectory is the root for all processes in the stack
- * - Service workingDirectory is optional, for grouping (e.g. "frontends/public", "services/gateways")
+ * - mainDirectory comes from {@link StackConfig} and is the root for all processes in the stack
+ * - workingDirectory comes from {@link ServiceDefinition} and is optional, for grouping
  * - When cloning from Git, the repo name is added as a subdirectory
  */
-export function getServiceCwd(stack: Stack, service: Service, repo?: GitHubRepository | null): string {
-  const base = joinPath(stack.mainDirectory, service.workingDirectory)
+export function getServiceCwd(
+  config: { mainDirectory: string },
+  service: { workingDirectory?: string },
+  repo?: GitHubRepository | null,
+): string {
+  const base = joinPath(config.mainDirectory, service.workingDirectory)
   if (repo?.url) {
     return joinPath(base, getRepoNameFromUrl(repo.url))
   }

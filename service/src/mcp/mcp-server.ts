@@ -3,7 +3,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { Dependency, GitHubRepository, Service, Stack } from 'common'
+import { Dependency, GitHubRepository, ServiceDefinition, ServiceStatus, StackConfig, StackDefinition } from 'common'
 import { randomUUID } from 'crypto'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { z } from 'zod'
@@ -19,6 +19,8 @@ type TextResult = { content: [{ type: 'text'; text: string }]; isError?: true }
 const textResult = (text: string): TextResult => ({ content: [{ type: 'text', text }] })
 const errorResult = (text: string): TextResult => ({ content: [{ type: 'text', text }], isError: true })
 
+const mcpTrigger = { triggeredBy: 'mcp-user', triggerSource: 'mcp' as const }
+
 const registerServiceAction = (
   mcp: McpServer,
   name: string,
@@ -32,7 +34,7 @@ const registerServiceAction = (
 ) => {
   mcp.registerTool(name, { description, inputSchema: { serviceId: z.string() } }, async ({ serviceId }) => {
     try {
-      await injector.getInstance(ProcessManager)[method](serviceId)
+      await injector.getInstance(ProcessManager)[method](serviceId, mcpTrigger)
       return textResult(`Service ${serviceId} ${pastTense}`)
     } catch (error) {
       return errorResult(`Failed: ${(error as Error).message}`)
@@ -45,7 +47,10 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
   const repository = getRepository(elevated)
 
   mcp.registerTool('list_stacks', { description: 'List all stacks' }, async () => {
-    const stacks = await repository.getDataSetFor(Stack, 'name').find(elevated, {})
+    const defs = await repository.getDataSetFor(StackDefinition, 'name').find(elevated, {})
+    const configs = await repository.getDataSetFor(StackConfig, 'stackName').find(elevated, {})
+    const configMap = new Map(configs.map((c) => [c.stackName, c]))
+    const stacks = defs.map((d) => ({ ...d, ...configMap.get(d.name) }))
     return textResult(JSON.stringify(stacks, null, 2))
   })
 
@@ -56,14 +61,18 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
       inputSchema: { stackName: z.string() },
     },
     async ({ stackName }) => {
-      const stacks = await repository
-        .getDataSetFor(Stack, 'name')
+      const defs = await repository
+        .getDataSetFor(StackDefinition, 'name')
         .find(elevated, { filter: { name: { $eq: stackName } }, top: 1 })
-      const stack = stacks[0]
+      const stack = defs[0]
       if (!stack) return errorResult(`Stack not found: ${stackName}`)
 
+      const configs = await repository
+        .getDataSetFor(StackConfig, 'stackName')
+        .find(elevated, { filter: { stackName: { $eq: stackName } }, top: 1 })
+
       const services = await repository
-        .getDataSetFor(Service, 'id')
+        .getDataSetFor(ServiceDefinition, 'id')
         .find(elevated, { filter: { stackName: { $eq: stackName } } })
       const repos = await repository
         .getDataSetFor(GitHubRepository, 'id')
@@ -72,7 +81,13 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
         .getDataSetFor(Dependency, 'id')
         .find(elevated, { filter: { stackName: { $eq: stackName } } })
 
-      return textResult(JSON.stringify({ stack, services, repositories: repos, dependencies: deps }, null, 2))
+      return textResult(
+        JSON.stringify(
+          { stack: { ...stack, ...configs[0] }, services, repositories: repos, dependencies: deps },
+          null,
+          2,
+        ),
+      )
     },
   )
 
@@ -81,15 +96,21 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
     { description: 'List services in a stack with status', inputSchema: { stackName: z.string() } },
     async ({ stackName }) => {
       const services = await repository
-        .getDataSetFor(Service, 'id')
+        .getDataSetFor(ServiceDefinition, 'id')
         .find(elevated, { filter: { stackName: { $eq: stackName } } })
-      const summary = services.map((s) => ({
-        id: s.id,
-        displayName: s.displayName,
-        runStatus: s.runStatus,
-        installStatus: s.installStatus,
-        buildStatus: s.buildStatus,
-      }))
+      const statuses = await repository.getDataSetFor(ServiceStatus, 'serviceId').find(elevated, {})
+      const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
+
+      const summary = services.map((s) => {
+        const st = statusMap.get(s.id)
+        return {
+          id: s.id,
+          displayName: s.displayName,
+          runStatus: st?.runStatus ?? 'stopped',
+          installStatus: st?.installStatus ?? 'not-installed',
+          buildStatus: st?.buildStatus ?? 'not-built',
+        }
+      })
       return textResult(JSON.stringify(summary, null, 2))
     },
   )
@@ -125,7 +146,7 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
     { description: 'Git pull for a service', inputSchema: { serviceId: z.string() } },
     async ({ serviceId }) => {
       const services = await repository
-        .getDataSetFor(Service, 'id')
+        .getDataSetFor(ServiceDefinition, 'id')
         .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
       const svc = services[0]
       if (!svc) return errorResult('Service not found')

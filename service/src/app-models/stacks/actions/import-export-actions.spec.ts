@@ -2,7 +2,16 @@ import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/co
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { Dependency, GitHubRepository, Service, Stack } from 'common'
+import {
+  Dependency,
+  GitHubRepository,
+  ServiceConfig,
+  ServiceDefinition,
+  ServiceStateHistory,
+  ServiceStatus,
+  StackConfig,
+  StackDefinition,
+} from 'common'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { ExportStackAction } from './export-stack-action.js'
@@ -25,8 +34,11 @@ const createMockActionContext = <TBody = unknown, TUrl = Record<string, string>>
 
 describe('Import/Export Stack Actions', () => {
   let injector: Injector
-  let stackStore: InMemoryStore<Stack, 'name'>
-  let serviceStore: InMemoryStore<Service, 'id'>
+  let stackDefStore: InMemoryStore<StackDefinition, 'name'>
+  let stackConfigStore: InMemoryStore<StackConfig, 'stackName'>
+  let serviceDefStore: InMemoryStore<ServiceDefinition, 'id'>
+  let serviceConfigStore: InMemoryStore<ServiceConfig, 'serviceId'>
+  let serviceStatusStore: InMemoryStore<ServiceStatus, 'serviceId'>
   let repoStore: InMemoryStore<GitHubRepository, 'id'>
   let depStore: InMemoryStore<Dependency, 'id'>
 
@@ -34,17 +46,31 @@ describe('Import/Export Stack Actions', () => {
     injector = new Injector()
     useLogging(injector, VerboseConsoleLogger)
 
-    stackStore = new InMemoryStore({ model: Stack, primaryKey: 'name' })
-    serviceStore = new InMemoryStore({ model: Service, primaryKey: 'id' })
+    stackDefStore = new InMemoryStore({ model: StackDefinition, primaryKey: 'name' })
+    stackConfigStore = new InMemoryStore({ model: StackConfig, primaryKey: 'stackName' })
+    serviceDefStore = new InMemoryStore({ model: ServiceDefinition, primaryKey: 'id' })
+    serviceConfigStore = new InMemoryStore({ model: ServiceConfig, primaryKey: 'serviceId' })
+    serviceStatusStore = new InMemoryStore({ model: ServiceStatus, primaryKey: 'serviceId' })
     repoStore = new InMemoryStore({ model: GitHubRepository, primaryKey: 'id' })
     depStore = new InMemoryStore({ model: Dependency, primaryKey: 'id' })
 
-    addStore(injector, stackStore).addStore(serviceStore).addStore(repoStore).addStore(depStore)
+    addStore(injector, stackDefStore)
+      .addStore(stackConfigStore)
+      .addStore(serviceDefStore)
+      .addStore(serviceConfigStore)
+      .addStore(serviceStatusStore)
+      .addStore(repoStore)
+      .addStore(depStore)
+      .addStore(new InMemoryStore({ model: ServiceStateHistory, primaryKey: 'id' }))
 
-    getRepository(injector).createDataSet(Stack, 'name', {})
-    getRepository(injector).createDataSet(Service, 'id', {})
+    getRepository(injector).createDataSet(StackDefinition, 'name', {})
+    getRepository(injector).createDataSet(StackConfig, 'stackName', {})
+    getRepository(injector).createDataSet(ServiceDefinition, 'id', {})
+    getRepository(injector).createDataSet(ServiceConfig, 'serviceId', {})
+    getRepository(injector).createDataSet(ServiceStatus, 'serviceId', {})
     getRepository(injector).createDataSet(GitHubRepository, 'id', {})
     getRepository(injector).createDataSet(Dependency, 'id', {})
+    getRepository(injector).createDataSet(ServiceStateHistory, 'id', {})
   })
 
   afterEach(async () => {
@@ -54,27 +80,20 @@ describe('Import/Export Stack Actions', () => {
   describe('ExportStackAction', () => {
     it('should export a stack with all related entities', async () => {
       const ts = now()
-      await stackStore.add({
+      await stackDefStore.add({
         name: 'my-stack',
         displayName: 'My Stack',
         description: 'Test',
-        mainDirectory: '/tmp/stack',
         createdAt: ts,
         updatedAt: ts,
       })
-      await serviceStore.add({
+      await serviceDefStore.add({
         id: 'svc-1',
         stackName: 'my-stack',
         displayName: 'Service 1',
         description: '',
         workingDirectory: 'svc1',
         runCommand: 'echo hello',
-        installStatus: 'not-installed',
-        buildStatus: 'not-built',
-        runStatus: 'stopped',
-        autoFetchEnabled: false,
-        autoFetchIntervalMinutes: 60,
-        autoRestartOnFetch: false,
         dependencyIds: [],
         prerequisiteServiceIds: [],
         createdAt: ts,
@@ -106,8 +125,8 @@ describe('Import/Export Stack Actions', () => {
       await elevated[Symbol.asyncDispose]()
 
       const body = result.chunk as {
-        stack: Stack
-        services: Service[]
+        stack: StackDefinition
+        services: ServiceDefinition[]
         repositories: GitHubRepository[]
         dependencies: Dependency[]
       }
@@ -120,11 +139,11 @@ describe('Import/Export Stack Actions', () => {
 
     it('should only export entities belonging to the specified stack', async () => {
       const ts = now()
-      await stackStore.add(
-        { name: 'stack-a', displayName: 'A', description: '', mainDirectory: '/a', createdAt: ts, updatedAt: ts },
-        { name: 'stack-b', displayName: 'B', description: '', mainDirectory: '/b', createdAt: ts, updatedAt: ts },
+      await stackDefStore.add(
+        { name: 'stack-a', displayName: 'A', description: '', createdAt: ts, updatedAt: ts },
+        { name: 'stack-b', displayName: 'B', description: '', createdAt: ts, updatedAt: ts },
       )
-      await serviceStore.add(
+      await serviceDefStore.add(
         {
           id: 'svc-a',
           stackName: 'stack-a',
@@ -132,12 +151,6 @@ describe('Import/Export Stack Actions', () => {
           description: '',
           workingDirectory: 'svc',
           runCommand: 'echo a',
-          installStatus: 'not-installed',
-          buildStatus: 'not-built',
-          runStatus: 'stopped',
-          autoFetchEnabled: false,
-          autoFetchIntervalMinutes: 60,
-          autoRestartOnFetch: false,
           dependencyIds: [],
           prerequisiteServiceIds: [],
           createdAt: ts,
@@ -150,12 +163,6 @@ describe('Import/Export Stack Actions', () => {
           description: '',
           workingDirectory: 'svc',
           runCommand: 'echo b',
-          installStatus: 'not-installed',
-          buildStatus: 'not-built',
-          runStatus: 'stopped',
-          autoFetchEnabled: false,
-          autoFetchIntervalMinutes: 60,
-          autoRestartOnFetch: false,
           dependencyIds: [],
           prerequisiteServiceIds: [],
           createdAt: ts,
@@ -169,7 +176,7 @@ describe('Import/Export Stack Actions', () => {
       )
       await elevated[Symbol.asyncDispose]()
 
-      const body = result.chunk as { services: Service[] }
+      const body = result.chunk as { services: Array<Omit<ServiceDefinition, 'createdAt' | 'updatedAt'>> }
       expect(body.services).toHaveLength(1)
       expect(body.services[0]?.displayName).toBe('Service A')
     })
@@ -185,16 +192,12 @@ describe('Import/Export Stack Actions', () => {
 
   describe('ImportStackAction', () => {
     it('should import a stack with services, repos and dependencies', async () => {
-      const ts = now()
       const importBody = {
         stack: {
           name: 'imported-stack',
           displayName: 'Imported Stack',
           description: 'Imported',
-          mainDirectory: '/tmp/imported',
-          createdAt: ts,
-          updatedAt: ts,
-        } satisfies Stack,
+        },
         services: [
           {
             id: 'imp-svc-1',
@@ -203,17 +206,9 @@ describe('Import/Export Stack Actions', () => {
             description: '',
             workingDirectory: 'svc',
             runCommand: 'echo hello',
-            autoFetchEnabled: false,
-            autoFetchIntervalMinutes: 60,
-            autoRestartOnFetch: false,
             dependencyIds: [],
             prerequisiteServiceIds: [],
-            installStatus: 'installed' as const,
-            buildStatus: 'built' as const,
-            runStatus: 'running' as const,
-            createdAt: ts,
-            updatedAt: ts,
-          } satisfies Service,
+          },
         ],
         repositories: [
           {
@@ -222,9 +217,7 @@ describe('Import/Export Stack Actions', () => {
             url: 'https://github.com/test/imported',
             displayName: 'Imported Repo',
             description: '',
-            createdAt: ts,
-            updatedAt: ts,
-          } satisfies GitHubRepository,
+          },
         ],
         dependencies: [
           {
@@ -233,10 +226,11 @@ describe('Import/Export Stack Actions', () => {
             name: 'Git',
             checkCommand: 'git --version',
             installationHelp: 'Install Git',
-            createdAt: ts,
-            updatedAt: ts,
-          } satisfies Dependency,
+          },
         ],
+        config: {
+          mainDirectory: '/tmp/imported',
+        },
       }
 
       const elevated = useSystemIdentityContext({ injector })
@@ -244,13 +238,25 @@ describe('Import/Export Stack Actions', () => {
       const body = actionResult.chunk as { success: boolean }
       expect(body.success).toBe(true)
 
-      const stacks = await stackStore.find({})
-      expect(stacks).toHaveLength(1)
-      expect(stacks[0]?.name).toBe('imported-stack')
+      const stackDefs = await stackDefStore.find({})
+      expect(stackDefs).toHaveLength(1)
+      expect(stackDefs[0]?.name).toBe('imported-stack')
 
-      const services = await serviceStore.find({})
-      expect(services).toHaveLength(1)
-      expect(services[0]?.stackName).toBe('imported-stack')
+      const stackConfigs = await stackConfigStore.find({})
+      expect(stackConfigs).toHaveLength(1)
+      expect(stackConfigs[0]?.mainDirectory).toBe('/tmp/imported')
+
+      const serviceDefs = await serviceDefStore.find({})
+      expect(serviceDefs).toHaveLength(1)
+      expect(serviceDefs[0]?.stackName).toBe('imported-stack')
+
+      const serviceConfigs = await serviceConfigStore.find({})
+      expect(serviceConfigs).toHaveLength(1)
+      expect(serviceConfigs[0]?.serviceId).toBe('imp-svc-1')
+
+      const serviceStatuses = await serviceStatusStore.find({})
+      expect(serviceStatuses).toHaveLength(1)
+      expect(serviceStatuses[0]?.serviceId).toBe('imp-svc-1')
 
       const repos = await repoStore.find({})
       expect(repos).toHaveLength(1)
@@ -261,16 +267,12 @@ describe('Import/Export Stack Actions', () => {
     })
 
     it('should reset service statuses on import', async () => {
-      const ts = now()
       const importBody = {
         stack: {
           name: 'reset-test',
           displayName: 'Reset Test',
           description: '',
-          mainDirectory: '/tmp/reset',
-          createdAt: ts,
-          updatedAt: ts,
-        } satisfies Stack,
+        },
         services: [
           {
             id: 'reset-svc',
@@ -279,29 +281,24 @@ describe('Import/Export Stack Actions', () => {
             description: '',
             workingDirectory: 'svc',
             runCommand: 'echo hi',
-            autoFetchEnabled: false,
-            autoFetchIntervalMinutes: 60,
-            autoRestartOnFetch: false,
             dependencyIds: [],
             prerequisiteServiceIds: [],
-            installStatus: 'installed' as const,
-            buildStatus: 'built' as const,
-            runStatus: 'running' as const,
-            createdAt: ts,
-            updatedAt: ts,
-          } satisfies Service,
+          },
         ],
-        repositories: [] as GitHubRepository[],
-        dependencies: [] as Dependency[],
+        repositories: [],
+        dependencies: [],
+        config: {
+          mainDirectory: '/tmp/reset',
+        },
       }
 
       const elevated = useSystemIdentityContext({ injector })
       await ImportStackAction(createMockActionContext({ injector: elevated, body: importBody }))
 
-      const [svc] = await serviceStore.find({ filter: { id: { $eq: 'reset-svc' } }, top: 1 })
-      expect(svc?.installStatus).toBe('not-installed')
-      expect(svc?.buildStatus).toBe('not-built')
-      expect(svc?.runStatus).toBe('stopped')
+      const [status] = await serviceStatusStore.find({ filter: { serviceId: { $eq: 'reset-svc' } }, top: 1 })
+      expect(status?.installStatus).toBe('not-installed')
+      expect(status?.buildStatus).toBe('not-built')
+      expect(status?.runStatus).toBe('stopped')
       await elevated[Symbol.asyncDispose]()
     })
   })

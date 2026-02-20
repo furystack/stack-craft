@@ -5,28 +5,27 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "UUID primary key"
         },
         "stackName": {
-          "type": "string"
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
         },
         "name": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable dependency name (e.g. \"Node.js\")"
         },
         "checkCommand": {
-          "type": "string"
+          "type": "string",
+          "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
         },
         "installationHelp": {
-          "type": "string"
+          "type": "string",
+          "description": "Help text shown when the dependency check fails"
         }
       },
-      "required": [
-        "id",
-        "stackName",
-        "name",
-        "checkCommand",
-        "installationHelp"
-      ],
+      "required": ["id", "stackName", "name", "checkCommand", "installationHelp"],
       "additionalProperties": false
     },
     "PostDependencyEndpoint": {
@@ -39,29 +38,31 @@
           "$ref": "#/definitions/WithOptionalId%3CDependencyWritableFields%2C%22id%22%3E"
         }
       },
-      "required": [
-        "result",
-        "body"
-      ],
+      "required": ["result", "body"],
       "additionalProperties": false
     },
     "Dependency": {
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "UUID primary key"
         },
         "stackName": {
-          "type": "string"
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
         },
         "name": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable dependency name (e.g. \"Node.js\")"
         },
         "checkCommand": {
-          "type": "string"
+          "type": "string",
+          "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
         },
         "installationHelp": {
-          "type": "string"
+          "type": "string",
+          "description": "Help text shown when the dependency check fails"
         },
         "createdAt": {
           "type": "string"
@@ -70,43 +71,36 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "stackName",
-        "name",
-        "checkCommand",
-        "installationHelp",
-        "createdAt",
-        "updatedAt"
-      ],
-      "additionalProperties": false
+      "required": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"],
+      "additionalProperties": false,
+      "description": "Shareable dependency definition. Describes an external prerequisite (e.g. Node.js, Docker) that services may require. Included in stack exports and shared between installations."
     },
     "WithOptionalId<DependencyWritableFields,\"id\">": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "UUID primary key"
         },
         "stackName": {
-          "type": "string"
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
         },
         "name": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable dependency name (e.g. \"Node.js\")"
         },
         "checkCommand": {
-          "type": "string"
+          "type": "string",
+          "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
         },
         "installationHelp": {
-          "type": "string"
+          "type": "string",
+          "description": "Help text shown when the dependency check fails"
         }
       },
-      "required": [
-        "checkCommand",
-        "installationHelp",
-        "name",
-        "stackName"
-      ]
+      "required": ["checkCommand", "installationHelp", "name", "stackName"]
     },
     "PatchDependencyEndpoint": {
       "$ref": "#/definitions/PatchEndpoint%3CDependencyWritableFields%2C%22id%22%3E"
@@ -118,19 +112,24 @@
           "type": "object",
           "properties": {
             "id": {
-              "type": "string"
+              "type": "string",
+              "description": "UUID primary key"
             },
             "stackName": {
-              "type": "string"
+              "type": "string",
+              "description": "FK to  {@link  StackDefinition.name  }"
             },
             "name": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable dependency name (e.g. \"Node.js\")"
             },
             "checkCommand": {
-              "type": "string"
+              "type": "string",
+              "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
             },
             "installationHelp": {
-              "type": "string"
+              "type": "string",
+              "description": "Help text shown when the dependency check fails"
             }
           },
           "additionalProperties": false
@@ -139,23 +138,18 @@
           "type": "object",
           "properties": {
             "id": {
-              "type": "string"
+              "type": "string",
+              "description": "UUID primary key"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": [
-        "body",
-        "url",
-        "result"
-      ],
+      "required": ["body", "url", "result"],
       "additionalProperties": false,
       "description": "Endpoint model for updating entities"
     },
@@ -169,9 +163,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
@@ -184,17 +176,11 @@
               "type": "string"
             }
           },
-          "required": [
-            "satisfied",
-            "output"
-          ],
+          "required": ["satisfied", "output"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "url",
-        "result"
-      ],
+      "required": ["url", "result"],
       "additionalProperties": false
     },
     "DependenciesApi": {
@@ -210,10 +196,7 @@
               "$ref": "#/definitions/GetEntityEndpoint%3CDependency%2C%22id%22%3E"
             }
           },
-          "required": [
-            "/dependencies",
-            "/dependencies/:id"
-          ],
+          "required": ["/dependencies", "/dependencies/:id"],
           "additionalProperties": false
         },
         "POST": {
@@ -226,10 +209,7 @@
               "$ref": "#/definitions/CheckDependencyEndpoint"
             }
           },
-          "required": [
-            "/dependencies",
-            "/dependencies/:id/check"
-          ],
+          "required": ["/dependencies", "/dependencies/:id/check"],
           "additionalProperties": false
         },
         "PATCH": {
@@ -239,9 +219,7 @@
               "$ref": "#/definitions/PatchDependencyEndpoint"
             }
           },
-          "required": [
-            "/dependencies/:id"
-          ],
+          "required": ["/dependencies/:id"],
           "additionalProperties": false
         },
         "PUT": {
@@ -255,9 +233,7 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -268,9 +244,7 @@
               "$ref": "#/definitions/DeleteEndpoint%3CDependency%2C%22id%22%3E"
             }
           },
-          "required": [
-            "/dependencies/:id"
-          ],
+          "required": ["/dependencies/:id"],
           "additionalProperties": false
         },
         "HEAD": {
@@ -284,9 +258,7 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -301,9 +273,7 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -318,9 +288,7 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -335,19 +303,12 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         }
       },
-      "required": [
-        "GET",
-        "POST",
-        "PATCH",
-        "DELETE"
-      ],
+      "required": ["GET", "POST", "PATCH", "DELETE"],
       "additionalProperties": false
     },
     "GetCollectionEndpoint<Dependency>": {
@@ -366,10 +327,7 @@
           "$ref": "#/definitions/GetCollectionResult%3CDependency%3E"
         }
       },
-      "required": [
-        "query",
-        "result"
-      ],
+      "required": ["query", "result"],
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
@@ -389,52 +347,31 @@
           "properties": {
             "id": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "stackName": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "name": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "checkCommand": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "installationHelp": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "createdAt": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "updatedAt": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             }
           },
           "additionalProperties": false,
@@ -444,15 +381,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": [
-              "id",
-              "stackName",
-              "name",
-              "checkCommand",
-              "installationHelp",
-              "createdAt",
-              "updatedAt"
-            ]
+            "enum": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"]
           },
           "description": "The result set will be limited to these fields"
         },
@@ -498,16 +427,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 }
               },
               "additionalProperties": false
@@ -516,10 +449,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 }
               },
               "additionalProperties": false
@@ -530,13 +465,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "UUID primary key"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "UUID primary key"
                   }
                 }
               },
@@ -550,16 +487,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 }
               },
               "additionalProperties": false
@@ -568,10 +509,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 }
               },
               "additionalProperties": false
@@ -582,13 +525,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
                   }
                 }
               },
@@ -602,16 +547,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable dependency name (e.g. \"Node.js\")"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable dependency name (e.g. \"Node.js\")"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable dependency name (e.g. \"Node.js\")"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable dependency name (e.g. \"Node.js\")"
                 }
               },
               "additionalProperties": false
@@ -620,10 +569,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable dependency name (e.g. \"Node.js\")"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable dependency name (e.g. \"Node.js\")"
                 }
               },
               "additionalProperties": false
@@ -634,13 +585,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Human-readable dependency name (e.g. \"Node.js\")"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Human-readable dependency name (e.g. \"Node.js\")"
                   }
                 }
               },
@@ -654,16 +607,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
                 }
               },
               "additionalProperties": false
@@ -672,10 +629,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
                 }
               },
               "additionalProperties": false
@@ -686,13 +645,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
                   }
                 }
               },
@@ -706,16 +667,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Help text shown when the dependency check fails"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Help text shown when the dependency check fails"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Help text shown when the dependency check fails"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Help text shown when the dependency check fails"
                 }
               },
               "additionalProperties": false
@@ -724,10 +689,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Help text shown when the dependency check fails"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Help text shown when the dependency check fails"
                 }
               },
               "additionalProperties": false
@@ -738,13 +705,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Help text shown when the dependency check fails"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Help text shown when the dependency check fails"
                   }
                 }
               },
@@ -873,10 +842,7 @@
           "description": "List of the selected entities"
         }
       },
-      "required": [
-        "count",
-        "entries"
-      ],
+      "required": ["count", "entries"],
       "additionalProperties": false,
       "description": "Response Model for GetCollection"
     },
@@ -890,15 +856,7 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": [
-                  "id",
-                  "stackName",
-                  "name",
-                  "checkCommand",
-                  "installationHelp",
-                  "createdAt",
-                  "updatedAt"
-                ]
+                "enum": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"]
               },
               "description": "The list of fields to select"
             }
@@ -913,20 +871,14 @@
               "description": "The entity's unique identifier"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "$ref": "#/definitions/Dependency"
         }
       },
-      "required": [
-        "query",
-        "url",
-        "result"
-      ],
+      "required": ["query", "url", "result"],
       "additionalProperties": false,
       "description": "Endpoint model for getting a single entity"
     },
@@ -937,22 +889,18 @@
           "type": "object",
           "properties": {
             "id": {
-              "type": "string"
+              "type": "string",
+              "description": "UUID primary key"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": [
-        "url",
-        "result"
-      ],
+      "required": ["url", "result"],
       "additionalProperties": false,
       "description": "Endpoint model for deleting entities"
     }

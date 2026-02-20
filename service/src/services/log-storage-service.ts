@@ -8,8 +8,6 @@ import { ServiceLogEntry } from 'common'
 const MAX_ENTRIES_PER_SERVICE = 50_000
 const PRUNE_CHECK_INTERVAL = 1_000
 
-let idCounter = 0
-
 @Injectable({ lifetime: 'singleton' })
 export class LogStorageService {
   private elevatedInjector?: Injector
@@ -34,7 +32,6 @@ export class LogStorageService {
     const elevated = this.getElevatedInjector()
     const ds = getRepository(elevated).getDataSetFor(ServiceLogEntry, 'id')
     await ds.add(elevated, {
-      id: ++idCounter,
       serviceId,
       processUid,
       stream,

@@ -12,8 +12,8 @@ import {
   PageHeader,
   Paper,
 } from '@furystack/shades-common-components'
-import type { Stack } from 'common'
-import { Stack as StackModel } from 'common'
+import type { StackView } from 'common'
+import { StackDefinition } from 'common'
 
 import { ConfirmDialog } from '../../components/confirm-dialog.js'
 import { StackForm } from '../../components/entity-forms/stack-form.js'
@@ -29,7 +29,7 @@ export const EditStack = Shade<EditStackProps>({
     const { props, injector, useState } = options
     const [isConfirmingDelete, setIsConfirmingDelete] = useState('isConfirmingDelete', false)
 
-    const stackState = useEntitySync(options, StackModel, props.stackName)
+    const stackState = useEntitySync(options, StackDefinition, props.stackName)
 
     if (stackState.status === 'connecting') {
       return (
@@ -83,7 +83,7 @@ export const EditStack = Shade<EditStackProps>({
 
     const api = injector.getInstance(StacksApiClient)
 
-    const handleSave = async (data: Partial<Stack>) => {
+    const handleSave = async (data: Partial<StackView>) => {
       try {
         await api.call({
           method: 'PATCH',

@@ -1,10 +1,10 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { Button, Input } from '@furystack/shades-common-components'
-import type { Stack } from 'common'
+import type { StackView } from 'common'
 
 type StackFormProps = {
-  initial?: Partial<Stack>
-  onSubmit: (data: Partial<Stack>) => void | Promise<void>
+  initial?: Partial<StackView>
+  onSubmit: (data: Partial<StackView>) => void | Promise<void>
   onCancel: () => void
   mode: 'create' | 'edit'
 }
@@ -28,6 +28,8 @@ export const StackForm = Shade<StackFormProps>({
         }}
       >
         <h2 style={{ margin: '0' }}>{props.mode === 'create' ? 'Create Stack' : 'Edit Stack'}</h2>
+
+        <h4 style={{ margin: '0', opacity: '0.7' }}>Definition</h4>
         <Input
           name="name"
           labelTitle="Name (identifier)"
@@ -50,6 +52,8 @@ export const StackForm = Shade<StackFormProps>({
           variant="outlined"
           value={props.initial?.description ?? ''}
         />
+
+        <h4 style={{ margin: '0', opacity: '0.7' }}>Configuration</h4>
         <Input
           name="mainDirectory"
           labelTitle="Main Directory"

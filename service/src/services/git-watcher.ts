@@ -1,7 +1,7 @@
 import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { Service } from 'common'
+import { ServiceConfig, ServiceDefinition, ServiceStatus } from 'common'
 
 import { useSystemIdentityContext } from '@furystack/core'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
@@ -43,15 +43,19 @@ export class GitWatcher {
     if (this.watchers.has(serviceId)) return
 
     const elevated = this.getElevatedInjector()
-    const services = await getRepository(elevated)
-      .getDataSetFor(Service, 'id')
-      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
-    const svc = services[0]
+    const svcDefDs = getRepository(elevated).getDataSetFor(ServiceDefinition, 'id')
+    const svcConfigDs = getRepository(elevated).getDataSetFor(ServiceConfig, 'serviceId')
 
-    if (!svc?.autoFetchEnabled || !svc?.repositoryId) return
+    const defs = await svcDefDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
+    const svc = defs[0]
+    if (!svc?.repositoryId) return
+
+    const configs = await svcConfigDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+    const config = configs[0]
+    if (!config?.autoFetchEnabled) return
 
     const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
-    const intervalMs = (svc.autoFetchIntervalMinutes || 60) * 60 * 1000
+    const intervalMs = (config.autoFetchIntervalMinutes || 60) * 60 * 1000
 
     const { remote } = await this.git.getBranches(cwd).catch(() => ({ remote: [] as string[] }))
 
@@ -63,7 +67,7 @@ export class GitWatcher {
 
     this.watchers.set(serviceId, entry)
     await this.logger.information({
-      message: `Started watching service ${svc.displayName} (every ${svc.autoFetchIntervalMinutes}min)`,
+      message: `Started watching service ${svc.displayName} (every ${config.autoFetchIntervalMinutes}min)`,
     })
   }
 
@@ -80,18 +84,22 @@ export class GitWatcher {
     if (!entry) return
 
     const elevated = this.getElevatedInjector()
-    const serviceDs = getRepository(elevated).getDataSetFor(Service, 'id')
-    const services = await serviceDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
-    const svc = services[0]
+    const svcDefDs = getRepository(elevated).getDataSetFor(ServiceDefinition, 'id')
+    const svcConfigDs = getRepository(elevated).getDataSetFor(ServiceConfig, 'serviceId')
+    const statusDs = getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId')
+
+    const defs = await svcDefDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
+    const svc = defs[0]
     if (!svc?.repositoryId) return
+
+    const configs = await svcConfigDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+    const config = configs[0]
 
     const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
 
     try {
       await this.git.fetch(cwd)
-      await serviceDs.update(elevated, serviceId, {
-        lastFetchedAt: new Date().toISOString(),
-      } as Partial<Service>)
+      await statusDs.update(elevated, serviceId, { lastFetchedAt: new Date().toISOString() })
 
       const { remote } = await this.git.getBranches(cwd)
       const newBranches = remote.filter((b) => !entry.lastBranches.has(b))
@@ -108,13 +116,14 @@ export class GitWatcher {
         })
       }
 
-      if (svc.autoRestartOnFetch) {
+      if (config?.autoRestartOnFetch) {
+        const autoRestartTrigger = { triggeredBy: 'system', triggerSource: 'auto-restart' as const }
         const { updated } = await this.git.pull(cwd)
         if (updated) {
           await this.logger.information({ message: `Changes pulled, restarting ${svc.displayName}` })
-          if (svc.installCommand) await this.pm.installService(serviceId)
-          if (svc.buildCommand) await this.pm.buildService(serviceId)
-          await this.pm.restartService(serviceId)
+          if (svc.installCommand) await this.pm.installService(serviceId, autoRestartTrigger)
+          if (svc.buildCommand) await this.pm.buildService(serviceId, autoRestartTrigger)
+          await this.pm.restartService(serviceId, autoRestartTrigger)
         }
       }
     } catch (error) {

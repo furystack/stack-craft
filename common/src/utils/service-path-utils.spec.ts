@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { getRepoNameFromUrl, getServiceCwd } from './service-path-utils.js'
-import type { GitHubRepository, Service, Stack } from '../models/index.js'
+import type { GitHubRepository } from '../models/index.js'
 
 describe('service-path-utils', () => {
   describe('getRepoNameFromUrl', () => {
@@ -19,35 +19,10 @@ describe('service-path-utils', () => {
   })
 
   describe('getServiceCwd', () => {
-    const stack: Stack = {
-      name: 'my-stack',
-      displayName: 'My Stack',
-      description: '',
-      mainDirectory: '/workspace/stacks/my-stack',
-      createdAt: '',
-      updatedAt: '',
-    }
+    const config = { mainDirectory: '/workspace/stacks/my-stack' }
 
     it('should join stack root with service path and repo name when repo is linked', () => {
-      const service: Service = {
-        id: 'svc-1',
-        stackName: 'my-stack',
-        displayName: 'Frontend',
-        description: '',
-        workingDirectory: 'frontends/public',
-        repositoryId: 'repo-1',
-        runCommand: 'npm start',
-        installStatus: 'not-installed',
-        buildStatus: 'not-built',
-        runStatus: 'stopped',
-        autoFetchEnabled: false,
-        autoFetchIntervalMinutes: 60,
-        autoRestartOnFetch: false,
-        dependencyIds: [],
-        prerequisiteServiceIds: [],
-        createdAt: '',
-        updatedAt: '',
-      }
+      const service = { workingDirectory: 'frontends/public' }
       const repo: GitHubRepository = {
         id: 'repo-1',
         stackName: 'my-stack',
@@ -57,50 +32,17 @@ describe('service-path-utils', () => {
         createdAt: '',
         updatedAt: '',
       }
-      expect(getServiceCwd(stack, service, repo)).toBe('/workspace/stacks/my-stack/frontends/public/my-frontend')
+      expect(getServiceCwd(config, service, repo)).toBe('/workspace/stacks/my-stack/frontends/public/my-frontend')
     })
 
     it('should use stack root when service has no workingDirectory and no repo', () => {
-      const service: Service = {
-        id: 'svc-1',
-        stackName: 'my-stack',
-        displayName: 'Service',
-        description: '',
-        runCommand: 'echo hi',
-        installStatus: 'not-installed',
-        buildStatus: 'not-built',
-        runStatus: 'stopped',
-        autoFetchEnabled: false,
-        autoFetchIntervalMinutes: 60,
-        autoRestartOnFetch: false,
-        dependencyIds: [],
-        prerequisiteServiceIds: [],
-        createdAt: '',
-        updatedAt: '',
-      }
-      expect(getServiceCwd(stack, service, null)).toBe('/workspace/stacks/my-stack')
+      const service = {}
+      expect(getServiceCwd(config, service, null)).toBe('/workspace/stacks/my-stack')
     })
 
     it('should use stack root + service path when no repo', () => {
-      const service: Service = {
-        id: 'svc-1',
-        stackName: 'my-stack',
-        displayName: 'Service',
-        description: '',
-        workingDirectory: 'services/gateway',
-        runCommand: 'echo hi',
-        installStatus: 'not-installed',
-        buildStatus: 'not-built',
-        runStatus: 'stopped',
-        autoFetchEnabled: false,
-        autoFetchIntervalMinutes: 60,
-        autoRestartOnFetch: false,
-        dependencyIds: [],
-        prerequisiteServiceIds: [],
-        createdAt: '',
-        updatedAt: '',
-      }
-      expect(getServiceCwd(stack, service, null)).toBe('/workspace/stacks/my-stack/services/gateway')
+      const service = { workingDirectory: 'services/gateway' }
+      expect(getServiceCwd(config, service, null)).toBe('/workspace/stacks/my-stack/services/gateway')
     })
   })
 })

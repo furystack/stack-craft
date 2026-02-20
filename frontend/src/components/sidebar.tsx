@@ -2,7 +2,8 @@ import { useCollectionSync } from '@furystack/entity-sync-client'
 import type { Injector } from '@furystack/inject'
 import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
 import { cssVariableTheme, Divider, Icon, icons } from '@furystack/shades-common-components'
-import { Stack } from 'common'
+import { StackDefinition } from 'common'
+import type { StackView } from 'common'
 import { match } from 'path-to-regexp'
 
 type SidebarStackLinkProps = {
@@ -48,7 +49,7 @@ const SidebarStackLink = Shade<SidebarStackLinkProps>({
 })
 
 type SidebarStackCategoryProps = {
-  stack: Stack
+  stack: StackView
   currentUrl: string
 }
 
@@ -94,8 +95,7 @@ const SidebarStackCategory = Shade<SidebarStackCategoryProps>({
   },
   render: ({ props, useState }) => {
     const stackPrefix = `/stacks/${props.stack.name}`
-    const isCategoryActive =
-      props.currentUrl === stackPrefix || props.currentUrl.startsWith(`${stackPrefix}/`)
+    const isCategoryActive = props.currentUrl === stackPrefix || props.currentUrl.startsWith(`${stackPrefix}/`)
 
     const [isExpanded, setIsExpanded] = useState('isExpanded', isCategoryActive)
 
@@ -216,8 +216,10 @@ export const Sidebar = Shade<{ injector?: Injector }>({
     const { injector, useObservable } = options
     const [currentUrl] = useObservable('locationChange', injector.getInstance(LocationService).onLocationPathChanged)
 
-    const stacksState = useCollectionSync(options, Stack, {})
-    const stacks = stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data : []
+    const stacksState = useCollectionSync(options, StackDefinition, {})
+    const stacks = (
+      stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data : []
+    ) as StackView[]
 
     return (
       <nav style={{ padding: '4px 0 8px' }}>

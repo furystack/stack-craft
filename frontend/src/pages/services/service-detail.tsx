@@ -1,4 +1,5 @@
 import { useCollectionSync, useEntitySync } from '@furystack/entity-sync-client'
+import type { Injector } from '@furystack/inject'
 import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
 
 import { navigate } from '../../utils/navigate.js'
@@ -12,13 +13,28 @@ import {
   PageHeader,
   Paper,
 } from '@furystack/shades-common-components'
-import { GitHubRepository, Service, Stack } from 'common'
+import { GitHubRepository, ServiceDefinition, StackDefinition } from 'common'
+import type { ServiceStateHistory, ServiceView, StackView } from 'common'
 import { getServiceCwd } from 'common'
 
 import { ConfirmDialog } from '../../components/confirm-dialog.js'
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
 import { ServiceStatusIndicator } from '../../components/service-status-indicator.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
+
+const eventLabels: Record<string, string> = {
+  'run-started': 'Started',
+  'run-stopped': 'Stopped',
+  'run-crashed': 'Crashed',
+  'run-restarted': 'Restarted',
+  'install-started': 'Install started',
+  'install-completed': 'Install completed',
+  'install-failed': 'Install failed',
+  'build-started': 'Build started',
+  'build-completed': 'Build completed',
+  'build-failed': 'Build failed',
+  'pull-completed': 'Pull completed',
+}
 
 type ServiceDetailProps = {
   serviceId: string
@@ -34,7 +50,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     const [isEditing, setIsEditing] = useState('isEditing', hasEditParam)
     const [isConfirmingDelete, setIsConfirmingDelete] = useState('isConfirmingDelete', false)
 
-    const serviceState = useEntitySync(options, Service, props.serviceId)
+    const serviceState = useEntitySync(options, ServiceDefinition, props.serviceId)
 
     if (serviceState.status === 'connecting') {
       return (
@@ -66,7 +82,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       )
     }
 
-    const service = serviceState.data
+    const service = serviceState.data as ServiceView | undefined
     if (!service) {
       return (
         <PageContainer>
@@ -86,18 +102,18 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       )
     }
 
-    const stackState = useEntitySync(options, Stack, service.stackName)
+    const stackState = useEntitySync(options, StackDefinition, service.stackName)
     const reposState = useCollectionSync(options, GitHubRepository, {
       filter: { stackName: { $eq: service.stackName } },
     })
     const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
     const linkedRepo = service.repositoryId ? repos.find((r) => r.id === service.repositoryId) : undefined
-    const stack = stackState.status === 'synced' ? stackState.data : undefined
+    const stack = stackState.status === 'synced' ? (stackState.data as StackView | undefined) : undefined
     const fullCwd = stack ? getServiceCwd(stack, service, linkedRepo ?? null) : null
 
     const api = injector.getInstance(ServicesApiClient)
 
-    const handleSave = async (data: Partial<Service>) => {
+    const handleSave = async (data: Partial<ServiceView>) => {
       try {
         await api.call({
           method: 'PATCH',
@@ -274,6 +290,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             <span>{service.runStatus}</span>
           </div>
         </Paper>
+        <ServiceHistory serviceId={service.id} injector={injector} />
         {isConfirmingDelete ? (
           <ConfirmDialog
             title="Delete Service"
@@ -285,6 +302,74 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           />
         ) : null}
       </PageContainer>
+    )
+  },
+})
+
+type ServiceHistoryProps = {
+  serviceId: string
+  injector: Injector
+}
+
+const ServiceHistory = Shade<ServiceHistoryProps>({
+  shadowDomName: 'shade-service-history',
+  render: ({ props, useState }) => {
+    const [entries, setEntries] = useState<ServiceStateHistory[]>('entries', [])
+    const [isLoading, setIsLoading] = useState('isLoading', true)
+
+    if (isLoading && entries.length === 0) {
+      props.injector
+        .getInstance(ServicesApiClient)
+        .call({
+          method: 'GET',
+          action: '/services/:id/history',
+          url: { id: props.serviceId },
+          query: { limit: 50 },
+        })
+        .then(({ result }) => {
+          setEntries(result.entries)
+          setIsLoading(false)
+        })
+        .catch(() => setIsLoading(false))
+    }
+
+    return (
+      <Paper>
+        <h3 style={{ margin: '0 0 12px 0' }}>History</h3>
+        {isLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
+            <Loader />
+          </div>
+        ) : entries.length === 0 ? (
+          <div style={{ opacity: '0.6', padding: '12px 0' }}>No history entries yet.</div>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '180px 160px 120px 120px 1fr',
+              gap: '4px 12px',
+              fontSize: '13px',
+            }}
+          >
+            <strong>Time</strong>
+            <strong>Event</strong>
+            <strong>Triggered by</strong>
+            <strong>Source</strong>
+            <strong>Details</strong>
+            {entries.map((entry) => (
+              <div style={{ display: 'contents' }}>
+                <span>{new Date(entry.createdAt).toLocaleString()}</span>
+                <span>{eventLabels[entry.event] ?? entry.event}</span>
+                <span>{entry.triggeredBy}</span>
+                <span>{entry.triggerSource}</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '12px', opacity: '0.8' }}>
+                  {entry.metadata ?? ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Paper>
     )
   },
 })

@@ -1,23 +1,17 @@
 import type { WithOptionalId } from '@furystack/core'
 import type { DeleteEndpoint, GetCollectionEndpoint, GetEntityEndpoint, PatchEndpoint, RestApi } from '@furystack/rest'
-import type { Service } from '../models/service.js'
+import type { ServiceConfig } from '../models/service-config.js'
+import type { ServiceDefinition } from '../models/service-definition.js'
 import type { ServiceLogEntry } from '../models/service-log-entry.js'
+import type { ServiceStateHistory } from '../models/service-state-history.js'
+import type { ServiceView } from '../models/views.js'
 
-export type ServiceWritableFields = Omit<
-  Service,
-  | 'installStatus'
-  | 'buildStatus'
-  | 'runStatus'
-  | 'lastInstalledAt'
-  | 'lastBuiltAt'
-  | 'lastStartedAt'
-  | 'lastFetchedAt'
-  | 'createdAt'
-  | 'updatedAt'
->
+export type ServiceDefinitionWritableFields = Omit<ServiceDefinition, 'createdAt' | 'updatedAt'>
+export type ServiceConfigWritableFields = Omit<ServiceConfig, 'createdAt' | 'updatedAt'>
+export type ServiceWritableFields = ServiceDefinitionWritableFields & Omit<ServiceConfigWritableFields, 'serviceId'>
 
 export type PostServiceEndpoint = {
-  result: Service
+  result: ServiceView
   body: WithOptionalId<ServiceWritableFields, 'id'>
 }
 
@@ -36,11 +30,18 @@ export type ClearServiceLogsEndpoint = {
   result: { success: boolean }
 }
 
+export type ServiceHistoryEndpoint = {
+  url: { id: string }
+  query: { limit?: number }
+  result: { entries: ServiceStateHistory[] }
+}
+
 export interface ServicesApi extends RestApi {
   GET: {
-    '/services': GetCollectionEndpoint<Service>
-    '/services/:id': GetEntityEndpoint<Service, 'id'>
+    '/services': GetCollectionEndpoint<ServiceView>
+    '/services/:id': GetEntityEndpoint<ServiceView, 'id'>
     '/services/:id/logs': ServiceLogsEndpoint
+    '/services/:id/history': ServiceHistoryEndpoint
   }
   POST: {
     '/services': PostServiceEndpoint
@@ -55,7 +56,7 @@ export interface ServicesApi extends RestApi {
     '/services/:id': PatchServiceEndpoint
   }
   DELETE: {
-    '/services/:id': DeleteEndpoint<Service, 'id'>
+    '/services/:id': DeleteEndpoint<ServiceDefinition, 'id'>
     '/services/:id/logs': ClearServiceLogsEndpoint
   }
 }

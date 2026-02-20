@@ -7,7 +7,7 @@ import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ServiceActionEndpoint } from 'common'
-import { GitHubRepository, Service, Stack } from 'common'
+import { GitHubRepository, ServiceDefinition, StackConfig } from 'common'
 import { getServiceCwd } from 'common'
 import { GitService } from '../../../services/git-service.js'
 import { ProcessManager } from '../../../services/process-manager.js'
@@ -20,42 +20,43 @@ export const ServiceLifecycleAction =
     const logger = getLogger(injector).withScope('ServiceLifecycle')
     const { id: serviceId } = getUrlParams()
     const pm = injector.getInstance(ProcessManager)
+    const trigger = { triggeredBy: 'user', triggerSource: 'api' as const }
 
     await logger.information({ message: `Service lifecycle action: ${action} for service ${serviceId}` })
 
     try {
       switch (action) {
         case 'start':
-          await pm.startService(serviceId)
+          await pm.startService(serviceId, trigger)
           break
         case 'stop':
-          await pm.stopService(serviceId)
+          await pm.stopService(serviceId, trigger)
           break
         case 'restart':
-          await pm.restartService(serviceId)
+          await pm.restartService(serviceId, trigger)
           break
         case 'install':
-          await pm.installService(serviceId)
+          await pm.installService(serviceId, trigger)
           break
         case 'build':
-          await pm.buildService(serviceId)
+          await pm.buildService(serviceId, trigger)
           break
         case 'pull': {
           const repository = getRepository(injector)
-          const serviceDs = repository.getDataSetFor(Service, 'id')
-          const stackDs = repository.getDataSetFor(Stack, 'name')
+          const serviceDs = repository.getDataSetFor(ServiceDefinition, 'id')
+          const stackConfigDs = repository.getDataSetFor(StackConfig, 'stackName')
           const repoDs = repository.getDataSetFor(GitHubRepository, 'id')
 
           const svcs = await serviceDs.find(injector, { filter: { id: { $eq: serviceId } }, top: 1 })
           const svc = svcs[0]
           if (!svc) throw new RequestError('Service not found', 404)
 
-          const stacks = await stackDs.find(injector, {
-            filter: { name: { $eq: svc.stackName } },
+          const configs = await stackConfigDs.find(injector, {
+            filter: { stackName: { $eq: svc.stackName } },
             top: 1,
           })
-          const stack = stacks[0]
-          if (!stack) throw new RequestError(`Stack not found: ${svc.stackName}`, 404)
+          const stackConfig = configs[0]
+          if (!stackConfig) throw new RequestError(`Stack config not found: ${svc.stackName}`, 404)
 
           let repo: GitHubRepository | null = null
           if (svc.repositoryId) {
@@ -70,8 +71,8 @@ export const ServiceLifecycleAction =
             throw new RequestError(`No repository linked. Link a GitHub repository to enable clone/pull.`, 400)
           }
 
-          const cwd = resolvePath(getServiceCwd(stack, svc, repo))
-          const stackRoot = resolve(resolvePath(stack.mainDirectory))
+          const cwd = resolvePath(getServiceCwd(stackConfig, svc, repo))
+          const stackRoot = resolve(resolvePath(stackConfig.mainDirectory))
           if (!cwd.startsWith(stackRoot)) {
             throw new RequestError(`Resolved path "${cwd}" is outside the stack directory "${stackRoot}"`, 400)
           }

@@ -3,7 +3,7 @@ import { createComponent, Shade } from '@furystack/shades'
 
 import { navigate } from '../../utils/navigate.js'
 import { NotyService, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
-import type { Service } from 'common'
+import type { ServiceView } from 'common'
 import { GitHubRepository } from 'common'
 
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
@@ -22,7 +22,7 @@ export const CreateService = Shade<CreateServiceProps>({
       filter: { stackName: { $eq: props.stackName } },
     })
     const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
-    const handleSubmit = async (data: Partial<Service>) => {
+    const handleSubmit = async (data: Partial<ServiceView>) => {
       try {
         await injector.getInstance(ServicesApiClient).call({
           method: 'POST',

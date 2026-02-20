@@ -5,28 +5,27 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "UUID primary key"
         },
         "stackName": {
-          "type": "string"
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
         },
         "url": {
-          "type": "string"
+          "type": "string",
+          "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
         },
         "displayName": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Optional description"
         }
       },
-      "required": [
-        "id",
-        "stackName",
-        "url",
-        "displayName",
-        "description"
-      ],
+      "required": ["id", "stackName", "url", "displayName", "description"],
       "additionalProperties": false
     },
     "PostGitHubRepoEndpoint": {
@@ -39,29 +38,31 @@
           "$ref": "#/definitions/WithOptionalId%3CGitHubRepoWritableFields%2C%22id%22%3E"
         }
       },
-      "required": [
-        "result",
-        "body"
-      ],
+      "required": ["result", "body"],
       "additionalProperties": false
     },
     "GitHubRepository": {
       "type": "object",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "UUID primary key"
         },
         "stackName": {
-          "type": "string"
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
         },
         "url": {
-          "type": "string"
+          "type": "string",
+          "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
         },
         "displayName": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Optional description"
         },
         "createdAt": {
           "type": "string"
@@ -70,43 +71,36 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "stackName",
-        "url",
-        "displayName",
-        "description",
-        "createdAt",
-        "updatedAt"
-      ],
-      "additionalProperties": false
+      "required": ["id", "stackName", "url", "displayName", "description", "createdAt", "updatedAt"],
+      "additionalProperties": false,
+      "description": "Shareable GitHub repository definition. Links a git repository to a stack for cloning and pulling. Included in stack exports and shared between installations."
     },
     "WithOptionalId<GitHubRepoWritableFields,\"id\">": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "UUID primary key"
         },
         "stackName": {
-          "type": "string"
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
         },
         "url": {
-          "type": "string"
+          "type": "string",
+          "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
         },
         "displayName": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Optional description"
         }
       },
-      "required": [
-        "description",
-        "displayName",
-        "stackName",
-        "url"
-      ]
+      "required": ["description", "displayName", "stackName", "url"]
     },
     "PatchGitHubRepoEndpoint": {
       "$ref": "#/definitions/PatchEndpoint%3CGitHubRepoWritableFields%2C%22id%22%3E"
@@ -118,19 +112,24 @@
           "type": "object",
           "properties": {
             "id": {
-              "type": "string"
+              "type": "string",
+              "description": "UUID primary key"
             },
             "stackName": {
-              "type": "string"
+              "type": "string",
+              "description": "FK to  {@link  StackDefinition.name  }"
             },
             "url": {
-              "type": "string"
+              "type": "string",
+              "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
             },
             "displayName": {
-              "type": "string"
+              "type": "string",
+              "description": "Human-readable name shown in the UI"
             },
             "description": {
-              "type": "string"
+              "type": "string",
+              "description": "Optional description"
             }
           },
           "additionalProperties": false
@@ -139,23 +138,18 @@
           "type": "object",
           "properties": {
             "id": {
-              "type": "string"
+              "type": "string",
+              "description": "UUID primary key"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": [
-        "body",
-        "url",
-        "result"
-      ],
+      "required": ["body", "url", "result"],
       "additionalProperties": false,
       "description": "Endpoint model for updating entities"
     },
@@ -169,9 +163,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
@@ -184,16 +176,11 @@
               "type": "string"
             }
           },
-          "required": [
-            "accessible"
-          ],
+          "required": ["accessible"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "url",
-        "result"
-      ],
+      "required": ["url", "result"],
       "additionalProperties": false
     },
     "GitHubRepositoriesApi": {
@@ -209,10 +196,7 @@
               "$ref": "#/definitions/GetEntityEndpoint%3CGitHubRepository%2C%22id%22%3E"
             }
           },
-          "required": [
-            "/github-repositories",
-            "/github-repositories/:id"
-          ],
+          "required": ["/github-repositories", "/github-repositories/:id"],
           "additionalProperties": false
         },
         "POST": {
@@ -225,10 +209,7 @@
               "$ref": "#/definitions/ValidateRepoEndpoint"
             }
           },
-          "required": [
-            "/github-repositories",
-            "/github-repositories/:id/validate"
-          ],
+          "required": ["/github-repositories", "/github-repositories/:id/validate"],
           "additionalProperties": false
         },
         "PATCH": {
@@ -238,9 +219,7 @@
               "$ref": "#/definitions/PatchGitHubRepoEndpoint"
             }
           },
-          "required": [
-            "/github-repositories/:id"
-          ],
+          "required": ["/github-repositories/:id"],
           "additionalProperties": false
         },
         "PUT": {
@@ -254,9 +233,7 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -267,9 +244,7 @@
               "$ref": "#/definitions/DeleteEndpoint%3CGitHubRepository%2C%22id%22%3E"
             }
           },
-          "required": [
-            "/github-repositories/:id"
-          ],
+          "required": ["/github-repositories/:id"],
           "additionalProperties": false
         },
         "HEAD": {
@@ -283,9 +258,7 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -300,9 +273,7 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -317,9 +288,7 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -334,19 +303,12 @@
               "body": {},
               "headers": {}
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         }
       },
-      "required": [
-        "GET",
-        "POST",
-        "PATCH",
-        "DELETE"
-      ],
+      "required": ["GET", "POST", "PATCH", "DELETE"],
       "additionalProperties": false
     },
     "GetCollectionEndpoint<GitHubRepository>": {
@@ -365,10 +327,7 @@
           "$ref": "#/definitions/GetCollectionResult%3CGitHubRepository%3E"
         }
       },
-      "required": [
-        "query",
-        "result"
-      ],
+      "required": ["query", "result"],
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
@@ -388,52 +347,31 @@
           "properties": {
             "id": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "stackName": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "url": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "displayName": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "description": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "createdAt": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "updatedAt": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             }
           },
           "additionalProperties": false,
@@ -443,15 +381,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": [
-              "id",
-              "stackName",
-              "url",
-              "displayName",
-              "description",
-              "createdAt",
-              "updatedAt"
-            ]
+            "enum": ["id", "stackName", "url", "displayName", "description", "createdAt", "updatedAt"]
           },
           "description": "The result set will be limited to these fields"
         },
@@ -497,16 +427,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 }
               },
               "additionalProperties": false
@@ -515,10 +449,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "UUID primary key"
                 }
               },
               "additionalProperties": false
@@ -529,13 +465,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "UUID primary key"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "UUID primary key"
                   }
                 }
               },
@@ -549,16 +487,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 }
               },
               "additionalProperties": false
@@ -567,10 +509,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
                 }
               },
               "additionalProperties": false
@@ -581,13 +525,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
                   }
                 }
               },
@@ -601,16 +547,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
                 }
               },
               "additionalProperties": false
@@ -619,10 +569,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
                 }
               },
               "additionalProperties": false
@@ -633,13 +585,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
                   }
                 }
               },
@@ -653,16 +607,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
                 }
               },
               "additionalProperties": false
@@ -671,10 +629,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
                 }
               },
               "additionalProperties": false
@@ -685,13 +645,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Human-readable name shown in the UI"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Human-readable name shown in the UI"
                   }
                 }
               },
@@ -705,16 +667,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional description"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional description"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional description"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional description"
                 }
               },
               "additionalProperties": false
@@ -723,10 +689,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional description"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Optional description"
                 }
               },
               "additionalProperties": false
@@ -737,13 +705,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Optional description"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Optional description"
                   }
                 }
               },
@@ -872,10 +842,7 @@
           "description": "List of the selected entities"
         }
       },
-      "required": [
-        "count",
-        "entries"
-      ],
+      "required": ["count", "entries"],
       "additionalProperties": false,
       "description": "Response Model for GetCollection"
     },
@@ -889,15 +856,7 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": [
-                  "id",
-                  "stackName",
-                  "url",
-                  "displayName",
-                  "description",
-                  "createdAt",
-                  "updatedAt"
-                ]
+                "enum": ["id", "stackName", "url", "displayName", "description", "createdAt", "updatedAt"]
               },
               "description": "The list of fields to select"
             }
@@ -912,20 +871,14 @@
               "description": "The entity's unique identifier"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "$ref": "#/definitions/GitHubRepository"
         }
       },
-      "required": [
-        "query",
-        "url",
-        "result"
-      ],
+      "required": ["query", "url", "result"],
       "additionalProperties": false,
       "description": "Endpoint model for getting a single entity"
     },
@@ -936,22 +889,18 @@
           "type": "object",
           "properties": {
             "id": {
-              "type": "string"
+              "type": "string",
+              "description": "UUID primary key"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": [
-        "url",
-        "result"
-      ],
+      "required": ["url", "result"],
       "additionalProperties": false,
       "description": "Endpoint model for deleting entities"
     }

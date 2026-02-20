@@ -3,7 +3,16 @@ import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ImportStackEndpoint } from 'common'
-import { Dependency, GitHubRepository, Service, Stack } from 'common'
+import {
+  Dependency,
+  GitHubRepository,
+  ServiceConfig,
+  ServiceDefinition,
+  ServiceStateHistory,
+  ServiceStatus,
+  StackConfig,
+  StackDefinition,
+} from 'common'
 
 export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ injector, getBody }) => {
   const logger = getLogger(injector).withScope('ImportStack')
@@ -14,6 +23,15 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
   const stackName = body.stack.name
 
   await logger.information({ message: `Importing stack: ${stackName}` })
+
+  const stackDefDs = repository.getDataSetFor(StackDefinition, 'name')
+  const stackConfigDs = repository.getDataSetFor(StackConfig, 'stackName')
+  const repoDs = repository.getDataSetFor(GitHubRepository, 'id')
+  const depDs = repository.getDataSetFor(Dependency, 'id')
+  const svcDefDs = repository.getDataSetFor(ServiceDefinition, 'id')
+  const svcConfigDs = repository.getDataSetFor(ServiceConfig, 'serviceId')
+  const svcStatusDs = repository.getDataSetFor(ServiceStatus, 'serviceId')
+  const historyDs = repository.getDataSetFor(ServiceStateHistory, 'id')
 
   const repositories = body.repositories.map((repo) => ({
     ...repo,
@@ -29,31 +47,80 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
     updatedAt: now,
   }))
 
-  const services = body.services.map((svc) => ({
+  const serviceDefinitions = body.services.map((svc) => ({
     ...svc,
     stackName,
-    installStatus: 'not-installed' as const,
-    buildStatus: 'not-built' as const,
-    runStatus: 'stopped' as const,
     createdAt: now,
     updatedAt: now,
   }))
 
-  const stackDs = repository.getDataSetFor(Stack, 'name')
-  const repoDs = repository.getDataSetFor(GitHubRepository, 'id')
-  const depDs = repository.getDataSetFor(Dependency, 'id')
-  const serviceDs = repository.getDataSetFor(Service, 'id')
-
   try {
-    await stackDs.add(injector, { ...body.stack, createdAt: now, updatedAt: now })
-    await repoDs.add(injector, ...repositories)
-    await depDs.add(injector, ...dependencies)
-    await serviceDs.add(injector, ...services)
+    await stackDefDs.add(injector, {
+      ...body.stack,
+      createdAt: now,
+      updatedAt: now,
+    })
+
+    await stackConfigDs.add(injector, {
+      stackName,
+      mainDirectory: body.config.mainDirectory,
+      createdAt: now,
+      updatedAt: now,
+    })
+
+    if (repositories.length > 0) {
+      await repoDs.add(injector, ...repositories)
+    }
+    if (dependencies.length > 0) {
+      await depDs.add(injector, ...dependencies)
+    }
+    if (serviceDefinitions.length > 0) {
+      await svcDefDs.add(injector, ...serviceDefinitions)
+    }
+
+    for (const svcDef of serviceDefinitions) {
+      const userConfig = body.config.services?.[svcDef.id]
+      await svcConfigDs.add(injector, {
+        serviceId: svcDef.id,
+        autoFetchEnabled: userConfig?.autoFetchEnabled ?? false,
+        autoFetchIntervalMinutes: userConfig?.autoFetchIntervalMinutes ?? 60,
+        autoRestartOnFetch: userConfig?.autoRestartOnFetch ?? false,
+        createdAt: now,
+        updatedAt: now,
+      })
+
+      await svcStatusDs.add(injector, {
+        serviceId: svcDef.id,
+        installStatus: 'not-installed',
+        buildStatus: 'not-built',
+        runStatus: 'stopped',
+        updatedAt: now,
+      })
+
+      await historyDs.add(injector, {
+        id: 0,
+        serviceId: svcDef.id,
+        event: 'install-completed',
+        newState: JSON.stringify({ installStatus: 'not-installed', buildStatus: 'not-built', runStatus: 'stopped' }),
+        triggeredBy: 'system',
+        triggerSource: 'api',
+        metadata: JSON.stringify({ action: 'import' }),
+        createdAt: now,
+      })
+    }
   } catch (error) {
     await logger.warning({ message: `Import failed for stack ${stackName}, rolling back`, data: { error } })
 
-    for (const svc of services) {
-      await serviceDs.remove(injector, svc.id).catch(() => {})
+    for (const svcDef of serviceDefinitions) {
+      await historyDs
+        .find(injector, { filter: { serviceId: { $eq: svcDef.id } } })
+        .then(async (entries) => {
+          for (const e of entries) await historyDs.remove(injector, e.id).catch(() => {})
+        })
+        .catch(() => {})
+      await svcStatusDs.remove(injector, svcDef.id).catch(() => {})
+      await svcConfigDs.remove(injector, svcDef.id).catch(() => {})
+      await svcDefDs.remove(injector, svcDef.id).catch(() => {})
     }
     for (const dep of dependencies) {
       await depDs.remove(injector, dep.id).catch(() => {})
@@ -61,7 +128,8 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
     for (const repo of repositories) {
       await repoDs.remove(injector, repo.id).catch(() => {})
     }
-    await stackDs.remove(injector, stackName).catch(() => {})
+    await stackConfigDs.remove(injector, stackName).catch(() => {})
+    await stackDefDs.remove(injector, stackName).catch(() => {})
 
     const message = error instanceof Error ? error.message : 'Unknown error during import'
     throw new RequestError(`Import failed: ${message}`, 500)
