@@ -1,5 +1,7 @@
+import type { FindOptions } from '@furystack/core'
 import { createComponent, Shade } from '@furystack/shades'
-import { Button } from '@furystack/shades-common-components'
+import { Button, CollectionService, DataGrid } from '@furystack/shades-common-components'
+import { ObservableValue } from '@furystack/utils'
 import type { GitHubRepository } from 'common'
 
 type RepositoryTableProps = {
@@ -7,59 +9,49 @@ type RepositoryTableProps = {
   onEdit: (repositoryId: string) => void
 }
 
+type RepositoryColumn = 'displayName' | 'url' | 'actions'
+
 export const RepositoryTable = Shade<RepositoryTableProps>({
   shadowDomName: 'shade-repository-table',
-  css: {
-    '& table': {
-      width: '100%',
-      borderCollapse: 'collapse',
-    },
-    '& th, & td': {
-      textAlign: 'left',
-      padding: '10px 12px',
-      borderBottom: '1px solid rgba(255,255,255,0.08)',
-    },
-    '& th': {
-      fontSize: '12px',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px',
-      opacity: '0.7',
-    },
-    '& tr:hover td': {
-      background: 'rgba(255,255,255,0.03)',
-    },
-  },
-  render: ({ props }) => {
+  render: ({ props, useDisposable }) => {
+    const collectionService = useDisposable(
+      'collectionService',
+      () => new CollectionService<GitHubRepository>({ searchField: 'displayName' }),
+    )
+
+    const findOptions = useDisposable(
+      'findOptions',
+      () => new ObservableValue<FindOptions<GitHubRepository, Array<keyof GitHubRepository>>>({}),
+    )
+
+    collectionService.data.setValue({ entries: props.repositories, count: props.repositories.length })
+
     return (
-      <table>
-        <thead>
-          <tr>
-            <th>Repository</th>
-            <th>URL</th>
-            <th style={{ width: '100px' }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {props.repositories.map((repo) => (
-            <tr>
-              <td>
-                <strong>{repo.displayName}</strong>
-                {repo.description ? (
-                  <div style={{ fontSize: '12px', opacity: '0.6', marginTop: '2px' }}>{repo.description}</div>
-                ) : null}
-              </td>
-              <td>
-                <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>{repo.url}</span>
-              </td>
-              <td>
-                <Button variant="outlined" onclick={() => props.onEdit(repo.id)}>
-                  Edit
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <DataGrid<GitHubRepository, RepositoryColumn>
+        columns={['displayName', 'url', 'actions']}
+        findOptions={findOptions}
+        styles={undefined}
+        collectionService={collectionService}
+        headerComponents={{
+          actions: () => <span style={{ paddingLeft: '1em' }}>Actions</span>,
+        }}
+        rowComponents={{
+          displayName: (entry) => (
+            <span>
+              <strong>{entry.displayName}</strong>
+              {entry.description ? (
+                <div style={{ fontSize: '12px', opacity: '0.6', marginTop: '2px' }}>{entry.description}</div>
+              ) : null}
+            </span>
+          ),
+          url: (entry) => <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>{entry.url}</span>,
+          actions: (entry) => (
+            <Button variant="outlined" onclick={() => props.onEdit(entry.id)}>
+              Edit
+            </Button>
+          ),
+        }}
+      />
     )
   },
 })

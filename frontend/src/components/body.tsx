@@ -49,6 +49,9 @@ const appRoutes = {
   '/stacks/:name/edit': {
     component: ({ match }) => <EditStack stackName={match.params.name} />,
   },
+  '/stacks/:name': {
+    component: ({ match }) => <Dashboard stackName={match.params.name} />,
+  },
   '/stacks/:name/export': {
     component: ({ match }) => <ExportStack stackName={match.params.name} />,
   },

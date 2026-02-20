@@ -550,9 +550,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@furystack/shades-common-components@npm:^12.2.0":
-  version: 12.2.0
-  resolution: "@furystack/shades-common-components@npm:12.2.0"
+"@furystack/shades-common-components@npm:^12.3.0":
+  version: 12.3.0
+  resolution: "@furystack/shades-common-components@npm:12.3.0"
   dependencies:
     "@furystack/cache": "npm:^6.0.0"
     "@furystack/core": "npm:^15.1.0"
@@ -560,7 +560,7 @@ __metadata:
     "@furystack/shades": "npm:^12.1.0"
     "@furystack/utils": "npm:^8.1.10"
     path-to-regexp: "npm:^8.3.0"
-  checksum: 10c0/e3fc02639fd5f7bb4312a1c595e436a37acf85917864a5661717c27d5c1f860667fb4b69390616408f55915f616a9c48006e6ef292d861640ef04fad7beccfcf
+  checksum: 10c0/fce4176741ea6b108e6bd60fb7b558098faaf53bc7dddf8c5dc5e8b41886169a97cae329ac17b51b0e886041943cc2c666443eae862f852aa5475ff97c9c8d4b
   languageName: node
   linkType: hard
 
@@ -685,9 +685,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/sdk@npm:1.27.0":
-  version: 1.27.0
-  resolution: "@modelcontextprotocol/sdk@npm:1.27.0"
+"@modelcontextprotocol/sdk@npm:1.26.0":
+  version: 1.26.0
+  resolution: "@modelcontextprotocol/sdk@npm:1.26.0"
   dependencies:
     "@hono/node-server": "npm:^1.19.9"
     ajv: "npm:^8.17.1"
@@ -714,7 +714,7 @@ __metadata:
       optional: true
     zod:
       optional: false
-  checksum: 10c0/2c1a69d8873753f2152998633c31ae34f2bd434be5483a2a0b64224909068411493a5655f669aec3e9df782f98dcc9bbe95fd7e8eb487de8a8426f8249b583ce
+  checksum: 10c0/b4098789d9fbbc4d9e0df240b18ba28867e4990ca4305322d6724fd03bba6685bbf21b39e02578b959da620b5a704ab1d565d3dbf377778ee9e4a0677b790728
   languageName: node
   linkType: hard
 
@@ -2365,9 +2365,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-jsdoc@npm:^62.6.0":
-  version: 62.6.0
-  resolution: "eslint-plugin-jsdoc@npm:62.6.0"
+"eslint-plugin-jsdoc@npm:^62.6.1":
+  version: 62.6.1
+  resolution: "eslint-plugin-jsdoc@npm:62.6.1"
   dependencies:
     "@es-joy/jsdoccomment": "npm:~0.84.0"
     "@es-joy/resolve.exports": "npm:1.2.0"
@@ -2385,7 +2385,7 @@ __metadata:
     to-valid-identifier: "npm:^1.0.0"
   peerDependencies:
     eslint: ^7.0.0 || ^8.0.0 || ^9.0.0
-  checksum: 10c0/454bcdbe54628be9eac9bce64a3e4a44e85a73c535431ccb62a6469af5956fd7ff049974d9a91692bc89431ee719f71fa2477c0a1194f7add5b4b961f20f23fa
+  checksum: 10c0/f423531572a11af59d646eb10b8d63a5aecbe8f76f541c8027f94eea129d5b0406368676af02fa5fe89ead7458c052294504e630fbc2eefd4804f278a93b5384
   languageName: node
   linkType: hard
 
@@ -2765,7 +2765,7 @@ __metadata:
     "@furystack/logging": "npm:^8.0.30"
     "@furystack/rest-client-fetch": "npm:^8.0.37"
     "@furystack/shades": "npm:^12.1.0"
-    "@furystack/shades-common-components": "npm:^12.2.0"
+    "@furystack/shades-common-components": "npm:^12.3.0"
     "@furystack/utils": "npm:^8.1.10"
     "@types/node": "npm:^25.3.0"
     common: "workspace:^"
@@ -4636,7 +4636,7 @@ __metadata:
     "@furystack/rest-service": "npm:^11.0.5"
     "@furystack/security": "npm:^6.0.37"
     "@furystack/websocket-api": "npm:^13.1.9"
-    "@modelcontextprotocol/sdk": "npm:1.27.0"
+    "@modelcontextprotocol/sdk": "npm:1.26.0"
     "@types/node": "npm:^25.3.0"
     common: "workspace:^"
     typescript: "npm:^5.9.3"
@@ -4855,7 +4855,7 @@ __metadata:
     eslint: "npm:^10.0.0"
     eslint-config-prettier: "npm:^10.1.8"
     eslint-plugin-import: "npm:2.32.0"
-    eslint-plugin-jsdoc: "npm:^62.6.0"
+    eslint-plugin-jsdoc: "npm:^62.6.1"
     eslint-plugin-prettier: "npm:^5.5.5"
     husky: "npm:^9.1.7"
     lint-staged: "npm:^16.2.7"

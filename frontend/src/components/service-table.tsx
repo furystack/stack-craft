@@ -1,5 +1,7 @@
+import type { FindOptions } from '@furystack/core'
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, cssVariableTheme } from '@furystack/shades-common-components'
+import { Button, CollectionService, cssVariableTheme, DataGrid, SelectionCell } from '@furystack/shades-common-components'
+import { ObservableValue } from '@furystack/utils'
 import type { Service } from 'common'
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
 import { ServiceStatusIndicator } from './service-status-indicator.js'
@@ -10,57 +12,39 @@ type ServiceTableProps = {
   onEdit: (serviceId: string) => void
 }
 
+type ServiceColumn = 'selection' | 'displayName' | 'runStatus' | 'actions'
+
 export const ServiceTable = Shade<ServiceTableProps>({
   shadowDomName: 'shade-service-table',
-  css: {
-    '& table': {
-      width: '100%',
-      borderCollapse: 'collapse',
-    },
-    '& th, & td': {
-      textAlign: 'left',
-      padding: '10px 12px',
-      borderBottom: '1px solid rgba(255,255,255,0.08)',
-    },
-    '& th': {
-      fontSize: '12px',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px',
-      opacity: '0.7',
-    },
-    '& tr:hover td': {
-      background: 'rgba(255,255,255,0.03)',
-    },
-  },
-  render: ({ props, injector, useState }) => {
-    const [selectedIds, setSelectedIds] = useState<Set<string>>('selected', new Set())
+  render: ({ props, injector, useDisposable, useObservable, useState }) => {
+    const api = injector.getInstance(ServicesApiClient)
     const [loading, setLoading] = useState('loading', false)
 
-    const api = injector.getInstance(ServicesApiClient)
+    const collectionService = useDisposable(
+      'collectionService',
+      () => new CollectionService<Service>({ searchField: 'displayName' }),
+    )
 
-    const toggleSelect = (id: string) => {
-      const next = new Set(selectedIds)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      setSelectedIds(next)
-    }
+    const findOptions = useDisposable(
+      'findOptions',
+      () => new ObservableValue<FindOptions<Service, Array<keyof Service>>>({}),
+    )
 
-    const toggleAll = () => {
-      if (selectedIds.size === props.services.length) {
-        setSelectedIds(new Set())
-      } else {
-        setSelectedIds(new Set(props.services.map((s) => s.id)))
-      }
-    }
+    collectionService.data.setValue({ entries: props.services, count: props.services.length })
+
+    const [selectedServices] = useObservable('selection', collectionService.selection)
+
+    const hasRunning = selectedServices.some((s) => s.runStatus === 'running')
+    const hasStopped = selectedServices.some((s) => s.runStatus !== 'running')
 
     const bulkAction = async (action: string) => {
       setLoading(true)
-      for (const id of selectedIds) {
+      for (const svc of selectedServices) {
         try {
           await api.call({
             method: 'POST',
             action: `/services/:id/${action}` as '/services/:id/start',
-            url: { id },
+            url: { id: svc.id },
           })
         } catch {
           // Individual failures are handled by entity-sync status updates
@@ -69,13 +53,9 @@ export const ServiceTable = Shade<ServiceTableProps>({
       setLoading(false)
     }
 
-    const selectedServices = props.services.filter((s) => selectedIds.has(s.id))
-    const hasRunning = selectedServices.some((s) => s.runStatus === 'running')
-    const hasStopped = selectedServices.some((s) => s.runStatus !== 'running')
-
     return (
       <div>
-        {selectedIds.size > 0 ? (
+        {selectedServices.length > 0 ? (
           <div
             style={{
               padding: '8px 16px',
@@ -87,7 +67,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
               gap: '8px',
             }}
           >
-            <span style={{ fontSize: '14px', opacity: '0.8' }}>{selectedIds.size} selected</span>
+            <span style={{ fontSize: '14px', opacity: '0.8' }}>{selectedServices.length} selected</span>
             <div style={{ flex: '1' }} />
             {hasStopped ? (
               <Button variant="contained" color="success" disabled={loading} onclick={() => void bulkAction('start')}>
@@ -107,69 +87,57 @@ export const ServiceTable = Shade<ServiceTableProps>({
             </Button>
           </div>
         ) : null}
-        <table>
-          <thead>
-            <tr>
-              <th style={{ width: '40px' }}>
-                <input
-                  type="checkbox"
-                  checked={selectedIds.size === props.services.length && props.services.length > 0}
-                  onchange={toggleAll}
-                />
-              </th>
-              <th>Service</th>
-              <th>Status</th>
-              <th style={{ width: '200px' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {props.services.map((svc) => (
-              <tr>
-                <td>
-                  <input type="checkbox" checked={selectedIds.has(svc.id)} onchange={() => toggleSelect(svc.id)} />
-                </td>
-                <td>
-                  <strong>{svc.displayName}</strong>
-                  {svc.description ? (
-                    <div style={{ fontSize: '12px', opacity: '0.6', marginTop: '2px' }}>{svc.description}</div>
-                  ) : null}
-                </td>
-                <td>
-                  <ServiceStatusIndicator service={svc} />
-                </td>
-                <td>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    {svc.runStatus !== 'running' ? (
-                      <Button
-                        variant="outlined"
-                        onclick={() => {
-                          void api.call({ method: 'POST', action: '/services/:id/start', url: { id: svc.id } })
-                        }}
-                      >
-                        Start
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outlined"
-                        onclick={() => {
-                          void api.call({ method: 'POST', action: '/services/:id/stop', url: { id: svc.id } })
-                        }}
-                      >
-                        Stop
-                      </Button>
-                    )}
-                    <Button variant="outlined" onclick={() => props.onViewLogs(svc.id)}>
-                      Logs
-                    </Button>
-                    <Button variant="outlined" onclick={() => props.onEdit(svc.id)}>
-                      Edit
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataGrid<Service, ServiceColumn>
+          columns={['selection', 'displayName', 'runStatus', 'actions']}
+          findOptions={findOptions}
+          styles={undefined}
+          collectionService={collectionService}
+          headerComponents={{
+            selection: () => <span />,
+            actions: () => <span style={{ paddingLeft: '1em' }}>Actions</span>,
+          }}
+          rowComponents={{
+            selection: (entry) => <SelectionCell entry={entry} service={collectionService} />,
+            displayName: (entry) => (
+              <span>
+                <strong>{entry.displayName}</strong>
+                {entry.description ? (
+                  <div style={{ fontSize: '12px', opacity: '0.6', marginTop: '2px' }}>{entry.description}</div>
+                ) : null}
+              </span>
+            ),
+            runStatus: (entry) => <ServiceStatusIndicator service={entry} />,
+            actions: (entry) => (
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {entry.runStatus !== 'running' ? (
+                  <Button
+                    variant="outlined"
+                    onclick={() => {
+                      void api.call({ method: 'POST', action: '/services/:id/start', url: { id: entry.id } })
+                    }}
+                  >
+                    Start
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outlined"
+                    onclick={() => {
+                      void api.call({ method: 'POST', action: '/services/:id/stop', url: { id: entry.id } })
+                    }}
+                  >
+                    Stop
+                  </Button>
+                )}
+                <Button variant="outlined" onclick={() => props.onViewLogs(entry.id)}>
+                  Logs
+                </Button>
+                <Button variant="outlined" onclick={() => props.onEdit(entry.id)}>
+                  Edit
+                </Button>
+              </div>
+            ),
+          }}
+        />
       </div>
     )
   },
