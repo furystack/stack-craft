@@ -1,6 +1,7 @@
 import type { WithOptionalId } from '@furystack/core'
 import type { DeleteEndpoint, GetCollectionEndpoint, GetEntityEndpoint, PatchEndpoint, RestApi } from '@furystack/rest'
 import type { Service } from '../models/service.js'
+import type { ServiceLogEntry } from '../models/service-log-entry.js'
 
 export type ServiceWritableFields = Omit<
   Service,
@@ -26,8 +27,13 @@ export type ServiceActionEndpoint = { url: { id: string }; result: { success: bo
 
 export type ServiceLogsEndpoint = {
   url: { id: string }
-  query: { lines?: number }
-  result: { lines: string[] }
+  query: { lines?: number; processUid?: string; search?: string }
+  result: { entries: ServiceLogEntry[] }
+}
+
+export type ClearServiceLogsEndpoint = {
+  url: { id: string }
+  result: { success: boolean }
 }
 
 export interface ServicesApi extends RestApi {
@@ -50,5 +56,6 @@ export interface ServicesApi extends RestApi {
   }
   DELETE: {
     '/services/:id': DeleteEndpoint<Service, 'id'>
+    '/services/:id/logs': ClearServiceLogsEndpoint
   }
 }

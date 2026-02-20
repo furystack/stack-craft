@@ -1,5 +1,5 @@
 import { useCollectionSync, useEntitySync } from '@furystack/entity-sync-client'
-import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
 
 import { navigate } from '../../utils/navigate.js'
 import {
@@ -28,7 +28,10 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
   shadowDomName: 'shade-service-detail',
   render: (options) => {
     const { props, injector, useState } = options
-    const [isEditing, setIsEditing] = useState('isEditing', false)
+    const locationService = injector.getInstance(LocationService)
+    const searchState = locationService.onDeserializedLocationSearchChanged.getValue()
+    const hasEditParam = searchState.edit === true
+    const [isEditing, setIsEditing] = useState('isEditing', hasEditParam)
     const [isConfirmingDelete, setIsConfirmingDelete] = useState('isConfirmingDelete', false)
 
     const serviceState = useEntitySync(options, Service, props.serviceId)

@@ -10,6 +10,7 @@ import { z } from 'zod'
 
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { resolveTokenUser } from '../middleware/bearer-token-auth.js'
+import { LogStorageService } from '../services/log-storage-service.js'
 import { ProcessManager } from '../services/process-manager.js'
 import { GitService } from '../services/git-service.js'
 
@@ -113,7 +114,8 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
       inputSchema: { serviceId: z.string(), lines: z.number().optional().default(100) },
     },
     async ({ serviceId, lines }) => {
-      const logLines = injector.getInstance(ProcessManager).getLogLines(serviceId, lines)
+      const entries = await injector.getInstance(LogStorageService).getEntries(serviceId, { limit: lines })
+      const logLines = entries.reverse().map((e) => e.line)
       return textResult(logLines.join('\n') || '(no logs)')
     },
   )

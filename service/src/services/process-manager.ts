@@ -4,18 +4,18 @@ import { getRepository } from '@furystack/repository'
 import type { InstallStatus, BuildStatus, RunStatus } from 'common'
 import { Service } from 'common'
 import { type ChildProcess, spawn } from 'child_process'
+import { randomUUID } from 'crypto'
 
 import { useSystemIdentityContext } from '@furystack/core'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
+import { LogStorageService } from './log-storage-service.js'
 import { WebsocketService } from './websocket-service.js'
-
-const MAX_LOG_LINES = 10_000
 
 type ManagedProcess = {
   serviceId: string
   process: ChildProcess
   purpose: 'run' | 'install' | 'build'
-  logBuffer: string[]
+  processUid: string
 }
 
 @Injectable({ lifetime: 'singleton' })
@@ -34,24 +34,16 @@ export class ProcessManager {
   @Injected((injector) => getLogger(injector).withScope('ProcessManager'))
   declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
 
+  @Injected(LogStorageService)
+  declare private logStorage: LogStorageService
+
   @Injected(WebsocketService)
   declare private ws: WebsocketService
-
-  public getLogLines(serviceId: string, count?: number): string[] {
-    const managed = this.processes.get(serviceId)
-    if (!managed) return []
-    const lines = managed.logBuffer
-    return count ? lines.slice(-count) : [...lines]
-  }
 
   private addLogLine(serviceId: string, stream: 'stdout' | 'stderr', line: string) {
     const managed = this.processes.get(serviceId)
     if (!managed) return
-    managed.logBuffer.push(line)
-    if (managed.logBuffer.length > MAX_LOG_LINES) {
-      managed.logBuffer.splice(0, managed.logBuffer.length - MAX_LOG_LINES)
-    }
-    void this.ws.announce({ type: 'service-log', serviceId, stream, line })
+    void this.logStorage.addEntry(serviceId, managed.processUid, stream, line)
   }
 
   private async updateServiceStatus(
@@ -106,12 +98,13 @@ export class ProcessManager {
 
       const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
       const child = this.spawnCommand(svc.runCommand, cwd)
+      const processUid = randomUUID()
 
       const managed: ManagedProcess = {
         serviceId,
         process: child,
         purpose: 'run',
-        logBuffer: [],
+        processUid,
       }
       this.processes.set(serviceId, managed)
 
@@ -228,12 +221,13 @@ export class ProcessManager {
     await this.updateServiceStatus(serviceId, progressStatus)
 
     const child = this.spawnCommand(command, cwd)
+    const processUid = randomUUID()
 
     const managed: ManagedProcess = {
       serviceId,
       process: child,
       purpose,
-      logBuffer: this.processes.get(serviceId)?.logBuffer ?? [],
+      processUid,
     }
     this.processes.set(serviceId, managed)
     this.pendingOperations.delete(serviceId)

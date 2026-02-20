@@ -17,7 +17,12 @@
           "type": "string"
         }
       },
-      "required": ["name", "displayName", "description", "mainDirectory"],
+      "required": [
+        "name",
+        "displayName",
+        "description",
+        "mainDirectory"
+      ],
       "additionalProperties": false
     },
     "PostStackEndpoint": {
@@ -30,7 +35,10 @@
           "$ref": "#/definitions/WithOptionalId%3CStack%2C%22name%22%3E"
         }
       },
-      "required": ["result", "body"],
+      "required": [
+        "result",
+        "body"
+      ],
       "additionalProperties": false
     },
     "Stack": {
@@ -55,7 +63,14 @@
           "type": "string"
         }
       },
-      "required": ["name", "displayName", "description", "mainDirectory", "createdAt", "updatedAt"],
+      "required": [
+        "name",
+        "displayName",
+        "description",
+        "mainDirectory",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false
     },
     "WithOptionalId<Stack,\"name\">": {
@@ -81,7 +96,13 @@
           "type": "string"
         }
       },
-      "required": ["createdAt", "description", "displayName", "mainDirectory", "updatedAt"]
+      "required": [
+        "createdAt",
+        "description",
+        "displayName",
+        "mainDirectory",
+        "updatedAt"
+      ]
     },
     "PatchStackEndpoint": {
       "$ref": "#/definitions/PatchEndpoint%3CStackWritableFields%2C%22name%22%3E"
@@ -114,14 +135,20 @@
               "type": "string"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": ["body", "url", "result"],
+      "required": [
+        "body",
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for updating entities"
     },
@@ -135,7 +162,9 @@
               "type": "string"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
@@ -163,11 +192,19 @@
               }
             }
           },
-          "required": ["stack", "services", "repositories", "dependencies"],
+          "required": [
+            "stack",
+            "services",
+            "repositories",
+            "dependencies"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["url", "result"],
+      "required": [
+        "url",
+        "result"
+      ],
       "additionalProperties": false
     },
     "Service": {
@@ -270,15 +307,31 @@
     },
     "InstallStatus": {
       "type": "string",
-      "enum": ["not-installed", "installing", "installed", "failed"]
+      "enum": [
+        "not-installed",
+        "installing",
+        "installed",
+        "failed"
+      ]
     },
     "BuildStatus": {
       "type": "string",
-      "enum": ["not-built", "building", "built", "failed"]
+      "enum": [
+        "not-built",
+        "building",
+        "built",
+        "failed"
+      ]
     },
     "RunStatus": {
       "type": "string",
-      "enum": ["stopped", "starting", "running", "stopping", "error"]
+      "enum": [
+        "stopped",
+        "starting",
+        "running",
+        "stopping",
+        "error"
+      ]
     },
     "GitHubRepository": {
       "type": "object",
@@ -305,7 +358,15 @@
           "type": "string"
         }
       },
-      "required": ["id", "stackName", "url", "displayName", "description", "createdAt", "updatedAt"],
+      "required": [
+        "id",
+        "stackName",
+        "url",
+        "displayName",
+        "description",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false
     },
     "Dependency": {
@@ -333,7 +394,15 @@
           "type": "string"
         }
       },
-      "required": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"],
+      "required": [
+        "id",
+        "stackName",
+        "name",
+        "checkCommand",
+        "installationHelp",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false
     },
     "ImportStackEndpoint": {
@@ -346,7 +415,9 @@
               "type": "boolean"
             }
           },
-          "required": ["success"],
+          "required": [
+            "success"
+          ],
           "additionalProperties": false
         },
         "body": {
@@ -374,11 +445,19 @@
               }
             }
           },
-          "required": ["stack", "services", "repositories", "dependencies"],
+          "required": [
+            "stack",
+            "services",
+            "repositories",
+            "dependencies"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["result", "body"],
+      "required": [
+        "result",
+        "body"
+      ],
       "additionalProperties": false
     },
     "StacksApi": {
@@ -397,7 +476,11 @@
               "$ref": "#/definitions/ExportStackEndpoint"
             }
           },
-          "required": ["/stacks", "/stacks/:id", "/stacks/:id/export"],
+          "required": [
+            "/stacks",
+            "/stacks/:id",
+            "/stacks/:id/export"
+          ],
           "additionalProperties": false
         },
         "POST": {
@@ -410,7 +493,10 @@
               "$ref": "#/definitions/ImportStackEndpoint"
             }
           },
-          "required": ["/stacks", "/stacks/import"],
+          "required": [
+            "/stacks",
+            "/stacks/import"
+          ],
           "additionalProperties": false
         },
         "PATCH": {
@@ -420,7 +506,9 @@
               "$ref": "#/definitions/PatchStackEndpoint"
             }
           },
-          "required": ["/stacks/:id"],
+          "required": [
+            "/stacks/:id"
+          ],
           "additionalProperties": false
         },
         "PUT": {
@@ -434,7 +522,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -445,7 +535,9 @@
               "$ref": "#/definitions/DeleteEndpoint%3CStack%2C%22name%22%3E"
             }
           },
-          "required": ["/stacks/:id"],
+          "required": [
+            "/stacks/:id"
+          ],
           "additionalProperties": false
         },
         "HEAD": {
@@ -459,7 +551,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -474,7 +568,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -489,7 +585,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -504,12 +602,19 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         }
       },
-      "required": ["GET", "POST", "PATCH", "DELETE"],
+      "required": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
       "additionalProperties": false
     },
     "GetCollectionEndpoint<Stack>": {
@@ -528,7 +633,10 @@
           "$ref": "#/definitions/GetCollectionResult%3CStack%3E"
         }
       },
-      "required": ["query", "result"],
+      "required": [
+        "query",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
@@ -548,27 +656,45 @@
           "properties": {
             "name": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "displayName": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "description": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "mainDirectory": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "createdAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "updatedAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             }
           },
           "additionalProperties": false,
@@ -578,7 +704,14 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["name", "displayName", "description", "mainDirectory", "createdAt", "updatedAt"]
+            "enum": [
+              "name",
+              "displayName",
+              "description",
+              "mainDirectory",
+              "createdAt",
+              "updatedAt"
+            ]
           },
           "description": "The result set will be limited to these fields"
         },
@@ -947,7 +1080,10 @@
           "description": "List of the selected entities"
         }
       },
-      "required": ["count", "entries"],
+      "required": [
+        "count",
+        "entries"
+      ],
       "additionalProperties": false,
       "description": "Response Model for GetCollection"
     },
@@ -961,7 +1097,14 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": ["name", "displayName", "description", "mainDirectory", "createdAt", "updatedAt"]
+                "enum": [
+                  "name",
+                  "displayName",
+                  "description",
+                  "mainDirectory",
+                  "createdAt",
+                  "updatedAt"
+                ]
               },
               "description": "The list of fields to select"
             }
@@ -976,14 +1119,20 @@
               "description": "The entity's unique identifier"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "$ref": "#/definitions/Stack"
         }
       },
-      "required": ["query", "url", "result"],
+      "required": [
+        "query",
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for getting a single entity"
     },
@@ -997,14 +1146,19 @@
               "type": "string"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": ["url", "result"],
+      "required": [
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for deleting entities"
     }

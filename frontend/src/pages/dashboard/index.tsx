@@ -1,9 +1,11 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
+import { serializeToQueryString } from '@furystack/rest'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 
 import { Button, Icon, icons, Loader, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
 import { GitHubRepository, Service, Stack } from 'common'
 import { navigate } from '../../utils/navigate.js'
+import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
 import { RepositoryTable } from '../../components/repository-table.js'
 import { ServiceTable } from '../../components/service-table.js'
@@ -72,6 +74,30 @@ export const Dashboard = Shade<DashboardProps>({
     })
     const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
 
+    const api = injector.getInstance(ServicesApiClient)
+    const [selectedServices, setSelectedServices] = options.useState<Service[]>('selectedServices', [])
+    const [isBulkLoading, setIsBulkLoading] = options.useState('isBulkLoading', false)
+
+    const hasRunning = selectedServices.some((s) => s.runStatus === 'running')
+    const hasStopped = selectedServices.some((s) => s.runStatus !== 'running')
+    const hasSelection = selectedServices.length > 0
+
+    const bulkAction = async (action: string) => {
+      setIsBulkLoading(true)
+      for (const svc of selectedServices) {
+        try {
+          await api.call({
+            method: 'POST',
+            action: `/services/:id/${action}` as '/services/:id/start',
+            url: { id: svc.id },
+          })
+        } catch {
+          // Individual failures are handled by entity-sync status updates
+        }
+      }
+      setIsBulkLoading(false)
+    }
+
     return (
       <PageContainer>
         <PageHeader
@@ -93,12 +119,47 @@ export const Dashboard = Shade<DashboardProps>({
           <div
             style={{
               display: 'flex',
-              justifyContent: 'space-between',
               alignItems: 'center',
               marginBottom: '12px',
+              gap: '8px',
             }}
           >
             <h3 style={{ margin: '0', fontSize: '16px' }}>Services ({services.length})</h3>
+            {hasSelection ? (
+              <span style={{ fontSize: '13px', opacity: '0.7' }}>{selectedServices.length} selected</span>
+            ) : null}
+            {hasSelection && hasStopped ? (
+              <Button
+                variant="outlined"
+                size="small"
+                color="success"
+                disabled={isBulkLoading}
+                onclick={() => void bulkAction('start')}
+              >
+                Start
+              </Button>
+            ) : null}
+            {hasSelection && hasRunning ? (
+              <Button variant="outlined" size="small" disabled={isBulkLoading} onclick={() => void bulkAction('stop')}>
+                Stop
+              </Button>
+            ) : null}
+            {hasSelection ? (
+              <Button variant="outlined" size="small" disabled={isBulkLoading} onclick={() => void bulkAction('pull')}>
+                Pull
+              </Button>
+            ) : null}
+            {hasSelection ? (
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={isBulkLoading}
+                onclick={() => void bulkAction('install')}
+              >
+                Reinstall
+              </Button>
+            ) : null}
+            <div style={{ flex: '1' }} />
             <Button
               variant="contained"
               onclick={() => navigate(injector, `/services/wizard/${props.stackName}`)}
@@ -115,7 +176,11 @@ export const Dashboard = Shade<DashboardProps>({
             <ServiceTable
               services={services}
               onViewLogs={(serviceId) => navigate(injector, `/services/${serviceId}/logs`)}
-              onEdit={(serviceId) => navigate(injector, `/services/${serviceId}`)}
+              onDetails={(serviceId) => navigate(injector, `/services/${serviceId}`)}
+              onEdit={(serviceId) =>
+                navigate(injector, `/services/${serviceId}?${serializeToQueryString({ edit: true })}`)
+              }
+              onSelectionChange={(selected: Service[]) => setSelectedServices(selected)}
             />
           )}
         </Paper>

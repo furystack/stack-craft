@@ -1,24 +1,33 @@
 import type { FindOptions } from '@furystack/core'
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, CollectionService, cssVariableTheme, DataGrid, SelectionCell } from '@furystack/shades-common-components'
+import {
+  Button,
+  CollectionService,
+  DataGrid,
+  Icon,
+  icons,
+  SelectionCell,
+} from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
 import type { Service } from 'common'
+
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
 import { ServiceStatusIndicator } from './service-status-indicator.js'
 
 type ServiceTableProps = {
   services: Service[]
   onViewLogs: (serviceId: string) => void
+  onDetails: (serviceId: string) => void
   onEdit: (serviceId: string) => void
+  onSelectionChange?: (selected: Service[]) => void
 }
 
 type ServiceColumn = 'selection' | 'displayName' | 'runStatus' | 'actions'
 
 export const ServiceTable = Shade<ServiceTableProps>({
   shadowDomName: 'shade-service-table',
-  render: ({ props, injector, useDisposable, useObservable, useState }) => {
+  render: ({ props, injector, useDisposable, useObservable }) => {
     const api = injector.getInstance(ServicesApiClient)
-    const [loading, setLoading] = useState('loading', false)
 
     const collectionService = useDisposable(
       'collectionService',
@@ -33,112 +42,81 @@ export const ServiceTable = Shade<ServiceTableProps>({
     collectionService.data.setValue({ entries: props.services, count: props.services.length })
 
     const [selectedServices] = useObservable('selection', collectionService.selection)
-
-    const hasRunning = selectedServices.some((s) => s.runStatus === 'running')
-    const hasStopped = selectedServices.some((s) => s.runStatus !== 'running')
-
-    const bulkAction = async (action: string) => {
-      setLoading(true)
-      for (const svc of selectedServices) {
-        try {
-          await api.call({
-            method: 'POST',
-            action: `/services/:id/${action}` as '/services/:id/start',
-            url: { id: svc.id },
-          })
-        } catch {
-          // Individual failures are handled by entity-sync status updates
-        }
-      }
-      setLoading(false)
-    }
+    props.onSelectionChange?.(selectedServices)
 
     return (
-      <div>
-        {selectedServices.length > 0 ? (
-          <div
-            style={{
-              padding: '8px 16px',
-              marginBottom: '8px',
-              background: cssVariableTheme.background.paper,
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <span style={{ fontSize: '14px', opacity: '0.8' }}>{selectedServices.length} selected</span>
-            <div style={{ flex: '1' }} />
-            {hasStopped ? (
-              <Button variant="contained" color="success" disabled={loading} onclick={() => void bulkAction('start')}>
-                Start
-              </Button>
-            ) : null}
-            {hasRunning ? (
-              <Button variant="outlined" disabled={loading} onclick={() => void bulkAction('stop')}>
-                Stop
-              </Button>
-            ) : null}
-            <Button variant="outlined" disabled={loading} onclick={() => void bulkAction('pull')}>
-              Pull
-            </Button>
-            <Button variant="outlined" disabled={loading} onclick={() => void bulkAction('install')}>
-              Reinstall
-            </Button>
-          </div>
-        ) : null}
-        <DataGrid<Service, ServiceColumn>
-          columns={['selection', 'displayName', 'runStatus', 'actions']}
-          findOptions={findOptions}
-          styles={undefined}
-          collectionService={collectionService}
-          headerComponents={{
-            selection: () => <span />,
-            actions: () => <span style={{ paddingLeft: '1em' }}>Actions</span>,
-          }}
-          rowComponents={{
-            selection: (entry) => <SelectionCell entry={entry} service={collectionService} />,
-            displayName: (entry) => (
-              <span>
-                <strong>{entry.displayName}</strong>
-                {entry.description ? (
-                  <div style={{ fontSize: '12px', opacity: '0.6', marginTop: '2px' }}>{entry.description}</div>
-                ) : null}
-              </span>
-            ),
-            runStatus: (entry) => <ServiceStatusIndicator service={entry} />,
-            actions: (entry) => (
-              <div style={{ display: 'flex', gap: '4px' }}>
-                {entry.runStatus !== 'running' ? (
-                  <Button
-                    variant="outlined"
-                    onclick={() => {
-                      void api.call({ method: 'POST', action: '/services/:id/start', url: { id: entry.id } })
-                    }}
-                  >
-                    Start
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outlined"
-                    onclick={() => {
-                      void api.call({ method: 'POST', action: '/services/:id/stop', url: { id: entry.id } })
-                    }}
-                  >
-                    Stop
-                  </Button>
-                )}
-                <Button variant="outlined" onclick={() => props.onViewLogs(entry.id)}>
-                  Logs
-                </Button>
-                <Button variant="outlined" onclick={() => props.onEdit(entry.id)}>
-                  Edit
-                </Button>
-              </div>
-            ),
-          }}
-        />
-      </div>
+      <DataGrid<Service, ServiceColumn>
+        columns={['selection', 'displayName', 'runStatus', 'actions']}
+        findOptions={findOptions}
+        styles={undefined}
+        collectionService={collectionService}
+        headerComponents={{
+          selection: () => <span />,
+          actions: () => <span style={{ paddingLeft: '1em' }}>Actions</span>,
+        }}
+        rowComponents={{
+          selection: (entry) => <SelectionCell entry={entry} service={collectionService} />,
+          displayName: (entry) => (
+            <span>
+              <strong>{entry.displayName}</strong>
+              {entry.description ? (
+                <div style={{ fontSize: '12px', opacity: '0.6', marginTop: '2px' }}>{entry.description}</div>
+              ) : null}
+            </span>
+          ),
+          runStatus: (entry) => <ServiceStatusIndicator service={entry} />,
+          actions: (entry) => (
+            <div
+              style={{ display: 'flex', gap: '2px', alignItems: 'center' }}
+              onclick={(e: MouseEvent) => e.stopPropagation()}
+            >
+              {entry.runStatus !== 'running' ? (
+                <Button
+                  variant="text"
+                  size="small"
+                  color="success"
+                  title="Start"
+                  onclick={() => {
+                    void api.call({ method: 'POST', action: '/services/:id/start', url: { id: entry.id } })
+                  }}
+                  startIcon={<Icon icon={icons.play} size="small" />}
+                />
+              ) : (
+                <Button
+                  variant="text"
+                  size="small"
+                  title="Stop"
+                  onclick={() => {
+                    void api.call({ method: 'POST', action: '/services/:id/stop', url: { id: entry.id } })
+                  }}
+                  startIcon={<Icon icon={icons.stopCircle} size="small" />}
+                />
+              )}
+              <Button
+                variant="text"
+                size="small"
+                title="Logs"
+                onclick={() => props.onViewLogs(entry.id)}
+                startIcon={<Icon icon={icons.fileText} size="small" />}
+              />
+              <Button
+                variant="text"
+                size="small"
+                title="Details"
+                onclick={() => props.onDetails(entry.id)}
+                startIcon={<Icon icon={icons.eye} size="small" />}
+              />
+              <Button
+                variant="text"
+                size="small"
+                title="Edit"
+                onclick={() => props.onEdit(entry.id)}
+                startIcon={<Icon icon={icons.edit} size="small" />}
+              />
+            </div>
+          ),
+        }}
+      />
     )
   },
 })

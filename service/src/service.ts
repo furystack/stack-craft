@@ -9,6 +9,7 @@ import { setupServicesRestApi } from './app-models/services/setup-services-rest-
 import { setupGitHubReposRestApi } from './app-models/github-repositories/setup-github-repos-rest-api.js'
 import { setupDependenciesRestApi } from './app-models/dependencies/setup-dependencies-rest-api.js'
 import { setupTokensRestApi } from './app-models/tokens/setup-tokens-rest-api.js'
+import { setupLogStore } from './app-models/logs/setup-log-store.js'
 import { WebsocketService } from './services/websocket-service.js'
 import { setupEntitySync } from './setup-entity-sync.js'
 import { setupMcp } from './mcp/setup-mcp.js'
@@ -16,6 +17,8 @@ import { setupMcp } from './mcp/setup-mcp.js'
 const port = getPort()
 
 const setupRestApis = async () => {
+  await setupLogStore(injector)
+
   await setupInstallRestApi(injector)
   await setupIdentityRestApi(injector)
   await setupStacksRestApi(injector)

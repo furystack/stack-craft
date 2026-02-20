@@ -15,6 +15,7 @@ import servicesApiSchema from 'common/schemas/services-api.json' with { type: 'j
 
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getPort } from '../../get-port.js'
+import { ClearServiceLogsAction } from './actions/clear-service-logs-action.js'
 import { ServiceLifecycleAction } from './actions/service-lifecycle-action.js'
 import { ServiceLogsAction } from './actions/service-logs-action.js'
 
@@ -55,6 +56,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
       },
       DELETE: {
         '/services/:id': createDeleteEndpoint({ model: Service, primaryKey: 'id' }),
+        '/services/:id/logs': ClearServiceLogsAction,
       },
     },
   })

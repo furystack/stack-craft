@@ -9,12 +9,6 @@ export type WebsocketMessage =
       runStatus: RunStatus
     }
   | {
-      type: 'service-log'
-      serviceId: string
-      stream: 'stdout' | 'stderr'
-      line: string
-    }
-  | {
       type: 'git-branches-changed'
       serviceId: string
       newBranches: string[]

@@ -2,10 +2,11 @@ import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/co
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { GitHubRepository, Service, Stack } from 'common'
+import { GitHubRepository, Service, ServiceLogEntry, Stack } from 'common'
 import { tmpdir } from 'os'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { LogStorageService } from './log-storage-service.js'
 import { ProcessManager } from './process-manager.js'
 import { WebsocketService } from './websocket-service.js'
 
@@ -159,6 +160,7 @@ describe('ProcessManager - Store Operations', () => {
 describe('ProcessManager', () => {
   let injector: Injector
   let pm: ProcessManager
+  let mockLogStorage: { addEntry: ReturnType<typeof vi.fn>; getEntries: ReturnType<typeof vi.fn> }
 
   const seedService = async (overrides: Partial<Service> = {}) => {
     const elevated = useSystemIdentityContext({ injector })
@@ -173,13 +175,21 @@ describe('ProcessManager', () => {
     addStore(injector, new InMemoryStore({ model: Service, primaryKey: 'id' }))
     addStore(injector, new InMemoryStore({ model: Stack, primaryKey: 'name' }))
     addStore(injector, new InMemoryStore({ model: GitHubRepository, primaryKey: 'id' }))
+    addStore(injector, new InMemoryStore({ model: ServiceLogEntry, primaryKey: 'id' }))
 
     getRepository(injector).createDataSet(Service, 'id', {})
     getRepository(injector).createDataSet(Stack, 'name', {})
     getRepository(injector).createDataSet(GitHubRepository, 'id', {})
+    getRepository(injector).createDataSet(ServiceLogEntry, 'id', {})
 
     const mockWs = { announce: vi.fn().mockResolvedValue(undefined) }
     injector.setExplicitInstance(mockWs as unknown as WebsocketService, WebsocketService)
+
+    mockLogStorage = {
+      addEntry: vi.fn().mockResolvedValue(undefined),
+      getEntries: vi.fn().mockResolvedValue([]),
+    }
+    injector.setExplicitInstance(mockLogStorage as unknown as LogStorageService, LogStorageService)
 
     const elevated = useSystemIdentityContext({ injector })
     await getRepository(elevated).getDataSetFor(Stack, 'name').add(elevated, {
@@ -198,7 +208,6 @@ describe('ProcessManager', () => {
 
   afterEach(async () => {
     await pm[Symbol.asyncDispose]()
-    // Allow pending child process exit handlers to settle before injector disposal
     await new Promise((r) => setTimeout(r, 50))
     try {
       await injector[Symbol.asyncDispose]()
@@ -223,10 +232,6 @@ describe('ProcessManager', () => {
   it('should throw when buildCommand is missing', async () => {
     await seedService({ id: 'no-build', buildCommand: undefined })
     await expect(pm.buildService('no-build')).rejects.toThrow('No build command')
-  })
-
-  it('should return empty logs for unknown service', () => {
-    expect(pm.getLogLines('unknown')).toEqual([])
   })
 
   it('should run installService successfully', async () => {
@@ -268,6 +273,12 @@ describe('ProcessManager', () => {
     expect(svc?.installStatus).toBe('failed')
   })
 
+  it('should delegate log lines to LogStorageService', async () => {
+    await pm.installService('svc-1')
+    await new Promise((r) => setTimeout(r, 100))
+    expect(mockLogStorage.addEntry).toHaveBeenCalled()
+  })
+
   it('should start a long-running service and stop it', async () => {
     await seedService({ id: 'long-svc', runCommand: 'sleep 60' })
     await pm.startService('long-svc')
@@ -288,7 +299,6 @@ describe('ProcessManager', () => {
     await seedService({ id: 'dispose-svc', runCommand: 'sleep 60' })
     await pm.startService('dispose-svc')
     await new Promise((r) => setTimeout(r, 200))
-    // PM disposal will happen in afterEach — verifies no crash when processes are running
   })
 
   it('should prevent one-shot when a process is already running', async () => {
