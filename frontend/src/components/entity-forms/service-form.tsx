@@ -1,6 +1,24 @@
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
-import { Button, Input, Select } from '@furystack/shades-common-components'
+import { Button, Checkbox, Form, Input, Select } from '@furystack/shades-common-components'
 import type { GitHubRepository, ServiceView } from 'common'
+
+type ServiceFormPayload = {
+  displayName: string
+  description: string
+  workingDirectory: string
+  repositoryId: string
+  runCommand: string
+  installCommand: string
+  buildCommand: string
+  autoFetchEnabled: string
+  autoFetchIntervalMinutes: string
+  autoRestartOnFetch: string
+}
+
+const isServiceFormPayload = (data: unknown): data is ServiceFormPayload => {
+  const d = data as ServiceFormPayload
+  return d.displayName?.length > 0 && d.runCommand?.length > 0
+}
 
 type ServiceFormProps = {
   initial?: Partial<ServiceView>
@@ -16,13 +34,10 @@ export const ServiceForm = Shade<ServiceFormProps>({
   shadowDomName: 'shade-service-form',
   render: ({ props }) => {
     return (
-      <form
-        style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}
-        onsubmit={async (ev) => {
-          ev.preventDefault()
-          const formData = new FormData(ev.target as HTMLFormElement)
-          const data = Object.fromEntries(formData.entries()) as Record<string, string>
-          await props.onSubmit({
+      <Form<ServiceFormPayload>
+        validate={isServiceFormPayload}
+        onSubmit={(data) =>
+          void props.onSubmit({
             stackName: props.stackName,
             displayName: data.displayName,
             description: data.description,
@@ -35,7 +50,8 @@ export const ServiceForm = Shade<ServiceFormProps>({
             autoFetchIntervalMinutes: parseInt(data.autoFetchIntervalMinutes, 10) || 60,
             autoRestartOnFetch: data.autoRestartOnFetch === 'on',
           })
-        }}
+        }
+        style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}
       >
         <h2 style={{ margin: '0' }}>{props.mode === 'create' ? 'Create Service' : 'Edit Service'}</h2>
 
@@ -100,10 +116,11 @@ export const ServiceForm = Shade<ServiceFormProps>({
         />
         <h4 style={{ margin: '0', opacity: '0.7' }}>Configuration</h4>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <input type="checkbox" name="autoFetchEnabled" checked={props.initial?.autoFetchEnabled ?? false} />
-            Auto-fetch
-          </label>
+          <Checkbox
+            name="autoFetchEnabled"
+            labelTitle="Auto-fetch"
+            checked={props.initial?.autoFetchEnabled ?? false}
+          />
           <Input
             name="autoFetchIntervalMinutes"
             labelTitle="Fetch interval (min)"
@@ -112,10 +129,11 @@ export const ServiceForm = Shade<ServiceFormProps>({
             value={String(props.initial?.autoFetchIntervalMinutes ?? 60)}
             style={{ width: '150px' }}
           />
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <input type="checkbox" name="autoRestartOnFetch" checked={props.initial?.autoRestartOnFetch ?? false} />
-            Auto-restart on fetch
-          </label>
+          <Checkbox
+            name="autoRestartOnFetch"
+            labelTitle="Auto-restart on fetch"
+            checked={props.initial?.autoRestartOnFetch ?? false}
+          />
         </div>
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           {props.cancelHref ? (
@@ -131,7 +149,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
             {props.mode === 'create' ? 'Create' : 'Save'}
           </Button>
         </div>
-      </form>
+      </Form>
     )
   },
 })

@@ -210,6 +210,100 @@ export const LoginForm = Shade({
 });
 ```
 
+## Form Handling
+
+### Always use `Form<T>` from `@furystack/shades-common-components`
+
+Never use raw `<form>` HTML elements. The `Form<T>` component provides type-safe form data collection, two-tier validation (input + form level), and integration with all form field components (`Input`, `Select`, `Checkbox`, etc.).
+
+### Pattern: Typed Form Payload
+
+Every form needs:
+
+1. A **payload type** describing the form data shape
+2. A **type-guard `validate` function** that narrows `unknown` to the payload type
+3. A `Form<T>` component with `validate` and `onSubmit` props
+
+```typescript
+import { Form, Input, Button } from '@furystack/shades-common-components';
+
+type CreateStackPayload = {
+  name: string;
+  displayName: string;
+  description: string;
+  mainDirectory: string;
+};
+
+const isCreateStackPayload = (data: unknown): data is CreateStackPayload => {
+  const d = data as CreateStackPayload;
+  return d.name?.length > 0 && d.displayName?.length > 0 && d.mainDirectory?.length > 0;
+};
+
+// In render:
+<Form<CreateStackPayload>
+  validate={isCreateStackPayload}
+  onSubmit={(data) => {
+    // `data` is fully typed as CreateStackPayload
+    void handleSubmit(data);
+  }}
+  style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+>
+  <Input name="name" labelTitle="Name" variant="outlined" required />
+  <Input name="displayName" labelTitle="Display Name" variant="outlined" required />
+  <Input name="description" labelTitle="Description" variant="outlined" />
+  <Input name="mainDirectory" labelTitle="Main Directory" variant="outlined" required />
+  <Button type="submit" variant="contained">Create</Button>
+</Form>
+```
+
+### Use `Checkbox` component instead of raw `<input type="checkbox">`
+
+```typescript
+import { Checkbox } from '@furystack/shades-common-components';
+
+// ✅ Good - uses Checkbox component, integrates with Form<T>
+<Checkbox name="autoFetchEnabled" labelTitle="Auto-fetch" checked={initialValue} />
+
+// ❌ Avoid - raw checkbox, no FormService integration
+<label>
+  <input type="checkbox" name="autoFetchEnabled" checked={initialValue} />
+  Auto-fetch
+</label>
+```
+
+### Forbidden Patterns
+
+Never use these patterns for form data handling:
+
+```typescript
+// ❌ FORBIDDEN - raw <form> tag
+<form onsubmit={(ev) => { ... }}>
+
+// ❌ FORBIDDEN - FormData extraction from DOM
+const formData = new FormData(ev.target as HTMLFormElement);
+const data = Object.fromEntries(formData.entries()) as Record<string, string>;
+
+// ❌ FORBIDDEN - useRef to imperatively read form data
+const formRef = useRef<HTMLFormElement>('myForm');
+const data = new FormData(formRef.current);
+
+// ❌ FORBIDDEN - direct DOM value access for form fields
+oninput={(ev) => setValue((ev.target as HTMLInputElement).value)}
+```
+
+### Form Field Components
+
+Use these components from `@furystack/shades-common-components` inside `Form<T>`:
+
+- `Input` - Text, number, email, password fields
+- `Select` - Single/multi select dropdowns
+- `Checkbox` - Boolean checkboxes
+- `TextArea` - Multi-line text input
+- `Switch` - Toggle switches
+- `Radio` / `RadioGroup` - Radio button groups
+
+All form field components automatically register with the parent `Form<T>` via the `FormService` and participate in validation.
+
 ## Theming
 
 ### Access Theme Properties
@@ -332,6 +426,7 @@ initializeShadeRoot({
 6. **useDisposable for cleanup** - Manage subscriptions properly
 7. **Use common components** - Leverage `@furystack/shades-common-components`
 8. **Consistent theming** - Use `ThemeProviderService` for styles
+9. **Use `Form<T>` for all forms** - Never use raw `<form>` tags, `FormData`, or `useRef` for form handling
 
 **Component Checklist:**
 
@@ -341,3 +436,4 @@ initializeShadeRoot({
 - [ ] Observable subscriptions use `useObservable`
 - [ ] Manual subscriptions cleaned up with `useDisposable`
 - [ ] Theme values from `ThemeProviderService`
+- [ ] Forms use `Form<T>` with typed payload and validate function

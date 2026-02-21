@@ -1,6 +1,17 @@
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
-import { Button, Input } from '@furystack/shades-common-components'
+import { Button, Form, Input } from '@furystack/shades-common-components'
 import type { GitHubRepository } from 'common'
+
+type GitHubRepoFormPayload = {
+  url: string
+  displayName: string
+  description: string
+}
+
+const isGitHubRepoFormPayload = (data: unknown): data is GitHubRepoFormPayload => {
+  const d = data as GitHubRepoFormPayload
+  return d.url?.length > 0 && d.displayName?.length > 0
+}
 
 type GitHubRepoFormProps = {
   initial?: Partial<GitHubRepository>
@@ -15,19 +26,17 @@ export const GitHubRepoForm = Shade<GitHubRepoFormProps>({
   shadowDomName: 'shade-github-repo-form',
   render: ({ props }) => {
     return (
-      <form
-        style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}
-        onsubmit={async (ev) => {
-          ev.preventDefault()
-          const formData = new FormData(ev.target as HTMLFormElement)
-          const data = Object.fromEntries(formData.entries()) as Record<string, string>
-          await props.onSubmit({
+      <Form<GitHubRepoFormPayload>
+        validate={isGitHubRepoFormPayload}
+        onSubmit={(data) =>
+          void props.onSubmit({
             stackName: props.stackName,
             url: data.url,
             displayName: data.displayName,
             description: data.description,
           })
-        }}
+        }
+        style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}
       >
         <h2 style={{ margin: '0' }}>{props.mode === 'create' ? 'Add GitHub Repository' : 'Edit Repository'}</h2>
         <Input
@@ -65,7 +74,7 @@ export const GitHubRepoForm = Shade<GitHubRepoFormProps>({
             {props.mode === 'create' ? 'Add' : 'Save'}
           </Button>
         </div>
-      </form>
+      </Form>
     )
   },
 })

@@ -1,6 +1,17 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, Input } from '@furystack/shades-common-components'
+import { Button, Form, Input } from '@furystack/shades-common-components'
 import type { Dependency } from 'common'
+
+type DependencyFormPayload = {
+  name: string
+  checkCommand: string
+  installationHelp: string
+}
+
+const isDependencyFormPayload = (data: unknown): data is DependencyFormPayload => {
+  const d = data as DependencyFormPayload
+  return d.name?.length > 0 && d.checkCommand?.length > 0
+}
 
 type DependencyFormProps = {
   initial?: Partial<Dependency>
@@ -14,19 +25,17 @@ export const DependencyForm = Shade<DependencyFormProps>({
   shadowDomName: 'shade-dependency-form',
   render: ({ props }) => {
     return (
-      <form
-        style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}
-        onsubmit={async (ev) => {
-          ev.preventDefault()
-          const formData = new FormData(ev.target as HTMLFormElement)
-          const data = Object.fromEntries(formData.entries()) as Record<string, string>
-          await props.onSubmit({
+      <Form<DependencyFormPayload>
+        validate={isDependencyFormPayload}
+        onSubmit={(data) =>
+          void props.onSubmit({
             stackName: props.stackName,
             name: data.name,
             checkCommand: data.checkCommand,
             installationHelp: data.installationHelp,
           })
-        }}
+        }
+        style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}
       >
         <h2 style={{ margin: '0' }}>{props.mode === 'create' ? 'Add Dependency' : 'Edit Dependency'}</h2>
         <Input
@@ -60,7 +69,7 @@ export const DependencyForm = Shade<DependencyFormProps>({
             {props.mode === 'create' ? 'Add' : 'Save'}
           </Button>
         </div>
-      </form>
+      </Form>
     )
   },
 })

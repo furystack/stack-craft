@@ -3,6 +3,8 @@ import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 import { navigate } from '../../utils/navigate.js'
 import {
   Button,
+  Checkbox,
+  Form,
   Input,
   cssVariableTheme,
   NotyService,
@@ -15,14 +17,22 @@ import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js
 
 type ParsedExport = ExportStackEndpoint['result']
 
+type ImportConfigPayload = {
+  mainDirectory: string
+  autoSetup?: string
+}
+
+const isImportConfigPayload = (data: unknown): data is ImportConfigPayload => {
+  const d = data as ImportConfigPayload
+  return d.mainDirectory?.length > 0
+}
+
 export const ImportStack = Shade({
   shadowDomName: 'shade-import-stack',
   render: ({ injector, useState }) => {
     const [jsonInput, setJsonInput] = useState('json', '')
     const [parsed, setParsed] = useState<ParsedExport | null>('parsed', null)
     const [parseError, setParseError] = useState('parseError', '')
-    const [mainDirectory, setMainDirectory] = useState('mainDirectory', '')
-    const [autoSetup, setAutoSetup] = useState('autoSetup', true)
     const [isImporting, setIsImporting] = useState('isImporting', false)
 
     const handleParse = () => {
@@ -41,8 +51,8 @@ export const ImportStack = Shade({
       }
     }
 
-    const handleImport = async () => {
-      if (!parsed || !mainDirectory) return
+    const handleImport = async (formData: ImportConfigPayload) => {
+      if (!parsed) return
       setIsImporting(true)
       try {
         await injector.getInstance(StacksApiClient).call({
@@ -50,7 +60,7 @@ export const ImportStack = Shade({
           action: '/stacks/import',
           body: {
             ...parsed,
-            config: { mainDirectory },
+            config: { mainDirectory: formData.mainDirectory },
           },
         })
         injector.getInstance(NotyService).emit('onNotyAdded', {
@@ -58,7 +68,8 @@ export const ImportStack = Shade({
           body: `Stack "${parsed.stack.displayName}" was imported successfully.`,
           type: 'success',
         })
-        if (autoSetup && (parsed.services?.length ?? 0) > 0) {
+        const hasAutoSetup = formData.autoSetup === 'on'
+        if (hasAutoSetup && (parsed.services?.length ?? 0) > 0) {
           navigate(injector, `/stacks/${parsed.stack.name}/setup`)
         } else {
           navigate(injector, '/')
@@ -113,63 +124,51 @@ export const ImportStack = Shade({
               </div>
             </Paper>
           ) : (
-            <Paper elevation={1} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <h3 style={{ margin: '0' }}>Import: {parsed.stack.displayName}</h3>
-              <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-                <span>{parsed.services?.length ?? 0} service(s)</span>
-                <span>{parsed.repositories?.length ?? 0} repository(ies)</span>
-                <span>{parsed.dependencies?.length ?? 0} dependency(ies)</span>
-              </div>
+            <Form<ImportConfigPayload>
+              validate={isImportConfigPayload}
+              onSubmit={(data) => void handleImport(data)}
+            >
+              <Paper elevation={1} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <h3 style={{ margin: '0' }}>Import: {parsed.stack.displayName}</h3>
+                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                  <span>{parsed.services?.length ?? 0} service(s)</span>
+                  <span>{parsed.repositories?.length ?? 0} repository(ies)</span>
+                  <span>{parsed.dependencies?.length ?? 0} dependency(ies)</span>
+                </div>
 
-              <Input
-                name="mainDirectory"
-                labelTitle="Main Directory"
-                variant="outlined"
-                required
-                value={mainDirectory}
-                getHelperText={() => 'Absolute path to the root directory for this stack on your machine'}
-                oninput={(ev) => setMainDirectory((ev.target as HTMLInputElement).value)}
-              />
-
-              {(parsed.services?.length ?? 0) > 0 ? (
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: cssVariableTheme.text.secondary,
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={autoSetup}
-                    onchange={(ev) => setAutoSetup((ev.target as HTMLInputElement).checked)}
-                  />
-                  Set up services after import (clone repositories, install dependencies, build)
-                </label>
-              ) : null}
-
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <Button
+                <Input
+                  name="mainDirectory"
+                  labelTitle="Main Directory"
                   variant="outlined"
-                  onclick={() => {
-                    setParsed(null)
-                    setMainDirectory('')
-                  }}
-                >
-                  Back
-                </Button>
-                <Button
-                  variant="contained"
-                  disabled={!mainDirectory || isImporting}
-                  onclick={() => void handleImport()}
-                >
-                  Import
-                </Button>
-              </div>
-            </Paper>
+                  required
+                  getHelperText={() => 'Absolute path to the root directory for this stack on your machine'}
+                />
+
+                {(parsed.services?.length ?? 0) > 0 ? (
+                  <Checkbox
+                    name="autoSetup"
+                    labelTitle="Set up services after import (clone repositories, install dependencies, build)"
+                    checked={true}
+                  />
+                ) : null}
+
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <Button
+                    variant="outlined"
+                    onclick={() => setParsed(null)}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={isImporting}
+                  >
+                    Import
+                  </Button>
+                </div>
+              </Paper>
+            </Form>
           )}
         </Paper>
       </PageContainer>

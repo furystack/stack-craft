@@ -2,7 +2,7 @@ import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 
 import { navigate } from '../../utils/navigate.js'
-import { Button, Input, NotyService, Paper, Select, cssVariableTheme } from '@furystack/shades-common-components'
+import { Button, Form, Input, NotyService, Paper, Select, cssVariableTheme } from '@furystack/shades-common-components'
 import type { GitHubRepository } from 'common'
 import { GitHubRepository as GitHubRepositoryModel } from 'common'
 
@@ -24,10 +24,35 @@ type WizardState = {
   setupStatus: 'idle' | 'running' | 'done' | 'failed'
 }
 
+type CreateServicePayload = {
+  displayName: string
+  description: string
+  workingDirectory: string
+  runCommand: string
+  installCommand: string
+  buildCommand: string
+}
+
+const isCreateServicePayload = (data: unknown): data is CreateServicePayload => {
+  const d = data as CreateServicePayload
+  return d.displayName?.length > 0 && d.runCommand?.length > 0
+}
+
+type NewRepoPayload = {
+  url: string
+  displayName: string
+  description: string
+}
+
+const isNewRepoPayload = (data: unknown): data is NewRepoPayload => {
+  const d = data as NewRepoPayload
+  return d.url?.length > 0 && d.displayName?.length > 0
+}
+
 export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
   shadowDomName: 'shade-create-service-wizard',
   render: (options) => {
-    const { props, injector, useState, useRef } = options
+    const { props, injector, useState } = options
 
     const [state, setState] = useState<WizardState>('wizardState', {
       step: 0,
@@ -45,18 +70,11 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
     })
     const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
 
-    const repoFormRef = useRef<HTMLFormElement>('repoForm')
-
     const servicesApi = injector.getInstance(ServicesApiClient)
     const reposApi = injector.getInstance(GitHubReposApiClient)
     const noty = injector.getInstance(NotyService)
 
-    const handleCreateService = async (ev: Event) => {
-      ev.preventDefault()
-      const form = ev.target as HTMLFormElement
-      const formData = new FormData(form)
-      const data = Object.fromEntries(formData.entries()) as Record<string, string>
-
+    const handleCreateService = async (data: CreateServicePayload) => {
       const serviceId = crypto.randomUUID()
       setState({ ...state, isSaving: true })
 
@@ -98,7 +116,32 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
       }
     }
 
-    const handleFinish = async () => {
+    const linkRepoAndFinish = async (repoId: string) => {
+      if (!state.createdServiceId) return
+      if (repoId) {
+        await servicesApi.call({
+          method: 'PATCH',
+          action: '/services/:id',
+          url: { id: state.createdServiceId },
+          body: { repositoryId: repoId },
+        })
+      }
+
+      noty.emit('onNotyAdded', {
+        title: 'Service created',
+        body: `"${state.createdServiceName}" was created${repoId ? ' and linked to a repository' : ''}.`,
+        type: 'success',
+      })
+
+      const hasSetupWork = !!(repoId || state.hasRepoOrCommands)
+      if (hasSetupWork) {
+        setState({ ...state, step: 2, isSaving: false })
+      } else {
+        navigate(injector, '/')
+      }
+    }
+
+    const handleFinishSkipOrExisting = async () => {
       if (state.repoChoice === 'skip' || !state.createdServiceId) {
         noty.emit('onNotyAdded', {
           title: 'Service created',
@@ -110,60 +153,36 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
       }
 
       setState({ ...state, isSaving: true })
-
       try {
-        let repoId = ''
-
-        if (state.repoChoice === 'existing' && state.selectedRepoId) {
-          repoId = state.selectedRepoId
-        }
-
-        if (state.repoChoice === 'new') {
-          const form = repoFormRef.current
-          if (form) {
-            const formData = new FormData(form)
-            const data = Object.fromEntries(formData.entries()) as Record<string, string>
-            if (!data.url || !data.displayName) {
-              setState({ ...state, isSaving: false })
-              return
-            }
-            const newId = crypto.randomUUID()
-            await reposApi.call({
-              method: 'POST',
-              action: '/github-repositories',
-              body: {
-                id: newId,
-                stackName: props.stackName,
-                url: data.url,
-                displayName: data.displayName,
-                description: data.description ?? '',
-              },
-            })
-            repoId = newId
-          }
-        }
-
-        if (repoId) {
-          await servicesApi.call({
-            method: 'PATCH',
-            action: '/services/:id',
-            url: { id: state.createdServiceId },
-            body: { repositoryId: repoId },
-          })
-        }
-
+        const repoId = state.repoChoice === 'existing' ? state.selectedRepoId : ''
+        await linkRepoAndFinish(repoId)
+      } catch (error) {
         noty.emit('onNotyAdded', {
-          title: 'Service created',
-          body: `"${state.createdServiceName}" was created${repoId ? ' and linked to a repository' : ''}.`,
-          type: 'success',
+          title: 'Error',
+          body: error instanceof Error ? error.message : 'Failed to complete setup',
+          type: 'error',
         })
+        setState({ ...state, isSaving: false })
+      }
+    }
 
-        const hasSetupWork = !!(repoId || state.hasRepoOrCommands)
-        if (hasSetupWork) {
-          setState({ ...state, step: 2, isSaving: false })
-        } else {
-          navigate(injector, '/')
-        }
+    const handleFinishNewRepo = async (repoData: NewRepoPayload) => {
+      if (!state.createdServiceId) return
+      setState({ ...state, isSaving: true })
+      try {
+        const newId = crypto.randomUUID()
+        await reposApi.call({
+          method: 'POST',
+          action: '/github-repositories',
+          body: {
+            id: newId,
+            stackName: props.stackName,
+            url: repoData.url,
+            displayName: repoData.displayName,
+            description: repoData.description ?? '',
+          },
+        })
+        await linkRepoAndFinish(newId)
       } catch (error) {
         noty.emit('onNotyAdded', {
           title: 'Error',
@@ -225,7 +244,11 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
       return (
         <Paper style={{ maxWidth: '640px', margin: '32px auto', padding: '32px' }}>
           {stepIndicator}
-          <form onsubmit={handleCreateService} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <Form<CreateServicePayload>
+            validate={isCreateServicePayload}
+            onSubmit={(data) => void handleCreateService(data)}
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+          >
             <h2 style={{ margin: '0' }}>Create Service</h2>
             <p style={{ margin: '0', opacity: '0.7', fontSize: '14px' }}>
               Step 1 of 3: Define the service details for the "{props.stackName}" stack.
@@ -267,12 +290,43 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
                 {state.isSaving ? 'Creating...' : 'Next'}
               </Button>
             </div>
-          </form>
+          </Form>
         </Paper>
       )
     }
 
     if (state.step === 1) {
+      const repoChoiceOptions = (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+          <RepoChoiceOption
+            value="skip"
+            selected={state.repoChoice === 'skip'}
+            label="Skip — no repository"
+            onSelect={() => setState({ ...state, repoChoice: 'skip', selectedRepoId: '' })}
+          />
+          {repos.length > 0 ? (
+            <RepoChoiceOption
+              value="existing"
+              selected={state.repoChoice === 'existing'}
+              label="Select an existing repository"
+              onSelect={() => setState({ ...state, repoChoice: 'existing' })}
+            />
+          ) : null}
+          <RepoChoiceOption
+            value="new"
+            selected={state.repoChoice === 'new'}
+            label="Create a new repository"
+            onSelect={() => setState({ ...state, repoChoice: 'new', selectedRepoId: '' })}
+          />
+        </div>
+      )
+
+      const backButton = (
+        <Button variant="outlined" onclick={() => setState({ ...state, step: 0 })}>
+          Back
+        </Button>
+      )
+
       return (
         <Paper style={{ maxWidth: '640px', margin: '32px auto', padding: '32px' }}>
           {stepIndicator}
@@ -281,48 +335,13 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
             Step 2 of 3: Optionally link a GitHub repository to "{state.createdServiceName}".
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-            <RepoChoiceOption
-              value="skip"
-              selected={state.repoChoice === 'skip'}
-              label="Skip — no repository"
-              onSelect={() => setState({ ...state, repoChoice: 'skip', selectedRepoId: '' })}
-            />
-            {repos.length > 0 ? (
-              <RepoChoiceOption
-                value="existing"
-                selected={state.repoChoice === 'existing'}
-                label="Select an existing repository"
-                onSelect={() => setState({ ...state, repoChoice: 'existing' })}
-              />
-            ) : null}
-            <RepoChoiceOption
-              value="new"
-              selected={state.repoChoice === 'new'}
-              label="Create a new repository"
-              onSelect={() => setState({ ...state, repoChoice: 'new', selectedRepoId: '' })}
-            />
-          </div>
-
-          {state.repoChoice === 'existing' ? (
-            <div style={{ marginBottom: '16px' }}>
-              <Select
-                name="existingRepo"
-                labelTitle="Repository"
-                variant="outlined"
-                placeholder="Select a repository..."
-                value={state.selectedRepoId}
-                options={repos.map((r: GitHubRepository) => ({ value: r.id, label: `${r.displayName} — ${r.url}` }))}
-                onValueChange={(value: string) => setState({ ...state, selectedRepoId: value })}
-              />
-            </div>
-          ) : null}
-
           {state.repoChoice === 'new' ? (
-            <form
-              ref={repoFormRef}
-              style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '16px' }}
+            <Form<NewRepoPayload>
+              validate={isNewRepoPayload}
+              onSubmit={(data) => void handleFinishNewRepo(data)}
+              style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
             >
+              {repoChoiceOptions}
               <Input
                 name="url"
                 labelTitle="Repository URL"
@@ -332,22 +351,45 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               />
               <Input name="displayName" labelTitle="Display Name" variant="outlined" required />
               <Input name="description" labelTitle="Description" variant="outlined" />
-            </form>
-          ) : null}
-
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', paddingTop: '8px' }}>
-            <Button variant="outlined" onclick={() => setState({ ...state, step: 0 })}>
-              Back
-            </Button>
-            <Button
-              variant="contained"
-              color="success"
-              disabled={state.isSaving || (state.repoChoice === 'existing' && !state.selectedRepoId)}
-              onclick={() => void handleFinish()}
-            >
-              {state.isSaving ? 'Saving...' : 'Next'}
-            </Button>
-          </div>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', paddingTop: '8px' }}>
+                {backButton}
+                <Button type="submit" variant="contained" color="success" disabled={state.isSaving}>
+                  {state.isSaving ? 'Saving...' : 'Next'}
+                </Button>
+              </div>
+            </Form>
+          ) : (
+            <div>
+              {repoChoiceOptions}
+              {state.repoChoice === 'existing' ? (
+                <div style={{ marginBottom: '16px' }}>
+                  <Select
+                    name="existingRepo"
+                    labelTitle="Repository"
+                    variant="outlined"
+                    placeholder="Select a repository..."
+                    value={state.selectedRepoId}
+                    options={repos.map((r: GitHubRepository) => ({
+                      value: r.id,
+                      label: `${r.displayName} — ${r.url}`,
+                    }))}
+                    onValueChange={(value: string) => setState({ ...state, selectedRepoId: value })}
+                  />
+                </div>
+              ) : null}
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', paddingTop: '8px' }}>
+                {backButton}
+                <Button
+                  variant="contained"
+                  color="success"
+                  disabled={state.isSaving || (state.repoChoice === 'existing' && !state.selectedRepoId)}
+                  onclick={() => void handleFinishSkipOrExisting()}
+                >
+                  {state.isSaving ? 'Saving...' : 'Next'}
+                </Button>
+              </div>
+            </div>
+          )}
         </Paper>
       )
     }

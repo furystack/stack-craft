@@ -1,6 +1,18 @@
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
-import { Button, Input } from '@furystack/shades-common-components'
+import { Button, Form, Input } from '@furystack/shades-common-components'
 import type { StackView } from 'common'
+
+type StackFormPayload = {
+  name: string
+  displayName: string
+  description: string
+  mainDirectory: string
+}
+
+const isStackFormPayload = (data: unknown): data is StackFormPayload => {
+  const d = data as StackFormPayload
+  return d.name?.length > 0 && d.displayName?.length > 0 && d.mainDirectory?.length > 0
+}
 
 type StackFormProps = {
   initial?: Partial<StackView>
@@ -14,19 +26,17 @@ export const StackForm = Shade<StackFormProps>({
   shadowDomName: 'shade-stack-form',
   render: ({ props }) => {
     return (
-      <form
-        style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}
-        onsubmit={async (ev) => {
-          ev.preventDefault()
-          const formData = new FormData(ev.target as HTMLFormElement)
-          const data = Object.fromEntries(formData.entries()) as Record<string, string>
-          await props.onSubmit({
+      <Form<StackFormPayload>
+        validate={isStackFormPayload}
+        onSubmit={(data) =>
+          void props.onSubmit({
             name: data.name,
             displayName: data.displayName,
             description: data.description,
             mainDirectory: data.mainDirectory,
           })
-        }}
+        }
+        style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}
       >
         <h2 style={{ margin: '0' }}>{props.mode === 'create' ? 'Create Stack' : 'Edit Stack'}</h2>
 
@@ -77,7 +87,7 @@ export const StackForm = Shade<StackFormProps>({
             {props.mode === 'create' ? 'Create' : 'Save'}
           </Button>
         </div>
-      </form>
+      </Form>
     )
   },
 })

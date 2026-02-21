@@ -1,57 +1,85 @@
 import { createComponent, Shade } from '@furystack/shades'
 import type { WizardStepProps } from '@furystack/shades-common-components'
-import { Input } from '@furystack/shades-common-components'
-import { WizardStep } from '../../components/wizard-step.js'
+import { Button, Form, Input } from '@furystack/shades-common-components'
 import { InstallApiClient } from '../../services/api-clients/install-api-client.js'
+
+type AdminPayload = {
+  username: string
+  password: string
+}
+
+const isAdminPayload = (data: unknown): data is AdminPayload => {
+  const d = data as AdminPayload
+  return d.username?.length > 0 && d.password?.length >= 4
+}
 
 export const CreateAdminStep = Shade<WizardStepProps>({
   shadowDomName: 'shade-create-admin-step',
   render: ({ props, injector }) => {
     return (
-      <WizardStep
-        title="Create Admin User"
-        {...props}
-        onSubmit={async (ev) => {
-          ev.preventDefault()
-          const form = ev.target as HTMLFormElement
-          const formData = new FormData(form)
-          const values = Object.fromEntries(formData.entries()) as { username: string; password: string }
-
-          await injector.getInstance(InstallApiClient).call({
-            method: 'POST',
-            action: '/install',
-            body: {
-              username: values.username.toString(),
-              password: values.password.toString(),
-            },
-          })
-
-          props.onNext?.()
+      <Form<AdminPayload>
+        validate={isAdminPayload}
+        onSubmit={(data) => {
+          void (async () => {
+            await injector.getInstance(InstallApiClient).call({
+              method: 'POST',
+              action: '/install',
+              body: {
+                username: data.username,
+                password: data.password,
+              },
+            })
+            props.onNext?.()
+          })()
+        }}
+        style={{
+          padding: '32px',
+          display: 'flex',
+          flexDirection: 'column',
+          height: '430px',
+          width: '600px',
+          maxWidth: 'calc(100vw - 64px)',
+          justifyContent: 'space-between',
         }}
       >
-        <p style={{ marginBottom: '16px' }}>Create the administrator account for StackCraft.</p>
-        <Input
-          name="username"
-          variant="outlined"
-          autofocus
-          autocomplete="off"
-          labelTitle="Username"
-          type="text"
-          required
-          getHelperText={() => 'Choose a username for the admin account'}
-        />
-        <Input
-          name="password"
-          variant="outlined"
-          type="password"
-          labelTitle="Password"
-          autocomplete="off"
-          minLength={4}
-          required
-          getHelperText={() => 'Must be at least 4 characters'}
-        />
-        <input type="submit" style={{ display: 'none' }} />
-      </WizardStep>
+        <h1 style={{ margin: '0 0 16px 0' }}>Create Admin User</h1>
+        <div style={{ flexGrow: '1', overflow: 'auto', padding: '0 2px' }}>
+          <p style={{ marginBottom: '16px' }}>Create the administrator account for StackCraft.</p>
+          <Input
+            name="username"
+            variant="outlined"
+            autofocus
+            autocomplete="off"
+            labelTitle="Username"
+            type="text"
+            required
+            getHelperText={() => 'Choose a username for the admin account'}
+          />
+          <Input
+            name="password"
+            variant="outlined"
+            type="password"
+            labelTitle="Password"
+            autocomplete="off"
+            minLength={4}
+            required
+            getHelperText={() => 'Must be at least 4 characters'}
+          />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '16px' }}>
+          <Button onclick={() => props.onPrev?.()} disabled={props.currentPage < 1} variant="outlined">
+            Previous
+          </Button>
+          <Button
+            type="submit"
+            disabled={props.currentPage > props.maxPages - 1}
+            variant="contained"
+            color={props.currentPage === props.maxPages - 1 ? 'success' : 'primary'}
+          >
+            {props.currentPage < props.maxPages - 1 ? 'Next' : 'Finish'}
+          </Button>
+        </div>
+      </Form>
     )
   },
 })

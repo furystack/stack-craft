@@ -2,13 +2,11 @@ import { createComponent, Shade } from '@furystack/shades'
 import type { WizardStepProps } from '@furystack/shades-common-components'
 import { Button } from '@furystack/shades-common-components'
 
-export const WizardStep = Shade<
-  { title: string; onSubmit?: (ev: SubmitEvent) => void | Promise<void> } & WizardStepProps
->({
+export const WizardStep = Shade<{ title: string } & WizardStepProps>({
   shadowDomName: 'shade-wizard-step',
   render: ({ props, children }) => {
     return (
-      <form
+      <div
         style={{
           padding: '32px',
           display: 'flex',
@@ -18,14 +16,6 @@ export const WizardStep = Shade<
           maxWidth: 'calc(100vw - 64px)',
           justifyContent: 'space-between',
         }}
-        onsubmit={async (ev) => {
-          ev.preventDefault()
-          if (props.onSubmit) {
-            await props.onSubmit(ev)
-          } else {
-            props.onNext?.()
-          }
-        }}
       >
         <h1 style={{ margin: '0 0 16px 0' }}>{props.title}</h1>
         <div style={{ flexGrow: '1', overflow: 'auto', padding: '0 2px' }}>{children}</div>
@@ -34,7 +24,7 @@ export const WizardStep = Shade<
             Previous
           </Button>
           <Button
-            type="submit"
+            onclick={() => props.onNext?.()}
             disabled={props.currentPage > props.maxPages - 1}
             variant="contained"
             color={props.currentPage === props.maxPages - 1 ? 'success' : 'primary'}
@@ -42,7 +32,7 @@ export const WizardStep = Shade<
             {props.currentPage < props.maxPages - 1 ? 'Next' : 'Finish'}
           </Button>
         </div>
-      </form>
+      </div>
     )
   },
 })
