@@ -1,5 +1,6 @@
 import type { FindOptions } from '@furystack/core'
-import { createComponent, Shade } from '@furystack/shades'
+import { serializeToQueryString } from '@furystack/rest'
+import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 import { Button, CollectionService, DataGrid, Icon, icons, SelectionCell } from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
 import type { ServiceView } from 'common'
@@ -9,9 +10,6 @@ import { ServiceStatusIndicator } from './service-status-indicator.js'
 
 type ServiceTableProps = {
   services: ServiceView[]
-  onViewLogs: (serviceId: string) => void
-  onDetails: (serviceId: string) => void
-  onEdit: (serviceId: string) => void
   onSelectionChange?: (selected: ServiceView[]) => void
 }
 
@@ -85,27 +83,30 @@ export const ServiceTable = Shade<ServiceTableProps>({
                   startIcon={<Icon icon={icons.stopCircle} size="small" />}
                 />
               )}
-              <Button
-                variant="text"
-                size="small"
-                title="Logs"
-                onclick={() => props.onViewLogs(entry.id)}
-                startIcon={<Icon icon={icons.fileText} size="small" />}
-              />
-              <Button
-                variant="text"
-                size="small"
-                title="Details"
-                onclick={() => props.onDetails(entry.id)}
-                startIcon={<Icon icon={icons.eye} size="small" />}
-              />
-              <Button
-                variant="text"
-                size="small"
-                title="Edit"
-                onclick={() => props.onEdit(entry.id)}
-                startIcon={<Icon icon={icons.edit} size="small" />}
-              />
+              <NestedRouteLink href={`/services/${entry.id}/logs`}>
+                <Button
+                  variant="text"
+                  size="small"
+                  title="Logs"
+                  startIcon={<Icon icon={icons.fileText} size="small" />}
+                />
+              </NestedRouteLink>
+              <NestedRouteLink href={`/services/${entry.id}`}>
+                <Button
+                  variant="text"
+                  size="small"
+                  title="Details"
+                  startIcon={<Icon icon={icons.eye} size="small" />}
+                />
+              </NestedRouteLink>
+              <NestedRouteLink href={`/services/${entry.id}?${serializeToQueryString({ edit: true })}`}>
+                <Button
+                  variant="text"
+                  size="small"
+                  title="Edit"
+                  startIcon={<Icon icon={icons.edit} size="small" />}
+                />
+              </NestedRouteLink>
             </div>
           ),
         }}

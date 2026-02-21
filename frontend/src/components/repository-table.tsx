@@ -1,12 +1,11 @@
 import type { FindOptions } from '@furystack/core'
-import { createComponent, Shade } from '@furystack/shades'
+import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 import { Button, CollectionService, DataGrid } from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
 import type { GitHubRepository } from 'common'
 
 type RepositoryTableProps = {
   repositories: GitHubRepository[]
-  onEdit: (repositoryId: string) => void
 }
 
 type RepositoryColumn = 'displayName' | 'url' | 'actions'
@@ -46,9 +45,9 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
           ),
           url: (entry) => <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>{entry.url}</span>,
           actions: (entry) => (
-            <Button variant="outlined" onclick={() => props.onEdit(entry.id)}>
-              Edit
-            </Button>
+            <NestedRouteLink href={`/repositories/${entry.id}`}>
+              <Button variant="outlined">Edit</Button>
+            </NestedRouteLink>
           ),
         }}
       />

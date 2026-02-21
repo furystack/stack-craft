@@ -1,4 +1,4 @@
-import { createComponent, Shade } from '@furystack/shades'
+import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 import { Button, Input, Select } from '@furystack/shades-common-components'
 import type { GitHubRepository, ServiceView } from 'common'
 
@@ -7,7 +7,8 @@ type ServiceFormProps = {
   stackName: string
   repositories?: GitHubRepository[]
   onSubmit: (data: Partial<ServiceView>) => void | Promise<void>
-  onCancel: () => void
+  onCancel?: () => void
+  cancelHref?: string
   mode: 'create' | 'edit'
 }
 
@@ -117,9 +118,15 @@ export const ServiceForm = Shade<ServiceFormProps>({
           </label>
         </div>
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-          <Button variant="outlined" onclick={props.onCancel}>
-            Cancel
-          </Button>
+          {props.cancelHref ? (
+            <NestedRouteLink href={props.cancelHref}>
+              <Button variant="outlined">Cancel</Button>
+            </NestedRouteLink>
+          ) : (
+            <Button variant="outlined" onclick={props.onCancel}>
+              Cancel
+            </Button>
+          )}
           <Button type="submit" variant="contained">
             {props.mode === 'create' ? 'Create' : 'Save'}
           </Button>

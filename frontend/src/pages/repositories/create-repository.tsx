@@ -50,7 +50,7 @@ export const CreateRepository = Shade<CreateRepositoryProps>({
             mode="create"
             stackName={props.stackName}
             onSubmit={(data) => void handleSubmit(data)}
-            onCancel={() => navigate(injector, '/')}
+            cancelHref="/"
           />
         </Paper>
       </PageContainer>

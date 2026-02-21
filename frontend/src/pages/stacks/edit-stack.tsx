@@ -1,5 +1,5 @@
 import { useEntitySync } from '@furystack/entity-sync-client'
-import { createComponent, Shade } from '@furystack/shades'
+import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 
 import { navigate } from '../../utils/navigate.js'
 import {
@@ -48,13 +48,11 @@ export const EditStack = Shade<EditStackProps>({
             title="Error loading stack"
             description={stackState.error}
             actions={
-              <Button
-                variant="outlined"
-                onclick={() => navigate(injector, '/')}
-                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
-              >
-                Back
-              </Button>
+              <NestedRouteLink href="/">
+                <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
+                  Back
+                </Button>
+              </NestedRouteLink>
             }
           />
         </PageContainer>
@@ -68,13 +66,11 @@ export const EditStack = Shade<EditStackProps>({
           <PageHeader
             title="Stack not found"
             actions={
-              <Button
-                variant="outlined"
-                onclick={() => navigate(injector, '/')}
-                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
-              >
-                Back
-              </Button>
+              <NestedRouteLink href="/">
+                <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
+                  Back
+                </Button>
+              </NestedRouteLink>
             }
           />
         </PageContainer>
@@ -138,13 +134,11 @@ export const EditStack = Shade<EditStackProps>({
           title={`Edit: ${stack.displayName}`}
           actions={
             <div style={{ display: 'flex', gap: '8px' }}>
-              <Button
-                variant="outlined"
-                onclick={() => navigate(injector, '/')}
-                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
-              >
-                Back
-              </Button>
+              <NestedRouteLink href="/">
+                <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
+                  Back
+                </Button>
+              </NestedRouteLink>
               <Button variant="outlined" color="error" onclick={() => setIsConfirmingDelete(true)}>
                 Delete Stack
               </Button>
@@ -156,7 +150,7 @@ export const EditStack = Shade<EditStackProps>({
             mode="edit"
             initial={stack}
             onSubmit={(data) => void handleSave(data)}
-            onCancel={() => navigate(injector, '/')}
+            cancelHref="/"
           />
         </Paper>
         {isConfirmingDelete ? (

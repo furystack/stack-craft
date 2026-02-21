@@ -258,13 +258,11 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
               >
                 Restart
               </Button>
-              <Button
-                variant="outlined"
-                onclick={() => navigate(injector, `/services/${service.id}/logs`)}
-                startIcon={<Icon icon={icons.file} size="small" />}
-              >
-                View Logs
-              </Button>
+              <NestedRouteLink href={`/services/${service.id}/logs`}>
+                <Button variant="outlined" startIcon={<Icon icon={icons.file} size="small" />}>
+                  View Logs
+                </Button>
+              </NestedRouteLink>
               <Button
                 variant="outlined"
                 onclick={() => setIsEditing(true)}

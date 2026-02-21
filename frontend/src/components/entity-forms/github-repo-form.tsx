@@ -1,4 +1,4 @@
-import { createComponent, Shade } from '@furystack/shades'
+import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 import { Button, Input } from '@furystack/shades-common-components'
 import type { GitHubRepository } from 'common'
 
@@ -6,7 +6,8 @@ type GitHubRepoFormProps = {
   initial?: Partial<GitHubRepository>
   stackName: string
   onSubmit: (data: Partial<GitHubRepository>) => void | Promise<void>
-  onCancel: () => void
+  onCancel?: () => void
+  cancelHref?: string
   mode: 'create' | 'edit'
 }
 
@@ -51,9 +52,15 @@ export const GitHubRepoForm = Shade<GitHubRepoFormProps>({
           value={props.initial?.description ?? ''}
         />
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-          <Button variant="outlined" onclick={props.onCancel}>
-            Cancel
-          </Button>
+          {props.cancelHref ? (
+            <NestedRouteLink href={props.cancelHref}>
+              <Button variant="outlined">Cancel</Button>
+            </NestedRouteLink>
+          ) : (
+            <Button variant="outlined" onclick={props.onCancel}>
+              Cancel
+            </Button>
+          )}
           <Button type="submit" variant="contained">
             {props.mode === 'create' ? 'Add' : 'Save'}
           </Button>

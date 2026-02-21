@@ -1,4 +1,4 @@
-import { createComponent, Shade } from '@furystack/shades'
+import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 
 import { navigate } from '../../utils/navigate.js'
 import {
@@ -99,9 +99,9 @@ export const ImportStack = Shade({
                 <div style={{ color: cssVariableTheme.palette.error.main, marginTop: '8px' }}>{parseError}</div>
               )}
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
-                <Button variant="outlined" onclick={() => navigate(injector, '/')}>
-                  Cancel
-                </Button>
+                <NestedRouteLink href="/">
+                  <Button variant="outlined">Cancel</Button>
+                </NestedRouteLink>
                 <Button variant="contained" disabled={!jsonInput} onclick={handleParse}>
                   Parse
                 </Button>

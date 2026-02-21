@@ -1,5 +1,4 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
-import { serializeToQueryString } from '@furystack/rest'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 
 import { Button, Icon, icons, Loader, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
@@ -50,9 +49,9 @@ export const Dashboard = Shade<DashboardProps>({
             description="No stacks yet. Create a stack to start managing your services."
             actions={
               <div style={{ display: 'flex', gap: '8px' }}>
-                <Button variant="contained" onclick={() => navigate(injector, '/stacks/create')}>
-                  Create Stack
-                </Button>
+                <NestedRouteLink href="/stacks/create">
+                  <Button variant="contained">Create Stack</Button>
+                </NestedRouteLink>
                 <NestedRouteLink href="/stacks/import">
                   <Button variant="outlined">Import Stack</Button>
                 </NestedRouteLink>
@@ -109,13 +108,11 @@ export const Dashboard = Shade<DashboardProps>({
           title={currentStack?.displayName ?? props.stackName}
           description={currentStack?.description}
           actions={
-            <Button
-              variant="outlined"
-              onclick={() => navigate(injector, `/stacks/${props.stackName}/edit`)}
-              startIcon={<Icon icon={icons.edit} size="small" />}
-            >
-              Edit Stack
-            </Button>
+            <NestedRouteLink href="/stacks/:stackName/edit" params={{ stackName: props.stackName! }}>
+              <Button variant="outlined" startIcon={<Icon icon={icons.edit} size="small" />}>
+                Edit Stack
+              </Button>
+            </NestedRouteLink>
           }
         />
 
@@ -164,13 +161,11 @@ export const Dashboard = Shade<DashboardProps>({
               </Button>
             ) : null}
             <div style={{ flex: '1' }} />
-            <Button
-              variant="contained"
-              onclick={() => navigate(injector, `/services/wizard/${props.stackName}`)}
-              startIcon={<Icon icon={icons.plus} size="small" />}
-            >
-              Create Service
-            </Button>
+            <NestedRouteLink href="/services/wizard/:stackName" params={{ stackName: props.stackName! }}>
+              <Button variant="contained" startIcon={<Icon icon={icons.plus} size="small" />}>
+                Create Service
+              </Button>
+            </NestedRouteLink>
           </div>
           {services.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px' }}>
@@ -179,11 +174,6 @@ export const Dashboard = Shade<DashboardProps>({
           ) : (
             <ServiceTable
               services={services}
-              onViewLogs={(serviceId) => navigate(injector, `/services/${serviceId}/logs`)}
-              onDetails={(serviceId) => navigate(injector, `/services/${serviceId}`)}
-              onEdit={(serviceId) =>
-                navigate(injector, `/services/${serviceId}?${serializeToQueryString({ edit: true })}`)
-              }
               onSelectionChange={(selected: ServiceView[]) => setSelectedServices(selected)}
             />
           )}
@@ -199,23 +189,18 @@ export const Dashboard = Shade<DashboardProps>({
             }}
           >
             <h3 style={{ margin: '0', fontSize: '16px' }}>Repositories ({repos.length})</h3>
-            <Button
-              variant="outlined"
-              onclick={() => navigate(injector, `/repositories/create/${props.stackName}`)}
-              startIcon={<Icon icon={icons.plus} size="small" />}
-            >
-              Add Repository
-            </Button>
+            <NestedRouteLink href="/repositories/create/:stackName" params={{ stackName: props.stackName! }}>
+              <Button variant="outlined" startIcon={<Icon icon={icons.plus} size="small" />}>
+                Add Repository
+              </Button>
+            </NestedRouteLink>
           </div>
           {repos.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px' }}>
               <p style={{ opacity: '0.5' }}>No repositories in this stack yet.</p>
             </div>
           ) : (
-            <RepositoryTable
-              repositories={repos}
-              onEdit={(repoId: string) => navigate(injector, `/repositories/${repoId}`)}
-            />
+            <RepositoryTable repositories={repos} />
           )}
         </Paper>
       </PageContainer>

@@ -72,7 +72,7 @@ export const CreateService = Shade<CreateServiceProps>({
             stackName={props.stackName}
             repositories={repos}
             onSubmit={(data) => void handleSubmit(data)}
-            onCancel={() => navigate(injector, '/')}
+            cancelHref="/"
           />
         </Paper>
       </PageContainer>

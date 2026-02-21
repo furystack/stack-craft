@@ -43,7 +43,7 @@ export const CreateStack = Shade({
           <StackForm
             mode="create"
             onSubmit={(data) => void handleSubmit(data)}
-            onCancel={() => navigate(injector, '/')}
+            cancelHref="/"
           />
         </Paper>
       </PageContainer>

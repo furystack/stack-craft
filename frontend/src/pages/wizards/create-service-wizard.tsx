@@ -1,5 +1,5 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
-import { createComponent, Shade } from '@furystack/shades'
+import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 
 import { navigate } from '../../utils/navigate.js'
 import { Button, Input, NotyService, Paper, Select, cssVariableTheme } from '@furystack/shades-common-components'
@@ -216,9 +216,9 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               getHelperText={() => 'e.g., npm run build, yarn build, dotnet build'}
             />
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', paddingTop: '8px' }}>
-              <Button variant="outlined" onclick={() => navigate(injector, '/')}>
-                Cancel
-              </Button>
+              <NestedRouteLink href="/">
+                <Button variant="outlined">Cancel</Button>
+              </NestedRouteLink>
               <Button type="submit" variant="contained" disabled={state.isSaving}>
                 {state.isSaving ? 'Creating...' : 'Next'}
               </Button>

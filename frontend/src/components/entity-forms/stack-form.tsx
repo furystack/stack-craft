@@ -1,11 +1,12 @@
-import { createComponent, Shade } from '@furystack/shades'
+import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 import { Button, Input } from '@furystack/shades-common-components'
 import type { StackView } from 'common'
 
 type StackFormProps = {
   initial?: Partial<StackView>
   onSubmit: (data: Partial<StackView>) => void | Promise<void>
-  onCancel: () => void
+  onCancel?: () => void
+  cancelHref?: string
   mode: 'create' | 'edit'
 }
 
@@ -63,9 +64,15 @@ export const StackForm = Shade<StackFormProps>({
           getHelperText={() => 'Absolute path to the root directory for this stack'}
         />
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-          <Button variant="outlined" onclick={props.onCancel}>
-            Cancel
-          </Button>
+          {props.cancelHref ? (
+            <NestedRouteLink href={props.cancelHref}>
+              <Button variant="outlined">Cancel</Button>
+            </NestedRouteLink>
+          ) : (
+            <Button variant="outlined" onclick={props.onCancel}>
+              Cancel
+            </Button>
+          )}
           <Button type="submit" variant="contained">
             {props.mode === 'create' ? 'Create' : 'Save'}
           </Button>
