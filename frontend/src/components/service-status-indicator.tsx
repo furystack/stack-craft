@@ -12,6 +12,8 @@ const getAggregateStatus = (svc: ServiceView): { label: string; color: keyof Pal
   if (svc.runStatus === 'starting') return { label: 'Starting', color: 'warning' }
   if (svc.runStatus === 'stopping') return { label: 'Stopping', color: 'warning' }
   if (svc.runStatus === 'error') return { label: 'Error', color: 'error' }
+  if (svc.cloneStatus === 'cloning') return { label: 'Cloning', color: 'warning' }
+  if (svc.cloneStatus === 'failed') return { label: 'Clone Failed', color: 'error' }
   if (svc.installStatus === 'installing') return { label: 'Installing', color: 'warning' }
   if (svc.installStatus === 'failed') return { label: 'Install Failed', color: 'error' }
   if (svc.buildStatus === 'building') return { label: 'Building', color: 'warning' }

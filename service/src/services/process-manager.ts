@@ -1,13 +1,18 @@
 import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import type { InstallStatus, BuildStatus, RunStatus, ServiceStateEvent, TriggerSource } from 'common'
-import { ServiceDefinition, ServiceStateHistory, ServiceStatus } from 'common'
+import type { CloneStatus, InstallStatus, BuildStatus, RunStatus, ServiceStateEvent, TriggerSource } from 'common'
+import { GitHubRepository, ServiceDefinition, ServiceStateHistory, ServiceStatus, StackConfig } from 'common'
+import { getServiceCwd } from 'common'
 import { type ChildProcess, spawn } from 'child_process'
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs'
 import { randomUUID } from 'crypto'
+import { dirname, join, resolve as resolvePosix } from 'path'
 
 import { useSystemIdentityContext } from '@furystack/core'
+import { resolvePath } from '../utils/resolve-path.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
+import { GitService } from './git-service.js'
 import { LogStorageService } from './log-storage-service.js'
 import { WebsocketService } from './websocket-service.js'
 
@@ -71,7 +76,7 @@ export class ProcessManager {
 
   private async updateServiceStatus(
     serviceId: string,
-    update: { installStatus?: InstallStatus; buildStatus?: BuildStatus; runStatus?: RunStatus },
+    update: { cloneStatus?: CloneStatus; installStatus?: InstallStatus; buildStatus?: BuildStatus; runStatus?: RunStatus },
     event: ServiceStateEvent,
     trigger: TriggerContext,
     metadata?: Record<string, unknown>,
@@ -88,6 +93,7 @@ export class ProcessManager {
       const now = new Date().toISOString()
       const patchData: Partial<ServiceStatus> = { ...update, updatedAt: now }
 
+      if (update.cloneStatus === 'cloned') patchData.lastClonedAt = now
       if (update.installStatus === 'installed') patchData.lastInstalledAt = now
       if (update.buildStatus === 'built') patchData.lastBuiltAt = now
       if (update.runStatus === 'running') patchData.lastStartedAt = now
@@ -98,12 +104,14 @@ export class ProcessManager {
         const historyDs = getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id')
 
         const previousState = JSON.stringify({
+          cloneStatus: current.cloneStatus,
           installStatus: current.installStatus,
           buildStatus: current.buildStatus,
           runStatus: current.runStatus,
         })
 
         const newState = JSON.stringify({
+          cloneStatus: update.cloneStatus ?? current.cloneStatus,
           installStatus: update.installStatus ?? current.installStatus,
           buildStatus: update.buildStatus ?? current.buildStatus,
           runStatus: update.runStatus ?? current.runStatus,
@@ -131,6 +139,7 @@ export class ProcessManager {
       void this.ws.announce({
         type: 'service-status-changed',
         serviceId,
+        cloneStatus: update.cloneStatus ?? current.cloneStatus,
         installStatus: update.installStatus ?? current.installStatus,
         buildStatus: update.buildStatus ?? current.buildStatus,
         runStatus: update.runStatus ?? current.runStatus,
@@ -283,6 +292,273 @@ export class ProcessManager {
 
     const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
     await this.runOneShot(serviceId, svc.buildCommand, cwd, 'build', trigger)
+  }
+
+  /**
+   * Clones or pulls the linked repository for a service.
+   * @returns info about what happened: whether it was a clone, a pull, and whether files changed.
+   */
+  public async cloneOrPullService(
+    serviceId: string,
+    trigger: TriggerContext,
+  ): Promise<{ cloned: boolean; pulled: boolean; updated: boolean }> {
+    const elevated = this.getElevatedInjector()
+    const repository = getRepository(elevated)
+
+    const services = await repository
+      .getDataSetFor(ServiceDefinition, 'id')
+      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
+    const svc = services[0]
+    if (!svc) throw new Error(`Service not found: ${serviceId}`)
+
+    const configs = await repository
+      .getDataSetFor(StackConfig, 'stackName')
+      .find(elevated, { filter: { stackName: { $eq: svc.stackName } }, top: 1 })
+    const stackConfig = configs[0]
+    if (!stackConfig) throw new Error(`Stack config not found: ${svc.stackName}`)
+
+    let repo: GitHubRepository | null = null
+    if (svc.repositoryId) {
+      const repos = await repository
+        .getDataSetFor(GitHubRepository, 'id')
+        .find(elevated, { filter: { id: { $eq: svc.repositoryId } }, top: 1 })
+      repo = repos[0] ?? null
+    }
+    if (!repo?.url) {
+      throw new Error(`No repository linked. Link a GitHub repository to enable clone/pull.`)
+    }
+
+    const cwd = resolvePath(getServiceCwd(stackConfig, svc, repo))
+    const stackRoot = resolvePosix(resolvePath(stackConfig.mainDirectory))
+    if (!cwd.startsWith(stackRoot)) {
+      throw new Error(`Resolved path "${cwd}" is outside the stack directory "${stackRoot}"`)
+    }
+
+    await this.updateServiceStatus(serviceId, { cloneStatus: 'cloning' }, 'clone-started', trigger)
+
+    try {
+      const git = getInjectorReference(this).getInstance(GitService)
+      const isGitRepo = existsSync(cwd) && existsSync(join(cwd, '.git'))
+
+      if (!existsSync(cwd)) {
+        await this.logger.information({ message: `Cloning ${repo.url} into ${cwd}` })
+        mkdirSync(dirname(cwd), { recursive: true })
+        await git.clone(repo.url, cwd)
+        await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        return { cloned: true, pulled: false, updated: true }
+      } else if (isGitRepo) {
+        await this.logger.information({ message: `Pulling in ${cwd}` })
+        const { updated } = await git.pull(cwd)
+        await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        return { cloned: false, pulled: true, updated }
+      } else {
+        const dirContents = readdirSync(cwd)
+        if (dirContents.length > 0) {
+          await this.logger.warning({
+            message: `Directory "${cwd}" exists with ${dirContents.length} entries but is not a git repo. Removing and re-cloning.`,
+          })
+        }
+        rmSync(cwd, { recursive: true })
+        mkdirSync(dirname(cwd), { recursive: true })
+        await git.clone(repo.url, cwd)
+        await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        return { cloned: true, pulled: false, updated: true }
+      }
+    } catch (error) {
+      await this.updateServiceStatus(serviceId, { cloneStatus: 'failed' }, 'clone-failed', trigger, {
+        error: error instanceof Error ? error.message : 'Unknown clone/pull error',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * Runs the full setup pipeline for a service: clone -> install -> build.
+   * Skips steps that don't apply (e.g. no repo, no installCommand).
+   * Stops on first failure.
+   */
+  public async setupService(serviceId: string, trigger: TriggerContext): Promise<void> {
+    const elevated = this.getElevatedInjector()
+    const services = await getRepository(elevated)
+      .getDataSetFor(ServiceDefinition, 'id')
+      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
+    const svc = services[0]
+    if (!svc) throw new Error(`Service not found: ${serviceId}`)
+
+    await this.updateServiceStatus(serviceId, {}, 'setup-started', trigger)
+
+    try {
+      if (svc.repositoryId) {
+        const statuses = await getRepository(elevated)
+          .getDataSetFor(ServiceStatus, 'serviceId')
+          .find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+        const currentStatus = statuses[0]
+        if (currentStatus?.cloneStatus !== 'cloned') {
+          await this.cloneOrPullService(serviceId, trigger)
+        }
+      }
+
+      if (svc.installCommand) {
+        await this.installService(serviceId, trigger)
+      }
+
+      if (svc.buildCommand) {
+        await this.buildService(serviceId, trigger)
+      }
+
+      await this.updateServiceStatus(serviceId, {}, 'setup-completed', trigger)
+    } catch (error) {
+      await this.updateServiceStatus(serviceId, {}, 'setup-failed', trigger, {
+        error: error instanceof Error ? error.message : 'Setup failed',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * Pulls latest changes, then re-installs, re-builds, and restarts (if it was running).
+   * Skips install/build/restart if git pull reported no changes.
+   */
+  public async updateService(serviceId: string, trigger: TriggerContext): Promise<void> {
+    const elevated = this.getElevatedInjector()
+    const services = await getRepository(elevated)
+      .getDataSetFor(ServiceDefinition, 'id')
+      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
+    const svc = services[0]
+    if (!svc) throw new Error(`Service not found: ${serviceId}`)
+
+    const statuses = await getRepository(elevated)
+      .getDataSetFor(ServiceStatus, 'serviceId')
+      .find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+    const currentStatus = statuses[0]
+
+    await this.updateServiceStatus(serviceId, {}, 'update-started', trigger)
+
+    try {
+      if (!svc.repositoryId) {
+        throw new Error('No repository linked to this service')
+      }
+
+      const { updated } = await this.cloneOrPullService(serviceId, trigger)
+
+      if (!updated) {
+        await this.updateServiceStatus(serviceId, {}, 'update-completed', trigger, {
+          message: 'Already up to date',
+        })
+        return
+      }
+
+      const wasRunning = currentStatus?.runStatus === 'running'
+
+      if (wasRunning) {
+        await this.stopService(serviceId, trigger)
+      }
+
+      if (svc.installCommand) {
+        await this.installService(serviceId, trigger)
+      }
+
+      if (svc.buildCommand) {
+        await this.buildService(serviceId, trigger)
+      }
+
+      if (wasRunning) {
+        await this.startService(serviceId, trigger)
+      }
+
+      await this.updateServiceStatus(serviceId, {}, 'update-completed', trigger)
+    } catch (error) {
+      await this.updateServiceStatus(serviceId, {}, 'update-failed', trigger, {
+        error: error instanceof Error ? error.message : 'Update failed',
+      })
+      throw error
+    }
+  }
+
+  /**
+   * Sets up multiple services respecting prerequisite dependencies.
+   * Uses topological sort to determine execution order. Services in the
+   * same level run in parallel. Circular dependencies are resolved by
+   * merging cycle members into the same level.
+   */
+  public async setupServices(serviceIds: string[], trigger: TriggerContext): Promise<void> {
+    const elevated = this.getElevatedInjector()
+    const allServices = await getRepository(elevated)
+      .getDataSetFor(ServiceDefinition, 'id')
+      .find(elevated, {})
+
+    const serviceMap = new Map(allServices.map((s) => [s.id, s]))
+    const targetSet = new Set(serviceIds)
+
+    const levels = this.computeExecutionLevels(serviceIds, serviceMap, targetSet)
+
+    for (const level of levels) {
+      const results = await Promise.allSettled(level.map((id) => this.setupService(id, trigger)))
+      const failures = results.filter(
+        (r): r is PromiseRejectedResult => r.status === 'rejected',
+      )
+      if (failures.length > 0) {
+        await this.logger.warning({
+          message: `${failures.length} service(s) failed setup in batch level`,
+          data: { errors: failures.map((f) => (f.reason as Error).message) },
+        })
+      }
+    }
+  }
+
+  /**
+   * Computes execution levels via topological sort with cycle resolution.
+   * Returns an array of arrays: each inner array is a set of service IDs
+   * that can run in parallel. Levels are executed sequentially.
+   */
+  private computeExecutionLevels(
+    serviceIds: string[],
+    serviceMap: Map<string, ServiceDefinition>,
+    targetSet: Set<string>,
+  ): string[][] {
+    const inDegree = new Map<string, number>()
+    const dependents = new Map<string, string[]>()
+
+    for (const id of serviceIds) {
+      inDegree.set(id, 0)
+      dependents.set(id, [])
+    }
+
+    for (const id of serviceIds) {
+      const svc = serviceMap.get(id)
+      if (!svc) continue
+      for (const prereq of svc.prerequisiteServiceIds) {
+        if (targetSet.has(prereq)) {
+          inDegree.set(id, (inDegree.get(id) ?? 0) + 1)
+          dependents.get(prereq)?.push(id)
+        }
+      }
+    }
+
+    const levels: string[][] = []
+    const remaining = new Set(serviceIds)
+
+    while (remaining.size > 0) {
+      const level = [...remaining].filter((id) => (inDegree.get(id) ?? 0) === 0)
+
+      if (level.length === 0) {
+        // Cycle detected: all remaining nodes have non-zero in-degree.
+        // Break the deadlock by running them all in parallel.
+        levels.push([...remaining])
+        break
+      }
+
+      levels.push(level)
+
+      for (const id of level) {
+        remaining.delete(id)
+        for (const dep of dependents.get(id) ?? []) {
+          inDegree.set(dep, (inDegree.get(dep) ?? 0) - 1)
+        }
+      }
+    }
+
+    return levels
   }
 
   private async runOneShot(

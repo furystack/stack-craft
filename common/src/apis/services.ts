@@ -51,6 +51,8 @@ export interface ServicesApi extends RestApi {
     '/services/:id/install': ServiceActionEndpoint
     '/services/:id/build': ServiceActionEndpoint
     '/services/:id/pull': ServiceActionEndpoint
+    '/services/:id/setup': ServiceActionEndpoint
+    '/services/:id/update': ServiceActionEndpoint
   }
   PATCH: {
     '/services/:id': PatchServiceEndpoint

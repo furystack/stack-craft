@@ -157,7 +157,37 @@ export const Dashboard = Shade<DashboardProps>({
                 disabled={isBulkLoading}
                 onclick={() => void bulkAction('install')}
               >
-                Reinstall
+                Install
+              </Button>
+            ) : null}
+            {hasSelection ? (
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={isBulkLoading}
+                onclick={() => void bulkAction('build')}
+              >
+                Build
+              </Button>
+            ) : null}
+            {hasSelection ? (
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={isBulkLoading}
+                onclick={() => void bulkAction('setup')}
+              >
+                Set Up
+              </Button>
+            ) : null}
+            {hasSelection ? (
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={isBulkLoading}
+                onclick={() => void bulkAction('update')}
+              >
+                Update
               </Button>
             ) : null}
             <div style={{ flex: '1' }} />

@@ -12,6 +12,7 @@ import { ServiceLogs } from '../pages/services/service-logs.js'
 import { UserSettings } from '../pages/settings/user-settings.js'
 import { CreateStack } from '../pages/stacks/create-stack.js'
 import { EditStack } from '../pages/stacks/edit-stack.js'
+import { StackSetup } from '../pages/stacks/stack-setup.js'
 import { CreateServiceWizard } from '../pages/wizards/create-service-wizard.js'
 import { SessionService } from '../services/session.js'
 
@@ -45,6 +46,9 @@ const appRoutes = {
   },
   '/stacks/import': {
     component: () => <ImportStack />,
+  },
+  '/stacks/:name/setup': {
+    component: ({ match }) => <StackSetup stackName={match.params.name} />,
   },
   '/stacks/:name/edit': {
     component: ({ match }) => <EditStack stackName={match.params.name} />,

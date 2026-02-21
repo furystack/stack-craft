@@ -1,3 +1,4 @@
+export type CloneStatus = 'not-cloned' | 'cloning' | 'cloned' | 'failed'
 export type InstallStatus = 'not-installed' | 'installing' | 'installed' | 'failed'
 export type BuildStatus = 'not-built' | 'building' | 'built' | 'failed'
 export type RunStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error'
@@ -13,10 +14,12 @@ export class ServiceStatus {
   /** FK to {@link ServiceDefinition.id} */
   serviceId!: string
 
+  cloneStatus: CloneStatus = 'not-cloned'
   installStatus: InstallStatus = 'not-installed'
   buildStatus: BuildStatus = 'not-built'
   runStatus: RunStatus = 'stopped'
 
+  lastClonedAt?: string
   lastInstalledAt?: string
   lastBuiltAt?: string
   lastStartedAt?: string

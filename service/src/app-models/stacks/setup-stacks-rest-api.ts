@@ -16,8 +16,11 @@ import {
 import stacksApiSchema from 'common/schemas/stacks-api.json' with { type: 'json' }
 import { randomUUID } from 'crypto'
 
+import { getCurrentUser } from '@furystack/core'
+
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getPort } from '../../get-port.js'
+import { ProcessManager } from '../../services/process-manager.js'
 import { ExportStackAction } from './actions/export-stack-action.js'
 import { ImportStackAction } from './actions/import-stack-action.js'
 
@@ -87,6 +90,29 @@ export const setupStacksRestApi = async (injector: Injector) => {
           return JsonResult({ ...def, ...config })
         },
         '/stacks/import': Validate({ schema: stacksApiSchema, schemaName: 'ImportStackEndpoint' })(ImportStackAction),
+        '/stacks/:id/setup': async ({ injector: i, getUrlParams }) => {
+          const { id } = getUrlParams()
+          const repo = getRepository(i)
+          const svcDs = repo.getDataSetFor(ServiceDefinition, 'id')
+          const svcs = await svcDs.find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
+          if (svcs.length === 0) throw new RequestError('No services found in this stack', 404)
+
+          let username = 'unknown'
+          try {
+            const { username: resolvedUsername } = (await getCurrentUser(i)) ?? {}
+            if (resolvedUsername) username = resolvedUsername
+          } catch {
+            // Identity context may not be available
+          }
+          const trigger = { triggeredBy: username, triggerSource: 'api' as const }
+
+          const pm = i.getInstance(ProcessManager)
+          await pm.setupServices(
+            svcs.map((s) => s.id),
+            trigger,
+          )
+          return JsonResult({ success: true })
+        },
       },
       PATCH: {
         '/stacks/:id': async ({ injector: i, getUrlParams, getBody }) => {

@@ -1,9 +1,10 @@
-import type { InstallStatus, BuildStatus, RunStatus } from '../models/service-status.js'
+import type { CloneStatus, InstallStatus, BuildStatus, RunStatus } from '../models/service-status.js'
 
 export type WebsocketMessage =
   | {
       type: 'service-status-changed'
       serviceId: string
+      cloneStatus: CloneStatus
       installStatus: InstallStatus
       buildStatus: BuildStatus
       runStatus: RunStatus

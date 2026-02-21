@@ -22,6 +22,7 @@ export const ImportStack = Shade({
     const [parsed, setParsed] = useState<ParsedExport | null>('parsed', null)
     const [parseError, setParseError] = useState('parseError', '')
     const [mainDirectory, setMainDirectory] = useState('mainDirectory', '')
+    const [autoSetup, setAutoSetup] = useState('autoSetup', true)
     const [isImporting, setIsImporting] = useState('isImporting', false)
 
     const handleParse = () => {
@@ -57,7 +58,11 @@ export const ImportStack = Shade({
           body: `Stack "${parsed.stack.displayName}" was imported successfully.`,
           type: 'success',
         })
-        navigate(injector, '/')
+        if (autoSetup && (parsed.services?.length ?? 0) > 0) {
+          navigate(injector, `/stacks/${parsed.stack.name}/setup`)
+        } else {
+          navigate(injector, '/')
+        }
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Import failed',
@@ -125,6 +130,26 @@ export const ImportStack = Shade({
                 getHelperText={() => 'Absolute path to the root directory for this stack on your machine'}
                 oninput={(ev) => setMainDirectory((ev.target as HTMLInputElement).value)}
               />
+
+              {(parsed.services?.length ?? 0) > 0 ? (
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: cssVariableTheme.text.secondary,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={autoSetup}
+                    onchange={(ev) => setAutoSetup((ev.target as HTMLInputElement).checked)}
+                  />
+                  Set up services after import (clone repositories, install dependencies, build)
+                </label>
+              ) : null}
 
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <Button

@@ -1,13 +1,9 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
-import { GitHubRepository, ServiceDefinition, ServiceStateHistory, ServiceStatus, StackConfig } from 'common'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ServiceLifecycleAction } from './service-lifecycle-action.js'
 import { ProcessManager } from '../../../services/process-manager.js'
-import { GitService } from '../../../services/git-service.js'
 
 const createMockActionContext = <TBody = unknown, TUrl = Record<string, string>>(options: {
   injector: Injector
@@ -30,23 +26,14 @@ describe('ServiceLifecycleAction', () => {
     restartService: ReturnType<typeof vi.fn>
     installService: ReturnType<typeof vi.fn>
     buildService: ReturnType<typeof vi.fn>
+    cloneOrPullService: ReturnType<typeof vi.fn>
+    setupService: ReturnType<typeof vi.fn>
+    updateService: ReturnType<typeof vi.fn>
   }
 
   beforeEach(async () => {
     injector = new Injector()
     useLogging(injector, VerboseConsoleLogger)
-
-    addStore(injector, new InMemoryStore({ model: ServiceDefinition, primaryKey: 'id' }))
-    addStore(injector, new InMemoryStore({ model: StackConfig, primaryKey: 'stackName' }))
-    addStore(injector, new InMemoryStore({ model: GitHubRepository, primaryKey: 'id' }))
-    addStore(injector, new InMemoryStore({ model: ServiceStatus, primaryKey: 'serviceId' }))
-    addStore(injector, new InMemoryStore({ model: ServiceStateHistory, primaryKey: 'id' }))
-
-    getRepository(injector).createDataSet(ServiceDefinition, 'id', {})
-    getRepository(injector).createDataSet(StackConfig, 'stackName', {})
-    getRepository(injector).createDataSet(GitHubRepository, 'id', {})
-    getRepository(injector).createDataSet(ServiceStatus, 'serviceId', {})
-    getRepository(injector).createDataSet(ServiceStateHistory, 'id', {})
 
     mockPm = {
       startService: vi.fn().mockResolvedValue(undefined),
@@ -54,21 +41,18 @@ describe('ServiceLifecycleAction', () => {
       restartService: vi.fn().mockResolvedValue(undefined),
       installService: vi.fn().mockResolvedValue(undefined),
       buildService: vi.fn().mockResolvedValue(undefined),
+      cloneOrPullService: vi.fn().mockResolvedValue({ cloned: false, pulled: true, updated: true }),
+      setupService: vi.fn().mockResolvedValue(undefined),
+      updateService: vi.fn().mockResolvedValue(undefined),
     }
     injector.setExplicitInstance(mockPm as unknown as ProcessManager, ProcessManager)
-
-    const mockGit = {
-      clone: vi.fn().mockResolvedValue(undefined),
-      pull: vi.fn().mockResolvedValue({ updated: true }),
-    }
-    injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
   })
 
   afterEach(async () => {
     await injector[Symbol.asyncDispose]()
   })
 
-  describe('start/stop/restart/install/build delegation', () => {
+  describe('delegation to ProcessManager', () => {
     it('should delegate "start" to ProcessManager.startService', async () => {
       const action = ServiceLifecycleAction('start')
       const ctx = createMockActionContext({ injector, urlParams: { id: 'svc-1' } })
@@ -104,87 +88,32 @@ describe('ServiceLifecycleAction', () => {
       expect(mockPm.buildService).toHaveBeenCalledWith('svc-5', expect.objectContaining({ triggerSource: 'api' }))
     })
 
+    it('should delegate "pull" to ProcessManager.cloneOrPullService', async () => {
+      const action = ServiceLifecycleAction('pull')
+      await action(createMockActionContext({ injector, urlParams: { id: 'svc-6' } }))
+      expect(mockPm.cloneOrPullService).toHaveBeenCalledWith(
+        'svc-6',
+        expect.objectContaining({ triggerSource: 'api' }),
+      )
+    })
+
+    it('should delegate "setup" to ProcessManager.setupService', async () => {
+      const action = ServiceLifecycleAction('setup')
+      await action(createMockActionContext({ injector, urlParams: { id: 'svc-7' } }))
+      expect(mockPm.setupService).toHaveBeenCalledWith('svc-7', expect.objectContaining({ triggerSource: 'api' }))
+    })
+
+    it('should delegate "update" to ProcessManager.updateService', async () => {
+      const action = ServiceLifecycleAction('update')
+      await action(createMockActionContext({ injector, urlParams: { id: 'svc-8' } }))
+      expect(mockPm.updateService).toHaveBeenCalledWith('svc-8', expect.objectContaining({ triggerSource: 'api' }))
+    })
+
     it('should wrap ProcessManager errors into RequestError', async () => {
       mockPm.startService.mockRejectedValue(new Error('Service not found: svc-bad'))
       const action = ServiceLifecycleAction('start')
       await expect(action(createMockActionContext({ injector, urlParams: { id: 'svc-bad' } }))).rejects.toThrow(
         'Service not found: svc-bad',
-      )
-    })
-  })
-
-  describe('pull action', () => {
-    it('should throw 404 when service does not exist', async () => {
-      const action = ServiceLifecycleAction('pull')
-      await expect(action(createMockActionContext({ injector, urlParams: { id: 'nonexistent' } }))).rejects.toThrow(
-        'Service not found',
-      )
-    })
-
-    it('should throw 400 when no repository is linked', async () => {
-      const elevated = useSystemIdentityContext({ injector })
-      const ts = new Date().toISOString()
-      await getRepository(elevated).getDataSetFor(StackConfig, 'stackName').add(elevated, {
-        stackName: 'test-stack',
-        mainDirectory: '/tmp/test',
-        createdAt: ts,
-        updatedAt: ts,
-      })
-      await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').add(elevated, {
-        id: 'no-repo-svc',
-        stackName: 'test-stack',
-        displayName: 'No Repo',
-        description: '',
-        runCommand: 'echo hi',
-        dependencyIds: [],
-        prerequisiteServiceIds: [],
-        createdAt: ts,
-        updatedAt: ts,
-      })
-      await elevated[Symbol.asyncDispose]()
-
-      const action = ServiceLifecycleAction('pull')
-      await expect(action(createMockActionContext({ injector, urlParams: { id: 'no-repo-svc' } }))).rejects.toThrow(
-        'No repository linked',
-      )
-    })
-
-    it('should reject path traversal attempts', async () => {
-      const elevated = useSystemIdentityContext({ injector })
-      const ts = new Date().toISOString()
-      await getRepository(elevated).getDataSetFor(StackConfig, 'stackName').add(elevated, {
-        stackName: 'traversal-stack',
-        mainDirectory: '/tmp/safe',
-        createdAt: ts,
-        updatedAt: ts,
-      })
-      await getRepository(elevated).getDataSetFor(GitHubRepository, 'id').add(elevated, {
-        id: 'repo-1',
-        stackName: 'traversal-stack',
-        url: 'https://github.com/test/repo',
-        displayName: 'Repo',
-        description: '',
-        createdAt: ts,
-        updatedAt: ts,
-      })
-      await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').add(elevated, {
-        id: 'traversal-svc',
-        stackName: 'traversal-stack',
-        displayName: 'Traversal',
-        description: '',
-        workingDirectory: '../../etc',
-        repositoryId: 'repo-1',
-        runCommand: 'echo hi',
-        dependencyIds: [],
-        prerequisiteServiceIds: [],
-        createdAt: ts,
-        updatedAt: ts,
-      })
-      await elevated[Symbol.asyncDispose]()
-
-      const action = ServiceLifecycleAction('pull')
-      await expect(action(createMockActionContext({ injector, urlParams: { id: 'traversal-svc' } }))).rejects.toThrow(
-        'outside the stack directory',
       )
     })
   })

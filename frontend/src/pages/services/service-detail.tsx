@@ -27,6 +27,9 @@ import { ServiceStatusIndicator } from '../../components/service-status-indicato
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
 const eventLabels: Record<string, string> = {
+  'clone-started': 'Clone started',
+  'clone-completed': 'Clone completed',
+  'clone-failed': 'Clone failed',
   'run-started': 'Started',
   'run-stopped': 'Stopped',
   'run-crashed': 'Crashed',
@@ -37,6 +40,12 @@ const eventLabels: Record<string, string> = {
   'build-started': 'Build started',
   'build-completed': 'Build completed',
   'build-failed': 'Build failed',
+  'setup-started': 'Setup started',
+  'setup-completed': 'Setup completed',
+  'setup-failed': 'Setup failed',
+  'update-started': 'Update started',
+  'update-completed': 'Update completed',
+  'update-failed': 'Update failed',
   'pull-completed': 'Pull completed',
   imported: 'Imported',
 }
@@ -113,6 +122,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       autoFetchEnabled: serviceData.autoFetchEnabled ?? false,
       autoFetchIntervalMinutes: serviceData.autoFetchIntervalMinutes ?? 60,
       autoRestartOnFetch: serviceData.autoRestartOnFetch ?? false,
+      cloneStatus: serviceData.cloneStatus ?? 'not-cloned',
       installStatus: serviceData.installStatus ?? 'not-installed',
       buildStatus: serviceData.buildStatus ?? 'not-built',
       runStatus: serviceData.runStatus ?? 'stopped',
@@ -228,7 +238,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           title={service.displayName}
           description={service.description}
           actions={
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <ServiceStatusIndicator service={service} />
               {service.runStatus !== 'running' ? (
                 <Button
@@ -258,9 +268,19 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
               >
                 Restart
               </Button>
+              {service.repositoryId ? (
+                <Button
+                  variant="outlined"
+                  onclick={() => {
+                    void api.call({ method: 'POST', action: '/services/:id/update', url: { id: service.id } })
+                  }}
+                >
+                  Update
+                </Button>
+              ) : null}
               <NestedRouteLink href={`/services/${service.id}/logs`}>
                 <Button variant="outlined" startIcon={<Icon icon={icons.file} size="small" />}>
-                  View Logs
+                  Logs
                 </Button>
               </NestedRouteLink>
               <Button
@@ -304,10 +324,53 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                 <span style={{ fontFamily: 'monospace' }}>{service.buildCommand}</span>
               </div>
             ) : null}
+            {service.repositoryId ? (
+              <div style={{ display: 'contents' }}>
+                <strong>Clone Status</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>{service.cloneStatus}</span>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onclick={() => {
+                      void api.call({ method: 'POST', action: '/services/:id/pull', url: { id: service.id } })
+                    }}
+                  >
+                    {service.cloneStatus === 'not-cloned' ? 'Clone' : 'Pull'}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
             <strong>Install Status</strong>
-            <span>{service.installStatus}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>{service.installStatus}</span>
+              {service.installCommand ? (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onclick={() => {
+                    void api.call({ method: 'POST', action: '/services/:id/install', url: { id: service.id } })
+                  }}
+                >
+                  Install
+                </Button>
+              ) : null}
+            </div>
             <strong>Build Status</strong>
-            <span>{service.buildStatus}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>{service.buildStatus}</span>
+              {service.buildCommand ? (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onclick={() => {
+                    void api.call({ method: 'POST', action: '/services/:id/build', url: { id: service.id } })
+                  }}
+                >
+                  Build
+                </Button>
+              ) : null}
+            </div>
             <strong>Run Status</strong>
             <span>{service.runStatus}</span>
           </div>

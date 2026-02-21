@@ -8,11 +8,9 @@ import { randomUUID } from 'crypto'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { z } from 'zod'
 
-import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { resolveTokenUser } from '../middleware/bearer-token-auth.js'
 import { LogStorageService } from '../services/log-storage-service.js'
 import { ProcessManager } from '../services/process-manager.js'
-import { GitService } from '../services/git-service.js'
 
 type TextResult = { content: [{ type: 'text'; text: string }]; isError?: true }
 
@@ -28,7 +26,13 @@ const registerServiceAction = (
   injector: Injector,
   method: keyof Pick<
     ProcessManager,
-    'startService' | 'stopService' | 'restartService' | 'installService' | 'buildService'
+    | 'startService'
+    | 'stopService'
+    | 'restartService'
+    | 'installService'
+    | 'buildService'
+    | 'setupService'
+    | 'updateService'
   >,
   pastTense: string,
 ) => {
@@ -106,6 +110,7 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
         return {
           id: s.id,
           displayName: s.displayName,
+          cloneStatus: st?.cloneStatus ?? 'not-cloned',
           runStatus: st?.runStatus ?? 'stopped',
           installStatus: st?.installStatus ?? 'not-installed',
           buildStatus: st?.buildStatus ?? 'not-built',
@@ -127,6 +132,22 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
     'installed',
   )
   registerServiceAction(mcp, 'build_service', 'Build a service', injector, 'buildService', 'built')
+  registerServiceAction(
+    mcp,
+    'setup_service',
+    'Set up a service: clone repository, install dependencies, build. Runs the full setup pipeline.',
+    injector,
+    'setupService',
+    'set up',
+  )
+  registerServiceAction(
+    mcp,
+    'update_service',
+    'Update a service: pull latest changes, reinstall, rebuild, restart if it was running.',
+    injector,
+    'updateService',
+    'updated',
+  )
 
   mcp.registerTool(
     'get_service_logs',
@@ -143,17 +164,11 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
 
   mcp.registerTool(
     'pull_service',
-    { description: 'Git pull for a service', inputSchema: { serviceId: z.string() } },
+    { description: 'Git clone or pull for a service', inputSchema: { serviceId: z.string() } },
     async ({ serviceId }) => {
-      const services = await repository
-        .getDataSetFor(ServiceDefinition, 'id')
-        .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
-      const svc = services[0]
-      if (!svc) return errorResult('Service not found')
-
       try {
-        const cwd = await resolveServiceCwd(injector, svc)
-        const result = await injector.getInstance(GitService).pull(cwd)
+        const result = await injector.getInstance(ProcessManager).cloneOrPullService(serviceId, mcpTrigger)
+        if (result.cloned) return textResult('Repository cloned')
         return textResult(result.updated ? 'Changes pulled' : 'Already up to date')
       } catch (error) {
         return errorResult(`Failed: ${(error as Error).message}`)

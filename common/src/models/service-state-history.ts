@@ -3,6 +3,9 @@
  * Each value represents a discrete lifecycle event that can occur.
  */
 export type ServiceStateEvent =
+  | 'clone-started'
+  | 'clone-completed'
+  | 'clone-failed'
   | 'run-started'
   | 'run-stopped'
   | 'run-crashed'
@@ -13,6 +16,12 @@ export type ServiceStateEvent =
   | 'build-started'
   | 'build-completed'
   | 'build-failed'
+  | 'setup-started'
+  | 'setup-completed'
+  | 'setup-failed'
+  | 'update-started'
+  | 'update-completed'
+  | 'update-failed'
   | 'pull-completed'
   | 'imported'
 

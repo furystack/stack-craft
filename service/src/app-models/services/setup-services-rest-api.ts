@@ -24,6 +24,7 @@ const mergeServiceView = (
   autoFetchEnabled: false,
   autoFetchIntervalMinutes: 60,
   autoRestartOnFetch: false,
+  cloneStatus: 'not-cloned',
   installStatus: 'not-installed',
   buildStatus: 'not-built',
   runStatus: 'stopped',
@@ -115,6 +116,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
 
           const status = {
             serviceId: id,
+            cloneStatus: 'not-cloned' as const,
             installStatus: 'not-installed' as const,
             buildStatus: 'not-built' as const,
             runStatus: 'stopped' as const,
@@ -133,6 +135,8 @@ export const setupServicesRestApi = async (injector: Injector) => {
         '/services/:id/install': ServiceLifecycleAction('install'),
         '/services/:id/build': ServiceLifecycleAction('build'),
         '/services/:id/pull': ServiceLifecycleAction('pull'),
+        '/services/:id/setup': ServiceLifecycleAction('setup'),
+        '/services/:id/update': ServiceLifecycleAction('update'),
       },
       PATCH: {
         '/services/:id': async ({ injector: i, getUrlParams, getBody }) => {

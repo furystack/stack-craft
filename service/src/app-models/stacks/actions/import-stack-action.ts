@@ -91,6 +91,7 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
 
       await svcStatusDs.add(injector, {
         serviceId: svcDef.id,
+        cloneStatus: 'not-cloned',
         installStatus: 'not-installed',
         buildStatus: 'not-built',
         runStatus: 'stopped',
@@ -101,7 +102,12 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
         id: 0,
         serviceId: svcDef.id,
         event: 'imported',
-        newState: JSON.stringify({ installStatus: 'not-installed', buildStatus: 'not-built', runStatus: 'stopped' }),
+        newState: JSON.stringify({
+          cloneStatus: 'not-cloned',
+          installStatus: 'not-installed',
+          buildStatus: 'not-built',
+          runStatus: 'stopped',
+        }),
         triggeredBy: 'system',
         triggerSource: 'system',
         metadata: JSON.stringify({ action: 'import', stackName }),

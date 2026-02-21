@@ -45,6 +45,11 @@ export type ImportStackEndpoint = {
   }
 }
 
+export type StackSetupEndpoint = {
+  url: { id: string }
+  result: { success: boolean }
+}
+
 export interface StacksApi extends RestApi {
   GET: {
     '/stacks': GetCollectionEndpoint<StackView>
@@ -54,6 +59,7 @@ export interface StacksApi extends RestApi {
   POST: {
     '/stacks': PostStackEndpoint
     '/stacks/import': ImportStackEndpoint
+    '/stacks/:id/setup': StackSetupEndpoint
   }
   PATCH: {
     '/stacks/:id': PatchStackEndpoint

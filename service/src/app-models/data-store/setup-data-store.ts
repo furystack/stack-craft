@@ -66,9 +66,11 @@ class ServiceConfigModel extends Model<ServiceConfig, ServiceConfig> implements 
 
 class ServiceStatusModel extends Model<ServiceStatus, ServiceStatus> implements ServiceStatus {
   declare serviceId: string
+  declare cloneStatus: ServiceStatus['cloneStatus']
   declare installStatus: ServiceStatus['installStatus']
   declare buildStatus: ServiceStatus['buildStatus']
   declare runStatus: ServiceStatus['runStatus']
+  declare lastClonedAt: string | undefined
   declare lastInstalledAt: string | undefined
   declare lastBuiltAt: string | undefined
   declare lastStartedAt: string | undefined
@@ -304,9 +306,11 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
         primaryKey: true,
         references: { model: ServiceDefinitionModel, key: 'id' },
       },
+      cloneStatus: { type: DataTypes.STRING, defaultValue: 'not-cloned' },
       installStatus: { type: DataTypes.STRING, defaultValue: 'not-installed' },
       buildStatus: { type: DataTypes.STRING, defaultValue: 'not-built' },
       runStatus: { type: DataTypes.STRING, defaultValue: 'stopped' },
+      lastClonedAt: { type: DataTypes.DATE, allowNull: true },
       lastInstalledAt: { type: DataTypes.DATE, allowNull: true },
       lastBuiltAt: { type: DataTypes.DATE, allowNull: true },
       lastStartedAt: { type: DataTypes.DATE, allowNull: true },

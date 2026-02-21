@@ -56,54 +56,77 @@ export const ServiceTable = Shade<ServiceTableProps>({
             </span>
           ),
           runStatus: (entry) => <ServiceStatusIndicator service={entry} />,
-          actions: (entry) => (
-            <div
-              style={{ display: 'flex', gap: '2px', alignItems: 'center' }}
-              onclick={(e: MouseEvent) => e.stopPropagation()}
-            >
-              {entry.runStatus !== 'running' ? (
-                <Button
-                  variant="text"
-                  size="small"
-                  color="success"
-                  title="Start"
-                  onclick={() => {
-                    void api.call({ method: 'POST', action: '/services/:id/start', url: { id: entry.id } })
-                  }}
-                  startIcon={<Icon icon={icons.play} size="small" />}
-                />
-              ) : (
-                <Button
-                  variant="text"
-                  size="small"
-                  title="Stop"
-                  onclick={() => {
-                    void api.call({ method: 'POST', action: '/services/:id/stop', url: { id: entry.id } })
-                  }}
-                  startIcon={<Icon icon={icons.stopCircle} size="small" />}
-                />
-              )}
-              <NestedRouteLink href={`/services/${entry.id}/logs`}>
-                <Button
-                  variant="text"
-                  size="small"
-                  title="Logs"
-                  startIcon={<Icon icon={icons.fileText} size="small" />}
-                />
-              </NestedRouteLink>
-              <NestedRouteLink href={`/services/${entry.id}`}>
-                <Button
-                  variant="text"
-                  size="small"
-                  title="Details"
-                  startIcon={<Icon icon={icons.eye} size="small" />}
-                />
-              </NestedRouteLink>
-              <NestedRouteLink href={`/services/${entry.id}?${serializeToQueryString({ edit: true })}`}>
-                <Button variant="text" size="small" title="Edit" startIcon={<Icon icon={icons.edit} size="small" />} />
-              </NestedRouteLink>
-            </div>
-          ),
+          actions: (entry) => {
+            const needsSetup =
+              (entry.repositoryId && entry.cloneStatus !== 'cloned') ||
+              (entry.installCommand && entry.installStatus !== 'installed') ||
+              (entry.buildCommand && entry.buildStatus !== 'built')
+
+            return (
+              <div
+                style={{ display: 'flex', gap: '2px', alignItems: 'center' }}
+                onclick={(e: MouseEvent) => e.stopPropagation()}
+              >
+                {needsSetup ? (
+                  <Button
+                    variant="text"
+                    size="small"
+                    title="Set Up"
+                    onclick={() => {
+                      void api.call({ method: 'POST', action: '/services/:id/setup', url: { id: entry.id } })
+                    }}
+                    startIcon={<Icon icon={icons.settings} size="small" />}
+                  />
+                ) : null}
+                {entry.runStatus !== 'running' ? (
+                  <Button
+                    variant="text"
+                    size="small"
+                    color="success"
+                    title="Start"
+                    onclick={() => {
+                      void api.call({ method: 'POST', action: '/services/:id/start', url: { id: entry.id } })
+                    }}
+                    startIcon={<Icon icon={icons.play} size="small" />}
+                  />
+                ) : (
+                  <Button
+                    variant="text"
+                    size="small"
+                    title="Stop"
+                    onclick={() => {
+                      void api.call({ method: 'POST', action: '/services/:id/stop', url: { id: entry.id } })
+                    }}
+                    startIcon={<Icon icon={icons.stopCircle} size="small" />}
+                  />
+                )}
+                <NestedRouteLink href={`/services/${entry.id}/logs`}>
+                  <Button
+                    variant="text"
+                    size="small"
+                    title="Logs"
+                    startIcon={<Icon icon={icons.fileText} size="small" />}
+                  />
+                </NestedRouteLink>
+                <NestedRouteLink href={`/services/${entry.id}`}>
+                  <Button
+                    variant="text"
+                    size="small"
+                    title="Details"
+                    startIcon={<Icon icon={icons.eye} size="small" />}
+                  />
+                </NestedRouteLink>
+                <NestedRouteLink href={`/services/${entry.id}?${serializeToQueryString({ edit: true })}`}>
+                  <Button
+                    variant="text"
+                    size="small"
+                    title="Edit"
+                    startIcon={<Icon icon={icons.edit} size="small" />}
+                  />
+                </NestedRouteLink>
+              </div>
+            )
+          },
         }}
       />
     )

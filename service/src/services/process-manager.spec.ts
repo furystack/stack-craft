@@ -40,6 +40,7 @@ const createTestServiceDefinition = (overrides: Partial<ServiceDefinition> = {})
 
 const createTestServiceStatus = (overrides: Partial<ServiceStatus> = {}): ServiceStatus => ({
   serviceId: 'svc-1',
+  cloneStatus: 'not-cloned',
   installStatus: 'not-installed',
   buildStatus: 'not-built',
   runStatus: 'stopped',
@@ -352,5 +353,101 @@ describe('ProcessManager', () => {
     await new Promise((r) => setTimeout(r, 100))
     await expect(pm.installService('busy-svc', testTrigger)).rejects.toThrow('already has a')
     await pm.stopService('busy-svc', testTrigger)
+  })
+
+  describe('setupService', () => {
+    it('should run install and build when no repo is linked', async () => {
+      await seedService({ id: 'setup-no-repo', installCommand: 'echo install', buildCommand: 'echo build' })
+      await pm.setupService('setup-no-repo', testTrigger)
+
+      const elevated = useSystemIdentityContext({ injector })
+      const [status] = await getRepository(elevated)
+        .getDataSetFor(ServiceStatus, 'serviceId')
+        .find(elevated, { filter: { serviceId: { $eq: 'setup-no-repo' } }, top: 1 })
+      await elevated[Symbol.asyncDispose]()
+
+      expect(status?.installStatus).toBe('installed')
+      expect(status?.buildStatus).toBe('built')
+    })
+
+    it('should skip install when no installCommand', async () => {
+      await seedService({ id: 'setup-no-install', installCommand: undefined, buildCommand: 'echo build' })
+      await pm.setupService('setup-no-install', testTrigger)
+
+      const elevated = useSystemIdentityContext({ injector })
+      const [status] = await getRepository(elevated)
+        .getDataSetFor(ServiceStatus, 'serviceId')
+        .find(elevated, { filter: { serviceId: { $eq: 'setup-no-install' } }, top: 1 })
+      await elevated[Symbol.asyncDispose]()
+
+      expect(status?.installStatus).toBe('not-installed')
+      expect(status?.buildStatus).toBe('built')
+    })
+
+    it('should skip build when no buildCommand', async () => {
+      await seedService({ id: 'setup-no-build', installCommand: 'echo install', buildCommand: undefined })
+      await pm.setupService('setup-no-build', testTrigger)
+
+      const elevated = useSystemIdentityContext({ injector })
+      const [status] = await getRepository(elevated)
+        .getDataSetFor(ServiceStatus, 'serviceId')
+        .find(elevated, { filter: { serviceId: { $eq: 'setup-no-build' } }, top: 1 })
+      await elevated[Symbol.asyncDispose]()
+
+      expect(status?.installStatus).toBe('installed')
+      expect(status?.buildStatus).toBe('not-built')
+    })
+
+    it('should throw for non-existent service', async () => {
+      await expect(pm.setupService('nonexistent', testTrigger)).rejects.toThrow('Service not found')
+    })
+  })
+
+  describe('setupServices (batch)', () => {
+    it('should set up multiple independent services', async () => {
+      await seedService({ id: 'batch-a', installCommand: 'echo a', buildCommand: undefined })
+      await seedService({ id: 'batch-b', installCommand: 'echo b', buildCommand: undefined })
+      await pm.setupServices(['batch-a', 'batch-b'], testTrigger)
+
+      const elevated = useSystemIdentityContext({ injector })
+      const [statusA] = await getRepository(elevated)
+        .getDataSetFor(ServiceStatus, 'serviceId')
+        .find(elevated, { filter: { serviceId: { $eq: 'batch-a' } }, top: 1 })
+      const [statusB] = await getRepository(elevated)
+        .getDataSetFor(ServiceStatus, 'serviceId')
+        .find(elevated, { filter: { serviceId: { $eq: 'batch-b' } }, top: 1 })
+      await elevated[Symbol.asyncDispose]()
+
+      expect(statusA?.installStatus).toBe('installed')
+      expect(statusB?.installStatus).toBe('installed')
+    })
+
+    it('should respect prerequisite ordering', async () => {
+      const order: string[] = []
+      const origSetup = pm.setupService.bind(pm)
+      vi.spyOn(pm, 'setupService').mockImplementation(async (id, trigger) => {
+        order.push(id)
+        return origSetup(id, trigger)
+      })
+
+      await seedService({
+        id: 'dep-parent',
+        installCommand: 'echo parent',
+        buildCommand: undefined,
+        prerequisiteServiceIds: [],
+      })
+      await seedService({
+        id: 'dep-child',
+        installCommand: 'echo child',
+        buildCommand: undefined,
+        prerequisiteServiceIds: ['dep-parent'],
+      })
+
+      await pm.setupServices(['dep-child', 'dep-parent'], testTrigger)
+
+      const parentIdx = order.indexOf('dep-parent')
+      const childIdx = order.indexOf('dep-child')
+      expect(parentIdx).toBeLessThan(childIdx)
+    })
   })
 })

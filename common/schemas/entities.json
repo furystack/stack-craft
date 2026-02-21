@@ -23,7 +23,13 @@
           "type": "string"
         }
       },
-      "required": ["id", "username", "name", "tokenHash", "createdAt"],
+      "required": [
+        "id",
+        "username",
+        "name",
+        "tokenHash",
+        "createdAt"
+      ],
       "additionalProperties": false
     },
     "Dependency": {
@@ -56,7 +62,15 @@
           "type": "string"
         }
       },
-      "required": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"],
+      "required": [
+        "id",
+        "stackName",
+        "name",
+        "checkCommand",
+        "installationHelp",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false,
       "description": "Shareable dependency definition. Describes an external prerequisite (e.g. Node.js, Docker) that services may require. Included in stack exports and shared between installations."
     },
@@ -90,7 +104,15 @@
           "type": "string"
         }
       },
-      "required": ["id", "stackName", "url", "displayName", "description", "createdAt", "updatedAt"],
+      "required": [
+        "id",
+        "stackName",
+        "url",
+        "displayName",
+        "description",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false,
       "description": "Shareable GitHub repository definition. Links a git repository to a stack for cloning and pulling. Included in stack exports and shared between installations."
     },
@@ -107,7 +129,10 @@
           }
         }
       },
-      "required": ["username", "roles"],
+      "required": [
+        "username",
+        "roles"
+      ],
       "additionalProperties": false
     },
     "StackDefinition": {
@@ -132,7 +157,13 @@
           "type": "string"
         }
       },
-      "required": ["name", "displayName", "description", "createdAt", "updatedAt"],
+      "required": [
+        "name",
+        "displayName",
+        "description",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false,
       "description": "Shareable stack definition. Contains the immutable identity and description of a stack. Included in stack exports and shared between installations."
     },
@@ -154,7 +185,12 @@
           "type": "string"
         }
       },
-      "required": ["stackName", "mainDirectory", "createdAt", "updatedAt"],
+      "required": [
+        "stackName",
+        "mainDirectory",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false,
       "description": "User-specific stack configuration. Contains settings unique to this installation/machine. Not included in exports - set by the user during import/installation."
     },
@@ -269,17 +305,42 @@
       "additionalProperties": false,
       "description": "User-specific service configuration. Contains settings that each installation can customize independently. Not included in exports - set by the user during import/installation."
     },
+    "CloneStatus": {
+      "type": "string",
+      "enum": [
+        "not-cloned",
+        "cloning",
+        "cloned",
+        "failed"
+      ]
+    },
     "InstallStatus": {
       "type": "string",
-      "enum": ["not-installed", "installing", "installed", "failed"]
+      "enum": [
+        "not-installed",
+        "installing",
+        "installed",
+        "failed"
+      ]
     },
     "BuildStatus": {
       "type": "string",
-      "enum": ["not-built", "building", "built", "failed"]
+      "enum": [
+        "not-built",
+        "building",
+        "built",
+        "failed"
+      ]
     },
     "RunStatus": {
       "type": "string",
-      "enum": ["stopped", "starting", "running", "stopping", "error"]
+      "enum": [
+        "stopped",
+        "starting",
+        "running",
+        "stopping",
+        "error"
+      ]
     },
     "ServiceStatus": {
       "type": "object",
@@ -287,6 +348,9 @@
         "serviceId": {
           "type": "string",
           "description": "FK to  {@link  ServiceDefinition.id  }"
+        },
+        "cloneStatus": {
+          "$ref": "#/definitions/CloneStatus"
         },
         "installStatus": {
           "$ref": "#/definitions/InstallStatus"
@@ -296,6 +360,9 @@
         },
         "runStatus": {
           "$ref": "#/definitions/RunStatus"
+        },
+        "lastClonedAt": {
+          "type": "string"
         },
         "lastInstalledAt": {
           "type": "string"
@@ -313,13 +380,23 @@
           "type": "string"
         }
       },
-      "required": ["serviceId", "installStatus", "buildStatus", "runStatus", "updatedAt"],
+      "required": [
+        "serviceId",
+        "cloneStatus",
+        "installStatus",
+        "buildStatus",
+        "runStatus",
+        "updatedAt"
+      ],
       "additionalProperties": false,
       "description": "Runtime status of a service. Managed by the system (ProcessManager, GitWatcher). Never exported. Reset to defaults on import."
     },
     "ServiceStateEvent": {
       "type": "string",
       "enum": [
+        "clone-started",
+        "clone-completed",
+        "clone-failed",
         "run-started",
         "run-stopped",
         "run-crashed",
@@ -330,13 +407,26 @@
         "build-started",
         "build-completed",
         "build-failed",
-        "pull-completed"
+        "setup-started",
+        "setup-completed",
+        "setup-failed",
+        "update-started",
+        "update-completed",
+        "update-failed",
+        "pull-completed",
+        "imported"
       ],
       "description": "Event types for service state transitions. Each value represents a discrete lifecycle event that can occur."
     },
     "TriggerSource": {
       "type": "string",
-      "enum": ["api", "mcp", "auto-fetch", "auto-restart", "system"],
+      "enum": [
+        "api",
+        "mcp",
+        "auto-fetch",
+        "auto-restart",
+        "system"
+      ],
       "description": "How a state change was triggered. Used to distinguish user actions from automated system behavior."
     },
     "ServiceStateHistory": {
@@ -378,7 +468,14 @@
           "type": "string"
         }
       },
-      "required": ["id", "serviceId", "event", "triggeredBy", "triggerSource", "createdAt"],
+      "required": [
+        "id",
+        "serviceId",
+        "event",
+        "triggeredBy",
+        "triggerSource",
+        "createdAt"
+      ],
       "additionalProperties": false,
       "description": "Audit log entry for service state transitions. Records every lifecycle event (start, stop, crash, install, build, pull) with full context: who triggered it, how, and any relevant metadata. Entries are never deleted and not included in exports."
     },
@@ -396,7 +493,10 @@
         },
         "stream": {
           "type": "string",
-          "enum": ["stdout", "stderr"]
+          "enum": [
+            "stdout",
+            "stderr"
+          ]
         },
         "line": {
           "type": "string"
@@ -405,7 +505,14 @@
           "type": "string"
         }
       },
-      "required": ["id", "serviceId", "processUid", "stream", "line", "createdAt"],
+      "required": [
+        "id",
+        "serviceId",
+        "processUid",
+        "stream",
+        "line",
+        "createdAt"
+      ],
       "additionalProperties": false
     },
     "PublicApiToken": {
@@ -427,7 +534,12 @@
           "type": "string"
         }
       },
-      "required": ["id", "username", "name", "createdAt"],
+      "required": [
+        "id",
+        "username",
+        "name",
+        "createdAt"
+      ],
       "additionalProperties": false
     },
     "StackView": {
@@ -461,7 +573,15 @@
           "description": "Optional description of what this stack does"
         }
       },
-      "required": ["createdAt", "description", "displayName", "mainDirectory", "name", "stackName", "updatedAt"],
+      "required": [
+        "createdAt",
+        "description",
+        "displayName",
+        "mainDirectory",
+        "name",
+        "stackName",
+        "updatedAt"
+      ],
       "description": "Full stack view combining definition and config for API responses"
     },
     "ServiceView": {
@@ -472,6 +592,9 @@
           "type": "string",
           "description": "FK to  {@link  ServiceDefinition.id  }"
         },
+        "cloneStatus": {
+          "$ref": "#/definitions/CloneStatus"
+        },
         "installStatus": {
           "$ref": "#/definitions/InstallStatus"
         },
@@ -480,6 +603,9 @@
         },
         "runStatus": {
           "$ref": "#/definitions/RunStatus"
+        },
+        "lastClonedAt": {
+          "type": "string"
         },
         "lastInstalledAt": {
           "type": "string"
@@ -567,6 +693,7 @@
         "autoFetchIntervalMinutes",
         "autoRestartOnFetch",
         "buildStatus",
+        "cloneStatus",
         "createdAt",
         "dependencyIds",
         "description",
