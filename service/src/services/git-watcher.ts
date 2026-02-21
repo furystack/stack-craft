@@ -55,7 +55,7 @@ export class GitWatcher {
     if (!config?.autoFetchEnabled) return
 
     const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
-    const intervalMs = (config.autoFetchIntervalMinutes || 60) * 60 * 1000
+    const intervalMs = (config.autoFetchIntervalMinutes ?? 60) * 60 * 1000
 
     const { remote } = await this.git.getBranches(cwd).catch(() => ({ remote: [] as string[] }))
 

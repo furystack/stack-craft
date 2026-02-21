@@ -40,7 +40,9 @@ export const setupStacksRestApi = async (injector: Injector) => {
           })
           const configs = await repo.getDataSetFor(StackConfig, 'stackName').find(i, {})
           const configMap = new Map(configs.map((c) => [c.stackName, c]))
-          const entries = defs.map((def) => ({ ...def, ...configMap.get(def.name)! }) as StackView)
+          const entries = defs
+            .filter((def) => configMap.has(def.name))
+            .map((def) => ({ ...def, ...configMap.get(def.name) }) as StackView)
           const count = await repo.getDataSetFor(StackDefinition, 'name').count(i, query.findOptions?.filter)
           return JsonResult({ count, entries })
         },
@@ -113,35 +115,28 @@ export const setupStacksRestApi = async (injector: Injector) => {
 
           const svcDs = repo.getDataSetFor(ServiceDefinition, 'id')
           const svcs = await svcDs.find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
-          for (const svc of svcs) {
-            await repo
-              .getDataSetFor(ServiceStatus, 'serviceId')
-              .remove(i, svc.id)
-              .catch(() => {})
-            await repo
-              .getDataSetFor(ServiceConfig, 'serviceId')
-              .remove(i, svc.id)
-              .catch(() => {})
-            await svcDs.remove(i, svc.id).catch(() => {})
+          const svcIds = svcs.map((svc) => svc.id)
+          if (svcIds.length > 0) {
+            await repo.getDataSetFor(ServiceStatus, 'serviceId').remove(i, ...svcIds).catch(() => {})
+            await repo.getDataSetFor(ServiceConfig, 'serviceId').remove(i, ...svcIds).catch(() => {})
+            await svcDs.remove(i, ...svcIds).catch(() => {})
           }
 
           const repos = await repo
             .getDataSetFor(GitHubRepository, 'id')
             .find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
-          for (const r of repos)
-            await repo
-              .getDataSetFor(GitHubRepository, 'id')
-              .remove(i, r.id)
-              .catch(() => {})
+          const repoIds = repos.map((r) => r.id)
+          if (repoIds.length > 0) {
+            await repo.getDataSetFor(GitHubRepository, 'id').remove(i, ...repoIds).catch(() => {})
+          }
 
           const deps = await repo
             .getDataSetFor(Dependency, 'id')
             .find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
-          for (const d of deps)
-            await repo
-              .getDataSetFor(Dependency, 'id')
-              .remove(i, d.id)
-              .catch(() => {})
+          const depIds = deps.map((d) => d.id)
+          if (depIds.length > 0) {
+            await repo.getDataSetFor(Dependency, 'id').remove(i, ...depIds).catch(() => {})
+          }
 
           await repo
             .getDataSetFor(StackConfig, 'stackName')

@@ -81,11 +81,8 @@ export class LogStorageService {
       select: ['id'],
     })
 
-    for (const entry of entries) {
-      await ds.remove(elevated, entry.id)
-    }
-
     if (entries.length > 0) {
+      await ds.remove(elevated, ...entries.map((entry) => entry.id))
       await this.logger.information({ message: `Cleared ${entries.length} log entries for service ${serviceId}` })
     }
   }
@@ -105,11 +102,8 @@ export class LogStorageService {
       select: ['id'],
     })
 
-    for (const entry of oldEntries) {
-      await ds.remove(elevated, entry.id)
-    }
-
     if (oldEntries.length > 0) {
+      await ds.remove(elevated, ...oldEntries.map((entry) => entry.id))
       await this.logger.verbose({ message: `Pruned ${oldEntries.length} old log entries for service ${serviceId}` })
     }
   }

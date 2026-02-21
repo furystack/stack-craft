@@ -38,6 +38,7 @@ const eventLabels: Record<string, string> = {
   'build-completed': 'Build completed',
   'build-failed': 'Build failed',
   'pull-completed': 'Pull completed',
+  'imported': 'Imported',
 }
 
 type ServiceDetailProps = {
@@ -86,8 +87,8 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       )
     }
 
-    const service = serviceState.data as ServiceView | undefined
-    if (!service) {
+    const serviceData = serviceState.data as (ServiceDefinition & Partial<ServiceView>) | undefined
+    if (!serviceData) {
       return (
         <PageContainer>
           <PageHeader
@@ -106,13 +107,32 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       )
     }
 
+    const service: ServiceView = {
+      ...serviceData,
+      serviceId: serviceData.serviceId ?? serviceData.id,
+      autoFetchEnabled: serviceData.autoFetchEnabled ?? false,
+      autoFetchIntervalMinutes: serviceData.autoFetchIntervalMinutes ?? 60,
+      autoRestartOnFetch: serviceData.autoRestartOnFetch ?? false,
+      installStatus: serviceData.installStatus ?? 'not-installed',
+      buildStatus: serviceData.buildStatus ?? 'not-built',
+      runStatus: serviceData.runStatus ?? 'stopped',
+      updatedAt: serviceData.updatedAt,
+    }
+
     const stackState = useEntitySync(options, StackDefinition, service.stackName)
     const reposState = useCollectionSync(options, GitHubRepository, {
       filter: { stackName: { $eq: service.stackName } },
     })
     const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
     const linkedRepo = service.repositoryId ? repos.find((r) => r.id === service.repositoryId) : undefined
-    const stack = stackState.status === 'synced' ? (stackState.data as StackView | undefined) : undefined
+    const stackData = stackState.status === 'synced' ? stackState.data : undefined
+    const stack = stackData
+      ? ({
+          ...stackData,
+          stackName: (stackData as Partial<StackView>).stackName ?? stackData.name,
+          mainDirectory: (stackData as Partial<StackView>).mainDirectory ?? '',
+        } as StackView)
+      : undefined
     const fullCwd = stack ? getServiceCwd(stack, service, linkedRepo ?? null) : null
 
     const api = injector.getInstance(ServicesApiClient)

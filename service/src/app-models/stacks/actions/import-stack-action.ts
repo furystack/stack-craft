@@ -100,33 +100,36 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
       await historyDs.add(injector, {
         id: 0,
         serviceId: svcDef.id,
-        event: 'install-completed',
+        event: 'imported',
         newState: JSON.stringify({ installStatus: 'not-installed', buildStatus: 'not-built', runStatus: 'stopped' }),
         triggeredBy: 'system',
-        triggerSource: 'api',
-        metadata: JSON.stringify({ action: 'import' }),
+        triggerSource: 'system',
+        metadata: JSON.stringify({ action: 'import', stackName }),
         createdAt: now,
       })
     }
   } catch (error) {
     await logger.warning({ message: `Import failed for stack ${stackName}, rolling back`, data: { error } })
 
-    for (const svcDef of serviceDefinitions) {
-      await historyDs
-        .find(injector, { filter: { serviceId: { $eq: svcDef.id } } })
-        .then(async (entries) => {
-          for (const e of entries) await historyDs.remove(injector, e.id).catch(() => {})
-        })
-        .catch(() => {})
-      await svcStatusDs.remove(injector, svcDef.id).catch(() => {})
-      await svcConfigDs.remove(injector, svcDef.id).catch(() => {})
-      await svcDefDs.remove(injector, svcDef.id).catch(() => {})
+    const svcIds = serviceDefinitions.map((s) => s.id)
+    for (const svcId of svcIds) {
+      const historyEntries = await historyDs
+        .find(injector, { filter: { serviceId: { $eq: svcId } } })
+        .catch(() => [] as ServiceStateHistory[])
+      if (historyEntries.length > 0) {
+        await historyDs.remove(injector, ...historyEntries.map((e) => e.id)).catch(() => {})
+      }
     }
-    for (const dep of dependencies) {
-      await depDs.remove(injector, dep.id).catch(() => {})
+    if (svcIds.length > 0) {
+      await svcStatusDs.remove(injector, ...svcIds).catch(() => {})
+      await svcConfigDs.remove(injector, ...svcIds).catch(() => {})
+      await svcDefDs.remove(injector, ...svcIds).catch(() => {})
     }
-    for (const repo of repositories) {
-      await repoDs.remove(injector, repo.id).catch(() => {})
+    if (dependencies.length > 0) {
+      await depDs.remove(injector, ...dependencies.map((d) => d.id)).catch(() => {})
+    }
+    if (repositories.length > 0) {
+      await repoDs.remove(injector, ...repositories.map((r) => r.id)).catch(() => {})
     }
     await stackConfigDs.remove(injector, stackName).catch(() => {})
     await stackDefDs.remove(injector, stackName).catch(() => {})

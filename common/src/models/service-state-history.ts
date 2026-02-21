@@ -14,6 +14,7 @@ export type ServiceStateEvent =
   | 'build-completed'
   | 'build-failed'
   | 'pull-completed'
+  | 'imported'
 
 /**
  * How a state change was triggered.

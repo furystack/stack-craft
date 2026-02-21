@@ -57,11 +57,11 @@ export class ProcessManager {
     event: ServiceStateEvent,
     trigger: TriggerContext,
     metadata?: Record<string, unknown>,
+    options?: { skipHistory?: boolean },
   ) {
     try {
       const elevated = this.getElevatedInjector()
       const statusDs = getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId')
-      const historyDs = getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id')
 
       const statuses = await statusDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
       const current = statuses[0]
@@ -74,31 +74,35 @@ export class ProcessManager {
       if (update.buildStatus === 'built') patchData.lastBuiltAt = now
       if (update.runStatus === 'running') patchData.lastStartedAt = now
 
-      const previousState = JSON.stringify({
-        installStatus: current.installStatus,
-        buildStatus: current.buildStatus,
-        runStatus: current.runStatus,
-      })
-
       await statusDs.update(elevated, serviceId, patchData)
 
-      const newState = JSON.stringify({
-        installStatus: update.installStatus ?? current.installStatus,
-        buildStatus: update.buildStatus ?? current.buildStatus,
-        runStatus: update.runStatus ?? current.runStatus,
-      })
+      if (!options?.skipHistory) {
+        const historyDs = getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id')
 
-      await historyDs.add(elevated, {
-        id: 0,
-        serviceId,
-        event,
-        previousState,
-        newState,
-        triggeredBy: trigger.triggeredBy,
-        triggerSource: trigger.triggerSource,
-        metadata: metadata ? JSON.stringify(metadata) : undefined,
-        createdAt: now,
-      })
+        const previousState = JSON.stringify({
+          installStatus: current.installStatus,
+          buildStatus: current.buildStatus,
+          runStatus: current.runStatus,
+        })
+
+        const newState = JSON.stringify({
+          installStatus: update.installStatus ?? current.installStatus,
+          buildStatus: update.buildStatus ?? current.buildStatus,
+          runStatus: update.runStatus ?? current.runStatus,
+        })
+
+        await historyDs.add(elevated, {
+          id: 0,
+          serviceId,
+          event,
+          previousState,
+          newState,
+          triggeredBy: trigger.triggeredBy,
+          triggerSource: trigger.triggerSource,
+          metadata: metadata ? JSON.stringify(metadata) : undefined,
+          createdAt: now,
+        })
+      }
 
       void this.ws.announce({
         type: 'service-status-changed',
@@ -127,7 +131,9 @@ export class ProcessManager {
     this.pendingOperations.add(serviceId)
     try {
       await this.logger.information({ message: `Starting service: ${svc.displayName}` })
-      await this.updateServiceStatus(serviceId, { runStatus: 'starting' }, 'run-started', trigger)
+      await this.updateServiceStatus(serviceId, { runStatus: 'starting' }, 'run-started', trigger, undefined, {
+        skipHistory: true,
+      })
 
       const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
       const child = this.spawnCommand(svc.runCommand, cwd)
@@ -180,7 +186,9 @@ export class ProcessManager {
     }
 
     await this.logger.information({ message: `Stopping service: ${serviceId}` })
-    await this.updateServiceStatus(serviceId, { runStatus: 'stopping' }, 'run-stopped', trigger)
+    await this.updateServiceStatus(serviceId, { runStatus: 'stopping' }, 'run-stopped', trigger, undefined, {
+      skipHistory: true,
+    })
 
     managed.process.kill('SIGTERM')
 
