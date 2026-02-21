@@ -11,6 +11,9 @@ import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { LogStorageService } from './log-storage-service.js'
 import { WebsocketService } from './websocket-service.js'
 
+const MAX_HISTORY_PER_SERVICE = 10_000
+const HISTORY_PRUNE_CHECK_INTERVAL = 100
+
 type ManagedProcess = {
   serviceId: string
   process: ChildProcess
@@ -28,6 +31,7 @@ export class ProcessManager {
   private processes = new Map<string, ManagedProcess>()
   private pendingOperations = new Set<string>()
   private elevatedInjector?: Injector
+  private historyInsertCount = 0
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
@@ -45,10 +49,24 @@ export class ProcessManager {
   @Injected(WebsocketService)
   declare private ws: WebsocketService
 
+  private logBuffer: Array<{ serviceId: string; processUid: string; stream: 'stdout' | 'stderr'; line: string }> = []
+  private flushTimer: ReturnType<typeof setTimeout> | null = null
+
   private addLogLine(serviceId: string, stream: 'stdout' | 'stderr', line: string) {
     const managed = this.processes.get(serviceId)
     if (!managed) return
-    void this.logStorage.addEntry(serviceId, managed.processUid, stream, line)
+    this.logBuffer.push({ serviceId, processUid: managed.processUid, stream, line })
+    if (!this.flushTimer) {
+      this.flushTimer = setTimeout(() => void this.flushLogBuffer(), 100)
+    }
+  }
+
+  private async flushLogBuffer(): Promise<void> {
+    this.flushTimer = null
+    const batch = this.logBuffer.splice(0)
+    for (const entry of batch) {
+      await this.logStorage.addEntry(entry.serviceId, entry.processUid, entry.stream, entry.line)
+    }
   }
 
   private async updateServiceStatus(
@@ -102,6 +120,12 @@ export class ProcessManager {
           metadata: metadata ? JSON.stringify(metadata) : undefined,
           createdAt: now,
         })
+
+        this.historyInsertCount++
+        if (this.historyInsertCount >= HISTORY_PRUNE_CHECK_INTERVAL) {
+          this.historyInsertCount = 0
+          void this.pruneHistory(serviceId, elevated)
+        }
       }
 
       void this.ws.announce({
@@ -113,6 +137,31 @@ export class ProcessManager {
       })
     } catch {
       // May fire after disposal during shutdown — safe to ignore
+    }
+  }
+
+  private async pruneHistory(serviceId: string, elevated: Injector): Promise<void> {
+    try {
+      const historyDs = getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id')
+      const count = await historyDs.count(elevated, { serviceId: { $eq: serviceId } })
+      if (count <= MAX_HISTORY_PER_SERVICE) return
+
+      const excess = count - MAX_HISTORY_PER_SERVICE
+      const oldEntries = await historyDs.find(elevated, {
+        filter: { serviceId: { $eq: serviceId } },
+        order: { id: 'ASC' },
+        top: excess,
+        select: ['id'],
+      })
+
+      if (oldEntries.length > 0) {
+        await historyDs.remove(elevated, ...oldEntries.map((e) => e.id))
+        await this.logger.verbose({
+          message: `Pruned ${oldEntries.length} old history entries for service ${serviceId}`,
+        })
+      }
+    } catch {
+      // Pruning is best-effort; safe to ignore on failure
     }
   }
 
@@ -328,6 +377,12 @@ export class ProcessManager {
   }
 
   public async [Symbol.asyncDispose]() {
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer)
+      this.flushTimer = null
+    }
+    await this.flushLogBuffer()
+
     try {
       await this.elevatedInjector?.[Symbol.asyncDispose]()
     } catch {

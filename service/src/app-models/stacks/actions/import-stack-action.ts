@@ -111,28 +111,45 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
   } catch (error) {
     await logger.warning({ message: `Import failed for stack ${stackName}, rolling back`, data: { error } })
 
+    // Best-effort rollback: ignore individual removal failures
     const svcIds = serviceDefinitions.map((s) => s.id)
     for (const svcId of svcIds) {
       const historyEntries = await historyDs
         .find(injector, { filter: { serviceId: { $eq: svcId } } })
         .catch(() => [] as ServiceStateHistory[])
       if (historyEntries.length > 0) {
-        await historyDs.remove(injector, ...historyEntries.map((e) => e.id)).catch(() => {})
+        await historyDs.remove(injector, ...historyEntries.map((e) => e.id)).catch(() => {
+          /* rollback */
+        })
       }
     }
     if (svcIds.length > 0) {
-      await svcStatusDs.remove(injector, ...svcIds).catch(() => {})
-      await svcConfigDs.remove(injector, ...svcIds).catch(() => {})
-      await svcDefDs.remove(injector, ...svcIds).catch(() => {})
+      await svcStatusDs.remove(injector, ...svcIds).catch(() => {
+        /* rollback */
+      })
+      await svcConfigDs.remove(injector, ...svcIds).catch(() => {
+        /* rollback */
+      })
+      await svcDefDs.remove(injector, ...svcIds).catch(() => {
+        /* rollback */
+      })
     }
     if (dependencies.length > 0) {
-      await depDs.remove(injector, ...dependencies.map((d) => d.id)).catch(() => {})
+      await depDs.remove(injector, ...dependencies.map((d) => d.id)).catch(() => {
+        /* rollback */
+      })
     }
     if (repositories.length > 0) {
-      await repoDs.remove(injector, ...repositories.map((r) => r.id)).catch(() => {})
+      await repoDs.remove(injector, ...repositories.map((r) => r.id)).catch(() => {
+        /* rollback */
+      })
     }
-    await stackConfigDs.remove(injector, stackName).catch(() => {})
-    await stackDefDs.remove(injector, stackName).catch(() => {})
+    await stackConfigDs.remove(injector, stackName).catch(() => {
+      /* rollback */
+    })
+    await stackDefDs.remove(injector, stackName).catch(() => {
+      /* rollback */
+    })
 
     const message = error instanceof Error ? error.message : 'Unknown error during import'
     throw new RequestError(`Import failed: ${message}`, 500)

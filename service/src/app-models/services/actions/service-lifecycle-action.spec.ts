@@ -77,31 +77,31 @@ describe('ServiceLifecycleAction', () => {
 
       expect(body.success).toBe(true)
       expect(body.serviceId).toBe('svc-1')
-      expect(mockPm.startService).toHaveBeenCalledWith('svc-1', expect.objectContaining({ triggeredBy: 'user' }))
+      expect(mockPm.startService).toHaveBeenCalledWith('svc-1', expect.objectContaining({ triggerSource: 'api' }))
     })
 
     it('should delegate "stop" to ProcessManager.stopService', async () => {
       const action = ServiceLifecycleAction('stop')
       await action(createMockActionContext({ injector, urlParams: { id: 'svc-2' } }))
-      expect(mockPm.stopService).toHaveBeenCalledWith('svc-2', expect.objectContaining({ triggeredBy: 'user' }))
+      expect(mockPm.stopService).toHaveBeenCalledWith('svc-2', expect.objectContaining({ triggerSource: 'api' }))
     })
 
     it('should delegate "restart" to ProcessManager.restartService', async () => {
       const action = ServiceLifecycleAction('restart')
       await action(createMockActionContext({ injector, urlParams: { id: 'svc-3' } }))
-      expect(mockPm.restartService).toHaveBeenCalledWith('svc-3', expect.objectContaining({ triggeredBy: 'user' }))
+      expect(mockPm.restartService).toHaveBeenCalledWith('svc-3', expect.objectContaining({ triggerSource: 'api' }))
     })
 
     it('should delegate "install" to ProcessManager.installService', async () => {
       const action = ServiceLifecycleAction('install')
       await action(createMockActionContext({ injector, urlParams: { id: 'svc-4' } }))
-      expect(mockPm.installService).toHaveBeenCalledWith('svc-4', expect.objectContaining({ triggeredBy: 'user' }))
+      expect(mockPm.installService).toHaveBeenCalledWith('svc-4', expect.objectContaining({ triggerSource: 'api' }))
     })
 
     it('should delegate "build" to ProcessManager.buildService', async () => {
       const action = ServiceLifecycleAction('build')
       await action(createMockActionContext({ injector, urlParams: { id: 'svc-5' } }))
-      expect(mockPm.buildService).toHaveBeenCalledWith('svc-5', expect.objectContaining({ triggeredBy: 'user' }))
+      expect(mockPm.buildService).toHaveBeenCalledWith('svc-5', expect.objectContaining({ triggerSource: 'api' }))
     })
 
     it('should wrap ProcessManager errors into RequestError', async () => {

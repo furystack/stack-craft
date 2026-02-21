@@ -15,6 +15,23 @@ import { ServiceHistoryAction } from './actions/service-history-action.js'
 import { ServiceLifecycleAction } from './actions/service-lifecycle-action.js'
 import { ServiceLogsAction } from './actions/service-logs-action.js'
 
+const mergeServiceView = (
+  def: ServiceDefinition,
+  config: ServiceConfig | undefined,
+  status: ServiceStatus | undefined,
+): ServiceView => ({
+  serviceId: def.id,
+  autoFetchEnabled: false,
+  autoFetchIntervalMinutes: 60,
+  autoRestartOnFetch: false,
+  installStatus: 'not-installed',
+  buildStatus: 'not-built',
+  runStatus: 'stopped',
+  ...def,
+  ...(config ?? {}),
+  ...(status ?? {}),
+})
+
 export const setupServicesRestApi = async (injector: Injector) => {
   await useRestService<ServicesApi>({
     injector,
@@ -37,14 +54,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
           const configMap = new Map(configs.map((c) => [c.serviceId, c]))
           const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
 
-          const entries = defs.map(
-            (def) =>
-              ({
-                ...def,
-                ...configMap.get(def.id),
-                ...statusMap.get(def.id),
-              }) as ServiceView,
-          )
+          const entries = defs.map((def) => mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id)))
           const count = await repo.getDataSetFor(ServiceDefinition, 'id').count(i, query.findOptions?.filter)
           return JsonResult({ count, entries })
         },
@@ -64,7 +74,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
             .getDataSetFor(ServiceStatus, 'serviceId')
             .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
 
-          return JsonResult({ ...def, ...configs[0], ...statuses[0] } as ServiceView)
+          return JsonResult(mergeServiceView(def, configs[0], statuses[0]))
         },
         '/services/:id/logs': Validate({ schema: servicesApiSchema, schemaName: 'ServiceLogsEndpoint' })(
           ServiceLogsAction,
@@ -115,7 +125,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
           await repo.getDataSetFor(ServiceConfig, 'serviceId').add(i, config)
           await repo.getDataSetFor(ServiceStatus, 'serviceId').add(i, status)
 
-          return JsonResult({ ...def, ...config, ...status } as ServiceView)
+          return JsonResult(mergeServiceView(def, config, status))
         },
         '/services/:id/start': ServiceLifecycleAction('start'),
         '/services/:id/stop': ServiceLifecycleAction('stop'),
@@ -154,7 +164,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
             await repo.getDataSetFor(ServiceConfig, 'serviceId').update(i, id, configFields)
           }
 
-          return JsonResult({} as never)
+          return JsonResult({})
         },
       },
       DELETE: {
@@ -164,13 +174,17 @@ export const setupServicesRestApi = async (injector: Injector) => {
           await repo
             .getDataSetFor(ServiceStatus, 'serviceId')
             .remove(i, id)
-            .catch(() => {})
+            .catch(() => {
+              /* Status row may not exist */
+            })
           await repo
             .getDataSetFor(ServiceConfig, 'serviceId')
             .remove(i, id)
-            .catch(() => {})
+            .catch(() => {
+              /* Config row may not exist */
+            })
           await repo.getDataSetFor(ServiceDefinition, 'id').remove(i, id)
-          return JsonResult({} as never)
+          return JsonResult({})
         },
         '/services/:id/logs': ClearServiceLogsAction,
       },

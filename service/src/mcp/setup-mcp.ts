@@ -40,7 +40,7 @@ export class McpHttpServer {
   }
 
   public async [Symbol.asyncDispose]() {
-    this.sessionManager?.dispose()
+    this.sessionManager?.[Symbol.dispose]()
     this.sessionManager = null
     if (this.server) {
       await new Promise<void>((resolve) => this.server!.close(() => resolve()))

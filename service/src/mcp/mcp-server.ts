@@ -188,6 +188,7 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
 }
 
 const SESSION_TTL_MS = 30 * 60 * 1000
+const MAX_SESSIONS = 50
 
 type TransportEntry = {
   transport: StreamableHTTPServerTransport
@@ -213,6 +214,10 @@ export class McpSessionManager {
     }
   }
 
+  public get size(): number {
+    return this.transports.size
+  }
+
   public register(sessionId: string, transport: StreamableHTTPServerTransport) {
     this.transports.set(sessionId, { transport, lastActivityAt: Date.now() })
     transport.onclose = () => this.transports.delete(sessionId)
@@ -222,7 +227,7 @@ export class McpSessionManager {
     return this.transports.get(sessionId)
   }
 
-  public dispose() {
+  public [Symbol.dispose]() {
     clearInterval(this.sweepInterval)
     for (const [, entry] of this.transports) {
       void entry.transport.close?.()
@@ -247,6 +252,12 @@ export const createMcpRequestHandler = (injector: Injector, sessionManager: McpS
       const sessionId = req.headers['mcp-session-id'] as string | undefined
 
       if (req.method === 'POST' && !sessionId) {
+        if (sessionManager.size >= MAX_SESSIONS) {
+          res.writeHead(429, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'Too many active MCP sessions' }))
+          return
+        }
+
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
         })

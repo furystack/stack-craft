@@ -40,11 +40,14 @@ export const setupStacksRestApi = async (injector: Injector) => {
           })
           const configs = await repo.getDataSetFor(StackConfig, 'stackName').find(i, {})
           const configMap = new Map(configs.map((c) => [c.stackName, c]))
-          const entries = defs
-            .filter((def) => configMap.has(def.name))
-            .map((def) => ({ ...def, ...configMap.get(def.name) }) as StackView)
-          const count = await repo.getDataSetFor(StackDefinition, 'name').count(i, query.findOptions?.filter)
-          return JsonResult({ count, entries })
+          const entries = defs.map(
+            (def) =>
+              ({
+                ...def,
+                ...(configMap.get(def.name) ?? { stackName: def.name, mainDirectory: '' }),
+              }) as StackView,
+          )
+          return JsonResult({ count: entries.length, entries })
         },
         '/stacks/:id': async ({ injector: i, getUrlParams }) => {
           const { id } = getUrlParams()
@@ -81,7 +84,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
           const config = { stackName: name, mainDirectory: body.mainDirectory, createdAt: now, updatedAt: now }
           await repo.getDataSetFor(StackDefinition, 'name').add(i, def)
           await repo.getDataSetFor(StackConfig, 'stackName').add(i, config)
-          return JsonResult({ ...def, ...config } as StackView)
+          return JsonResult({ ...def, ...config })
         },
         '/stacks/import': Validate({ schema: stacksApiSchema, schemaName: 'ImportStackEndpoint' })(ImportStackAction),
       },
@@ -105,7 +108,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
             await repo.getDataSetFor(StackConfig, 'stackName').update(i, id, configFields)
           }
 
-          return JsonResult({} as never)
+          return JsonResult({})
         },
       },
       DELETE: {
@@ -117,15 +120,22 @@ export const setupStacksRestApi = async (injector: Injector) => {
           const svcs = await svcDs.find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
           const svcIds = svcs.map((svc) => svc.id)
           if (svcIds.length > 0) {
+            // Cascade-delete child records; some may not exist
             await repo
               .getDataSetFor(ServiceStatus, 'serviceId')
               .remove(i, ...svcIds)
-              .catch(() => {})
+              .catch(() => {
+                /* Child records may not exist */
+              })
             await repo
               .getDataSetFor(ServiceConfig, 'serviceId')
               .remove(i, ...svcIds)
-              .catch(() => {})
-            await svcDs.remove(i, ...svcIds).catch(() => {})
+              .catch(() => {
+                /* Child records may not exist */
+              })
+            await svcDs.remove(i, ...svcIds).catch(() => {
+              /* Already removed */
+            })
           }
 
           const repos = await repo
@@ -136,7 +146,9 @@ export const setupStacksRestApi = async (injector: Injector) => {
             await repo
               .getDataSetFor(GitHubRepository, 'id')
               .remove(i, ...repoIds)
-              .catch(() => {})
+              .catch(() => {
+                /* Already removed */
+              })
           }
 
           const deps = await repo
@@ -147,16 +159,20 @@ export const setupStacksRestApi = async (injector: Injector) => {
             await repo
               .getDataSetFor(Dependency, 'id')
               .remove(i, ...depIds)
-              .catch(() => {})
+              .catch(() => {
+                /* Already removed */
+              })
           }
 
           await repo
             .getDataSetFor(StackConfig, 'stackName')
             .remove(i, id)
-            .catch(() => {})
+            .catch(() => {
+              /* Config may not exist */
+            })
           await repo.getDataSetFor(StackDefinition, 'name').remove(i, id)
 
-          return JsonResult({} as never)
+          return JsonResult({})
         },
       },
     },

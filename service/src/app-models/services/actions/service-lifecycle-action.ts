@@ -1,16 +1,16 @@
-import { existsSync, mkdirSync, rmSync } from 'fs'
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs'
 import { dirname, join, resolve } from 'path'
 
+import { getCurrentUser } from '@furystack/core'
 import { getLogger } from '@furystack/logging'
-import { resolvePath } from '../../../utils/resolve-path.js'
 import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ServiceActionEndpoint } from 'common'
-import { GitHubRepository, ServiceDefinition, StackConfig } from 'common'
-import { getServiceCwd } from 'common'
+import { getServiceCwd, GitHubRepository, ServiceDefinition, StackConfig } from 'common'
 import { GitService } from '../../../services/git-service.js'
 import { ProcessManager } from '../../../services/process-manager.js'
+import { resolvePath } from '../../../utils/resolve-path.js'
 
 type LifecycleAction = 'start' | 'stop' | 'restart' | 'install' | 'build' | 'pull'
 
@@ -20,7 +20,15 @@ export const ServiceLifecycleAction =
     const logger = getLogger(injector).withScope('ServiceLifecycle')
     const { id: serviceId } = getUrlParams()
     const pm = injector.getInstance(ProcessManager)
-    const trigger = { triggeredBy: 'user', triggerSource: 'api' as const }
+    let username = 'unknown'
+    try {
+      const currentUser = await getCurrentUser(injector)
+      const { username: resolvedUsername } = currentUser ?? {}
+      if (resolvedUsername) username = resolvedUsername
+    } catch {
+      // Identity context may not be available in non-HTTP contexts
+    }
+    const trigger = { triggeredBy: username, triggerSource: 'api' as const }
 
     await logger.information({ message: `Service lifecycle action: ${action} for service ${serviceId}` })
 
@@ -89,9 +97,12 @@ export const ServiceLifecycleAction =
           } else if (isGitRepo) {
             await git.pull(cwd)
           } else {
-            await logger.information({
-              message: `Working directory exists but is not a git repo, removing and cloning ${repo.url} into ${cwd}`,
-            })
+            const dirContents = readdirSync(cwd)
+            if (dirContents.length > 0) {
+              await logger.warning({
+                message: `Working directory "${cwd}" exists with ${dirContents.length} entries but is not a git repo. Removing and re-cloning.`,
+              })
+            }
             rmSync(cwd, { recursive: true })
             mkdirSync(dirname(cwd), { recursive: true })
             await git.clone(repo.url, cwd)
