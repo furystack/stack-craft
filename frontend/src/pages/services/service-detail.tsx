@@ -1,10 +1,11 @@
+import type { FindOptions } from '@furystack/core'
 import { useCollectionSync, useEntitySync } from '@furystack/entity-sync-client'
 import type { Injector } from '@furystack/inject'
 import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
-
-import { navigate } from '../../utils/navigate.js'
 import {
   Button,
+  CollectionService,
+  DataGrid,
   Icon,
   icons,
   Loader,
@@ -13,9 +14,12 @@ import {
   PageHeader,
   Paper,
 } from '@furystack/shades-common-components'
+import { ObservableValue } from '@furystack/utils'
 import { GitHubRepository, ServiceDefinition, StackDefinition } from 'common'
 import type { ServiceStateHistory, ServiceView, StackView } from 'common'
 import { getServiceCwd } from 'common'
+
+import { navigate } from '../../utils/navigate.js'
 
 import { ConfirmDialog } from '../../components/confirm-dialog.js'
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
@@ -311,11 +315,23 @@ type ServiceHistoryProps = {
   injector: Injector
 }
 
+type HistoryColumn = 'createdAt' | 'event' | 'triggeredBy' | 'triggerSource' | 'metadata'
+
 const ServiceHistory = Shade<ServiceHistoryProps>({
   shadowDomName: 'shade-service-history',
-  render: ({ props, useState }) => {
+  render: ({ props, useState, useDisposable }) => {
     const [entries, setEntries] = useState<ServiceStateHistory[]>('entries', [])
     const [isLoading, setIsLoading] = useState('isLoading', true)
+
+    const collectionService = useDisposable(
+      'collectionService',
+      () => new CollectionService<ServiceStateHistory>({ searchField: 'event' }),
+    )
+
+    const findOptions = useDisposable(
+      'findOptions',
+      () => new ObservableValue<FindOptions<ServiceStateHistory, Array<keyof ServiceStateHistory>>>({}),
+    )
 
     if (isLoading && entries.length === 0) {
       props.injector
@@ -333,6 +349,8 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
         .catch(() => setIsLoading(false))
     }
 
+    collectionService.data.setValue({ entries, count: entries.length })
+
     return (
       <Paper>
         <h3 style={{ margin: '0 0 12px 0' }}>History</h3>
@@ -343,31 +361,30 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
         ) : entries.length === 0 ? (
           <div style={{ opacity: '0.6', padding: '12px 0' }}>No history entries yet.</div>
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '180px 160px 120px 120px 1fr',
-              gap: '4px 12px',
-              fontSize: '13px',
+          <DataGrid<ServiceStateHistory, HistoryColumn>
+            columns={['createdAt', 'event', 'triggeredBy', 'triggerSource', 'metadata']}
+            findOptions={findOptions}
+            styles={undefined}
+            collectionService={collectionService}
+            headerComponents={{
+              createdAt: () => <span>Time</span>,
+              event: () => <span>Event</span>,
+              triggeredBy: () => <span>Triggered by</span>,
+              triggerSource: () => <span>Source</span>,
+              metadata: () => <span>Details</span>,
             }}
-          >
-            <strong>Time</strong>
-            <strong>Event</strong>
-            <strong>Triggered by</strong>
-            <strong>Source</strong>
-            <strong>Details</strong>
-            {entries.map((entry) => (
-              <div style={{ display: 'contents' }}>
-                <span>{new Date(entry.createdAt).toLocaleString()}</span>
-                <span>{eventLabels[entry.event] ?? entry.event}</span>
-                <span>{entry.triggeredBy}</span>
-                <span>{entry.triggerSource}</span>
+            rowComponents={{
+              createdAt: (entry) => <span>{new Date(entry.createdAt).toLocaleString()}</span>,
+              event: (entry) => <span>{eventLabels[entry.event] ?? entry.event}</span>,
+              triggeredBy: (entry) => <span>{entry.triggeredBy}</span>,
+              triggerSource: (entry) => <span>{entry.triggerSource}</span>,
+              metadata: (entry) => (
                 <span style={{ fontFamily: 'monospace', fontSize: '12px', opacity: '0.8' }}>
                   {entry.metadata ?? ''}
                 </span>
-              </div>
-            ))}
-          </div>
+              ),
+            }}
+          />
         )}
       </Paper>
     )
