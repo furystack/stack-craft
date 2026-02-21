@@ -117,8 +117,14 @@ export const setupStacksRestApi = async (injector: Injector) => {
           const svcs = await svcDs.find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
           const svcIds = svcs.map((svc) => svc.id)
           if (svcIds.length > 0) {
-            await repo.getDataSetFor(ServiceStatus, 'serviceId').remove(i, ...svcIds).catch(() => {})
-            await repo.getDataSetFor(ServiceConfig, 'serviceId').remove(i, ...svcIds).catch(() => {})
+            await repo
+              .getDataSetFor(ServiceStatus, 'serviceId')
+              .remove(i, ...svcIds)
+              .catch(() => {})
+            await repo
+              .getDataSetFor(ServiceConfig, 'serviceId')
+              .remove(i, ...svcIds)
+              .catch(() => {})
             await svcDs.remove(i, ...svcIds).catch(() => {})
           }
 
@@ -127,7 +133,10 @@ export const setupStacksRestApi = async (injector: Injector) => {
             .find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
           const repoIds = repos.map((r) => r.id)
           if (repoIds.length > 0) {
-            await repo.getDataSetFor(GitHubRepository, 'id').remove(i, ...repoIds).catch(() => {})
+            await repo
+              .getDataSetFor(GitHubRepository, 'id')
+              .remove(i, ...repoIds)
+              .catch(() => {})
           }
 
           const deps = await repo
@@ -135,7 +144,10 @@ export const setupStacksRestApi = async (injector: Injector) => {
             .find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
           const depIds = deps.map((d) => d.id)
           if (depIds.length > 0) {
-            await repo.getDataSetFor(Dependency, 'id').remove(i, ...depIds).catch(() => {})
+            await repo
+              .getDataSetFor(Dependency, 'id')
+              .remove(i, ...depIds)
+              .catch(() => {})
           }
 
           await repo

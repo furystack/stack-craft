@@ -10,7 +10,10 @@ import { mkdirSync } from 'fs'
 import { join } from 'path'
 
 export const dataDir = process.env.STACK_CRAFT_DATA_DIR || join(process.cwd(), 'data')
-mkdirSync(dataDir, { recursive: true })
+
+export const ensureDataDir = () => {
+  mkdirSync(dataDir, { recursive: true })
+}
 
 export const authorizedOnly = async (options: { injector: Injector }): Promise<AuthorizationResult> => {
   const isAllowed = await isAuthenticated(options.injector)

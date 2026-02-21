@@ -20,7 +20,7 @@ import type { Options, Sequelize } from 'sequelize'
 import sqlite from 'sqlite3'
 import { join } from 'path'
 
-import { authorizedDataSet, dataDir } from '../../config.js'
+import { authorizedDataSet, dataDir, ensureDataDir } from '../../config.js'
 
 // --- Sequelize Model classes ---
 
@@ -389,6 +389,7 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
 }
 
 export const setupDataStore = async (injector: Injector) => {
+  ensureDataDir()
   const logger = getLogger(injector).withScope('DataStore')
   const dbOptions = getDbOptions()
 

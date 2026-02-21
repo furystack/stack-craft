@@ -76,14 +76,24 @@ export class LogStorageService {
     const elevated = this.getElevatedInjector()
     const ds = getRepository(elevated).getDataSetFor(ServiceLogEntry, 'id')
 
-    const entries = await ds.find(elevated, {
-      filter: { serviceId: { $eq: serviceId } },
-      select: ['id'],
-    })
+    const BATCH_SIZE = 1_000
+    let totalRemoved = 0
 
-    if (entries.length > 0) {
-      await ds.remove(elevated, ...entries.map((entry) => entry.id))
-      await this.logger.information({ message: `Cleared ${entries.length} log entries for service ${serviceId}` })
+    for (;;) {
+      const batch = await ds.find(elevated, {
+        filter: { serviceId: { $eq: serviceId } },
+        select: ['id'],
+        top: BATCH_SIZE,
+      })
+
+      if (batch.length === 0) break
+
+      await ds.remove(elevated, ...batch.map((entry) => entry.id))
+      totalRemoved += batch.length
+    }
+
+    if (totalRemoved > 0) {
+      await this.logger.information({ message: `Cleared ${totalRemoved} log entries for service ${serviceId}` })
     }
   }
 

@@ -40,11 +40,7 @@ export const CreateStack = Shade({
       <PageContainer>
         <PageHeader icon="➕" title="Create Stack" description="Set up a new stack to manage your services." />
         <Paper>
-          <StackForm
-            mode="create"
-            onSubmit={(data) => void handleSubmit(data)}
-            cancelHref="/"
-          />
+          <StackForm mode="create" onSubmit={(data) => void handleSubmit(data)} cancelHref="/" />
         </Paper>
       </PageContainer>
     )

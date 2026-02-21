@@ -108,7 +108,7 @@ export const Dashboard = Shade<DashboardProps>({
           title={currentStack?.displayName ?? props.stackName}
           description={currentStack?.description}
           actions={
-            <NestedRouteLink href="/stacks/:stackName/edit" params={{ stackName: props.stackName! }}>
+            <NestedRouteLink href="/stacks/:stackName/edit" params={{ stackName: props.stackName }}>
               <Button variant="outlined" startIcon={<Icon icon={icons.edit} size="small" />}>
                 Edit Stack
               </Button>
@@ -161,7 +161,7 @@ export const Dashboard = Shade<DashboardProps>({
               </Button>
             ) : null}
             <div style={{ flex: '1' }} />
-            <NestedRouteLink href="/services/wizard/:stackName" params={{ stackName: props.stackName! }}>
+            <NestedRouteLink href="/services/wizard/:stackName" params={{ stackName: props.stackName }}>
               <Button variant="contained" startIcon={<Icon icon={icons.plus} size="small" />}>
                 Create Service
               </Button>
@@ -189,7 +189,7 @@ export const Dashboard = Shade<DashboardProps>({
             }}
           >
             <h3 style={{ margin: '0', fontSize: '16px' }}>Repositories ({repos.length})</h3>
-            <NestedRouteLink href="/repositories/create/:stackName" params={{ stackName: props.stackName! }}>
+            <NestedRouteLink href="/repositories/create/:stackName" params={{ stackName: props.stackName }}>
               <Button variant="outlined" startIcon={<Icon icon={icons.plus} size="small" />}>
                 Add Repository
               </Button>

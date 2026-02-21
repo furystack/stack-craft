@@ -237,7 +237,7 @@ export const createMcpRequestHandler = (injector: Injector, sessionManager: McpS
   return async (req: IncomingMessage, res: ServerResponse) => {
     try {
       const authHeader = req.headers.authorization
-      const user = await resolveTokenUser(injector, authHeader)
+      const user = await resolveTokenUser(injector, authHeader, elevated)
       if (!user) {
         res.writeHead(401, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: 'Unauthorized. Provide a valid Bearer token.' }))

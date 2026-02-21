@@ -51,12 +51,14 @@ export class McpHttpServer {
   }
 }
 
+export const getMcpPort = (env = process.env) => parseInt(env.MCP_PORT as string, 10) || 9091
+
 /**
  * Sets up the MCP endpoint on a separate port.
  * MCP clients connect to this endpoint using Streamable HTTP transport.
  */
 export const setupMcp = (injector: Injector) => {
-  const port = parseInt(process.env.MCP_PORT as string, 10) || 9091
+  const port = getMcpPort()
   const mcpServer = injector.getInstance(McpHttpServer)
   mcpServer.listen(injector, port)
 }

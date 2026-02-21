@@ -10,8 +10,15 @@ import { useSystemIdentityContext } from '@furystack/core'
  * Extracts a Bearer token from the Authorization header,
  * looks up the matching ApiToken, and returns the associated user.
  * Returns null if no token or token not found.
+ *
+ * When an existing elevated injector is provided it will be reused
+ * instead of creating (and disposing) a temporary one per call.
  */
-export const resolveTokenUser = async (injector: Injector, authHeader: string | undefined): Promise<User | null> => {
+export const resolveTokenUser = async (
+  injector: Injector,
+  authHeader: string | undefined,
+  existingElevated?: Injector,
+): Promise<User | null> => {
   if (!authHeader?.startsWith('Bearer ')) {
     return null
   }
@@ -19,7 +26,7 @@ export const resolveTokenUser = async (injector: Injector, authHeader: string | 
   const plainToken = authHeader.slice(7)
   const tokenHash = createHash('sha256').update(plainToken).digest('hex')
 
-  const elevated = useSystemIdentityContext({ injector })
+  const elevated = existingElevated ?? useSystemIdentityContext({ injector })
   try {
     const repository = getRepository(elevated)
     const tokenDs = repository.getDataSetFor(ApiToken, 'id')
@@ -40,6 +47,8 @@ export const resolveTokenUser = async (injector: Injector, authHeader: string | 
     const users = await userDs.find(elevated, { filter: { username: { $eq: token.username } }, top: 1 })
     return users[0] ?? null
   } finally {
-    await elevated[Symbol.asyncDispose]()
+    if (!existingElevated) {
+      await elevated[Symbol.asyncDispose]()
+    }
   }
 }

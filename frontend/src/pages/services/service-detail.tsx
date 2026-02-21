@@ -38,7 +38,7 @@ const eventLabels: Record<string, string> = {
   'build-completed': 'Build completed',
   'build-failed': 'Build failed',
   'pull-completed': 'Pull completed',
-  'imported': 'Imported',
+  imported: 'Imported',
 }
 
 type ServiceDetailProps = {

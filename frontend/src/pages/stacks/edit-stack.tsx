@@ -146,12 +146,7 @@ export const EditStack = Shade<EditStackProps>({
           }
         />
         <Paper>
-          <StackForm
-            mode="edit"
-            initial={stack}
-            onSubmit={(data) => void handleSave(data)}
-            cancelHref="/"
-          />
+          <StackForm mode="edit" initial={stack} onSubmit={(data) => void handleSave(data)} cancelHref="/" />
         </Paper>
         {isConfirmingDelete ? (
           <ConfirmDialog

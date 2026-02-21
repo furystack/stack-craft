@@ -100,12 +100,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                 />
               </NestedRouteLink>
               <NestedRouteLink href={`/services/${entry.id}?${serializeToQueryString({ edit: true })}`}>
-                <Button
-                  variant="text"
-                  size="small"
-                  title="Edit"
-                  startIcon={<Icon icon={icons.edit} size="small" />}
-                />
+                <Button variant="text" size="small" title="Edit" startIcon={<Icon icon={icons.edit} size="small" />} />
               </NestedRouteLink>
             </div>
           ),
