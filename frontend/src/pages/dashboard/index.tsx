@@ -149,11 +149,18 @@ export const Dashboard = Shade<DashboardProps>({
           title={currentStack?.displayName ?? props.stackName}
           description={currentStack?.description}
           actions={
-            <NestedRouteLink href="/stacks/:stackName/edit" params={{ stackName: props.stackName }}>
-              <Button variant="outlined" size="small" startIcon={<Icon icon={icons.edit} size="small" />}>
-                Edit Stack
-              </Button>
-            </NestedRouteLink>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <NestedRouteLink href="/stacks/:stackName/export" params={{ stackName: props.stackName }}>
+                <Button variant="outlined" size="small" startIcon={<Icon icon={icons.download} size="small" />}>
+                  Export
+                </Button>
+              </NestedRouteLink>
+              <NestedRouteLink href="/stacks/:stackName/edit" params={{ stackName: props.stackName }}>
+                <Button variant="outlined" size="small" startIcon={<Icon icon={icons.edit} size="small" />}>
+                  Edit Stack
+                </Button>
+              </NestedRouteLink>
+            </div>
           }
         />
 
