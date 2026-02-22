@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, cssVariableTheme, Paper } from '@furystack/shades-common-components'
+import { Button, cssVariableTheme, Icon, icons, Paper } from '@furystack/shades-common-components'
 
 type ConfirmDialogProps = {
   title: string
@@ -48,10 +48,15 @@ export const ConfirmDialog = Shade<ConfirmDialogProps>({
           <h3 style={{ margin: '0 0 12px 0', fontSize: '18px' }}>{props.title}</h3>
           <p style={{ margin: '0 0 24px 0', opacity: '0.8', fontSize: '14px', lineHeight: '1.5' }}>{props.message}</p>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-            <Button variant="outlined" onclick={props.onCancel}>
+            <Button variant="outlined" onclick={props.onCancel} startIcon={<Icon icon={icons.close} size="small" />}>
               {cancelLabel}
             </Button>
-            <Button variant="contained" color={isDanger ? 'error' : 'primary'} onclick={props.onConfirm}>
+            <Button
+              variant="contained"
+              color={isDanger ? 'error' : 'primary'}
+              onclick={props.onConfirm}
+              startIcon={<Icon icon={isDanger ? icons.trash : icons.check} size="small" />}
+            >
               {confirmLabel}
             </Button>
           </div>

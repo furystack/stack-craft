@@ -1,7 +1,16 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 
-import { Button, Icon, icons, Loader, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
+import {
+  Button,
+  ButtonGroup,
+  Icon,
+  icons,
+  Loader,
+  PageContainer,
+  PageHeader,
+  Paper,
+} from '@furystack/shades-common-components'
 import { GitHubRepository, ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
 import type { ServiceView } from 'common'
 import { navigate } from '../../utils/navigate.js'
@@ -50,10 +59,22 @@ export const Dashboard = Shade<DashboardProps>({
             actions={
               <div style={{ display: 'flex', gap: '8px' }}>
                 <NestedRouteLink href="/stacks/create">
-                  <Button variant="contained">Create Stack</Button>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<Icon icon={icons.plus} size="small" />}
+                  >
+                    Create Stack
+                  </Button>
                 </NestedRouteLink>
                 <NestedRouteLink href="/stacks/import">
-                  <Button variant="outlined">Import Stack</Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<Icon icon={icons.upload} size="small" />}
+                  >
+                    Import Stack
+                  </Button>
                 </NestedRouteLink>
               </div>
             }
@@ -129,7 +150,7 @@ export const Dashboard = Shade<DashboardProps>({
           description={currentStack?.description}
           actions={
             <NestedRouteLink href="/stacks/:stackName/edit" params={{ stackName: props.stackName }}>
-              <Button variant="outlined" startIcon={<Icon icon={icons.edit} size="small" />}>
+              <Button variant="outlined" size="small" startIcon={<Icon icon={icons.edit} size="small" />}>
                 Edit Stack
               </Button>
             </NestedRouteLink>
@@ -149,60 +170,74 @@ export const Dashboard = Shade<DashboardProps>({
             {hasSelection ? (
               <span style={{ fontSize: '13px', opacity: '0.7' }}>{selectedServices.length} selected</span>
             ) : null}
-            {hasSelection && hasStopped ? (
-              <Button
-                variant="outlined"
-                size="small"
-                color="success"
-                disabled={isBulkLoading}
-                onclick={() => void bulkAction('start')}
-              >
-                Start
-              </Button>
-            ) : null}
-            {hasSelection && hasRunning ? (
-              <Button variant="outlined" size="small" disabled={isBulkLoading} onclick={() => void bulkAction('stop')}>
-                Stop
-              </Button>
-            ) : null}
             {hasSelection ? (
-              <Button variant="outlined" size="small" disabled={isBulkLoading} onclick={() => void bulkAction('pull')}>
-                Pull
-              </Button>
-            ) : null}
-            {hasSelection ? (
-              <Button
-                variant="outlined"
-                size="small"
-                disabled={isBulkLoading}
-                onclick={() => void bulkAction('install')}
-              >
-                Install
-              </Button>
-            ) : null}
-            {hasSelection ? (
-              <Button variant="outlined" size="small" disabled={isBulkLoading} onclick={() => void bulkAction('build')}>
-                Build
-              </Button>
-            ) : null}
-            {hasSelection ? (
-              <Button variant="outlined" size="small" disabled={isBulkLoading} onclick={() => void bulkAction('setup')}>
-                Set Up
-              </Button>
-            ) : null}
-            {hasSelection ? (
-              <Button
-                variant="outlined"
-                size="small"
-                disabled={isBulkLoading}
-                onclick={() => void bulkAction('update')}
-              >
-                Update
-              </Button>
+              <ButtonGroup variant="outlined">
+                {hasStopped ? (
+                  <Button
+                    size="small"
+                    color="success"
+                    loading={isBulkLoading}
+                    onclick={() => void bulkAction('start')}
+                    startIcon={<Icon icon={icons.play} size="small" />}
+                  >
+                    Start
+                  </Button>
+                ) : null}
+                {hasRunning ? (
+                  <Button
+                    size="small"
+                    loading={isBulkLoading}
+                    onclick={() => void bulkAction('stop')}
+                    startIcon={<Icon icon={icons.stopCircle} size="small" />}
+                  >
+                    Stop
+                  </Button>
+                ) : null}
+                <Button
+                  size="small"
+                  loading={isBulkLoading}
+                  onclick={() => void bulkAction('pull')}
+                  startIcon={<Icon icon={icons.download} size="small" />}
+                >
+                  Pull
+                </Button>
+                <Button
+                  size="small"
+                  loading={isBulkLoading}
+                  onclick={() => void bulkAction('install')}
+                  startIcon={<Icon icon={icons.packageIcon} size="small" />}
+                >
+                  Install
+                </Button>
+                <Button
+                  size="small"
+                  loading={isBulkLoading}
+                  onclick={() => void bulkAction('build')}
+                  startIcon={<Icon icon={icons.wrench} size="small" />}
+                >
+                  Build
+                </Button>
+                <Button
+                  size="small"
+                  loading={isBulkLoading}
+                  onclick={() => void bulkAction('setup')}
+                  startIcon={<Icon icon={icons.settings} size="small" />}
+                >
+                  Set Up
+                </Button>
+                <Button
+                  size="small"
+                  loading={isBulkLoading}
+                  onclick={() => void bulkAction('update')}
+                  startIcon={<Icon icon={icons.refresh} size="small" />}
+                >
+                  Update
+                </Button>
+              </ButtonGroup>
             ) : null}
             <div style={{ flex: '1' }} />
             <NestedRouteLink href="/services/wizard/:stackName" params={{ stackName: props.stackName }}>
-              <Button variant="contained" startIcon={<Icon icon={icons.plus} size="small" />}>
+              <Button variant="contained" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
                 Create Service
               </Button>
             </NestedRouteLink>
@@ -230,7 +265,7 @@ export const Dashboard = Shade<DashboardProps>({
           >
             <h3 style={{ margin: '0', fontSize: '16px' }}>Repositories ({repos.length})</h3>
             <NestedRouteLink href="/repositories/create/:stackName" params={{ stackName: props.stackName }}>
-              <Button variant="outlined" startIcon={<Icon icon={icons.plus} size="small" />}>
+              <Button variant="outlined" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
                 Add Repository
               </Button>
             </NestedRouteLink>

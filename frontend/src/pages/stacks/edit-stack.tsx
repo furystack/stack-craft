@@ -78,6 +78,7 @@ export const EditStack = Shade<EditStackProps>({
     }
 
     const api = injector.getInstance(StacksApiClient)
+    const [isDeleting, setIsDeleting] = useState('isDeleting', false)
 
     const handleSave = async (data: Partial<StackView>) => {
       try {
@@ -107,6 +108,7 @@ export const EditStack = Shade<EditStackProps>({
     }
 
     const handleDelete = async () => {
+      setIsDeleting(true)
       try {
         await api.call({
           method: 'DELETE',
@@ -125,6 +127,7 @@ export const EditStack = Shade<EditStackProps>({
           body: error instanceof Error ? error.message : 'Failed to delete stack',
           type: 'error',
         })
+        setIsDeleting(false)
       }
     }
 
@@ -139,7 +142,13 @@ export const EditStack = Shade<EditStackProps>({
                   Back
                 </Button>
               </NestedRouteLink>
-              <Button variant="outlined" color="error" onclick={() => setIsConfirmingDelete(true)}>
+              <Button
+                variant="outlined"
+                color="error"
+                loading={isDeleting}
+                onclick={() => setIsConfirmingDelete(true)}
+                startIcon={<Icon icon={icons.trash} size="small" />}
+              >
                 Delete Stack
               </Button>
             </div>

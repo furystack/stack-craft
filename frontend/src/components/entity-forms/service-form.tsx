@@ -1,5 +1,5 @@
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
-import { Button, Checkbox, Form, Input, Select } from '@furystack/shades-common-components'
+import { Button, Checkbox, Form, Icon, icons, Input, Select } from '@furystack/shades-common-components'
 import type { GitHubRepository, ServiceView } from 'common'
 
 type ServiceFormPayload = {
@@ -138,14 +138,20 @@ export const ServiceForm = Shade<ServiceFormProps>({
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           {props.cancelHref ? (
             <NestedRouteLink href={props.cancelHref}>
-              <Button variant="outlined">Cancel</Button>
+              <Button variant="outlined" startIcon={<Icon icon={icons.close} size="small" />}>
+                Cancel
+              </Button>
             </NestedRouteLink>
           ) : (
-            <Button variant="outlined" onclick={props.onCancel}>
+            <Button variant="outlined" onclick={props.onCancel} startIcon={<Icon icon={icons.close} size="small" />}>
               Cancel
             </Button>
           )}
-          <Button type="submit" variant="contained">
+          <Button
+            type="submit"
+            variant="contained"
+            startIcon={<Icon icon={props.mode === 'create' ? icons.plus : icons.save} size="small" />}
+          >
             {props.mode === 'create' ? 'Create' : 'Save'}
           </Button>
         </div>

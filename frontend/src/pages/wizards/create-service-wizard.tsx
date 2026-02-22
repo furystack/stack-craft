@@ -2,7 +2,17 @@ import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 
 import { navigate } from '../../utils/navigate.js'
-import { Button, Form, Input, NotyService, Paper, Select, cssVariableTheme } from '@furystack/shades-common-components'
+import {
+  Button,
+  Form,
+  Icon,
+  icons,
+  Input,
+  NotyService,
+  Paper,
+  Select,
+  cssVariableTheme,
+} from '@furystack/shades-common-components'
 import type { GitHubRepository } from 'common'
 import { GitHubRepository as GitHubRepositoryModel } from 'common'
 
@@ -284,10 +294,17 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
             />
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', paddingTop: '8px' }}>
               <NestedRouteLink href="/">
-                <Button variant="outlined">Cancel</Button>
+                <Button variant="outlined" startIcon={<Icon icon={icons.close} size="small" />}>
+                  Cancel
+                </Button>
               </NestedRouteLink>
-              <Button type="submit" variant="contained" disabled={state.isSaving}>
-                {state.isSaving ? 'Creating...' : 'Next'}
+              <Button
+                type="submit"
+                variant="contained"
+                loading={state.isSaving}
+                endIcon={<Icon icon={icons.chevronRight} size="small" />}
+              >
+                Next
               </Button>
             </div>
           </Form>
@@ -322,7 +339,11 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
       )
 
       const backButton = (
-        <Button variant="outlined" onclick={() => setState({ ...state, step: 0 })}>
+        <Button
+          variant="outlined"
+          onclick={() => setState({ ...state, step: 0 })}
+          startIcon={<Icon icon={icons.chevronLeft} size="small" />}
+        >
           Back
         </Button>
       )
@@ -353,8 +374,14 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               <Input name="description" labelTitle="Description" variant="outlined" />
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', paddingTop: '8px' }}>
                 {backButton}
-                <Button type="submit" variant="contained" color="success" disabled={state.isSaving}>
-                  {state.isSaving ? 'Saving...' : 'Next'}
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="success"
+                  loading={state.isSaving}
+                  endIcon={<Icon icon={icons.chevronRight} size="small" />}
+                >
+                  Next
                 </Button>
               </div>
             </Form>
@@ -382,10 +409,12 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
                 <Button
                   variant="contained"
                   color="success"
-                  disabled={state.isSaving || (state.repoChoice === 'existing' && !state.selectedRepoId)}
+                  loading={state.isSaving}
+                  disabled={state.repoChoice === 'existing' && !state.selectedRepoId}
                   onclick={() => void handleFinishSkipOrExisting()}
+                  endIcon={<Icon icon={icons.chevronRight} size="small" />}
                 >
-                  {state.isSaving ? 'Saving...' : 'Next'}
+                  Next
                 </Button>
               </div>
             </div>
@@ -408,10 +437,18 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               This will clone the repository, install dependencies, and build the service.
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <Button variant="contained" onclick={() => void handleSetupNow()}>
+              <Button
+                variant="contained"
+                onclick={() => void handleSetupNow()}
+                startIcon={<Icon icon={icons.settings} size="small" />}
+              >
                 Set Up Now
               </Button>
-              <Button variant="outlined" onclick={() => navigate(injector, '/')}>
+              <Button
+                variant="outlined"
+                onclick={() => navigate(injector, '/')}
+                endIcon={<Icon icon={icons.chevronRight} size="small" />}
+              >
                 Skip
               </Button>
             </div>
@@ -433,12 +470,19 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               Service set up successfully!
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <Button variant="contained" color="success" onclick={() => navigate(injector, '/')}>
+              <Button
+                variant="contained"
+                color="success"
+                onclick={() => navigate(injector, '/')}
+                startIcon={<Icon icon={icons.home} size="small" />}
+              >
                 Go to Dashboard
               </Button>
               {state.createdServiceId ? (
                 <NestedRouteLink href={`/services/${state.createdServiceId}`}>
-                  <Button variant="outlined">View Service</Button>
+                  <Button variant="outlined" startIcon={<Icon icon={icons.eye} size="small" />}>
+                    View Service
+                  </Button>
                 </NestedRouteLink>
               ) : null}
             </div>
@@ -449,15 +493,25 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <p style={{ margin: '0 0 16px 0', color: cssVariableTheme.palette.error.main }}>Setup failed.</p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <Button variant="outlined" onclick={() => setState({ ...state, setupStatus: 'idle' })}>
+              <Button
+                variant="outlined"
+                onclick={() => setState({ ...state, setupStatus: 'idle' })}
+                startIcon={<Icon icon={icons.refresh} size="small" />}
+              >
                 Retry
               </Button>
               {state.createdServiceId ? (
                 <NestedRouteLink href={`/services/${state.createdServiceId}/logs`}>
-                  <Button variant="outlined">View Logs</Button>
+                  <Button variant="outlined" startIcon={<Icon icon={icons.fileText} size="small" />}>
+                    View Logs
+                  </Button>
                 </NestedRouteLink>
               ) : null}
-              <Button variant="outlined" onclick={() => navigate(injector, '/')}>
+              <Button
+                variant="outlined"
+                onclick={() => navigate(injector, '/')}
+                startIcon={<Icon icon={icons.home} size="small" />}
+              >
                 Go to Dashboard
               </Button>
             </div>

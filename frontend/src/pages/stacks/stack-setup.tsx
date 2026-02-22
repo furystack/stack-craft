@@ -185,7 +185,10 @@ export const StackSetup = Shade<StackSetupProps>({
       setIsBatchRunning(false)
     }
 
+    const [isStartingAll, setIsStartingAll] = useState('isStartingAll', false)
+
     const triggerStartAll = async () => {
+      setIsStartingAll(true)
       const api = injector.getInstance(ServicesApiClient)
       for (const svc of services) {
         if (isServiceReady(svc) && svc.runStatus === 'stopped') {
@@ -196,6 +199,7 @@ export const StackSetup = Shade<StackSetupProps>({
           }
         }
       }
+      setIsStartingAll(false)
     }
 
     if (isLoading) {
@@ -217,16 +221,35 @@ export const StackSetup = Shade<StackSetupProps>({
           actions={
             <div style={{ display: 'flex', gap: '8px' }}>
               {allReady ? (
-                <Button variant="contained" color="success" onclick={() => void triggerStartAll()}>
+                <Button
+                  variant="contained"
+                  size="small"
+                  color="success"
+                  loading={isStartingAll}
+                  onclick={() => void triggerStartAll()}
+                  startIcon={<Icon icon={icons.play} size="small" />}
+                >
                   Start All Services
                 </Button>
               ) : (
-                <Button variant="contained" disabled={anyInProgress} onclick={() => void triggerSetupAll()}>
-                  {anyInProgress ? 'Setting up...' : 'Set Up All Services'}
+                <Button
+                  variant="contained"
+                  size="small"
+                  loading={anyInProgress}
+                  onclick={() => void triggerSetupAll()}
+                  startIcon={<Icon icon={icons.settings} size="small" />}
+                >
+                  Set Up All Services
                 </Button>
               )}
               <NestedRouteLink href={`/stacks/${props.stackName}`}>
-                <Button variant="outlined">Go to Dashboard</Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Icon icon={icons.home} size="small" />}
+                >
+                  Go to Dashboard
+                </Button>
               </NestedRouteLink>
             </div>
           }
@@ -285,7 +308,12 @@ export const StackSetup = Shade<StackSetupProps>({
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                         {ready ? (
                           <NestedRouteLink href={`/services/${svc.id}`}>
-                            <Button variant="outlined" size="small" color="success">
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              color="success"
+                              startIcon={<Icon icon={icons.checkCircle} size="small" />}
+                            >
                               Ready
                             </Button>
                           </NestedRouteLink>
@@ -293,14 +321,19 @@ export const StackSetup = Shade<StackSetupProps>({
                           <Button
                             variant="outlined"
                             size="small"
-                            disabled={inProgress}
+                            loading={inProgress}
                             onclick={() => void triggerSetup(svc.id)}
+                            startIcon={<Icon icon={icons.settings} size="small" />}
                           >
-                            {inProgress ? 'Setting up...' : 'Set Up'}
+                            Set Up
                           </Button>
                         )}
                         <NestedRouteLink href={`/services/${svc.id}/logs`}>
-                          <Button variant="outlined" size="small">
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<Icon icon={icons.fileText} size="small" />}
+                          >
                             Logs
                           </Button>
                         </NestedRouteLink>

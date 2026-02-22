@@ -1,6 +1,6 @@
 import type { FindOptions } from '@furystack/core'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
-import { Button, CollectionService, DataGrid } from '@furystack/shades-common-components'
+import { Button, CollectionService, DataGrid, Icon, icons } from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
 import type { GitHubRepository } from 'common'
 
@@ -46,7 +46,9 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
           url: (entry) => <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>{entry.url}</span>,
           actions: (entry) => (
             <NestedRouteLink href={`/repositories/${entry.id}`}>
-              <Button variant="outlined">Edit</Button>
+              <Button variant="outlined" size="small" startIcon={<Icon icon={icons.edit} size="small" />}>
+                Edit
+              </Button>
             </NestedRouteLink>
           ),
         }}

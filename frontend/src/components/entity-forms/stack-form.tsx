@@ -1,5 +1,5 @@
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
-import { Button, Form, Input } from '@furystack/shades-common-components'
+import { Button, Form, Icon, icons, Input } from '@furystack/shades-common-components'
 import type { StackView } from 'common'
 
 type StackFormPayload = {
@@ -76,14 +76,20 @@ export const StackForm = Shade<StackFormProps>({
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           {props.cancelHref ? (
             <NestedRouteLink href={props.cancelHref}>
-              <Button variant="outlined">Cancel</Button>
+              <Button variant="outlined" startIcon={<Icon icon={icons.close} size="small" />}>
+                Cancel
+              </Button>
             </NestedRouteLink>
           ) : (
-            <Button variant="outlined" onclick={props.onCancel}>
+            <Button variant="outlined" onclick={props.onCancel} startIcon={<Icon icon={icons.close} size="small" />}>
               Cancel
             </Button>
           )}
-          <Button type="submit" variant="contained">
+          <Button
+            type="submit"
+            variant="contained"
+            startIcon={<Icon icon={props.mode === 'create' ? icons.plus : icons.save} size="small" />}
+          >
             {props.mode === 'create' ? 'Create' : 'Save'}
           </Button>
         </div>

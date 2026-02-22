@@ -78,6 +78,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
     }
 
     const api = injector.getInstance(GitHubReposApiClient)
+    const [isDeleting, setIsDeleting] = useState('isDeleting', false)
 
     const handleSave = async (data: Partial<GitHubRepository>) => {
       try {
@@ -107,6 +108,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
     }
 
     const handleDelete = async () => {
+      setIsDeleting(true)
       try {
         await api.call({
           method: 'DELETE',
@@ -125,6 +127,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           body: error instanceof Error ? error.message : 'Failed to delete repository',
           type: 'error',
         })
+        setIsDeleting(false)
       }
     }
 
@@ -139,7 +142,13 @@ export const EditRepository = Shade<EditRepositoryProps>({
                   Back
                 </Button>
               </NestedRouteLink>
-              <Button variant="outlined" color="error" onclick={() => setIsConfirmingDelete(true)}>
+              <Button
+                variant="outlined"
+                color="error"
+                loading={isDeleting}
+                onclick={() => setIsConfirmingDelete(true)}
+                startIcon={<Icon icon={icons.trash} size="small" />}
+              >
                 Delete
               </Button>
             </div>

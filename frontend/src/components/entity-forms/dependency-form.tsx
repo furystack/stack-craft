@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, Form, Input } from '@furystack/shades-common-components'
+import { Button, Form, Icon, icons, Input } from '@furystack/shades-common-components'
 import type { Dependency } from 'common'
 
 type DependencyFormPayload = {
@@ -62,10 +62,14 @@ export const DependencyForm = Shade<DependencyFormProps>({
           getHelperText={() => 'Instructions for installing this dependency'}
         />
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-          <Button variant="outlined" onclick={props.onCancel}>
+          <Button variant="outlined" onclick={props.onCancel} startIcon={<Icon icon={icons.close} size="small" />}>
             Cancel
           </Button>
-          <Button type="submit" variant="contained">
+          <Button
+            type="submit"
+            variant="contained"
+            startIcon={<Icon icon={props.mode === 'create' ? icons.plus : icons.save} size="small" />}
+          >
             {props.mode === 'create' ? 'Add' : 'Save'}
           </Button>
         </div>

@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { AppBar, AppBarLink, Button, DrawerToggleButton } from '@furystack/shades-common-components'
+import { AppBar, AppBarLink, Button, DrawerToggleButton, Icon, icons } from '@furystack/shades-common-components'
 import { SessionService } from '../services/session.js'
 import { ThemeSwitch } from './theme-switch/index.js'
 
@@ -46,7 +46,12 @@ export const Header = Shade<HeaderProps>({
         <div className="actions">
           <ThemeSwitch variant="outlined" />
           {sessionState === 'authenticated' ? (
-            <Button variant="outlined" onclick={() => injector.getInstance(SessionService).logout()}>
+            <Button
+              variant="outlined"
+              size="small"
+              onclick={() => injector.getInstance(SessionService).logout()}
+              startIcon={<Icon icon={icons.logOut} size="small" />}
+            >
               Log Out
             </Button>
           ) : null}

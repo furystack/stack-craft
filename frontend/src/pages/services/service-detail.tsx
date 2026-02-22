@@ -1,9 +1,9 @@
 import type { FindOptions } from '@furystack/core'
 import { useCollectionSync, useEntitySync } from '@furystack/entity-sync-client'
-import type { Injector } from '@furystack/inject'
 import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
 import {
   Button,
+  ButtonGroup,
   CollectionService,
   DataGrid,
   Icon,
@@ -15,8 +15,15 @@ import {
   Paper,
 } from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
-import { GitHubRepository, ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
-import type { ServiceStateHistory, ServiceView, StackView } from 'common'
+import {
+  GitHubRepository,
+  ServiceConfig,
+  ServiceDefinition,
+  ServiceStateHistory,
+  ServiceStatus,
+  StackDefinition,
+} from 'common'
+import type { ServiceView, StackView } from 'common'
 import { getServiceCwd } from 'common'
 
 import { navigate } from '../../utils/navigate.js'
@@ -152,6 +159,22 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     const fullCwd = stack ? getServiceCwd(stack, service, linkedRepo ?? null) : null
 
     const api = injector.getInstance(ServicesApiClient)
+    const [actionInProgress, setActionInProgress] = useState<string | null>('actionInProgress', null)
+
+    const runAction = async (action: string, apiAction: string) => {
+      setActionInProgress(action)
+      try {
+        await api.call({
+          method: 'POST',
+          action: apiAction as '/services/:id/start',
+          url: { id: service.id },
+        })
+      } catch {
+        // Failures surfaced via entity-sync
+      } finally {
+        setActionInProgress(null)
+      }
+    }
 
     const handleSave = async (data: Partial<ServiceView>) => {
       try {
@@ -246,57 +269,70 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           actions={
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <ServiceStatusIndicator service={service} />
-              {service.runStatus !== 'running' ? (
+              <ButtonGroup variant="outlined">
+                {service.runStatus !== 'running' ? (
+                  <Button
+                    size="small"
+                    color="success"
+                    loading={actionInProgress === 'start'}
+                    disabled={!!actionInProgress}
+                    onclick={() => void runAction('start', '/services/:id/start')}
+                    startIcon={<Icon icon={icons.play} size="small" />}
+                  >
+                    Start
+                  </Button>
+                ) : (
+                  <Button
+                    size="small"
+                    loading={actionInProgress === 'stop'}
+                    disabled={!!actionInProgress}
+                    onclick={() => void runAction('stop', '/services/:id/stop')}
+                    startIcon={<Icon icon={icons.stopCircle} size="small" />}
+                  >
+                    Stop
+                  </Button>
+                )}
                 <Button
-                  variant="contained"
-                  color="success"
-                  onclick={() => {
-                    void api.call({ method: 'POST', action: '/services/:id/start', url: { id: service.id } })
-                  }}
+                  size="small"
+                  loading={actionInProgress === 'restart'}
+                  disabled={!!actionInProgress}
+                  onclick={() => void runAction('restart', '/services/:id/restart')}
+                  startIcon={<Icon icon={icons.refresh} size="small" />}
                 >
-                  Start
+                  Restart
                 </Button>
-              ) : (
-                <Button
-                  variant="outlined"
-                  onclick={() => {
-                    void api.call({ method: 'POST', action: '/services/:id/stop', url: { id: service.id } })
-                  }}
-                >
-                  Stop
-                </Button>
-              )}
-              <Button
-                variant="outlined"
-                onclick={() => {
-                  void api.call({ method: 'POST', action: '/services/:id/restart', url: { id: service.id } })
-                }}
-              >
-                Restart
-              </Button>
-              {service.repositoryId ? (
-                <Button
-                  variant="outlined"
-                  onclick={() => {
-                    void api.call({ method: 'POST', action: '/services/:id/update', url: { id: service.id } })
-                  }}
-                >
-                  Update
-                </Button>
-              ) : null}
+                {service.repositoryId ? (
+                  <Button
+                    size="small"
+                    loading={actionInProgress === 'update'}
+                    disabled={!!actionInProgress}
+                    onclick={() => void runAction('update', '/services/:id/update')}
+                    startIcon={<Icon icon={icons.download} size="small" />}
+                  >
+                    Update
+                  </Button>
+                ) : null}
+              </ButtonGroup>
               <NestedRouteLink href={`/services/${service.id}/logs`}>
-                <Button variant="outlined" startIcon={<Icon icon={icons.file} size="small" />}>
+                <Button variant="outlined" size="small" startIcon={<Icon icon={icons.file} size="small" />}>
                   Logs
                 </Button>
               </NestedRouteLink>
               <Button
                 variant="outlined"
+                size="small"
                 onclick={() => setIsEditing(true)}
                 startIcon={<Icon icon={icons.edit} size="small" />}
               >
                 Edit
               </Button>
-              <Button variant="outlined" color="error" onclick={() => setIsConfirmingDelete(true)}>
+              <Button
+                variant="outlined"
+                size="small"
+                color="error"
+                onclick={() => setIsConfirmingDelete(true)}
+                startIcon={<Icon icon={icons.trash} size="small" />}
+              >
                 Delete
               </Button>
             </div>
@@ -338,9 +374,10 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                   <Button
                     variant="outlined"
                     size="small"
-                    onclick={() => {
-                      void api.call({ method: 'POST', action: '/services/:id/pull', url: { id: service.id } })
-                    }}
+                    loading={actionInProgress === 'pull'}
+                    disabled={!!actionInProgress}
+                    onclick={() => void runAction('pull', '/services/:id/pull')}
+                    startIcon={<Icon icon={icons.download} size="small" />}
                   >
                     {service.cloneStatus === 'not-cloned' ? 'Clone' : 'Pull'}
                   </Button>
@@ -354,9 +391,10 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                 <Button
                   variant="outlined"
                   size="small"
-                  onclick={() => {
-                    void api.call({ method: 'POST', action: '/services/:id/install', url: { id: service.id } })
-                  }}
+                  loading={actionInProgress === 'install'}
+                  disabled={!!actionInProgress}
+                  onclick={() => void runAction('install', '/services/:id/install')}
+                  startIcon={<Icon icon={icons.packageIcon} size="small" />}
                 >
                   Install
                 </Button>
@@ -369,9 +407,10 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                 <Button
                   variant="outlined"
                   size="small"
-                  onclick={() => {
-                    void api.call({ method: 'POST', action: '/services/:id/build', url: { id: service.id } })
-                  }}
+                  loading={actionInProgress === 'build'}
+                  disabled={!!actionInProgress}
+                  onclick={() => void runAction('build', '/services/:id/build')}
+                  startIcon={<Icon icon={icons.wrench} size="small" />}
                 >
                   Build
                 </Button>
@@ -381,7 +420,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             <span>{service.runStatus}</span>
           </div>
         </Paper>
-        <ServiceHistory serviceId={service.id} injector={injector} />
+        <ServiceHistory serviceId={service.id} />
         {isConfirmingDelete ? (
           <ConfirmDialog
             title="Delete Service"
@@ -399,16 +438,20 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
 
 type ServiceHistoryProps = {
   serviceId: string
-  injector: Injector
 }
 
 type HistoryColumn = 'createdAt' | 'event' | 'triggeredBy' | 'triggerSource' | 'metadata'
 
 const ServiceHistory = Shade<ServiceHistoryProps>({
   shadowDomName: 'shade-service-history',
-  render: ({ props, useState, useDisposable }) => {
-    const [entries, setEntries] = useState<ServiceStateHistory[]>('entries', [])
-    const [isLoading, setIsLoading] = useState('isLoading', true)
+  render: (options) => {
+    const { props, useDisposable } = options
+
+    const historyState = useCollectionSync(options, ServiceStateHistory, {
+      filter: { serviceId: { $eq: props.serviceId } },
+      order: { id: 'DESC' },
+      top: 50,
+    })
 
     const collectionService = useDisposable(
       'collectionService',
@@ -420,21 +463,8 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
       () => new ObservableValue<FindOptions<ServiceStateHistory, Array<keyof ServiceStateHistory>>>({}),
     )
 
-    if (isLoading && entries.length === 0) {
-      props.injector
-        .getInstance(ServicesApiClient)
-        .call({
-          method: 'GET',
-          action: '/services/:id/history',
-          url: { id: props.serviceId },
-          query: { limit: 50 },
-        })
-        .then(({ result }) => {
-          setEntries(result.entries)
-          setIsLoading(false)
-        })
-        .catch(() => setIsLoading(false))
-    }
+    const isLoading = historyState.status === 'connecting'
+    const entries = historyState.status === 'synced' || historyState.status === 'cached' ? historyState.data : []
 
     collectionService.data.setValue({ entries, count: entries.length })
 

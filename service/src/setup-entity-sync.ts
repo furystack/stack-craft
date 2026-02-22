@@ -6,6 +6,7 @@ import {
   ServiceConfig,
   ServiceDefinition,
   ServiceLogEntry,
+  ServiceStateHistory,
   ServiceStatus,
   StackConfig,
   StackDefinition,
@@ -22,6 +23,7 @@ export const setupEntitySync = (injector: Injector) => {
       { model: ServiceStatus, primaryKey: 'serviceId' },
       { model: GitHubRepository, primaryKey: 'id' },
       { model: ServiceLogEntry, primaryKey: 'id', debounceMs: 250 },
+      { model: ServiceStateHistory, primaryKey: 'id', debounceMs: 250 },
     ],
   })
 }

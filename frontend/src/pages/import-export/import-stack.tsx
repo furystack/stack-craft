@@ -5,6 +5,8 @@ import {
   Button,
   Checkbox,
   Form,
+  Icon,
+  icons,
   Input,
   cssVariableTheme,
   NotyService,
@@ -116,9 +118,16 @@ export const ImportStack = Shade({
               )}
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
                 <NestedRouteLink href="/">
-                  <Button variant="outlined">Cancel</Button>
+                  <Button variant="outlined" startIcon={<Icon icon={icons.close} size="small" />}>
+                    Cancel
+                  </Button>
                 </NestedRouteLink>
-                <Button variant="contained" disabled={!jsonInput} onclick={handleParse}>
+                <Button
+                  variant="contained"
+                  disabled={!jsonInput}
+                  onclick={handleParse}
+                  startIcon={<Icon icon={icons.check} size="small" />}
+                >
                   Parse
                 </Button>
               </div>
@@ -150,10 +159,19 @@ export const ImportStack = Shade({
                 ) : null}
 
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                  <Button variant="outlined" onclick={() => setParsed(null)}>
+                  <Button
+                    variant="outlined"
+                    onclick={() => setParsed(null)}
+                    startIcon={<Icon icon={icons.chevronLeft} size="small" />}
+                  >
                     Back
                   </Button>
-                  <Button type="submit" variant="contained" disabled={isImporting}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    loading={isImporting}
+                    startIcon={<Icon icon={icons.upload} size="small" />}
+                  >
                     Import
                   </Button>
                 </div>

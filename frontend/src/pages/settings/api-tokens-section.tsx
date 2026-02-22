@@ -31,7 +31,11 @@ export const ApiTokensSection = Shade({
       filter: currentUser ? { username: { $eq: currentUser.username } } : undefined,
     })
 
+    const [isCreating, setIsCreating] = useState('isCreating', false)
+    const [revokingTokenId, setRevokingTokenId] = useState<string | null>('revokingTokenId', null)
+
     const handleCreateToken = async (payload: CreateTokenPayload) => {
+      setIsCreating(true)
       try {
         const { result } = await tokensApi.call({
           method: 'POST',
@@ -46,14 +50,19 @@ export const ApiTokensSection = Shade({
         })
       } catch {
         notys.emit('onNotyAdded', { title: 'Error', body: 'Failed to create token.', type: 'error' })
+      } finally {
+        setIsCreating(false)
       }
     }
 
     const handleDeleteToken = async (id: string) => {
+      setRevokingTokenId(id)
       try {
         await tokensApi.call({ method: 'DELETE', action: '/tokens/:id', url: { id } })
       } catch {
         notys.emit('onNotyAdded', { title: 'Error', body: 'Failed to revoke token.', type: 'error' })
+      } finally {
+        setRevokingTokenId(null)
       }
     }
 
@@ -93,7 +102,13 @@ export const ApiTokensSection = Shade({
           style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}
         >
           <Input variant="outlined" labelTitle="Token name" name="name" style={{ flex: '1' }} required />
-          <Button variant="contained" type="submit" style={{ height: '100%', display: 'flex', alignItems: 'center' }}>
+          <Button
+            variant="contained"
+            type="submit"
+            loading={isCreating}
+            startIcon={<Icon icon={icons.plus} size="small" />}
+            style={{ height: '100%', display: 'flex', alignItems: 'center' }}
+          >
             Create Token
           </Button>
         </Form>
@@ -130,7 +145,14 @@ export const ApiTokensSection = Shade({
                     {new Date(token.createdAt).toLocaleDateString()}
                   </td>
                   <td style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <Button variant="outlined" color="error" onclick={() => void handleDeleteToken(token.id)}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      color="error"
+                      loading={revokingTokenId === token.id}
+                      onclick={() => void handleDeleteToken(token.id)}
+                      startIcon={<Icon icon={icons.trash} size="small" />}
+                    >
                       Revoke
                     </Button>
                   </td>
