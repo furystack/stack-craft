@@ -123,7 +123,6 @@ export class ProcessManager {
         })
 
         await historyDs.add(elevated, {
-          id: 0,
           serviceId,
           event,
           previousState,
