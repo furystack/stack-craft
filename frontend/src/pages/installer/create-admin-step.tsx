@@ -15,31 +15,21 @@ const isAdminPayload = (data: unknown): data is AdminPayload => {
 
 export const CreateAdminStep = Shade<WizardStepProps>({
   shadowDomName: 'shade-create-admin-step',
-  render: ({ props, injector, useState }) => {
-    const [isInstalling, setIsInstalling] = useState('isInstalling', false)
-
-    const handleSubmit = (data: AdminPayload) => {
-      setIsInstalling(true)
-      injector
-        .getInstance(InstallApiClient)
-        .call({
-          method: 'POST',
-          action: '/install',
-          body: data,
-        })
-        .then(() => {
-          props.onNext?.()
-          setIsInstalling(false)
-        })
-        .catch(() => {
-          setIsInstalling(false)
-        })
+  render: ({ props, injector }) => {
+    const handleSubmit = async (data: AdminPayload) => {
+      await injector.getInstance(InstallApiClient).call({
+        method: 'POST',
+        action: '/install',
+        body: data,
+      })
+      props.onNext?.()
     }
 
     return (
       <Form<AdminPayload>
         validate={isAdminPayload}
         onSubmit={handleSubmit}
+        disableOnSubmit
         style={{
           padding: '32px',
           display: 'flex',
@@ -61,7 +51,6 @@ export const CreateAdminStep = Shade<WizardStepProps>({
             labelTitle="Username"
             type="text"
             required
-            disabled={isInstalling}
             getHelperText={() => 'Choose a username for the admin account'}
           />
           <Input
@@ -72,7 +61,6 @@ export const CreateAdminStep = Shade<WizardStepProps>({
             autocomplete="off"
             minLength={4}
             required
-            disabled={isInstalling}
             getHelperText={() => 'Must be at least 4 characters'}
           />
         </div>
@@ -83,7 +71,6 @@ export const CreateAdminStep = Shade<WizardStepProps>({
           <Button
             type="submit"
             disabled={props.currentPage > props.maxPages - 1}
-            loading={isInstalling}
             variant="contained"
             color={props.currentPage === props.maxPages - 1 ? 'success' : 'primary'}
           >

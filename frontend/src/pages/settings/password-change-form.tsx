@@ -21,10 +21,8 @@ export const PasswordChangeForm = Shade({
     const notys = injector.getInstance(NotyService)
 
     const [newPassword, setNewPassword] = useState('newPassword', '')
-    const [isSubmitting, setIsSubmitting] = useState('isSubmitting', false)
 
     const handleSubmit = async (payload: PasswordChangePayload) => {
-      setIsSubmitting(true)
       try {
         await identityApi.call({
           method: 'POST',
@@ -41,8 +39,6 @@ export const PasswordChangeForm = Shade({
         })
       } catch {
         notys.emit('onNotyAdded', { title: 'Error', body: 'Failed to change password.', type: 'error' })
-      } finally {
-        setIsSubmitting(false)
       }
     }
 
@@ -54,7 +50,8 @@ export const PasswordChangeForm = Shade({
         </h3>
         <Form<PasswordChangePayload>
           validate={isPasswordChangePayload}
-          onSubmit={(data) => void handleSubmit(data)}
+          onSubmit={handleSubmit}
+          disableOnSubmit
           style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
         >
           <Input name="currentPassword" labelTitle="Current Password" type="password" variant="outlined" required />
@@ -84,7 +81,6 @@ export const PasswordChangeForm = Shade({
           <Button
             type="submit"
             variant="contained"
-            loading={isSubmitting}
             startIcon={<Icon icon={icons.save} size="small" />}
             style={{ alignSelf: 'flex-start' }}
           >

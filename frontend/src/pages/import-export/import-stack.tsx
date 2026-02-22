@@ -35,7 +35,6 @@ export const ImportStack = Shade({
     const [jsonInput, setJsonInput] = useState('json', '')
     const [parsed, setParsed] = useState<ParsedExport | null>('parsed', null)
     const [parseError, setParseError] = useState('parseError', '')
-    const [isImporting, setIsImporting] = useState('isImporting', false)
 
     const handleParse = () => {
       try {
@@ -55,7 +54,6 @@ export const ImportStack = Shade({
 
     const handleImport = async (formData: ImportConfigPayload) => {
       if (!parsed) return
-      setIsImporting(true)
       try {
         await injector.getInstance(StacksApiClient).call({
           method: 'POST',
@@ -83,7 +81,6 @@ export const ImportStack = Shade({
           type: 'error',
         })
       }
-      setIsImporting(false)
     }
 
     return (
@@ -133,7 +130,7 @@ export const ImportStack = Shade({
               </div>
             </Paper>
           ) : (
-            <Form<ImportConfigPayload> validate={isImportConfigPayload} onSubmit={(data) => void handleImport(data)}>
+            <Form<ImportConfigPayload> validate={isImportConfigPayload} onSubmit={handleImport} disableOnSubmit>
               <Paper elevation={1} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <h3 style={{ margin: '0' }}>Import: {parsed.stack.displayName}</h3>
                 <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
@@ -169,7 +166,6 @@ export const ImportStack = Shade({
                   <Button
                     type="submit"
                     variant="contained"
-                    loading={isImporting}
                     startIcon={<Icon icon={icons.upload} size="small" />}
                   >
                     Import

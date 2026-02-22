@@ -27,7 +27,7 @@
     "@furystack/security": "^6.0.37",
     "@furystack/sequelize-store": "^6.0.38",
     "@furystack/websocket-api": "^13.1.10",
-    "@modelcontextprotocol/sdk": "1.27.0",
+    "@modelcontextprotocol/sdk": "1.26.0",
     "common": "workspace:^",
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7"

@@ -86,7 +86,6 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
 
     const handleCreateService = async (data: CreateServicePayload) => {
       const serviceId = crypto.randomUUID()
-      setState({ ...state, isSaving: true })
 
       try {
         await servicesApi.call({
@@ -114,7 +113,6 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
           createdServiceId: serviceId,
           createdServiceName: data.displayName,
           hasRepoOrCommands: !!(data.installCommand || data.buildCommand),
-          isSaving: false,
         })
       } catch (error) {
         noty.emit('onNotyAdded', {
@@ -122,7 +120,6 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
           body: error instanceof Error ? error.message : 'Failed to create service',
           type: 'error',
         })
-        setState({ ...state, isSaving: false })
       }
     }
 
@@ -178,7 +175,6 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
 
     const handleFinishNewRepo = async (repoData: NewRepoPayload) => {
       if (!state.createdServiceId) return
-      setState({ ...state, isSaving: true })
       try {
         const newId = crypto.randomUUID()
         await reposApi.call({
@@ -199,7 +195,6 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
           body: error instanceof Error ? error.message : 'Failed to complete setup',
           type: 'error',
         })
-        setState({ ...state, isSaving: false })
       }
     }
 
@@ -256,7 +251,8 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
           {stepIndicator}
           <Form<CreateServicePayload>
             validate={isCreateServicePayload}
-            onSubmit={(data) => void handleCreateService(data)}
+            onSubmit={handleCreateService}
+            disableOnSubmit
             style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
           >
             <h2 style={{ margin: '0' }}>Create Service</h2>
@@ -301,7 +297,6 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               <Button
                 type="submit"
                 variant="contained"
-                loading={state.isSaving}
                 endIcon={<Icon icon={icons.chevronRight} size="small" />}
               >
                 Next
@@ -359,7 +354,8 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
           {state.repoChoice === 'new' ? (
             <Form<NewRepoPayload>
               validate={isNewRepoPayload}
-              onSubmit={(data) => void handleFinishNewRepo(data)}
+              onSubmit={handleFinishNewRepo}
+              disableOnSubmit
               style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
             >
               {repoChoiceOptions}
@@ -378,7 +374,6 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
                   type="submit"
                   variant="contained"
                   color="success"
-                  loading={state.isSaving}
                   endIcon={<Icon icon={icons.chevronRight} size="small" />}
                 >
                   Next

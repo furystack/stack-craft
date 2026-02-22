@@ -29,13 +29,14 @@ export const GitHubRepoForm = Shade<GitHubRepoFormProps>({
       <Form<GitHubRepoFormPayload>
         validate={isGitHubRepoFormPayload}
         onSubmit={(data) =>
-          void props.onSubmit({
+          props.onSubmit({
             stackName: props.stackName,
             url: data.url,
             displayName: data.displayName,
             description: data.description,
           })
         }
+        disableOnSubmit
         style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}
       >
         <h2 style={{ margin: '0' }}>{props.mode === 'create' ? 'Add GitHub Repository' : 'Edit Repository'}</h2>

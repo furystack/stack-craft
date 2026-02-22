@@ -31,11 +31,9 @@ export const ApiTokensSection = Shade({
       filter: currentUser ? { username: { $eq: currentUser.username } } : undefined,
     })
 
-    const [isCreating, setIsCreating] = useState('isCreating', false)
     const [revokingTokenId, setRevokingTokenId] = useState<string | null>('revokingTokenId', null)
 
     const handleCreateToken = async (payload: CreateTokenPayload) => {
-      setIsCreating(true)
       try {
         const { result } = await tokensApi.call({
           method: 'POST',
@@ -50,8 +48,6 @@ export const ApiTokensSection = Shade({
         })
       } catch {
         notys.emit('onNotyAdded', { title: 'Error', body: 'Failed to create token.', type: 'error' })
-      } finally {
-        setIsCreating(false)
       }
     }
 
@@ -98,14 +94,14 @@ export const ApiTokensSection = Shade({
 
         <Form<CreateTokenPayload>
           validate={isCreateTokenPayload}
-          onSubmit={(data) => void handleCreateToken(data)}
+          onSubmit={handleCreateToken}
+          disableOnSubmit
           style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}
         >
           <Input variant="outlined" labelTitle="Token name" name="name" style={{ flex: '1' }} required />
           <Button
             variant="contained"
             type="submit"
-            loading={isCreating}
             startIcon={<Icon icon={icons.plus} size="small" />}
             style={{ height: '100%', display: 'flex', alignItems: 'center' }}
           >

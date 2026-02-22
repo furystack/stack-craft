@@ -131,9 +131,10 @@ export const Login = Shade({
                 validate={(data): data is LoginPayload => {
                   return (data as LoginPayload).userName?.length > 0 && (data as LoginPayload).password?.length > 0
                 }}
-                onSubmit={({ userName, password }) => {
-                  void sessionService.login(userName, password)
+                onSubmit={async ({ userName, password }) => {
+                  await sessionService.login(userName, password)
                 }}
+                disableOnSubmit
               >
                 <div className="login-fields">
                   <Input
@@ -141,7 +142,6 @@ export const Login = Shade({
                     name="userName"
                     autofocus
                     required
-                    disabled={isOperationInProgress}
                     variant="outlined"
                     type="text"
                     getStartIcon={() => <Icon icon={icons.user} size="small" />}
@@ -150,7 +150,6 @@ export const Login = Shade({
                     labelTitle="Password"
                     name="password"
                     required
-                    disabled={isOperationInProgress}
                     variant="outlined"
                     type="password"
                     getStartIcon={() => <Icon icon={icons.lock} size="small" />}
@@ -167,7 +166,6 @@ export const Login = Shade({
                   <Button
                     type="submit"
                     variant="contained"
-                    disabled={isOperationInProgress}
                     loading={isOperationInProgress}
                   >
                     Sign in

@@ -37,7 +37,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
       <Form<ServiceFormPayload>
         validate={isServiceFormPayload}
         onSubmit={(data) =>
-          void props.onSubmit({
+          props.onSubmit({
             stackName: props.stackName,
             displayName: data.displayName,
             description: data.description,
@@ -51,6 +51,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
             autoRestartOnFetch: data.autoRestartOnFetch === 'on',
           })
         }
+        disableOnSubmit
         style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}
       >
         <h2 style={{ margin: '0' }}>{props.mode === 'create' ? 'Create Service' : 'Edit Service'}</h2>

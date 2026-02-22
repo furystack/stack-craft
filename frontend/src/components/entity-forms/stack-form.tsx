@@ -29,13 +29,14 @@ export const StackForm = Shade<StackFormProps>({
       <Form<StackFormPayload>
         validate={isStackFormPayload}
         onSubmit={(data) =>
-          void props.onSubmit({
+          props.onSubmit({
             name: data.name,
             displayName: data.displayName,
             description: data.description,
             mainDirectory: data.mainDirectory,
           })
         }
+        disableOnSubmit
         style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '600px' }}
       >
         <h2 style={{ margin: '0' }}>{props.mode === 'create' ? 'Create Stack' : 'Edit Stack'}</h2>

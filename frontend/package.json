@@ -21,12 +21,12 @@
     "@furystack/cache": "^6.0.0",
     "@furystack/core": "^15.1.0",
     "@furystack/entity-sync": "^0.1.1",
-    "@furystack/entity-sync-client": "^0.1.1",
+    "@furystack/entity-sync-client": "^0.2.0",
     "@furystack/inject": "^12.0.30",
     "@furystack/logging": "^8.0.30",
     "@furystack/rest-client-fetch": "^8.0.37",
-    "@furystack/shades": "^12.1.0",
-    "@furystack/shades-common-components": "^12.3.0",
+    "@furystack/shades": "^12.2.0",
+    "@furystack/shades-common-components": "^12.4.0",
     "@furystack/utils": "^8.1.10",
     "common": "workspace:^"
   }
