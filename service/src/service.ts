@@ -11,6 +11,7 @@ import { setupGitHubReposRestApi } from './app-models/github-repositories/setup-
 import { setupDependenciesRestApi } from './app-models/dependencies/setup-dependencies-rest-api.js'
 import { setupTokensRestApi } from './app-models/tokens/setup-tokens-rest-api.js'
 import { setupLogStore } from './app-models/logs/setup-log-store.js'
+import { ProcessManager } from './services/process-manager.js'
 import { WebsocketService } from './services/websocket-service.js'
 import { setupEntitySync } from './setup-entity-sync.js'
 import { setupMcp } from './mcp/setup-mcp.js'
@@ -20,6 +21,9 @@ const port = getPort()
 const setupRestApis = async () => {
   await setupDataStore(injector)
   await setupLogStore(injector)
+
+  const processManager = injector.getInstance(ProcessManager)
+  await processManager.reconcileStaleStates()
 
   await setupInstallRestApi(injector)
   await setupIdentityRestApi(injector)

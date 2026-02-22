@@ -3,7 +3,10 @@
   "definitions": {
     "InstallState": {
       "type": "string",
-      "enum": ["needsInstall", "installed"]
+      "enum": [
+        "needsInstall",
+        "installed"
+      ]
     },
     "InstallStateResponse": {
       "type": "object",
@@ -12,7 +15,9 @@
           "$ref": "#/definitions/InstallState"
         }
       },
-      "required": ["state"],
+      "required": [
+        "state"
+      ],
       "additionalProperties": false
     },
     "GetServiceStatusAction": {
@@ -22,7 +27,9 @@
           "$ref": "#/definitions/InstallStateResponse"
         }
       },
-      "required": ["result"],
+      "required": [
+        "result"
+      ],
       "additionalProperties": false
     },
     "InstallAction": {
@@ -35,7 +42,9 @@
               "type": "boolean"
             }
           },
-          "required": ["success"],
+          "required": [
+            "success"
+          ],
           "additionalProperties": false
         },
         "body": {
@@ -48,11 +57,17 @@
               "type": "string"
             }
           },
-          "required": ["username", "password"],
+          "required": [
+            "username",
+            "password"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["result", "body"],
+      "required": [
+        "result",
+        "body"
+      ],
       "additionalProperties": false
     },
     "InstallApi": {
@@ -65,7 +80,9 @@
               "$ref": "#/definitions/GetServiceStatusAction"
             }
           },
-          "required": ["/serviceStatus"],
+          "required": [
+            "/serviceStatus"
+          ],
           "additionalProperties": false
         },
         "POST": {
@@ -75,7 +92,9 @@
               "$ref": "#/definitions/InstallAction"
             }
           },
-          "required": ["/install"],
+          "required": [
+            "/install"
+          ],
           "additionalProperties": false
         },
         "PATCH": {
@@ -89,7 +108,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -104,7 +125,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -119,7 +142,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -134,7 +159,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -149,7 +176,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -164,7 +193,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -179,12 +210,17 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         }
       },
-      "required": ["GET", "POST"],
+      "required": [
+        "GET",
+        "POST"
+      ],
       "additionalProperties": false
     }
   }

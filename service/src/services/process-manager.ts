@@ -653,6 +653,57 @@ export class ProcessManager {
     })
   }
 
+  /**
+   * Resets any transient service states left over from a previous backend run.
+   * Should be called once during startup, after data stores are ready.
+   */
+  public async reconcileStaleStates(): Promise<void> {
+    const elevated = this.getElevatedInjector()
+    const statusDs = getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId')
+    const allStatuses = await statusDs.find(elevated, {})
+
+    const reconcileTrigger: TriggerContext = { triggeredBy: 'system', triggerSource: 'system' }
+    const staleMetadata = { reason: 'Stale state detected on startup. Service may have been terminated outside the application.' }
+
+    for (const status of allStatuses) {
+      const update: Partial<ServiceStatus> = {}
+      let hasStaleState = false
+
+      if (status.runStatus === 'running' || status.runStatus === 'starting' || status.runStatus === 'stopping') {
+        update.runStatus = 'stopped'
+        hasStaleState = true
+      }
+
+      if (status.installStatus === 'installing') {
+        update.installStatus = 'not-installed'
+        hasStaleState = true
+      }
+
+      if (status.buildStatus === 'building') {
+        update.buildStatus = 'not-built'
+        hasStaleState = true
+      }
+
+      if (status.cloneStatus === 'cloning') {
+        update.cloneStatus = 'not-cloned'
+        hasStaleState = true
+      }
+
+      if (hasStaleState) {
+        await this.logger.warning({
+          message: `Reconciling stale state for service ${status.serviceId}: ${JSON.stringify(update)}`,
+        })
+        await this.updateServiceStatus(
+          status.serviceId,
+          update,
+          'state-reconciled',
+          reconcileTrigger,
+          staleMetadata,
+        )
+      }
+    }
+  }
+
   public async [Symbol.asyncDispose]() {
     if (this.flushTimer) {
       clearTimeout(this.flushTimer)
@@ -660,41 +711,50 @@ export class ProcessManager {
     }
     await this.flushLogBuffer()
 
+    await this.logger.information({ message: 'Disposing ProcessManager, killing all child processes...' })
+
+    const entries = [...this.processes.entries()]
+
+    const shutdownTrigger: TriggerContext = { triggeredBy: 'system', triggerSource: 'system' }
+    for (const [serviceId] of entries) {
+      await this.updateServiceStatus(serviceId, { runStatus: 'stopped' }, 'run-stopped', shutdownTrigger, {
+        reason: 'backend-shutdown',
+      })
+    }
+
+    if (entries.length > 0) {
+      for (const [serviceId, managed] of entries) {
+        managed.process.kill('SIGTERM')
+        void this.logger.information({ message: `Sent SIGTERM to service: ${serviceId}` })
+      }
+
+      await Promise.all(
+        entries.map(
+          ([serviceId, managed]) =>
+            new Promise<void>((resolve) => {
+              const timeout = setTimeout(() => {
+                if (!managed.process.killed) {
+                  managed.process.kill('SIGKILL')
+                  void this.logger.warning({ message: `Sent SIGKILL to service: ${serviceId}` })
+                }
+                resolve()
+              }, 5000)
+
+              managed.process.on('exit', () => {
+                clearTimeout(timeout)
+                resolve()
+              })
+            }),
+        ),
+      )
+
+      this.processes.clear()
+    }
+
     try {
       await this.elevatedInjector?.[Symbol.asyncDispose]()
     } catch {
       // May already be disposed by the parent injector
     }
-    await this.logger.information({ message: 'Disposing ProcessManager, killing all child processes...' })
-
-    const entries = [...this.processes.entries()]
-    if (entries.length === 0) return
-
-    for (const [serviceId, managed] of entries) {
-      managed.process.kill('SIGTERM')
-      void this.logger.information({ message: `Sent SIGTERM to service: ${serviceId}` })
-    }
-
-    await Promise.all(
-      entries.map(
-        ([serviceId, managed]) =>
-          new Promise<void>((resolve) => {
-            const timeout = setTimeout(() => {
-              if (!managed.process.killed) {
-                managed.process.kill('SIGKILL')
-                void this.logger.warning({ message: `Sent SIGKILL to service: ${serviceId}` })
-              }
-              resolve()
-            }, 5000)
-
-            managed.process.on('exit', () => {
-              clearTimeout(timeout)
-              resolve()
-            })
-          }),
-      ),
-    )
-
-    this.processes.clear()
   }
 }

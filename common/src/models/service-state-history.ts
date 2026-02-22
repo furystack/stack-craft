@@ -24,6 +24,7 @@ export type ServiceStateEvent =
   | 'update-failed'
   | 'pull-completed'
   | 'imported'
+  | 'state-reconciled'
 
 /**
  * How a state change was triggered.

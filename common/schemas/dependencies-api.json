@@ -25,7 +25,13 @@
           "description": "Help text shown when the dependency check fails"
         }
       },
-      "required": ["id", "stackName", "name", "checkCommand", "installationHelp"],
+      "required": [
+        "id",
+        "stackName",
+        "name",
+        "checkCommand",
+        "installationHelp"
+      ],
       "additionalProperties": false
     },
     "PostDependencyEndpoint": {
@@ -38,7 +44,10 @@
           "$ref": "#/definitions/WithOptionalId%3CDependencyWritableFields%2C%22id%22%3E"
         }
       },
-      "required": ["result", "body"],
+      "required": [
+        "result",
+        "body"
+      ],
       "additionalProperties": false
     },
     "Dependency": {
@@ -71,7 +80,15 @@
           "type": "string"
         }
       },
-      "required": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"],
+      "required": [
+        "id",
+        "stackName",
+        "name",
+        "checkCommand",
+        "installationHelp",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false,
       "description": "Shareable dependency definition. Describes an external prerequisite (e.g. Node.js, Docker) that services may require. Included in stack exports and shared between installations."
     },
@@ -100,7 +117,12 @@
           "description": "Help text shown when the dependency check fails"
         }
       },
-      "required": ["checkCommand", "installationHelp", "name", "stackName"]
+      "required": [
+        "checkCommand",
+        "installationHelp",
+        "name",
+        "stackName"
+      ]
     },
     "PatchDependencyEndpoint": {
       "$ref": "#/definitions/PatchEndpoint%3CDependencyWritableFields%2C%22id%22%3E"
@@ -142,14 +164,20 @@
               "description": "UUID primary key"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": ["body", "url", "result"],
+      "required": [
+        "body",
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for updating entities"
     },
@@ -163,7 +191,9 @@
               "type": "string"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
@@ -176,11 +206,17 @@
               "type": "string"
             }
           },
-          "required": ["satisfied", "output"],
+          "required": [
+            "satisfied",
+            "output"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["url", "result"],
+      "required": [
+        "url",
+        "result"
+      ],
       "additionalProperties": false
     },
     "DependenciesApi": {
@@ -196,7 +232,10 @@
               "$ref": "#/definitions/GetEntityEndpoint%3CDependency%2C%22id%22%3E"
             }
           },
-          "required": ["/dependencies", "/dependencies/:id"],
+          "required": [
+            "/dependencies",
+            "/dependencies/:id"
+          ],
           "additionalProperties": false
         },
         "POST": {
@@ -209,7 +248,10 @@
               "$ref": "#/definitions/CheckDependencyEndpoint"
             }
           },
-          "required": ["/dependencies", "/dependencies/:id/check"],
+          "required": [
+            "/dependencies",
+            "/dependencies/:id/check"
+          ],
           "additionalProperties": false
         },
         "PATCH": {
@@ -219,7 +261,9 @@
               "$ref": "#/definitions/PatchDependencyEndpoint"
             }
           },
-          "required": ["/dependencies/:id"],
+          "required": [
+            "/dependencies/:id"
+          ],
           "additionalProperties": false
         },
         "PUT": {
@@ -233,7 +277,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -244,7 +290,9 @@
               "$ref": "#/definitions/DeleteEndpoint%3CDependency%2C%22id%22%3E"
             }
           },
-          "required": ["/dependencies/:id"],
+          "required": [
+            "/dependencies/:id"
+          ],
           "additionalProperties": false
         },
         "HEAD": {
@@ -258,7 +306,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -273,7 +323,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -288,7 +340,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -303,12 +357,19 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         }
       },
-      "required": ["GET", "POST", "PATCH", "DELETE"],
+      "required": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
       "additionalProperties": false
     },
     "GetCollectionEndpoint<Dependency>": {
@@ -327,7 +388,10 @@
           "$ref": "#/definitions/GetCollectionResult%3CDependency%3E"
         }
       },
-      "required": ["query", "result"],
+      "required": [
+        "query",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
@@ -347,31 +411,52 @@
           "properties": {
             "id": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "stackName": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "name": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "checkCommand": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "installationHelp": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "createdAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "updatedAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             }
           },
           "additionalProperties": false,
@@ -381,7 +466,15 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"]
+            "enum": [
+              "id",
+              "stackName",
+              "name",
+              "checkCommand",
+              "installationHelp",
+              "createdAt",
+              "updatedAt"
+            ]
           },
           "description": "The result set will be limited to these fields"
         },
@@ -842,7 +935,10 @@
           "description": "List of the selected entities"
         }
       },
-      "required": ["count", "entries"],
+      "required": [
+        "count",
+        "entries"
+      ],
       "additionalProperties": false,
       "description": "Response Model for GetCollection"
     },
@@ -856,7 +952,15 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"]
+                "enum": [
+                  "id",
+                  "stackName",
+                  "name",
+                  "checkCommand",
+                  "installationHelp",
+                  "createdAt",
+                  "updatedAt"
+                ]
               },
               "description": "The list of fields to select"
             }
@@ -871,14 +975,20 @@
               "description": "The entity's unique identifier"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "$ref": "#/definitions/Dependency"
         }
       },
-      "required": ["query", "url", "result"],
+      "required": [
+        "query",
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for getting a single entity"
     },
@@ -893,14 +1003,19 @@
               "description": "UUID primary key"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": ["url", "result"],
+      "required": [
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for deleting entities"
     }

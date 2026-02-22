@@ -86,7 +86,12 @@
           "description": "Whether to automatically restart the service when new commits are fetched"
         }
       },
-      "required": ["serviceId", "autoFetchEnabled", "autoFetchIntervalMinutes", "autoRestartOnFetch"],
+      "required": [
+        "serviceId",
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch"
+      ],
       "additionalProperties": false
     },
     "ServiceWritableFields": {
@@ -179,7 +184,10 @@
           "$ref": "#/definitions/WithOptionalId%3CServiceWritableFields%2C%22id%22%3E"
         }
       },
-      "required": ["result", "body"],
+      "required": [
+        "result",
+        "body"
+      ],
       "additionalProperties": false
     },
     "ServiceView": {
@@ -309,19 +317,40 @@
     },
     "CloneStatus": {
       "type": "string",
-      "enum": ["not-cloned", "cloning", "cloned", "failed"]
+      "enum": [
+        "not-cloned",
+        "cloning",
+        "cloned",
+        "failed"
+      ]
     },
     "InstallStatus": {
       "type": "string",
-      "enum": ["not-installed", "installing", "installed", "failed"]
+      "enum": [
+        "not-installed",
+        "installing",
+        "installed",
+        "failed"
+      ]
     },
     "BuildStatus": {
       "type": "string",
-      "enum": ["not-built", "building", "built", "failed"]
+      "enum": [
+        "not-built",
+        "building",
+        "built",
+        "failed"
+      ]
     },
     "RunStatus": {
       "type": "string",
-      "enum": ["stopped", "starting", "running", "stopping", "error"]
+      "enum": [
+        "stopped",
+        "starting",
+        "running",
+        "stopping",
+        "error"
+      ]
     },
     "WithOptionalId<ServiceWritableFields,\"id\">": {
       "type": "object",
@@ -484,14 +513,20 @@
               "description": "UUID primary key"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": ["body", "url", "result"],
+      "required": [
+        "body",
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for updating entities"
     },
@@ -505,7 +540,9 @@
               "type": "string"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
@@ -518,11 +555,17 @@
               "type": "string"
             }
           },
-          "required": ["success", "serviceId"],
+          "required": [
+            "success",
+            "serviceId"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["url", "result"],
+      "required": [
+        "url",
+        "result"
+      ],
       "additionalProperties": false
     },
     "ServiceLogsEndpoint": {
@@ -535,7 +578,9 @@
               "type": "string"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "query": {
@@ -563,11 +608,17 @@
               }
             }
           },
-          "required": ["entries"],
+          "required": [
+            "entries"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["url", "query", "result"],
+      "required": [
+        "url",
+        "query",
+        "result"
+      ],
       "additionalProperties": false
     },
     "ServiceLogEntry": {
@@ -584,7 +635,10 @@
         },
         "stream": {
           "type": "string",
-          "enum": ["stdout", "stderr"]
+          "enum": [
+            "stdout",
+            "stderr"
+          ]
         },
         "line": {
           "type": "string"
@@ -593,7 +647,14 @@
           "type": "string"
         }
       },
-      "required": ["id", "serviceId", "processUid", "stream", "line", "createdAt"],
+      "required": [
+        "id",
+        "serviceId",
+        "processUid",
+        "stream",
+        "line",
+        "createdAt"
+      ],
       "additionalProperties": false
     },
     "ClearServiceLogsEndpoint": {
@@ -606,7 +667,9 @@
               "type": "string"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
@@ -616,11 +679,16 @@
               "type": "boolean"
             }
           },
-          "required": ["success"],
+          "required": [
+            "success"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["url", "result"],
+      "required": [
+        "url",
+        "result"
+      ],
       "additionalProperties": false
     },
     "ServiceHistoryEndpoint": {
@@ -633,7 +701,9 @@
               "type": "string"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "query": {
@@ -655,11 +725,17 @@
               }
             }
           },
-          "required": ["entries"],
+          "required": [
+            "entries"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["url", "query", "result"],
+      "required": [
+        "url",
+        "query",
+        "result"
+      ],
       "additionalProperties": false
     },
     "ServiceStateHistory": {
@@ -701,7 +777,14 @@
           "type": "string"
         }
       },
-      "required": ["id", "serviceId", "event", "triggeredBy", "triggerSource", "createdAt"],
+      "required": [
+        "id",
+        "serviceId",
+        "event",
+        "triggeredBy",
+        "triggerSource",
+        "createdAt"
+      ],
       "additionalProperties": false,
       "description": "Audit log entry for service state transitions. Records every lifecycle event (start, stop, crash, install, build, pull) with full context: who triggered it, how, and any relevant metadata. Entries are never deleted and not included in exports."
     },
@@ -728,13 +811,20 @@
         "update-completed",
         "update-failed",
         "pull-completed",
-        "imported"
+        "imported",
+        "state-reconciled"
       ],
       "description": "Event types for service state transitions. Each value represents a discrete lifecycle event that can occur."
     },
     "TriggerSource": {
       "type": "string",
-      "enum": ["api", "mcp", "auto-fetch", "auto-restart", "system"],
+      "enum": [
+        "api",
+        "mcp",
+        "auto-fetch",
+        "auto-restart",
+        "system"
+      ],
       "description": "How a state change was triggered. Used to distinguish user actions from automated system behavior."
     },
     "ServicesApi": {
@@ -756,7 +846,12 @@
               "$ref": "#/definitions/ServiceHistoryEndpoint"
             }
           },
-          "required": ["/services", "/services/:id", "/services/:id/logs", "/services/:id/history"],
+          "required": [
+            "/services",
+            "/services/:id",
+            "/services/:id/logs",
+            "/services/:id/history"
+          ],
           "additionalProperties": false
         },
         "POST": {
@@ -810,7 +905,9 @@
               "$ref": "#/definitions/PatchServiceEndpoint"
             }
           },
-          "required": ["/services/:id"],
+          "required": [
+            "/services/:id"
+          ],
           "additionalProperties": false
         },
         "PUT": {
@@ -824,7 +921,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -838,7 +937,10 @@
               "$ref": "#/definitions/ClearServiceLogsEndpoint"
             }
           },
-          "required": ["/services/:id", "/services/:id/logs"],
+          "required": [
+            "/services/:id",
+            "/services/:id/logs"
+          ],
           "additionalProperties": false
         },
         "HEAD": {
@@ -852,7 +954,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -867,7 +971,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -882,7 +988,9 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -897,12 +1005,19 @@
               "body": {},
               "headers": {}
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         }
       },
-      "required": ["GET", "POST", "PATCH", "DELETE"],
+      "required": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
       "additionalProperties": false
     },
     "GetCollectionEndpoint<ServiceView>": {
@@ -921,7 +1036,10 @@
           "$ref": "#/definitions/GetCollectionResult%3CServiceView%3E"
         }
       },
-      "required": ["query", "result"],
+      "required": [
+        "query",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
@@ -941,107 +1059,185 @@
           "properties": {
             "id": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "stackName": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "displayName": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "description": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "workingDirectory": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "repositoryId": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "dependencyIds": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "prerequisiteServiceIds": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "installCommand": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "buildCommand": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "runCommand": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "createdAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "updatedAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "serviceId": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "autoFetchEnabled": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "autoFetchIntervalMinutes": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "autoRestartOnFetch": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "cloneStatus": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "installStatus": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "buildStatus": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "runStatus": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "lastClonedAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "lastInstalledAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "lastBuiltAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "lastStartedAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "lastFetchedAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             }
           },
           "additionalProperties": false,
@@ -2491,7 +2687,10 @@
           "description": "List of the selected entities"
         }
       },
-      "required": ["count", "entries"],
+      "required": [
+        "count",
+        "entries"
+      ],
       "additionalProperties": false,
       "description": "Response Model for GetCollection"
     },
@@ -2547,14 +2746,20 @@
               "description": "The entity's unique identifier"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "$ref": "#/definitions/ServiceView"
         }
       },
-      "required": ["query", "url", "result"],
+      "required": [
+        "query",
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for getting a single entity"
     },
@@ -2569,14 +2774,19 @@
               "description": "UUID primary key"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": ["url", "result"],
+      "required": [
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for deleting entities"
     }
