@@ -253,11 +253,11 @@ export class ProcessManager {
       skipHistory: true,
     })
 
-    managed.process.kill('SIGTERM')
+    this.killProcessGroup(managed.process, 'SIGTERM')
 
     await new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
-        managed.process.kill('SIGKILL')
+        this.killProcessGroup(managed.process, 'SIGKILL')
         resolve()
       }, 10000)
 
@@ -641,6 +641,25 @@ export class ProcessManager {
     })
   }
 
+  /**
+   * Kills a managed process and all its children by targeting the process group.
+   * Falls back to killing just the shell process if the group kill fails
+   * (e.g. the process already exited).
+   */
+  private killProcessGroup(child: ChildProcess, signal: NodeJS.Signals): boolean {
+    if (child.pid == null) return false
+    try {
+      process.kill(-child.pid, signal)
+      return true
+    } catch {
+      try {
+        return child.kill(signal)
+      } catch {
+        return false
+      }
+    }
+  }
+
   private spawnCommand(command: string, cwd: string): ChildProcess {
     const isWindows = process.platform === 'win32'
     const shell = isWindows ? 'cmd.exe' : '/bin/sh'
@@ -650,6 +669,7 @@ export class ProcessManager {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env },
+      detached: true,
     })
   }
 
@@ -724,7 +744,7 @@ export class ProcessManager {
 
     if (entries.length > 0) {
       for (const [serviceId, managed] of entries) {
-        managed.process.kill('SIGTERM')
+        this.killProcessGroup(managed.process, 'SIGTERM')
         void this.logger.information({ message: `Sent SIGTERM to service: ${serviceId}` })
       }
 
@@ -734,7 +754,7 @@ export class ProcessManager {
             new Promise<void>((resolve) => {
               const timeout = setTimeout(() => {
                 if (!managed.process.killed) {
-                  managed.process.kill('SIGKILL')
+                  this.killProcessGroup(managed.process, 'SIGKILL')
                   void this.logger.warning({ message: `Sent SIGKILL to service: ${serviceId}` })
                 }
                 resolve()
