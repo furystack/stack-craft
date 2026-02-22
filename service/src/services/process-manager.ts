@@ -76,7 +76,12 @@ export class ProcessManager {
 
   private async updateServiceStatus(
     serviceId: string,
-    update: { cloneStatus?: CloneStatus; installStatus?: InstallStatus; buildStatus?: BuildStatus; runStatus?: RunStatus },
+    update: {
+      cloneStatus?: CloneStatus
+      installStatus?: InstallStatus
+      buildStatus?: BuildStatus
+      runStatus?: RunStatus
+    },
     event: ServiceStateEvent,
     trigger: TriggerContext,
     metadata?: Record<string, unknown>,
@@ -483,9 +488,7 @@ export class ProcessManager {
    */
   public async setupServices(serviceIds: string[], trigger: TriggerContext): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const allServices = await getRepository(elevated)
-      .getDataSetFor(ServiceDefinition, 'id')
-      .find(elevated, {})
+    const allServices = await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').find(elevated, {})
 
     const serviceMap = new Map(allServices.map((s) => [s.id, s]))
     const targetSet = new Set(serviceIds)
@@ -494,9 +497,7 @@ export class ProcessManager {
 
     for (const level of levels) {
       const results = await Promise.allSettled(level.map((id) => this.setupService(id, trigger)))
-      const failures = results.filter(
-        (r): r is PromiseRejectedResult => r.status === 'rejected',
-      )
+      const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
       if (failures.length > 0) {
         await this.logger.warning({
           message: `${failures.length} service(s) failed setup in batch level`,

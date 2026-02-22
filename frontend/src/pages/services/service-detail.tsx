@@ -15,7 +15,7 @@ import {
   Paper,
 } from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
-import { GitHubRepository, ServiceDefinition, StackDefinition } from 'common'
+import { GitHubRepository, ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
 import type { ServiceStateHistory, ServiceView, StackView } from 'common'
 import { getServiceCwd } from 'common'
 
@@ -65,6 +65,8 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     const [isConfirmingDelete, setIsConfirmingDelete] = useState('isConfirmingDelete', false)
 
     const serviceState = useEntitySync(options, ServiceDefinition, props.serviceId)
+    const statusState = useEntitySync(options, ServiceStatus, props.serviceId)
+    const configState = useEntitySync(options, ServiceConfig, props.serviceId)
 
     if (serviceState.status === 'connecting') {
       return (
@@ -96,7 +98,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       )
     }
 
-    const serviceData = serviceState.data as (ServiceDefinition & Partial<ServiceView>) | undefined
+    const serviceData = serviceState.data
     if (!serviceData) {
       return (
         <PageContainer>
@@ -116,17 +118,21 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       )
     }
 
+    const statusData = statusState.status === 'synced' ? statusState.data : undefined
+    const configData = configState.status === 'synced' ? configState.data : undefined
+
     const service: ServiceView = {
+      serviceId: serviceData.id,
+      autoFetchEnabled: false,
+      autoFetchIntervalMinutes: 60,
+      autoRestartOnFetch: false,
+      cloneStatus: 'not-cloned',
+      installStatus: 'not-installed',
+      buildStatus: 'not-built',
+      runStatus: 'stopped',
       ...serviceData,
-      serviceId: serviceData.serviceId ?? serviceData.id,
-      autoFetchEnabled: serviceData.autoFetchEnabled ?? false,
-      autoFetchIntervalMinutes: serviceData.autoFetchIntervalMinutes ?? 60,
-      autoRestartOnFetch: serviceData.autoRestartOnFetch ?? false,
-      cloneStatus: serviceData.cloneStatus ?? 'not-cloned',
-      installStatus: serviceData.installStatus ?? 'not-installed',
-      buildStatus: serviceData.buildStatus ?? 'not-built',
-      runStatus: serviceData.runStatus ?? 'stopped',
-      updatedAt: serviceData.updatedAt,
+      ...(configData ?? {}),
+      ...(statusData ?? {}),
     }
 
     const stackState = useEntitySync(options, StackDefinition, service.stackName)

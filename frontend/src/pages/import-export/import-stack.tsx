@@ -124,10 +124,7 @@ export const ImportStack = Shade({
               </div>
             </Paper>
           ) : (
-            <Form<ImportConfigPayload>
-              validate={isImportConfigPayload}
-              onSubmit={(data) => void handleImport(data)}
-            >
+            <Form<ImportConfigPayload> validate={isImportConfigPayload} onSubmit={(data) => void handleImport(data)}>
               <Paper elevation={1} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <h3 style={{ margin: '0' }}>Import: {parsed.stack.displayName}</h3>
                 <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
@@ -153,17 +150,10 @@ export const ImportStack = Shade({
                 ) : null}
 
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                  <Button
-                    variant="outlined"
-                    onclick={() => setParsed(null)}
-                  >
+                  <Button variant="outlined" onclick={() => setParsed(null)}>
                     Back
                   </Button>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    disabled={isImporting}
-                  >
+                  <Button type="submit" variant="contained" disabled={isImporting}>
                     Import
                   </Button>
                 </div>

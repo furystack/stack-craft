@@ -2,7 +2,7 @@ import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 
 import { Button, Icon, icons, Loader, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
-import { GitHubRepository, ServiceDefinition, StackDefinition } from 'common'
+import { GitHubRepository, ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
 import type { ServiceView } from 'common'
 import { navigate } from '../../utils/navigate.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
@@ -67,10 +67,30 @@ export const Dashboard = Shade<DashboardProps>({
     const servicesState = useCollectionSync(options, ServiceDefinition, {
       filter: { stackName: { $eq: props.stackName } },
     })
-    const services: ServiceView[] =
-      servicesState.status === 'synced' || servicesState.status === 'cached'
-        ? (servicesState.data as ServiceView[])
-        : []
+    const defs = servicesState.status === 'synced' || servicesState.status === 'cached' ? servicesState.data : []
+
+    const statusesState = useCollectionSync(options, ServiceStatus, {})
+    const statuses = statusesState.status === 'synced' || statusesState.status === 'cached' ? statusesState.data : []
+
+    const configsState = useCollectionSync(options, ServiceConfig, {})
+    const configs = configsState.status === 'synced' || configsState.status === 'cached' ? configsState.data : []
+
+    const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
+    const configMap = new Map(configs.map((c) => [c.serviceId, c]))
+
+    const services: ServiceView[] = defs.map((def) => ({
+      serviceId: def.id,
+      autoFetchEnabled: false,
+      autoFetchIntervalMinutes: 60,
+      autoRestartOnFetch: false,
+      cloneStatus: 'not-cloned' as const,
+      installStatus: 'not-installed' as const,
+      buildStatus: 'not-built' as const,
+      runStatus: 'stopped' as const,
+      ...def,
+      ...(configMap.get(def.id) ?? {}),
+      ...(statusMap.get(def.id) ?? {}),
+    }))
 
     const reposState = useCollectionSync(options, GitHubRepository, {
       filter: { stackName: { $eq: props.stackName } },
@@ -161,22 +181,12 @@ export const Dashboard = Shade<DashboardProps>({
               </Button>
             ) : null}
             {hasSelection ? (
-              <Button
-                variant="outlined"
-                size="small"
-                disabled={isBulkLoading}
-                onclick={() => void bulkAction('build')}
-              >
+              <Button variant="outlined" size="small" disabled={isBulkLoading} onclick={() => void bulkAction('build')}>
                 Build
               </Button>
             ) : null}
             {hasSelection ? (
-              <Button
-                variant="outlined"
-                size="small"
-                disabled={isBulkLoading}
-                onclick={() => void bulkAction('setup')}
-              >
+              <Button variant="outlined" size="small" disabled={isBulkLoading} onclick={() => void bulkAction('setup')}>
                 Set Up
               </Button>
             ) : null}

@@ -91,10 +91,7 @@ describe('ServiceLifecycleAction', () => {
     it('should delegate "pull" to ProcessManager.cloneOrPullService', async () => {
       const action = ServiceLifecycleAction('pull')
       await action(createMockActionContext({ injector, urlParams: { id: 'svc-6' } }))
-      expect(mockPm.cloneOrPullService).toHaveBeenCalledWith(
-        'svc-6',
-        expect.objectContaining({ triggerSource: 'api' }),
-      )
+      expect(mockPm.cloneOrPullService).toHaveBeenCalledWith('svc-6', expect.objectContaining({ triggerSource: 'api' }))
     })
 
     it('should delegate "setup" to ProcessManager.setupService', async () => {

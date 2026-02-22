@@ -15,7 +15,7 @@ import {
 } from '@furystack/shades-common-components'
 import type { Palette } from '@furystack/shades-common-components'
 import type { CloneStatus, BuildStatus, InstallStatus, ServiceView } from 'common'
-import { ServiceDefinition, StackDefinition } from 'common'
+import { ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
 
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
@@ -117,10 +117,30 @@ export const StackSetup = Shade<StackSetupProps>({
     const servicesState = useCollectionSync(options, ServiceDefinition, {
       filter: { stackName: { $eq: props.stackName } },
     })
-    const services: ServiceView[] =
-      servicesState.status === 'synced' || servicesState.status === 'cached'
-        ? (servicesState.data as ServiceView[])
-        : []
+    const defs = servicesState.status === 'synced' || servicesState.status === 'cached' ? servicesState.data : []
+
+    const statusesState = useCollectionSync(options, ServiceStatus, {})
+    const statuses = statusesState.status === 'synced' || statusesState.status === 'cached' ? statusesState.data : []
+
+    const configsState = useCollectionSync(options, ServiceConfig, {})
+    const configs = configsState.status === 'synced' || configsState.status === 'cached' ? configsState.data : []
+
+    const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
+    const configMap = new Map(configs.map((c) => [c.serviceId, c]))
+
+    const services: ServiceView[] = defs.map((def) => ({
+      serviceId: def.id,
+      autoFetchEnabled: false,
+      autoFetchIntervalMinutes: 60,
+      autoRestartOnFetch: false,
+      cloneStatus: 'not-cloned' as const,
+      installStatus: 'not-installed' as const,
+      buildStatus: 'not-built' as const,
+      runStatus: 'stopped' as const,
+      ...def,
+      ...(configMap.get(def.id) ?? {}),
+      ...(statusMap.get(def.id) ?? {}),
+    }))
 
     const isLoading = stacksState.status === 'connecting' || servicesState.status === 'connecting'
 
