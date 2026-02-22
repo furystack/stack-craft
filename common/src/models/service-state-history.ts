@@ -63,5 +63,8 @@ export class ServiceStateHistory {
   /** Optional JSON with extra context (exit code, error message, etc.) */
   metadata?: string
 
+  /** UUID of the associated process, if this event produced log output */
+  processUid?: string
+
   createdAt!: string
 }

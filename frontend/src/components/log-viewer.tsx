@@ -3,8 +3,11 @@ import { createComponent, Shade } from '@furystack/shades'
 import { Input, Loader } from '@furystack/shades-common-components'
 import { ServiceLogEntry } from 'common'
 
+import { LogLine } from './log-line.js'
+
 type LogViewerProps = {
   serviceId: string
+  processUid?: string
 }
 
 export const LogViewer = Shade<LogViewerProps>({
@@ -15,7 +18,10 @@ export const LogViewer = Shade<LogViewerProps>({
     const containerRef = useRef<HTMLDivElement>('container')
 
     const logsState = useCollectionSync(options, ServiceLogEntry, {
-      filter: { serviceId: { $eq: props.serviceId } },
+      filter: {
+        serviceId: { $eq: props.serviceId },
+        ...(props.processUid ? { processUid: { $eq: props.processUid } } : {}),
+      },
       order: { id: 'DESC' },
       top: 300,
     })
@@ -65,7 +71,9 @@ export const LogViewer = Shade<LogViewerProps>({
             <div style={{ opacity: '0.5', textAlign: 'center', padding: '32px' }}>No log output yet.</div>
           ) : null}
           {filteredEntries.map((entry) => (
-            <div style={{ color: entry.stream === 'stderr' ? '#f85149' : '#c9d1d9' }}>{entry.line}</div>
+            <div style={{ color: entry.stream === 'stderr' ? '#f85149' : '#c9d1d9' }}>
+              <LogLine line={entry.line} />
+            </div>
           ))}
         </div>
       </div>

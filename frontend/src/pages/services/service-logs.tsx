@@ -6,6 +6,7 @@ import { ServicesApiClient } from '../../services/api-clients/services-api-clien
 
 type ServiceLogsProps = {
   serviceId: string
+  processUid?: string
 }
 
 export const ServiceLogs = Shade<ServiceLogsProps>({
@@ -39,17 +40,19 @@ export const ServiceLogs = Shade<ServiceLogsProps>({
       <PageContainer>
         <PageHeader
           icon="📋"
-          title="Service Logs"
+          title={props.processUid ? 'Process Logs' : 'Service Logs'}
           actions={
             <div style={{ display: 'flex', gap: '8px' }}>
-              <Button
-                variant="outlined"
-                color="error"
-                onclick={() => void handleClearLogs()}
-                startIcon={<Icon icon={icons.trash} size="small" />}
-              >
-                Clear Logs
-              </Button>
+              {!props.processUid && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onclick={() => void handleClearLogs()}
+                  startIcon={<Icon icon={icons.trash} size="small" />}
+                >
+                  Clear Logs
+                </Button>
+              )}
               <Button
                 variant="outlined"
                 onclick={() => history.back()}
@@ -61,7 +64,7 @@ export const ServiceLogs = Shade<ServiceLogsProps>({
           }
         />
         <Paper style={{ flex: '1', overflow: 'hidden' }}>
-          <LogViewer serviceId={props.serviceId} />
+          <LogViewer serviceId={props.serviceId} processUid={props.processUid} />
         </Paper>
       </PageContainer>
     )

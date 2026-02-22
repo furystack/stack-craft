@@ -465,6 +465,10 @@
           "type": "string",
           "description": "Optional JSON with extra context (exit code, error message, etc.)"
         },
+        "processUid": {
+          "type": "string",
+          "description": "UUID of the associated process, if this event produced log output"
+        },
         "createdAt": {
           "type": "string"
         }

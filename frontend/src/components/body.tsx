@@ -26,6 +26,9 @@ const appRoutes = {
   '/services/wizard/:stackName': {
     component: ({ match }) => <CreateServiceWizard stackName={match.params.stackName} />,
   },
+  '/services/:id/logs/:processUid': {
+    component: ({ match }) => <ServiceLogs serviceId={match.params.id} processUid={match.params.processUid} />,
+  },
   '/services/:id/logs': {
     component: ({ match }) => <ServiceLogs serviceId={match.params.id} />,
   },

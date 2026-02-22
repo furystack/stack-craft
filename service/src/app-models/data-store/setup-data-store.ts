@@ -87,6 +87,7 @@ class ServiceStateHistoryModel extends Model<ServiceStateHistory, ServiceStateHi
   declare triggeredBy: string
   declare triggerSource: ServiceStateHistory['triggerSource']
   declare metadata: string | undefined
+  declare processUid: string | undefined
   declare createdAt: string
 }
 
@@ -334,6 +335,7 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
       triggeredBy: { type: DataTypes.STRING, allowNull: false },
       triggerSource: { type: DataTypes.STRING, allowNull: false },
       metadata: { type: DataTypes.TEXT, allowNull: true },
+      processUid: { type: DataTypes.STRING, allowNull: true },
       createdAt: { type: DataTypes.DATE },
     },
     {

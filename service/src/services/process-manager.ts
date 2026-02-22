@@ -85,7 +85,7 @@ export class ProcessManager {
     event: ServiceStateEvent,
     trigger: TriggerContext,
     metadata?: Record<string, unknown>,
-    options?: { skipHistory?: boolean },
+    options?: { skipHistory?: boolean; processUid?: string },
   ) {
     try {
       const elevated = this.getElevatedInjector()
@@ -130,6 +130,7 @@ export class ProcessManager {
           triggeredBy: trigger.triggeredBy,
           triggerSource: trigger.triggerSource,
           metadata: metadata ? JSON.stringify(metadata) : undefined,
+          processUid: options?.processUid,
           createdAt: now,
         })
 
@@ -198,8 +199,8 @@ export class ProcessManager {
       })
 
       const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
-      const child = this.spawnCommand(svc.runCommand, cwd)
       const processUid = randomUUID()
+      const child = this.spawnCommand(svc.runCommand, cwd)
 
       const managed: ManagedProcess = {
         serviceId,
@@ -221,7 +222,7 @@ export class ProcessManager {
 
       child.on('error', (err) => {
         void this.logger.error({ message: `Service error: ${svc.displayName}`, data: { error: err } })
-        void this.updateServiceStatus(serviceId, { runStatus: 'error' }, 'run-crashed', trigger, { error: err.message })
+        void this.updateServiceStatus(serviceId, { runStatus: 'error' }, 'run-crashed', trigger, { error: err.message }, { processUid })
         this.processes.delete(serviceId)
       })
 
@@ -229,12 +230,12 @@ export class ProcessManager {
         void this.logger.information({ message: `Service exited: ${svc.displayName} (code ${code})` })
         const newStatus: RunStatus = code === 0 ? 'stopped' : 'error'
         const event: ServiceStateEvent = code === 0 ? 'run-stopped' : 'run-crashed'
-        void this.updateServiceStatus(serviceId, { runStatus: newStatus }, event, trigger, { exitCode: code })
+        void this.updateServiceStatus(serviceId, { runStatus: newStatus }, event, trigger, { exitCode: code }, { processUid })
         this.processes.delete(serviceId)
       })
 
       child.on('spawn', () => {
-        void this.updateServiceStatus(serviceId, { runStatus: 'running' }, 'run-started', trigger)
+        void this.updateServiceStatus(serviceId, { runStatus: 'running' }, 'run-started', trigger, undefined, { processUid })
       })
     } finally {
       this.pendingOperations.delete(serviceId)
@@ -590,10 +591,10 @@ export class ProcessManager {
     const failedStatus =
       purpose === 'install' ? ({ installStatus: 'failed' } as const) : ({ buildStatus: 'failed' } as const)
 
-    await this.updateServiceStatus(serviceId, progressStatus, progressEvent, trigger)
+    const processUid = randomUUID()
+    await this.updateServiceStatus(serviceId, progressStatus, progressEvent, trigger, undefined, { processUid })
 
     const child = this.spawnCommand(command, cwd)
-    const processUid = randomUUID()
 
     const managed: ManagedProcess = {
       serviceId,
@@ -622,7 +623,7 @@ export class ProcessManager {
 
     return new Promise((resolve, reject) => {
       child.on('error', (err) => {
-        void this.updateServiceStatus(serviceId, failedStatus, failedEvent, trigger, { error: err.message })
+        void this.updateServiceStatus(serviceId, failedStatus, failedEvent, trigger, { error: err.message }, { processUid })
         this.processes.delete(serviceId)
         reject(err)
       })
@@ -630,10 +631,10 @@ export class ProcessManager {
       child.on('exit', (code) => {
         this.processes.delete(serviceId)
         if (code === 0) {
-          void this.updateServiceStatus(serviceId, doneStatus, doneEvent, trigger)
+          void this.updateServiceStatus(serviceId, doneStatus, doneEvent, trigger, undefined, { processUid })
           resolve()
         } else {
-          void this.updateServiceStatus(serviceId, failedStatus, failedEvent, trigger, { exitCode: code })
+          void this.updateServiceStatus(serviceId, failedStatus, failedEvent, trigger, { exitCode: code }, { processUid })
           reject(new Error(`${purpose} command exited with code ${code}`))
         }
       })

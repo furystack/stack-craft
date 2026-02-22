@@ -15,7 +15,9 @@ import {
   Paper,
 } from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
+import type { ServiceView, StackView } from 'common'
 import {
+  getServiceCwd,
   GitHubRepository,
   ServiceConfig,
   ServiceDefinition,
@@ -23,8 +25,6 @@ import {
   ServiceStatus,
   StackDefinition,
 } from 'common'
-import type { ServiceView, StackView } from 'common'
-import { getServiceCwd } from 'common'
 
 import { navigate } from '../../utils/navigate.js'
 
@@ -440,12 +440,12 @@ type ServiceHistoryProps = {
   serviceId: string
 }
 
-type HistoryColumn = 'createdAt' | 'event' | 'triggeredBy' | 'triggerSource' | 'metadata'
+type HistoryColumn = 'createdAt' | 'event' | 'triggeredBy' | 'triggerSource' | 'metadata' | 'processUid'
 
 const ServiceHistory = Shade<ServiceHistoryProps>({
   shadowDomName: 'shade-service-history',
   render: (options) => {
-    const { props, useDisposable } = options
+    const { props, injector, useDisposable } = options
 
     const historyState = useCollectionSync(options, ServiceStateHistory, {
       filter: { serviceId: { $eq: props.serviceId } },
@@ -479,7 +479,7 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
           <div style={{ opacity: '0.6', padding: '12px 0' }}>No history entries yet.</div>
         ) : (
           <DataGrid<ServiceStateHistory, HistoryColumn>
-            columns={['createdAt', 'event', 'triggeredBy', 'triggerSource', 'metadata']}
+            columns={['createdAt', 'event', 'triggeredBy', 'triggerSource', 'metadata', 'processUid']}
             findOptions={findOptions}
             styles={undefined}
             collectionService={collectionService}
@@ -489,6 +489,7 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
               triggeredBy: () => <span>Triggered by</span>,
               triggerSource: () => <span>Source</span>,
               metadata: () => <span>Details</span>,
+              processUid: () => <span>Logs</span>,
             }}
             rowComponents={{
               createdAt: (entry) => <span>{new Date(entry.createdAt).toLocaleString()}</span>,
@@ -500,6 +501,17 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
                   {entry.metadata ?? ''}
                 </span>
               ),
+              processUid: (entry) =>
+                entry.processUid ? (
+                  <Button
+                    size="small"
+                    onclick={() => navigate(injector, `/services/${props.serviceId}/logs/${entry.processUid}`)}
+                  >
+                    Show Logs
+                  </Button>
+                ) : (
+                  <span />
+                ),
             }}
           />
         )}
