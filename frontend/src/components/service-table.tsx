@@ -1,11 +1,13 @@
 import type { FindOptions } from '@furystack/core'
 import { serializeToQueryString } from '@furystack/rest'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import { Button, CollectionService, DataGrid, Icon, icons, SelectionCell } from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
 import type { ServiceView } from 'common'
 
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
+import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
 import { ServiceStatusIndicator } from './service-status-indicator.js'
 
 type ServiceTableProps = {
@@ -14,6 +16,20 @@ type ServiceTableProps = {
 }
 
 type ServiceColumn = 'selection' | 'displayName' | 'runStatus' | 'actions'
+
+const columnFilters: { [K in ServiceColumn]?: ColumnFilterConfig } = {
+  displayName: { type: 'string' },
+  runStatus: {
+    type: 'enum',
+    values: [
+      { label: 'Running', value: 'running' },
+      { label: 'Stopped', value: 'stopped' },
+      { label: 'Starting', value: 'starting' },
+      { label: 'Stopping', value: 'stopping' },
+      { label: 'Error', value: 'error' },
+    ],
+  },
+}
 
 export const ServiceTable = Shade<ServiceTableProps>({
   shadowDomName: 'shade-service-table',
@@ -27,10 +43,12 @@ export const ServiceTable = Shade<ServiceTableProps>({
 
     const findOptions = useDisposable(
       'findOptions',
-      () => new ObservableValue<FindOptions<ServiceView, Array<keyof ServiceView>>>({}),
+      () => new ObservableValue<FindOptions<ServiceView, Array<keyof ServiceView>>>({ top: 25 }),
     )
 
-    collectionService.data.setValue({ entries: props.services, count: props.services.length })
+    const [currentFindOptions] = useObservable('findOptions', findOptions)
+    const { entries, count } = applyClientFindOptions(props.services, currentFindOptions)
+    collectionService.data.setValue({ entries, count })
 
     const [selectedServices] = useObservable('selection', collectionService.selection)
     props.onSelectionChange?.(selectedServices)
@@ -41,6 +59,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
         findOptions={findOptions}
         styles={undefined}
         collectionService={collectionService}
+        columnFilters={columnFilters}
         headerComponents={{
           selection: () => <span />,
           actions: () => <span style={{ paddingLeft: '1em' }}>Actions</span>,

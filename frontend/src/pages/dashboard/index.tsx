@@ -11,7 +11,7 @@ import {
   PageHeader,
   Paper,
 } from '@furystack/shades-common-components'
-import { GitHubRepository, ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
+import { ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
 import type { ServiceView } from 'common'
 import { navigate } from '../../utils/navigate.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
@@ -29,7 +29,7 @@ export const Dashboard = Shade<DashboardProps>({
     const { props, injector } = options
 
     const stacksState = useCollectionSync(options, StackDefinition, {})
-    const stacks = stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data : []
+    const stacks = stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data.entries : []
 
     const isLoading = stacksState.status === 'connecting'
 
@@ -59,20 +59,12 @@ export const Dashboard = Shade<DashboardProps>({
             actions={
               <div style={{ display: 'flex', gap: '8px' }}>
                 <NestedRouteLink href="/stacks/create">
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<Icon icon={icons.plus} size="small" />}
-                  >
+                  <Button variant="contained" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
                     Create Stack
                   </Button>
                 </NestedRouteLink>
                 <NestedRouteLink href="/stacks/import">
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<Icon icon={icons.upload} size="small" />}
-                  >
+                  <Button variant="outlined" size="small" startIcon={<Icon icon={icons.upload} size="small" />}>
                     Import Stack
                   </Button>
                 </NestedRouteLink>
@@ -88,13 +80,16 @@ export const Dashboard = Shade<DashboardProps>({
     const servicesState = useCollectionSync(options, ServiceDefinition, {
       filter: { stackName: { $eq: props.stackName } },
     })
-    const defs = servicesState.status === 'synced' || servicesState.status === 'cached' ? servicesState.data : []
+    const defs =
+      servicesState.status === 'synced' || servicesState.status === 'cached' ? servicesState.data.entries : []
 
     const statusesState = useCollectionSync(options, ServiceStatus, {})
-    const statuses = statusesState.status === 'synced' || statusesState.status === 'cached' ? statusesState.data : []
+    const statuses =
+      statusesState.status === 'synced' || statusesState.status === 'cached' ? statusesState.data.entries : []
 
     const configsState = useCollectionSync(options, ServiceConfig, {})
-    const configs = configsState.status === 'synced' || configsState.status === 'cached' ? configsState.data : []
+    const configs =
+      configsState.status === 'synced' || configsState.status === 'cached' ? configsState.data.entries : []
 
     const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
     const configMap = new Map(configs.map((c) => [c.serviceId, c]))
@@ -112,11 +107,6 @@ export const Dashboard = Shade<DashboardProps>({
       ...(configMap.get(def.id) ?? {}),
       ...(statusMap.get(def.id) ?? {}),
     }))
-
-    const reposState = useCollectionSync(options, GitHubRepository, {
-      filter: { stackName: { $eq: props.stackName } },
-    })
-    const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
 
     const api = injector.getInstance(ServicesApiClient)
     const [selectedServices, setSelectedServices] = options.useState<ServiceView[]>('selectedServices', [])
@@ -270,20 +260,14 @@ export const Dashboard = Shade<DashboardProps>({
               marginBottom: '12px',
             }}
           >
-            <h3 style={{ margin: '0', fontSize: '16px' }}>Repositories ({repos.length})</h3>
+            <h3 style={{ margin: '0', fontSize: '16px' }}>Repositories</h3>
             <NestedRouteLink href="/repositories/create/:stackName" params={{ stackName: props.stackName }}>
               <Button variant="outlined" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
                 Add Repository
               </Button>
             </NestedRouteLink>
           </div>
-          {repos.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px' }}>
-              <p style={{ opacity: '0.5' }}>No repositories in this stack yet.</p>
-            </div>
-          ) : (
-            <RepositoryTable repositories={repos} />
-          )}
+          <RepositoryTable stackName={props.stackName} />
         </Paper>
       </PageContainer>
     )

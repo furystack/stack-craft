@@ -27,7 +27,8 @@ export const LogViewer = Shade<LogViewerProps>({
     })
 
     const isLoading = logsState.status === 'connecting'
-    const entries = logsState.status === 'synced' || logsState.status === 'cached' ? [...logsState.data].reverse() : []
+    const entries =
+      logsState.status === 'synced' || logsState.status === 'cached' ? [...logsState.data.entries].reverse() : []
 
     const filteredEntries = filter
       ? entries.filter((e) => e.line.toLowerCase().includes(filter.toLowerCase()))

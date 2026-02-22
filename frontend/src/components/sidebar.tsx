@@ -218,7 +218,7 @@ export const Sidebar = Shade<{ injector?: Injector }>({
 
     const stacksState = useCollectionSync(options, StackDefinition, {})
     const stacks = (
-      stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data : []
+      stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data.entries : []
     ) as StackView[]
 
     return (

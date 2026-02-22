@@ -111,19 +111,22 @@ export const StackSetup = Shade<StackSetupProps>({
     const stacksState = useCollectionSync(options, StackDefinition, {
       filter: { name: { $eq: props.stackName } },
     })
-    const stacks = stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data : []
+    const stacks = stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data.entries : []
     const currentStack = stacks[0]
 
     const servicesState = useCollectionSync(options, ServiceDefinition, {
       filter: { stackName: { $eq: props.stackName } },
     })
-    const defs = servicesState.status === 'synced' || servicesState.status === 'cached' ? servicesState.data : []
+    const defs =
+      servicesState.status === 'synced' || servicesState.status === 'cached' ? servicesState.data.entries : []
 
     const statusesState = useCollectionSync(options, ServiceStatus, {})
-    const statuses = statusesState.status === 'synced' || statusesState.status === 'cached' ? statusesState.data : []
+    const statuses =
+      statusesState.status === 'synced' || statusesState.status === 'cached' ? statusesState.data.entries : []
 
     const configsState = useCollectionSync(options, ServiceConfig, {})
-    const configs = configsState.status === 'synced' || configsState.status === 'cached' ? configsState.data : []
+    const configs =
+      configsState.status === 'synced' || configsState.status === 'cached' ? configsState.data.entries : []
 
     const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
     const configMap = new Map(configs.map((c) => [c.serviceId, c]))
@@ -243,11 +246,7 @@ export const StackSetup = Shade<StackSetupProps>({
                 </Button>
               )}
               <NestedRouteLink href={`/stacks/${props.stackName}`}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<Icon icon={icons.home} size="small" />}
-                >
+                <Button variant="outlined" size="small" startIcon={<Icon icon={icons.home} size="small" />}>
                   Go to Dashboard
                 </Button>
               </NestedRouteLink>

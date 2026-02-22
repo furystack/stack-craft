@@ -163,11 +163,7 @@ export const ImportStack = Shade({
                   >
                     Back
                   </Button>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    startIcon={<Icon icon={icons.upload} size="small" />}
-                  >
+                  <Button type="submit" variant="contained" startIcon={<Icon icon={icons.upload} size="small" />}>
                     Import
                   </Button>
                 </div>

@@ -222,7 +222,14 @@ export class ProcessManager {
 
       child.on('error', (err) => {
         void this.logger.error({ message: `Service error: ${svc.displayName}`, data: { error: err } })
-        void this.updateServiceStatus(serviceId, { runStatus: 'error' }, 'run-crashed', trigger, { error: err.message }, { processUid })
+        void this.updateServiceStatus(
+          serviceId,
+          { runStatus: 'error' },
+          'run-crashed',
+          trigger,
+          { error: err.message },
+          { processUid },
+        )
         this.processes.delete(serviceId)
       })
 
@@ -230,12 +237,21 @@ export class ProcessManager {
         void this.logger.information({ message: `Service exited: ${svc.displayName} (code ${code})` })
         const newStatus: RunStatus = code === 0 ? 'stopped' : 'error'
         const event: ServiceStateEvent = code === 0 ? 'run-stopped' : 'run-crashed'
-        void this.updateServiceStatus(serviceId, { runStatus: newStatus }, event, trigger, { exitCode: code }, { processUid })
+        void this.updateServiceStatus(
+          serviceId,
+          { runStatus: newStatus },
+          event,
+          trigger,
+          { exitCode: code },
+          { processUid },
+        )
         this.processes.delete(serviceId)
       })
 
       child.on('spawn', () => {
-        void this.updateServiceStatus(serviceId, { runStatus: 'running' }, 'run-started', trigger, undefined, { processUid })
+        void this.updateServiceStatus(serviceId, { runStatus: 'running' }, 'run-started', trigger, undefined, {
+          processUid,
+        })
       })
     } finally {
       this.pendingOperations.delete(serviceId)
@@ -623,7 +639,14 @@ export class ProcessManager {
 
     return new Promise((resolve, reject) => {
       child.on('error', (err) => {
-        void this.updateServiceStatus(serviceId, failedStatus, failedEvent, trigger, { error: err.message }, { processUid })
+        void this.updateServiceStatus(
+          serviceId,
+          failedStatus,
+          failedEvent,
+          trigger,
+          { error: err.message },
+          { processUid },
+        )
         this.processes.delete(serviceId)
         reject(err)
       })
@@ -634,7 +657,14 @@ export class ProcessManager {
           void this.updateServiceStatus(serviceId, doneStatus, doneEvent, trigger, undefined, { processUid })
           resolve()
         } else {
-          void this.updateServiceStatus(serviceId, failedStatus, failedEvent, trigger, { exitCode: code }, { processUid })
+          void this.updateServiceStatus(
+            serviceId,
+            failedStatus,
+            failedEvent,
+            trigger,
+            { exitCode: code },
+            { processUid },
+          )
           reject(new Error(`${purpose} command exited with code ${code}`))
         }
       })
@@ -683,7 +713,9 @@ export class ProcessManager {
     const allStatuses = await statusDs.find(elevated, {})
 
     const reconcileTrigger: TriggerContext = { triggeredBy: 'system', triggerSource: 'system' }
-    const staleMetadata = { reason: 'Stale state detected on startup. Service may have been terminated outside the application.' }
+    const staleMetadata = {
+      reason: 'Stale state detected on startup. Service may have been terminated outside the application.',
+    }
 
     for (const status of allStatuses) {
       const update: Partial<ServiceStatus> = {}
@@ -713,13 +745,7 @@ export class ProcessManager {
         await this.logger.warning({
           message: `Reconciling stale state for service ${status.serviceId}: ${JSON.stringify(update)}`,
         })
-        await this.updateServiceStatus(
-          status.serviceId,
-          update,
-          'state-reconciled',
-          reconcileTrigger,
-          staleMetadata,
-        )
+        await this.updateServiceStatus(status.serviceId, update, 'state-reconciled', reconcileTrigger, staleMetadata)
       }
     }
   }

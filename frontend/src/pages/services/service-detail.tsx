@@ -1,6 +1,7 @@
 import type { FindOptions } from '@furystack/core'
 import { useCollectionSync, useEntitySync } from '@furystack/entity-sync-client'
 import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
+import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {
   Button,
   ButtonGroup,
@@ -146,7 +147,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     const reposState = useCollectionSync(options, GitHubRepository, {
       filter: { stackName: { $eq: service.stackName } },
     })
-    const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
+    const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
     const linkedRepo = service.repositoryId ? repos.find((r) => r.id === service.repositoryId) : undefined
     const stackData = stackState.status === 'synced' ? stackState.data : undefined
     const stack = stackData
@@ -442,16 +443,28 @@ type ServiceHistoryProps = {
 
 type HistoryColumn = 'createdAt' | 'event' | 'triggeredBy' | 'triggerSource' | 'metadata' | 'processUid'
 
+const historyEventValues = Object.entries(eventLabels).map(([value, label]) => ({ value, label }))
+
+const historyColumnFilters: { [K in HistoryColumn]?: ColumnFilterConfig } = {
+  event: { type: 'enum', values: historyEventValues },
+  triggeredBy: { type: 'string' },
+  triggerSource: {
+    type: 'enum',
+    values: [
+      { label: 'API', value: 'api' },
+      { label: 'MCP', value: 'mcp' },
+      { label: 'Auto-fetch', value: 'auto-fetch' },
+      { label: 'Auto-restart', value: 'auto-restart' },
+      { label: 'System', value: 'system' },
+    ],
+  },
+  createdAt: { type: 'date' },
+}
+
 const ServiceHistory = Shade<ServiceHistoryProps>({
   shadowDomName: 'shade-service-history',
   render: (options) => {
-    const { props, injector, useDisposable } = options
-
-    const historyState = useCollectionSync(options, ServiceStateHistory, {
-      filter: { serviceId: { $eq: props.serviceId } },
-      order: { id: 'DESC' },
-      top: 50,
-    })
+    const { props, injector, useDisposable, useObservable } = options
 
     const collectionService = useDisposable(
       'collectionService',
@@ -460,13 +473,28 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
 
     const findOptions = useDisposable(
       'findOptions',
-      () => new ObservableValue<FindOptions<ServiceStateHistory, Array<keyof ServiceStateHistory>>>({}),
+      () =>
+        new ObservableValue<FindOptions<ServiceStateHistory, Array<keyof ServiceStateHistory>>>({
+          top: 25,
+          order: { id: 'DESC' },
+        }),
     )
 
-    const isLoading = historyState.status === 'connecting'
-    const entries = historyState.status === 'synced' || historyState.status === 'cached' ? historyState.data : []
+    const [currentFindOptions] = useObservable('findOptions', findOptions)
 
-    collectionService.data.setValue({ entries, count: entries.length })
+    const historyState = useCollectionSync(options, ServiceStateHistory, {
+      filter: { serviceId: { $eq: props.serviceId }, ...currentFindOptions.filter },
+      order: currentFindOptions.order ?? { id: 'DESC' },
+      top: currentFindOptions.top,
+      skip: currentFindOptions.skip,
+    })
+
+    const isLoading = historyState.status === 'connecting'
+    const entries =
+      historyState.status === 'synced' || historyState.status === 'cached' ? historyState.data.entries : []
+    const count = historyState.status === 'synced' || historyState.status === 'cached' ? historyState.data.count : 0
+
+    collectionService.data.setValue({ entries, count })
 
     return (
       <Paper>
@@ -483,6 +511,7 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
             findOptions={findOptions}
             styles={undefined}
             collectionService={collectionService}
+            columnFilters={historyColumnFilters}
             headerComponents={{
               createdAt: () => <span>Time</span>,
               event: () => <span>Event</span>,

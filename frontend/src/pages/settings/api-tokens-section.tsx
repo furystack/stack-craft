@@ -1,6 +1,21 @@
+import type { FindOptions } from '@furystack/core'
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
-import { Alert, Button, Form, Icon, icons, Input, NotyService, Paper } from '@furystack/shades-common-components'
+import type { ColumnFilterConfig } from '@furystack/shades-common-components'
+import {
+  Alert,
+  Button,
+  CollectionService,
+  DataGrid,
+  Form,
+  Icon,
+  icons,
+  Input,
+  Loader,
+  NotyService,
+  Paper,
+} from '@furystack/shades-common-components'
+import { ObservableValue } from '@furystack/utils'
 import { PublicApiToken } from 'common'
 
 import { TokensApiClient } from '../../services/api-clients/tokens-api-client.js'
@@ -15,10 +30,17 @@ const isCreateTokenPayload = (data: unknown): data is CreateTokenPayload => {
   return d.name?.length > 0
 }
 
+type TokenColumn = 'name' | 'createdAt' | 'actions'
+
+const tokenColumnFilters: { [K in TokenColumn]?: ColumnFilterConfig } = {
+  name: { type: 'string' },
+  createdAt: { type: 'date' },
+}
+
 export const ApiTokensSection = Shade({
   shadowDomName: 'shade-api-tokens-section',
   render: (options) => {
-    const { injector, useState, useObservable } = options
+    const { injector, useState, useObservable, useDisposable } = options
 
     const sessionService = injector.getInstance(SessionService)
     const [currentUser] = useObservable('currentUser', sessionService.currentUser)
@@ -27,8 +49,25 @@ export const ApiTokensSection = Shade({
     const tokensApi = injector.getInstance(TokensApiClient)
     const notys = injector.getInstance(NotyService)
 
+    const collectionService = useDisposable(
+      'collectionService',
+      () => new CollectionService<PublicApiToken>({ searchField: 'name' }),
+    )
+
+    const findOptions = useDisposable(
+      'findOptions',
+      () => new ObservableValue<FindOptions<PublicApiToken, Array<keyof PublicApiToken>>>({ top: 25 }),
+    )
+
+    const [currentFindOptions] = useObservable('findOptions', findOptions)
+
     const tokensState = useCollectionSync(options, PublicApiToken, {
-      filter: currentUser ? { username: { $eq: currentUser.username } } : undefined,
+      filter: currentUser
+        ? { username: { $eq: currentUser.username }, ...currentFindOptions.filter }
+        : currentFindOptions.filter,
+      top: currentFindOptions.top,
+      skip: currentFindOptions.skip,
+      order: currentFindOptions.order,
     })
 
     const [revokingTokenId, setRevokingTokenId] = useState<string | null>('revokingTokenId', null)
@@ -62,7 +101,11 @@ export const ApiTokensSection = Shade({
       }
     }
 
-    const tokens = tokensState?.status === 'cached' || tokensState.status === 'synced' ? tokensState.data || [] : []
+    const isLoading = tokensState.status === 'connecting'
+    const entries = tokensState.status === 'synced' || tokensState.status === 'cached' ? tokensState.data.entries : []
+    const count = tokensState.status === 'synced' || tokensState.status === 'cached' ? tokensState.data.count : 0
+
+    collectionService.data.setValue({ entries, count })
 
     return (
       <Paper elevation={1}>
@@ -73,8 +116,6 @@ export const ApiTokensSection = Shade({
         <p style={{ opacity: '0.7', marginBottom: '16px', fontSize: '14px' }}>
           API tokens allow external tools (e.g. MCP clients) to authenticate with StackCraft.
         </p>
-
-        {tokensState.status === 'connecting' ? <p style={{ opacity: '0.5' }}>Loading tokens...</p> : null}
 
         {tokensState.status === 'error' ? (
           <Alert severity="error" title="Error loading tokens" style={{ marginBottom: '16px' }}>
@@ -109,54 +150,43 @@ export const ApiTokensSection = Shade({
           </Button>
         </Form>
 
-        {tokens.length === 0 && tokensState.status !== 'connecting' ? (
+        {isLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
+            <Loader />
+          </div>
+        ) : entries.length === 0 ? (
           <p style={{ opacity: '0.5' }}>No tokens yet.</p>
-        ) : null}
-
-        {tokens.length > 0 ? (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                  Name
-                </th>
-                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                  Created
-                </th>
-                <th style={{ width: '80px', padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }} />
-              </tr>
-            </thead>
-            <tbody>
-              {tokens.map((token) => (
-                <tr>
-                  <td style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>{token.name}</td>
-                  <td
-                    style={{
-                      padding: '8px',
-                      borderBottom: '1px solid rgba(255,255,255,0.05)',
-                      fontSize: '13px',
-                      opacity: '0.7',
-                    }}
-                  >
-                    {new Date(token.createdAt).toLocaleDateString()}
-                  </td>
-                  <td style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      color="error"
-                      loading={revokingTokenId === token.id}
-                      onclick={() => void handleDeleteToken(token.id)}
-                      startIcon={<Icon icon={icons.trash} size="small" />}
-                    >
-                      Revoke
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : null}
+        ) : (
+          <DataGrid<PublicApiToken, TokenColumn>
+            columns={['name', 'createdAt', 'actions']}
+            findOptions={findOptions}
+            styles={undefined}
+            collectionService={collectionService}
+            columnFilters={tokenColumnFilters}
+            headerComponents={{
+              actions: () => <span />,
+            }}
+            rowComponents={{
+              createdAt: (entry) => (
+                <span style={{ fontSize: '13px', opacity: '0.7' }}>
+                  {new Date(entry.createdAt).toLocaleDateString()}
+                </span>
+              ),
+              actions: (entry) => (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  color="error"
+                  loading={revokingTokenId === entry.id}
+                  onclick={() => void handleDeleteToken(entry.id)}
+                  startIcon={<Icon icon={icons.trash} size="small" />}
+                >
+                  Revoke
+                </Button>
+              ),
+            }}
+          />
+        )}
       </Paper>
     )
   },

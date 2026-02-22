@@ -163,11 +163,7 @@ export const Login = Shade({
                 ) : null}
                 <div className="login-actions">
                   <div />
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    loading={isOperationInProgress}
-                  >
+                  <Button type="submit" variant="contained" loading={isOperationInProgress}>
                     Sign in
                   </Button>
                 </div>

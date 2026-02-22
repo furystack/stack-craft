@@ -78,7 +78,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
     const reposState = useCollectionSync(options, GitHubRepositoryModel, {
       filter: { stackName: { $eq: props.stackName } },
     })
-    const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
+    const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
 
     const servicesApi = injector.getInstance(ServicesApiClient)
     const reposApi = injector.getInstance(GitHubReposApiClient)
@@ -294,11 +294,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
                   Cancel
                 </Button>
               </NestedRouteLink>
-              <Button
-                type="submit"
-                variant="contained"
-                endIcon={<Icon icon={icons.chevronRight} size="small" />}
-              >
+              <Button type="submit" variant="contained" endIcon={<Icon icon={icons.chevronRight} size="small" />}>
                 Next
               </Button>
             </div>

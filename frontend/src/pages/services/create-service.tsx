@@ -21,7 +21,7 @@ export const CreateService = Shade<CreateServiceProps>({
     const reposState = useCollectionSync(options, GitHubRepository, {
       filter: { stackName: { $eq: props.stackName } },
     })
-    const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data : []
+    const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
     const handleSubmit = async (data: Partial<ServiceView>) => {
       try {
         await injector.getInstance(ServicesApiClient).call({

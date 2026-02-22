@@ -19,14 +19,14 @@
   },
   "dependencies": {
     "@furystack/cache": "^6.0.0",
-    "@furystack/core": "^15.1.0",
-    "@furystack/entity-sync": "^0.1.1",
-    "@furystack/entity-sync-client": "^0.2.0",
+    "@furystack/core": "^15.2.0",
+    "@furystack/entity-sync": "^1.0.1",
+    "@furystack/entity-sync-client": "^1.0.1",
     "@furystack/inject": "^12.0.30",
     "@furystack/logging": "^8.0.30",
-    "@furystack/rest-client-fetch": "^8.0.37",
-    "@furystack/shades": "^12.2.0",
-    "@furystack/shades-common-components": "^12.4.0",
+    "@furystack/rest-client-fetch": "^8.0.38",
+    "@furystack/shades": "^12.2.2",
+    "@furystack/shades-common-components": "^12.6.0",
     "@furystack/utils": "^8.1.10",
     "common": "workspace:^"
   }

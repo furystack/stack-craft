@@ -52,14 +52,18 @@ const ANSI_256_COLORS: string[] = (() => {
         const rv = r === 0 ? 0 : 55 + r * 40
         const gv = g === 0 ? 0 : 55 + g * 40
         const bv = b === 0 ? 0 : 55 + b * 40
-        colors.push(`#${rv.toString(16).padStart(2, '0')}${gv.toString(16).padStart(2, '0')}${bv.toString(16).padStart(2, '0')}`)
+        colors.push(
+          `#${rv.toString(16).padStart(2, '0')}${gv.toString(16).padStart(2, '0')}${bv.toString(16).padStart(2, '0')}`,
+        )
       }
     }
   }
   // 232-255: grayscale ramp
   for (let i = 0; i < 24; i++) {
     const v = 8 + i * 10
-    colors.push(`#${v.toString(16).padStart(2, '0')}${v.toString(16).padStart(2, '0')}${v.toString(16).padStart(2, '0')}`)
+    colors.push(
+      `#${v.toString(16).padStart(2, '0')}${v.toString(16).padStart(2, '0')}${v.toString(16).padStart(2, '0')}`,
+    )
   }
 
   return colors

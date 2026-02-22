@@ -15,9 +15,7 @@ describe('parseAnsi', () => {
 
   it('should parse a single foreground color', () => {
     const result = parseAnsi('\x1b[31mred text\x1b[0m')
-    expect(result).toEqual([
-      { text: 'red text', style: { color: '#ff5f56' } },
-    ])
+    expect(result).toEqual([{ text: 'red text', style: { color: '#ff5f56' } }])
   })
 
   it('should parse bold text', () => {
@@ -30,23 +28,17 @@ describe('parseAnsi', () => {
 
   it('should parse dim text', () => {
     const result = parseAnsi('\x1b[2mdim\x1b[0m')
-    expect(result).toEqual([
-      { text: 'dim', style: { opacity: '0.7' } },
-    ])
+    expect(result).toEqual([{ text: 'dim', style: { opacity: '0.7' } }])
   })
 
   it('should parse italic text', () => {
     const result = parseAnsi('\x1b[3mitalic\x1b[0m')
-    expect(result).toEqual([
-      { text: 'italic', style: { fontStyle: 'italic' } },
-    ])
+    expect(result).toEqual([{ text: 'italic', style: { fontStyle: 'italic' } }])
   })
 
   it('should parse underlined text', () => {
     const result = parseAnsi('\x1b[4munderline\x1b[0m')
-    expect(result).toEqual([
-      { text: 'underline', style: { textDecoration: 'underline' } },
-    ])
+    expect(result).toEqual([{ text: 'underline', style: { textDecoration: 'underline' } }])
   })
 
   it('should parse stacked codes (bold + red)', () => {
@@ -68,23 +60,17 @@ describe('parseAnsi', () => {
 
   it('should parse bright foreground colors', () => {
     const result = parseAnsi('\x1b[91mbright red\x1b[0m')
-    expect(result).toEqual([
-      { text: 'bright red', style: { color: '#ff6e67' } },
-    ])
+    expect(result).toEqual([{ text: 'bright red', style: { color: '#ff6e67' } }])
   })
 
   it('should parse background colors', () => {
     const result = parseAnsi('\x1b[41mred bg\x1b[0m')
-    expect(result).toEqual([
-      { text: 'red bg', style: { backgroundColor: '#ff5f56' } },
-    ])
+    expect(result).toEqual([{ text: 'red bg', style: { backgroundColor: '#ff5f56' } }])
   })
 
   it('should parse bright background colors', () => {
     const result = parseAnsi('\x1b[101mbright red bg\x1b[0m')
-    expect(result).toEqual([
-      { text: 'bright red bg', style: { backgroundColor: '#ff6e67' } },
-    ])
+    expect(result).toEqual([{ text: 'bright red bg', style: { backgroundColor: '#ff6e67' } }])
   })
 
   it('should parse 256-color foreground', () => {
@@ -103,16 +89,12 @@ describe('parseAnsi', () => {
 
   it('should parse 24-bit RGB foreground', () => {
     const result = parseAnsi('\x1b[38;2;255;128;0mrgb\x1b[0m')
-    expect(result).toEqual([
-      { text: 'rgb', style: { color: 'rgb(255, 128, 0)' } },
-    ])
+    expect(result).toEqual([{ text: 'rgb', style: { color: 'rgb(255, 128, 0)' } }])
   })
 
   it('should parse 24-bit RGB background', () => {
     const result = parseAnsi('\x1b[48;2;0;128;255mrgb bg\x1b[0m')
-    expect(result).toEqual([
-      { text: 'rgb bg', style: { backgroundColor: 'rgb(0, 128, 255)' } },
-    ])
+    expect(result).toEqual([{ text: 'rgb bg', style: { backgroundColor: 'rgb(0, 128, 255)' } }])
   })
 
   it('should handle bare ESC[ (no parameters) as reset', () => {
@@ -125,9 +107,7 @@ describe('parseAnsi', () => {
 
   it('should handle color accumulation across codes', () => {
     const result = parseAnsi('\x1b[1m\x1b[31mbold red\x1b[0m')
-    expect(result).toEqual([
-      { text: 'bold red', style: { fontWeight: 'bold', color: '#ff5f56' } },
-    ])
+    expect(result).toEqual([{ text: 'bold red', style: { fontWeight: 'bold', color: '#ff5f56' } }])
   })
 
   it('should handle specific reset codes', () => {
@@ -149,9 +129,7 @@ describe('parseAnsi', () => {
 
   it('should gracefully ignore unknown codes', () => {
     const result = parseAnsi('\x1b[999mtext\x1b[0m')
-    expect(result).toEqual([
-      { text: 'text', style: {} },
-    ])
+    expect(result).toEqual([{ text: 'text', style: {} }])
   })
 
   it('should handle text before first escape code', () => {

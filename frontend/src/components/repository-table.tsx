@@ -1,18 +1,27 @@
 import type { FindOptions } from '@furystack/core'
+import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
-import { Button, CollectionService, DataGrid, Icon, icons } from '@furystack/shades-common-components'
+import type { ColumnFilterConfig } from '@furystack/shades-common-components'
+import { Button, CollectionService, DataGrid, Icon, icons, Loader } from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
-import type { GitHubRepository } from 'common'
+import { GitHubRepository } from 'common'
 
 type RepositoryTableProps = {
-  repositories: GitHubRepository[]
+  stackName: string
 }
 
 type RepositoryColumn = 'displayName' | 'url' | 'actions'
 
+const columnFilters: { [K in RepositoryColumn]?: ColumnFilterConfig } = {
+  displayName: { type: 'string' },
+  url: { type: 'string' },
+}
+
 export const RepositoryTable = Shade<RepositoryTableProps>({
   shadowDomName: 'shade-repository-table',
-  render: ({ props, useDisposable }) => {
+  render: (options) => {
+    const { props, useDisposable, useObservable } = options
+
     const collectionService = useDisposable(
       'collectionService',
       () => new CollectionService<GitHubRepository>({ searchField: 'displayName' }),
@@ -20,10 +29,31 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
 
     const findOptions = useDisposable(
       'findOptions',
-      () => new ObservableValue<FindOptions<GitHubRepository, Array<keyof GitHubRepository>>>({}),
+      () => new ObservableValue<FindOptions<GitHubRepository, Array<keyof GitHubRepository>>>({ top: 25 }),
     )
 
-    collectionService.data.setValue({ entries: props.repositories, count: props.repositories.length })
+    const [currentFindOptions] = useObservable('findOptions', findOptions)
+
+    const reposState = useCollectionSync(options, GitHubRepository, {
+      filter: { stackName: { $eq: props.stackName } },
+      top: currentFindOptions.top,
+      skip: currentFindOptions.skip,
+      order: currentFindOptions.order,
+    })
+
+    const isLoading = reposState.status === 'connecting'
+    const entries = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
+    const count = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.count : 0
+
+    collectionService.data.setValue({ entries, count })
+
+    if (isLoading) {
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
+          <Loader />
+        </div>
+      )
+    }
 
     return (
       <DataGrid<GitHubRepository, RepositoryColumn>
@@ -31,6 +61,7 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
         findOptions={findOptions}
         styles={undefined}
         collectionService={collectionService}
+        columnFilters={columnFilters}
         headerComponents={{
           actions: () => <span style={{ paddingLeft: '1em' }}>Actions</span>,
         }}

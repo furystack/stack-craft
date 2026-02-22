@@ -56,10 +56,6 @@ export const LogLine = Shade<LogLineProps>({
   render: ({ props }) => {
     const segments = parseAnsi(props.line)
 
-    return (
-      <span>
-        {segments.flatMap((segment) => renderTextWithLinks(segment.text, segment.style))}
-      </span>
-    )
+    return <span>{segments.flatMap((segment) => renderTextWithLinks(segment.text, segment.style))}</span>
   },
 })
