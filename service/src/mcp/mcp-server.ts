@@ -2,202 +2,26 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
-import { GitHubRepository, Prerequisite, ServiceDefinition, ServiceStatus, StackConfig, StackDefinition } from 'common'
 import { randomUUID } from 'crypto'
 import type { IncomingMessage, ServerResponse } from 'http'
-import { z } from 'zod'
 
 import { resolveTokenUser } from '../middleware/bearer-token-auth.js'
-import { LogStorageService } from '../services/log-storage-service.js'
-import { ProcessManager } from '../services/process-manager.js'
-
-type TextResult = { content: [{ type: 'text'; text: string }]; isError?: true }
-
-const textResult = (text: string): TextResult => ({ content: [{ type: 'text', text }] })
-const errorResult = (text: string): TextResult => ({ content: [{ type: 'text', text }], isError: true })
-
-const mcpTrigger = { triggeredBy: 'mcp-user', triggerSource: 'mcp' as const }
-
-const registerServiceAction = (
-  mcp: McpServer,
-  name: string,
-  description: string,
-  injector: Injector,
-  method: keyof Pick<
-    ProcessManager,
-    | 'startService'
-    | 'stopService'
-    | 'restartService'
-    | 'installService'
-    | 'buildService'
-    | 'setupService'
-    | 'updateService'
-  >,
-  pastTense: string,
-) => {
-  mcp.registerTool(name, { description, inputSchema: { serviceId: z.string() } }, async ({ serviceId }) => {
-    try {
-      await injector.getInstance(ProcessManager)[method](serviceId, mcpTrigger)
-      return textResult(`Service ${serviceId} ${pastTense}`)
-    } catch (error) {
-      return errorResult(`Failed: ${(error as Error).message}`)
-    }
-  })
-}
+import { registerEnvVariableTools } from './tools/env-variable-tools.js'
+import { registerPrerequisiteTools } from './tools/prerequisite-tools.js'
+import { registerRepositoryTools } from './tools/repository-tools.js'
+import { registerServiceTools } from './tools/service-tools.js'
+import { registerStackTools } from './tools/stack-tools.js'
+import { registerSystemTools } from './tools/system-tools.js'
 
 export const createMcpServer = (injector: Injector, elevated: Injector) => {
   const mcp = new McpServer({ name: 'stackcraft', version: '1.0.0' }, { capabilities: { tools: {} } })
-  const repository = getRepository(elevated)
 
-  mcp.registerTool('list_stacks', { description: 'List all stacks' }, async () => {
-    const defs = await repository.getDataSetFor(StackDefinition, 'name').find(elevated, {})
-    const configs = await repository.getDataSetFor(StackConfig, 'stackName').find(elevated, {})
-    const configMap = new Map(configs.map((c) => [c.stackName, c]))
-    const stacks = defs.map((d) => ({ ...d, ...configMap.get(d.name) }))
-    return textResult(JSON.stringify(stacks, null, 2))
-  })
-
-  mcp.registerTool(
-    'get_stack',
-    {
-      description: 'Get a full stack definition with services, repositories, and prerequisites',
-      inputSchema: { stackName: z.string() },
-    },
-    async ({ stackName }) => {
-      const defs = await repository
-        .getDataSetFor(StackDefinition, 'name')
-        .find(elevated, { filter: { name: { $eq: stackName } }, top: 1 })
-      const stack = defs[0]
-      if (!stack) return errorResult(`Stack not found: ${stackName}`)
-
-      const configs = await repository
-        .getDataSetFor(StackConfig, 'stackName')
-        .find(elevated, { filter: { stackName: { $eq: stackName } }, top: 1 })
-
-      const services = await repository
-        .getDataSetFor(ServiceDefinition, 'id')
-        .find(elevated, { filter: { stackName: { $eq: stackName } } })
-      const repos = await repository
-        .getDataSetFor(GitHubRepository, 'id')
-        .find(elevated, { filter: { stackName: { $eq: stackName } } })
-      const prereqs = await repository
-        .getDataSetFor(Prerequisite, 'id')
-        .find(elevated, { filter: { stackName: { $eq: stackName } } })
-
-      return textResult(
-        JSON.stringify(
-          { stack: { ...stack, ...configs[0] }, services, repositories: repos, prerequisites: prereqs },
-          null,
-          2,
-        ),
-      )
-    },
-  )
-
-  mcp.registerTool(
-    'list_services',
-    { description: 'List services in a stack with status', inputSchema: { stackName: z.string() } },
-    async ({ stackName }) => {
-      const services = await repository
-        .getDataSetFor(ServiceDefinition, 'id')
-        .find(elevated, { filter: { stackName: { $eq: stackName } } })
-      const statuses = await repository.getDataSetFor(ServiceStatus, 'serviceId').find(elevated, {})
-      const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
-
-      const summary = services.map((s) => {
-        const st = statusMap.get(s.id)
-        return {
-          id: s.id,
-          displayName: s.displayName,
-          cloneStatus: st?.cloneStatus ?? 'not-cloned',
-          runStatus: st?.runStatus ?? 'stopped',
-          installStatus: st?.installStatus ?? 'not-installed',
-          buildStatus: st?.buildStatus ?? 'not-built',
-        }
-      })
-      return textResult(JSON.stringify(summary, null, 2))
-    },
-  )
-
-  registerServiceAction(mcp, 'start_service', 'Start a service', injector, 'startService', 'started')
-  registerServiceAction(mcp, 'stop_service', 'Stop a service', injector, 'stopService', 'stopped')
-  registerServiceAction(mcp, 'restart_service', 'Restart a service', injector, 'restartService', 'restarted')
-  registerServiceAction(
-    mcp,
-    'install_service',
-    'Install dependencies for a service',
-    injector,
-    'installService',
-    'installed',
-  )
-  registerServiceAction(mcp, 'build_service', 'Build a service', injector, 'buildService', 'built')
-  registerServiceAction(
-    mcp,
-    'setup_service',
-    'Set up a service: clone repository, install dependencies, build. Runs the full setup pipeline.',
-    injector,
-    'setupService',
-    'set up',
-  )
-  registerServiceAction(
-    mcp,
-    'update_service',
-    'Update a service: pull latest changes, reinstall, rebuild, restart if it was running.',
-    injector,
-    'updateService',
-    'updated',
-  )
-
-  mcp.registerTool(
-    'get_service_logs',
-    {
-      description: 'Get recent log output for a service',
-      inputSchema: { serviceId: z.string(), lines: z.number().optional().default(100) },
-    },
-    async ({ serviceId, lines }) => {
-      const entries = await injector.getInstance(LogStorageService).getEntries(serviceId, { limit: lines })
-      const logLines = entries.reverse().map((e) => e.line)
-      return textResult(logLines.join('\n') || '(no logs)')
-    },
-  )
-
-  mcp.registerTool(
-    'pull_service',
-    { description: 'Git clone or pull for a service', inputSchema: { serviceId: z.string() } },
-    async ({ serviceId }) => {
-      try {
-        const result = await injector.getInstance(ProcessManager).cloneOrPullService(serviceId, mcpTrigger)
-        if (result.cloned) return textResult('Repository cloned')
-        return textResult(result.updated ? 'Changes pulled' : 'Already up to date')
-      } catch (error) {
-        return errorResult(`Failed: ${(error as Error).message}`)
-      }
-    },
-  )
-
-  mcp.registerTool(
-    'check_prerequisite',
-    { description: 'Check if a prerequisite is satisfied', inputSchema: { prerequisiteId: z.string() } },
-    async ({ prerequisiteId }) => {
-      const prereqs = await repository
-        .getDataSetFor(Prerequisite, 'id')
-        .find(elevated, { filter: { id: { $eq: prerequisiteId } }, top: 1 })
-      const prereq = prereqs[0]
-      if (!prereq) return errorResult('Prerequisite not found')
-
-      const { runCheck } = await import('../app-models/prerequisites/actions/check-prerequisite-action.js')
-
-      try {
-        const result = await runCheck(prereq.type, prereq.config)
-        return result.satisfied
-          ? textResult(`${prereq.name}: satisfied\n${result.output}`)
-          : errorResult(`${prereq.name}: NOT satisfied\n${result.output}\n${prereq.installationHelp}`)
-      } catch {
-        return errorResult(`${prereq.name}: NOT satisfied\n${prereq.installationHelp}`)
-      }
-    },
-  )
+  registerStackTools(mcp, injector, elevated)
+  registerServiceTools(mcp, injector, elevated)
+  registerPrerequisiteTools(mcp, injector, elevated)
+  registerRepositoryTools(mcp, injector, elevated)
+  registerEnvVariableTools(mcp, injector, elevated)
+  registerSystemTools(mcp, injector, elevated)
 
   return mcp
 }
