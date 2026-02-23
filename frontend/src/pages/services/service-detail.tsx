@@ -20,6 +20,7 @@ import type { ServiceView, StackView } from 'common'
 import {
   getServiceCwd,
   GitHubRepository,
+  Prerequisite,
   ServiceConfig,
   ServiceDefinition,
   ServiceStateHistory,
@@ -32,6 +33,7 @@ import { navigate } from '../../utils/navigate.js'
 
 import { ConfirmDialog } from '../../components/confirm-dialog.js'
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
+import { PrerequisiteList } from '../../components/prerequisite-list.js'
 import { ServiceStatusIndicator } from '../../components/service-status-indicator.js'
 import { BuildStatusChip, CloneStatusChip, InstallStatusChip, RunStatusChip } from '../../components/status-chips.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
@@ -152,6 +154,13 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     })
     const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
     const linkedRepo = service.repositoryId ? repos.find((r) => r.id === service.repositoryId) : undefined
+
+    const prereqsState = useCollectionSync(options, Prerequisite, {
+      filter: { stackName: { $eq: service.stackName } },
+    })
+    const allPrereqs =
+      prereqsState.status === 'synced' || prereqsState.status === 'cached' ? prereqsState.data.entries : []
+    const servicePrereqs = allPrereqs.filter((p) => service.prerequisiteIds.includes(p.id))
     const stackDef = stackState.status === 'synced' ? stackState.data : undefined
     const stackConfig = stackConfigState.status === 'synced' ? stackConfigState.data : undefined
     const stack = stackDef
@@ -439,6 +448,12 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             )}
           </div>
         </Paper>
+        {servicePrereqs.length > 0 ? (
+          <Paper>
+            <h3 style={{ margin: '0 0 12px 0' }}>Prerequisites</h3>
+            <PrerequisiteList prerequisites={servicePrereqs} />
+          </Paper>
+        ) : null}
         <ServiceHistory serviceId={service.id} />
         {isConfirmingDelete ? (
           <ConfirmDialog

@@ -15,6 +15,8 @@ import {
   Paper,
 } from '@furystack/shades-common-components'
 import type { ExportStackEndpoint } from 'common'
+
+import { prerequisiteTypeLabels } from '../../components/status-chips.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
 type ParsedExport = ExportStackEndpoint['result']
@@ -138,6 +140,27 @@ export const ImportStack = Shade({
                   <span>{parsed.repositories?.length ?? 0} repository(ies)</span>
                   <span>{parsed.prerequisites?.length ?? 0} prerequisite(s)</span>
                 </div>
+
+                {(parsed.prerequisites?.length ?? 0) > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px' }}>
+                    <strong style={{ fontSize: '14px' }}>Prerequisites:</strong>
+                    {parsed.prerequisites.map((p) => (
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'center',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          border: `1px solid ${cssVariableTheme.divider}`,
+                        }}
+                      >
+                        <span style={{ fontWeight: '500' }}>{p.name}</span>
+                        <span style={{ opacity: '0.6' }}>{prerequisiteTypeLabels[p.type] ?? p.type}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
 
                 <Input
                   name="mainDirectory"

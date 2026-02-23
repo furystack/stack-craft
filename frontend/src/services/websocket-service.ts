@@ -74,4 +74,8 @@ export class WebSocketService {
       this.connect()
     }, delay)
   }
+
+  public [Symbol.dispose]() {
+    this.disconnect()
+  }
 }

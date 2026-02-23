@@ -99,7 +99,6 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
       })
 
       await historyDs.add(injector, {
-        id: 0,
         serviceId: svcDef.id,
         event: 'imported',
         newState: JSON.stringify({

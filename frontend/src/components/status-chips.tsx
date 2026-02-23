@@ -1,7 +1,7 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { Chip } from '@furystack/shades-common-components'
 import type { Palette } from '@furystack/shades-common-components'
-import type { CloneStatus, InstallStatus, BuildStatus, RunStatus } from 'common'
+import type { CloneStatus, InstallStatus, BuildStatus, RunStatus, PrerequisiteType } from 'common'
 
 type StatusMapping<T extends string> = Record<T, { label: string; color: keyof Palette; icon: string }>
 
@@ -77,6 +77,50 @@ export const RunStatusChip = Shade<{ status: RunStatus }>({
     return (
       <Chip variant="outlined" color={color} size="small">
         {icon} {label}
+      </Chip>
+    )
+  },
+})
+
+export type PrerequisiteCheckStatus = 'unchecked' | 'checking' | 'satisfied' | 'failed'
+
+const prereqCheckStatusMap: StatusMapping<PrerequisiteCheckStatus> = {
+  unchecked: { label: 'Not Checked', color: 'secondary', icon: '·' },
+  checking: { label: 'Checking', color: 'warning', icon: '⏳' },
+  satisfied: { label: 'Satisfied', color: 'success', icon: '✓' },
+  failed: { label: 'Failed', color: 'error', icon: '✗' },
+}
+
+export const PrerequisiteCheckChip = Shade<{ status: PrerequisiteCheckStatus }>({
+  shadowDomName: 'shade-prereq-check-chip',
+  render: ({ props }) => {
+    const { label, color, icon } = prereqCheckStatusMap[props.status]
+    return (
+      <Chip variant="outlined" color={color} size="small">
+        {icon} {label}
+      </Chip>
+    )
+  },
+})
+
+export const prerequisiteTypeLabels: Record<PrerequisiteType, string> = {
+  node: 'Node.js',
+  yarn: 'Yarn',
+  'dotnet-sdk': '.NET SDK',
+  'dotnet-runtime': '.NET Runtime',
+  'nuget-feed': 'NuGet Feed',
+  git: 'Git',
+  'github-cli': 'GitHub CLI',
+  'env-variable': 'Env Variable',
+  'custom-script': 'Custom Script',
+}
+
+export const PrerequisiteTypeChip = Shade<{ type: PrerequisiteType }>({
+  shadowDomName: 'shade-prereq-type-chip',
+  render: ({ props }) => {
+    return (
+      <Chip variant="outlined" color="secondary" size="small">
+        {prerequisiteTypeLabels[props.type]}
       </Chip>
     )
   },

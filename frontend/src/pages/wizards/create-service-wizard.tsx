@@ -13,10 +13,13 @@ import {
   Select,
   cssVariableTheme,
 } from '@furystack/shades-common-components'
-import type { GitHubRepository } from 'common'
-import { GitHubRepository as GitHubRepositoryModel } from 'common'
+import type { GitHubRepository, Prerequisite } from 'common'
+import { GitHubRepository as GitHubRepositoryModel, Prerequisite as PrerequisiteModel } from 'common'
 
+import { PrerequisiteForm } from '../../components/entity-forms/prerequisite-form.js'
+import { prerequisiteTypeLabels } from '../../components/status-chips.js'
 import { GitHubReposApiClient } from '../../services/api-clients/github-repos-api-client.js'
+import { PrerequisitesApiClient } from '../../services/api-clients/prerequisites-api-client.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
 type CreateServiceWizardProps = {
@@ -24,12 +27,14 @@ type CreateServiceWizardProps = {
 }
 
 type WizardState = {
-  step: 0 | 1 | 2
+  step: 0 | 1 | 2 | 3
   createdServiceId: string | null
   createdServiceName: string | null
   hasRepoOrCommands: boolean
   repoChoice: 'skip' | 'existing' | 'new'
   selectedRepoId: string
+  selectedPrerequisiteIds: string[]
+  isCreatingPrereq: boolean
   isSaving: boolean
   setupStatus: 'idle' | 'running' | 'done' | 'failed'
 }
@@ -71,6 +76,8 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
       hasRepoOrCommands: false,
       repoChoice: 'skip',
       selectedRepoId: '',
+      selectedPrerequisiteIds: [],
+      isCreatingPrereq: false,
       isSaving: false,
       setupStatus: 'idle',
     })
@@ -80,8 +87,15 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
     })
     const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
 
+    const prereqsState = useCollectionSync(options, PrerequisiteModel, {
+      filter: { stackName: { $eq: props.stackName } },
+    })
+    const prereqs: Prerequisite[] =
+      prereqsState.status === 'synced' || prereqsState.status === 'cached' ? prereqsState.data.entries : []
+
     const servicesApi = injector.getInstance(ServicesApiClient)
     const reposApi = injector.getInstance(GitHubReposApiClient)
+    const prereqsApi = injector.getInstance(PrerequisitesApiClient)
     const noty = injector.getInstance(NotyService)
 
     const handleCreateService = async (data: CreateServicePayload) => {
@@ -123,7 +137,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
       }
     }
 
-    const linkRepoAndFinish = async (repoId: string) => {
+    const linkRepoAndGoToPrereqs = async (repoId: string) => {
       if (!state.createdServiceId) return
       if (repoId) {
         await servicesApi.call({
@@ -133,36 +147,19 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
           body: { repositoryId: repoId },
         })
       }
-
-      noty.emit('onNotyAdded', {
-        title: 'Service created',
-        body: `"${state.createdServiceName}" was created${repoId ? ' and linked to a repository' : ''}.`,
-        type: 'success',
-      })
-
-      const hasSetupWork = !!(repoId || state.hasRepoOrCommands)
-      if (hasSetupWork) {
-        setState({ ...state, step: 2, isSaving: false })
-      } else {
-        navigate(injector, '/')
-      }
+      setState({ ...state, step: 2, isSaving: false })
     }
 
     const handleFinishSkipOrExisting = async () => {
       if (state.repoChoice === 'skip' || !state.createdServiceId) {
-        noty.emit('onNotyAdded', {
-          title: 'Service created',
-          body: `"${state.createdServiceName}" was created successfully.`,
-          type: 'success',
-        })
-        navigate(injector, '/')
+        setState({ ...state, step: 2, isSaving: false })
         return
       }
 
       setState({ ...state, isSaving: true })
       try {
         const repoId = state.repoChoice === 'existing' ? state.selectedRepoId : ''
-        await linkRepoAndFinish(repoId)
+        await linkRepoAndGoToPrereqs(repoId)
       } catch (error) {
         noty.emit('onNotyAdded', {
           title: 'Error',
@@ -188,11 +185,41 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
             description: repoData.description ?? '',
           },
         })
-        await linkRepoAndFinish(newId)
+        await linkRepoAndGoToPrereqs(newId)
       } catch (error) {
         noty.emit('onNotyAdded', {
           title: 'Error',
           body: error instanceof Error ? error.message : 'Failed to complete setup',
+          type: 'error',
+        })
+      }
+    }
+
+    const handleCreatePrereq = async (data: Partial<Prerequisite>) => {
+      const newId = crypto.randomUUID()
+      try {
+        await prereqsApi.call({
+          method: 'POST',
+          action: '/prerequisites',
+          body: {
+            id: newId,
+            stackName: props.stackName,
+            name: data.name!,
+            type: data.type!,
+            config: data.config!,
+            installationHelp: data.installationHelp ?? '',
+          },
+        })
+        noty.emit('onNotyAdded', { title: 'Prerequisite added', body: `"${data.name}" was added.`, type: 'success' })
+        setState({
+          ...state,
+          isCreatingPrereq: false,
+          selectedPrerequisiteIds: [...state.selectedPrerequisiteIds, newId],
+        })
+      } catch (error) {
+        noty.emit('onNotyAdded', {
+          title: 'Error',
+          body: error instanceof Error ? error.message : 'Failed to add prerequisite',
           type: 'error',
         })
       }
@@ -203,7 +230,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
         <StepDot active={state.step === 0} completed={state.step > 0} label="1. Service" />
         <div
           style={{
-            width: '40px',
+            width: '32px',
             height: '2px',
             background: state.step > 0 ? cssVariableTheme.palette.primary.main : 'rgba(255,255,255,0.15)',
           }}
@@ -211,12 +238,20 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
         <StepDot active={state.step === 1} completed={state.step > 1} label="2. Repository" />
         <div
           style={{
-            width: '40px',
+            width: '32px',
             height: '2px',
             background: state.step > 1 ? cssVariableTheme.palette.primary.main : 'rgba(255,255,255,0.15)',
           }}
         />
-        <StepDot active={state.step === 2} completed={false} label="3. Setup" />
+        <StepDot active={state.step === 2} completed={state.step > 2} label="3. Prerequisites" />
+        <div
+          style={{
+            width: '32px',
+            height: '2px',
+            background: state.step > 2 ? cssVariableTheme.palette.primary.main : 'rgba(255,255,255,0.15)',
+          }}
+        />
+        <StepDot active={state.step === 3} completed={false} label="4. Setup" />
       </div>
     )
 
@@ -257,7 +292,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
           >
             <h2 style={{ margin: '0' }}>Create Service</h2>
             <p style={{ margin: '0', opacity: '0.7', fontSize: '14px' }}>
-              Step 1 of 3: Define the service details for the "{props.stackName}" stack.
+              Step 1 of 4: Define the service details for the "{props.stackName}" stack.
             </p>
             <Input name="displayName" labelTitle="Display Name" variant="outlined" required autofocus />
             <Input name="description" labelTitle="Description" variant="outlined" />
@@ -344,7 +379,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
           {stepIndicator}
           <h2 style={{ margin: '0 0 4px 0' }}>Link a Repository</h2>
           <p style={{ margin: '0 0 20px 0', opacity: '0.7', fontSize: '14px' }}>
-            Step 2 of 3: Optionally link a GitHub repository to "{state.createdServiceName}".
+            Step 2 of 4: Optionally link a GitHub repository to "{state.createdServiceName}".
           </p>
 
           {state.repoChoice === 'new' ? (
@@ -414,12 +449,149 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
       )
     }
 
+    if (state.step === 2) {
+      const togglePrereq = (id: string) => {
+        const current = state.selectedPrerequisiteIds
+        const updated = current.includes(id) ? current.filter((pid) => pid !== id) : [...current, id]
+        setState({ ...state, selectedPrerequisiteIds: updated })
+      }
+
+      const handlePrereqNext = async () => {
+        if (!state.createdServiceId) return
+        if (state.selectedPrerequisiteIds.length > 0) {
+          setState({ ...state, isSaving: true })
+          try {
+            await servicesApi.call({
+              method: 'PATCH',
+              action: '/services/:id',
+              url: { id: state.createdServiceId },
+              body: { prerequisiteIds: state.selectedPrerequisiteIds },
+            })
+          } catch (error) {
+            noty.emit('onNotyAdded', {
+              title: 'Error',
+              body: error instanceof Error ? error.message : 'Failed to save prerequisites',
+              type: 'error',
+            })
+          }
+        }
+        noty.emit('onNotyAdded', {
+          title: 'Service created',
+          body: `"${state.createdServiceName}" was created successfully.`,
+          type: 'success',
+        })
+        const hasSetupWork = !!(state.selectedRepoId || state.hasRepoOrCommands)
+        if (hasSetupWork) {
+          setState({ ...state, step: 3, isSaving: false })
+        } else {
+          navigate(injector, '/')
+        }
+      }
+
+      if (state.isCreatingPrereq) {
+        return (
+          <Paper style={{ maxWidth: '640px', margin: '32px auto', padding: '32px' }}>
+            {stepIndicator}
+            <PrerequisiteForm
+              stackName={props.stackName}
+              mode="create"
+              onSubmit={(data) => void handleCreatePrereq(data)}
+              onCancel={() => setState({ ...state, isCreatingPrereq: false })}
+            />
+          </Paper>
+        )
+      }
+
+      const addPrereqButton = (
+        <Button
+          variant="outlined"
+          size="small"
+          onclick={() => setState({ ...state, isCreatingPrereq: true })}
+          startIcon={<Icon icon={icons.plus} size="small" />}
+        >
+          Add Prerequisite
+        </Button>
+      )
+
+      return (
+        <Paper style={{ maxWidth: '640px', margin: '32px auto', padding: '32px' }}>
+          {stepIndicator}
+          <h2 style={{ margin: '0 0 4px 0' }}>Prerequisites</h2>
+          <p style={{ margin: '0 0 20px 0', opacity: '0.7', fontSize: '14px' }}>
+            Step 3 of 4: Select which prerequisites "{state.createdServiceName}" requires.
+          </p>
+
+          {prereqs.length === 0 ? (
+            <div style={{ padding: '16px 0', textAlign: 'center' }}>
+              <p style={{ opacity: '0.6', margin: '0 0 12px 0' }}>No prerequisites defined for this stack yet.</p>
+              {addPrereqButton}
+            </div>
+          ) : (
+            <div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                {prereqs.map((prereq) => {
+                  const isSelected = state.selectedPrerequisiteIds.includes(prereq.id)
+                  return (
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        border: isSelected
+                          ? `2px solid ${cssVariableTheme.palette.primary.main}`
+                          : '2px solid rgba(255,255,255,0.1)',
+                        background: isSelected ? 'rgba(255,255,255,0.03)' : 'transparent',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onchange={() => togglePrereq(prereq.id)}
+                        style={{ margin: '0' }}
+                      />
+                      <span style={{ fontWeight: '500' }}>{prereq.name}</span>
+                      <span style={{ opacity: '0.6', fontSize: '13px' }}>
+                        {prerequisiteTypeLabels[prereq.type] ?? prereq.type}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+              <div style={{ marginBottom: '8px' }}>{addPrereqButton}</div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', paddingTop: '8px' }}>
+            <Button
+              variant="outlined"
+              onclick={() => setState({ ...state, step: 1 })}
+              startIcon={<Icon icon={icons.chevronLeft} size="small" />}
+            >
+              Back
+            </Button>
+            <Button
+              variant="contained"
+              loading={state.isSaving}
+              onclick={() => void handlePrereqNext()}
+              endIcon={<Icon icon={icons.chevronRight} size="small" />}
+            >
+              Next
+            </Button>
+          </div>
+        </Paper>
+      )
+    }
+
     return (
       <Paper style={{ maxWidth: '640px', margin: '32px auto', padding: '32px' }}>
         {stepIndicator}
         <h2 style={{ margin: '0 0 4px 0' }}>Set Up Service</h2>
         <p style={{ margin: '0 0 20px 0', opacity: '0.7', fontSize: '14px' }}>
-          Step 3 of 3: Clone the repository, install packages, and build "{state.createdServiceName}".
+          Step 4 of 4: Clone the repository, install packages, and build "{state.createdServiceName}".
         </p>
 
         {state.setupStatus === 'idle' ? (

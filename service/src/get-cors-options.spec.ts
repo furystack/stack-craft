@@ -26,4 +26,9 @@ describe('getCorsOptions', () => {
     const options = getCorsOptions({})
     expect(options.headers).toContain('content-type')
   })
+
+  it('should filter out empty origins from CORS_ORIGINS', () => {
+    const options = getCorsOptions({ CORS_ORIGINS: 'https://app.example.com,,, https://admin.example.com,' })
+    expect(options.origins).toEqual(['https://app.example.com', 'https://admin.example.com'])
+  })
 })

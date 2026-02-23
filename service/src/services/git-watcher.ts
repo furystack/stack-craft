@@ -13,6 +13,7 @@ type WatchEntry = {
   serviceId: string
   timer: ReturnType<typeof setInterval>
   lastBranches: Set<string>
+  isFetching: boolean
 }
 
 @Injectable({ lifetime: 'singleton' })
@@ -62,6 +63,7 @@ export class GitWatcher {
     const entry: WatchEntry = {
       serviceId,
       lastBranches: new Set(remote),
+      isFetching: false,
       timer: setInterval(() => void this.fetchAndCheck(serviceId), intervalMs),
     }
 
@@ -81,8 +83,9 @@ export class GitWatcher {
 
   private async fetchAndCheck(serviceId: string): Promise<void> {
     const entry = this.watchers.get(serviceId)
-    if (!entry) return
+    if (!entry || entry.isFetching) return
 
+    entry.isFetching = true
     const elevated = this.getElevatedInjector()
     const svcDefDs = getRepository(elevated).getDataSetFor(ServiceDefinition, 'id')
     const svcConfigDs = getRepository(elevated).getDataSetFor(ServiceConfig, 'serviceId')
@@ -131,6 +134,8 @@ export class GitWatcher {
         message: `Git fetch failed for ${svc.displayName}`,
         data: { error },
       })
+    } finally {
+      entry.isFetching = false
     }
   }
 

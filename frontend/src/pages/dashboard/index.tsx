@@ -17,6 +17,7 @@ import type { ServiceView } from 'common'
 import { navigate } from '../../utils/navigate.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
+import { PrerequisiteTable } from '../../components/prerequisite-table.js'
 import { RepositoryTable } from '../../components/repository-table.js'
 import { ServiceTable } from '../../components/service-table.js'
 
@@ -281,6 +282,20 @@ export const Dashboard = Shade<DashboardProps>({
             </NestedRouteLink>
           </div>
           <RepositoryTable stackName={props.stackName} />
+        </Paper>
+
+        <Paper style={{ marginTop: '16px' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '12px',
+            }}
+          >
+            <h3 style={{ margin: '0', fontSize: '16px' }}>Prerequisites</h3>
+          </div>
+          <PrerequisiteTable stackName={props.stackName} />
         </Paper>
       </PageContainer>
     )

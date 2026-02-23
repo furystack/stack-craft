@@ -9,6 +9,7 @@ import type { ServiceView } from 'common'
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
 import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
 import { RunStatusChip } from './status-chips.js'
+import { Chip } from '@furystack/shades-common-components'
 
 type ServiceTableProps = {
   services: ServiceView[]
@@ -86,7 +87,21 @@ export const ServiceTable = Shade<ServiceTableProps>({
               ) : null}
             </span>
           ),
-          runStatus: (entry) => <RunStatusChip status={entry.runStatus} />,
+          runStatus: (entry) => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <RunStatusChip status={entry.runStatus} />
+              {entry.prerequisiteIds.length > 0 ? (
+                <Chip
+                  variant="outlined"
+                  color="warning"
+                  size="small"
+                  title={`${entry.prerequisiteIds.length} prerequisite(s)`}
+                >
+                  {entry.prerequisiteIds.length} prereq
+                </Chip>
+              ) : null}
+            </div>
+          ),
           actions: (entry) => {
             const needsSetup =
               (entry.repositoryId && entry.cloneStatus !== 'cloned') ||

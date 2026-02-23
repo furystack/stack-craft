@@ -17,6 +17,18 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ExportStackAction } from './export-stack-action.js'
 import { ImportStackAction } from './import-stack-action.js'
 
+class AutoIncrementStore<T extends { id: number }> extends InMemoryStore<T, 'id'> {
+  private nextId = 1
+
+  async add(...items: T[]): Promise<T[]> {
+    const withIds = items.map((item) => ({
+      ...item,
+      id: item.id || this.nextId++,
+    }))
+    return super.add(...withIds)
+  }
+}
+
 const now = () => new Date().toISOString()
 
 const createMockActionContext = <TBody = unknown, TUrl = Record<string, string>>(options: {
@@ -61,7 +73,7 @@ describe('Import/Export Stack Actions', () => {
       .addStore(serviceStatusStore)
       .addStore(repoStore)
       .addStore(prereqStore)
-      .addStore(new InMemoryStore({ model: ServiceStateHistory, primaryKey: 'id' }))
+      .addStore(new AutoIncrementStore({ model: ServiceStateHistory, primaryKey: 'id' }))
 
     getRepository(injector).createDataSet(StackDefinition, 'name', {})
     getRepository(injector).createDataSet(StackConfig, 'stackName', {})
@@ -301,6 +313,121 @@ describe('Import/Export Stack Actions', () => {
       expect(status?.installStatus).toBe('not-installed')
       expect(status?.buildStatus).toBe('not-built')
       expect(status?.runStatus).toBe('stopped')
+      await elevated[Symbol.asyncDispose]()
+    })
+
+    it('should apply per-service config when provided', async () => {
+      const importBody = {
+        stack: {
+          name: 'config-test',
+          displayName: 'Config Test',
+          description: '',
+        },
+        services: [
+          {
+            id: 'cfg-svc-1',
+            stackName: 'config-test',
+            displayName: 'Configured Service',
+            description: '',
+            workingDirectory: 'svc',
+            runCommand: 'echo hi',
+            prerequisiteIds: [],
+            prerequisiteServiceIds: [],
+          },
+          {
+            id: 'cfg-svc-2',
+            stackName: 'config-test',
+            displayName: 'Default Service',
+            description: '',
+            workingDirectory: 'svc2',
+            runCommand: 'echo hello',
+            prerequisiteIds: [],
+            prerequisiteServiceIds: [],
+          },
+        ],
+        repositories: [],
+        prerequisites: [],
+        config: {
+          mainDirectory: '/tmp/config-test',
+          services: {
+            'cfg-svc-1': {
+              autoFetchEnabled: true,
+              autoFetchIntervalMinutes: 15,
+              autoRestartOnFetch: true,
+            },
+          },
+        },
+      }
+
+      const elevated = useSystemIdentityContext({ injector })
+      await ImportStackAction(createMockActionContext({ injector: elevated, body: importBody }))
+
+      const [configuredSvc] = await serviceConfigStore.find({
+        filter: { serviceId: { $eq: 'cfg-svc-1' } },
+        top: 1,
+      })
+      expect(configuredSvc?.autoFetchEnabled).toBe(true)
+      expect(configuredSvc?.autoFetchIntervalMinutes).toBe(15)
+      expect(configuredSvc?.autoRestartOnFetch).toBe(true)
+
+      const [defaultSvc] = await serviceConfigStore.find({
+        filter: { serviceId: { $eq: 'cfg-svc-2' } },
+        top: 1,
+      })
+      expect(defaultSvc?.autoFetchEnabled).toBe(false)
+      expect(defaultSvc?.autoFetchIntervalMinutes).toBe(60)
+      expect(defaultSvc?.autoRestartOnFetch).toBe(false)
+
+      await elevated[Symbol.asyncDispose]()
+    })
+
+    it('should import multiple services without id conflicts in history', async () => {
+      const importBody = {
+        stack: {
+          name: 'multi-svc-test',
+          displayName: 'Multi Service Test',
+          description: '',
+        },
+        services: [
+          {
+            id: 'multi-svc-1',
+            stackName: 'multi-svc-test',
+            displayName: 'Service One',
+            description: '',
+            workingDirectory: 'svc1',
+            runCommand: 'echo 1',
+            prerequisiteIds: [],
+            prerequisiteServiceIds: [],
+          },
+          {
+            id: 'multi-svc-2',
+            stackName: 'multi-svc-test',
+            displayName: 'Service Two',
+            description: '',
+            workingDirectory: 'svc2',
+            runCommand: 'echo 2',
+            prerequisiteIds: [],
+            prerequisiteServiceIds: [],
+          },
+        ],
+        repositories: [],
+        prerequisites: [],
+        config: {
+          mainDirectory: '/tmp/multi',
+        },
+      }
+
+      const elevated = useSystemIdentityContext({ injector })
+      const actionResult = await ImportStackAction(createMockActionContext({ injector: elevated, body: importBody }))
+      const body = actionResult.chunk as { success: boolean }
+      expect(body.success).toBe(true)
+
+      const serviceDefs = await serviceDefStore.find({})
+      expect(serviceDefs).toHaveLength(2)
+
+      const serviceStatuses = await serviceStatusStore.find({})
+      expect(serviceStatuses).toHaveLength(2)
+
       await elevated[Symbol.asyncDispose]()
     })
   })

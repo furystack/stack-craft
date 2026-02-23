@@ -690,6 +690,36 @@ export class ProcessManager {
     }
   }
 
+  private static readonly SAFE_ENV_KEYS = new Set([
+    'PATH',
+    'HOME',
+    'USER',
+    'SHELL',
+    'LANG',
+    'LC_ALL',
+    'TERM',
+    'NODE_ENV',
+    'NODE_OPTIONS',
+    'NPM_CONFIG_REGISTRY',
+    'YARN_CACHE_FOLDER',
+    'DOTNET_ROOT',
+    'DOTNET_CLI_HOME',
+    'NUGET_PACKAGES',
+    'TMPDIR',
+    'TMP',
+    'TEMP',
+  ])
+
+  private static getSafeEnv(): NodeJS.ProcessEnv {
+    const env: NodeJS.ProcessEnv = {}
+    for (const key of Object.keys(process.env)) {
+      if (ProcessManager.SAFE_ENV_KEYS.has(key) || key.startsWith('STACK_CRAFT_')) {
+        env[key] = process.env[key]
+      }
+    }
+    return env
+  }
+
   private spawnCommand(command: string, cwd: string): ChildProcess {
     const isWindows = process.platform === 'win32'
     const shell = isWindows ? 'cmd.exe' : '/bin/sh'
@@ -698,7 +728,7 @@ export class ProcessManager {
     return spawn(shell, [shellFlag, command], {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env },
+      env: ProcessManager.getSafeEnv(),
       detached: true,
     })
   }

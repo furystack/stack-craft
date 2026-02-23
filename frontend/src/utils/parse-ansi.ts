@@ -129,6 +129,7 @@ const applySgrCodes = (codes: number[], style: AnsiStyle): AnsiStyle => {
   return next
 }
 
+// eslint-disable-next-line no-control-regex
 const ANSI_REGEX = /\x1b\[([0-9;]*)m/g
 
 /**
