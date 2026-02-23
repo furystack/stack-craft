@@ -109,9 +109,10 @@ export const Dashboard = Shade<DashboardProps>({
     }))
 
     const api = injector.getInstance(ServicesApiClient)
-    const [selectedServices, setSelectedServices] = options.useState<ServiceView[]>('selectedServices', [])
+    const [selectedServiceIds, setSelectedServiceIds] = options.useState<string[]>('selectedServiceIds', [])
     const [isBulkLoading, setIsBulkLoading] = options.useState('isBulkLoading', false)
 
+    const selectedServices = services.filter((s) => selectedServiceIds.includes(s.id))
     const hasRunning = selectedServices.some((s) => s.runStatus === 'running')
     const hasStopped = selectedServices.some((s) => s.runStatus !== 'running')
     const hasSelection = selectedServices.length > 0
@@ -246,7 +247,15 @@ export const Dashboard = Shade<DashboardProps>({
           ) : (
             <ServiceTable
               services={services}
-              onSelectionChange={(selected: ServiceView[]) => setSelectedServices(selected)}
+              onSelectionChange={(selected: ServiceView[]) => {
+                const newIds = selected.map((s) => s.id)
+                const changed =
+                  newIds.length !== selectedServiceIds.length ||
+                  newIds.some((id) => !selectedServiceIds.includes(id))
+                if (changed) {
+                  setSelectedServiceIds(newIds)
+                }
+              }}
             />
           )}
         </Paper>

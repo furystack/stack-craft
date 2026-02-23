@@ -50,6 +50,18 @@ export const ServiceTable = Shade<ServiceTableProps>({
     const { entries, count } = applyClientFindOptions(props.services, currentFindOptions)
     collectionService.data.setValue({ entries, count })
 
+    // Reconcile selection: remap stale object references to current entries by id
+    const currentSelection = collectionService.selection.getValue()
+    if (currentSelection.length > 0) {
+      const entryById = new Map(entries.map((e) => [e.id, e]))
+      const reconciled = currentSelection
+        .map((s) => entryById.get(s.id))
+        .filter((e): e is ServiceView => e !== undefined)
+      if (reconciled.length !== currentSelection.length || reconciled.some((e, i) => e !== currentSelection[i])) {
+        collectionService.selection.setValue(reconciled)
+      }
+    }
+
     const [selectedServices] = useObservable('selection', collectionService.selection)
     props.onSelectionChange?.(selectedServices)
 
