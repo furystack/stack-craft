@@ -7,6 +7,7 @@ import {
   ApiToken,
   GitHubRepository,
   Prerequisite,
+  PrerequisiteCheckResult,
   ServiceConfig,
   ServiceDefinition,
   ServiceStateHistory,
@@ -555,6 +556,7 @@ export const setupDataStore = async (injector: Injector) => {
   getRepository(injector).createDataSet(ServiceStatus, 'serviceId', { ...authorizedDataSet })
   getRepository(injector).createDataSet(ServiceStateHistory, 'id', { ...authorizedDataSet })
   getRepository(injector).createDataSet(ApiToken, 'id', { ...authorizedDataSet })
+  getRepository(injector).createDataSet(PrerequisiteCheckResult, 'prerequisiteId', { ...authorizedDataSet })
 
   await logger.information({ message: 'Data store initialized' })
 }

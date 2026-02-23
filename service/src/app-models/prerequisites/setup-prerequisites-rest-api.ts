@@ -1,11 +1,9 @@
 import type { Injector } from '@furystack/inject'
 import '@furystack/repository'
 import {
-  createDeleteEndpoint,
   createGetCollectionEndpoint,
   createGetEntityEndpoint,
   createPatchEndpoint,
-  createPostEndpoint,
   useRestService,
   Validate,
 } from '@furystack/rest-service'
@@ -16,6 +14,7 @@ import prerequisitesApiSchema from 'common/schemas/prerequisites-api.json' with 
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getPort } from '../../get-port.js'
 import { CheckPrerequisiteAction } from './actions/check-prerequisite-action.js'
+import { CreatePrerequisiteAction, DeletePrerequisiteAction } from './actions/prerequisite-lifecycle-actions.js'
 
 export const setupPrerequisitesRestApi = async (injector: Injector) => {
   await useRestService<PrerequisitesApi>({
@@ -38,7 +37,7 @@ export const setupPrerequisitesRestApi = async (injector: Injector) => {
         '/prerequisites': Validate({
           schema: prerequisitesApiSchema,
           schemaName: 'PostPrerequisiteEndpoint',
-        })(createPostEndpoint({ model: Prerequisite, primaryKey: 'id' })),
+        })(CreatePrerequisiteAction),
         '/prerequisites/:id/check': Validate({
           schema: prerequisitesApiSchema,
           schemaName: 'CheckPrerequisiteEndpoint',
@@ -51,7 +50,7 @@ export const setupPrerequisitesRestApi = async (injector: Injector) => {
         })(createPatchEndpoint({ model: Prerequisite, primaryKey: 'id' })),
       },
       DELETE: {
-        '/prerequisites/:id': createDeleteEndpoint({ model: Prerequisite, primaryKey: 'id' }),
+        '/prerequisites/:id': DeletePrerequisiteAction,
       },
     },
   })

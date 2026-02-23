@@ -1,7 +1,14 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { Chip } from '@furystack/shades-common-components'
 import type { Palette } from '@furystack/shades-common-components'
-import type { CloneStatus, InstallStatus, BuildStatus, RunStatus, PrerequisiteType } from 'common'
+import type {
+  CloneStatus,
+  InstallStatus,
+  BuildStatus,
+  RunStatus,
+  PrerequisiteType,
+  PrerequisiteCheckStatus,
+} from 'common'
 
 type StatusMapping<T extends string> = Record<T, { label: string; color: keyof Palette; icon: string }>
 
@@ -81,8 +88,6 @@ export const RunStatusChip = Shade<{ status: RunStatus }>({
     )
   },
 })
-
-export type PrerequisiteCheckStatus = 'unchecked' | 'checking' | 'satisfied' | 'failed'
 
 const prereqCheckStatusMap: StatusMapping<PrerequisiteCheckStatus> = {
   unchecked: { label: 'Not Checked', color: 'secondary', icon: '·' },

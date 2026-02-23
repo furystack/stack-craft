@@ -4,6 +4,7 @@ import { createComponent, LocationService, NestedRouteLink, Shade } from '@furys
 import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {
   Button,
+  Chip,
   CollectionService,
   ConfirmDialog,
   DataGrid,
@@ -17,11 +18,12 @@ import {
   Paper,
 } from '@furystack/shades-common-components'
 import { ObservableValue } from '@furystack/utils'
-import type { ServiceView, StackView } from 'common'
+import type { PrerequisiteCheckStatus, ServiceView, StackView } from 'common'
 import {
   getServiceCwd,
   GitHubRepository,
   Prerequisite,
+  PrerequisiteCheckResult,
   ServiceConfig,
   ServiceDefinition,
   ServiceStateHistory,
@@ -162,6 +164,18 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     const allPrereqs =
       prereqsState.status === 'synced' || prereqsState.status === 'cached' ? prereqsState.data.entries : []
     const servicePrereqs = allPrereqs.filter((p) => service.prerequisiteIds.includes(p.id))
+
+    const checkResultsState = useCollectionSync(options, PrerequisiteCheckResult, {})
+    const checkResults =
+      checkResultsState.status === 'synced' || checkResultsState.status === 'cached'
+        ? checkResultsState.data.entries
+        : []
+    const checkResultMap = new Map(checkResults.map((r) => [r.prerequisiteId, r]))
+
+    const getPrereqStatus = (id: string): PrerequisiteCheckStatus => checkResultMap.get(id)?.status ?? 'unchecked'
+
+    const prereqSatisfiedCount = servicePrereqs.filter((p) => getPrereqStatus(p.id) === 'satisfied').length
+    const prereqFailedCount = servicePrereqs.filter((p) => getPrereqStatus(p.id) === 'failed').length
 
     const otherServicesState = useCollectionSync(options, ServiceDefinition, {
       filter: { stackName: { $eq: service.stackName } },
@@ -341,6 +355,23 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           actions={
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <ServiceStatusIndicator service={service} />
+              {servicePrereqs.length > 0 ? (
+                <Chip
+                  variant="outlined"
+                  size="small"
+                  color={
+                    prereqFailedCount > 0
+                      ? 'error'
+                      : prereqSatisfiedCount === servicePrereqs.length
+                        ? 'success'
+                        : 'secondary'
+                  }
+                >
+                  {prereqSatisfiedCount === servicePrereqs.length
+                    ? '✓ Prerequisites OK'
+                    : `${prereqSatisfiedCount}/${servicePrereqs.length} prereqs`}
+                </Chip>
+              ) : null}
               <NestedRouteLink href={`/services/${service.id}/logs`}>
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.file} size="small" />}>
                   Logs
@@ -509,7 +540,22 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
         </Paper>
         {servicePrereqs.length > 0 ? (
           <Paper>
-            <h3 style={{ margin: '0 0 12px 0' }}>Prerequisites</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <h3 style={{ margin: '0' }}>Prerequisites</h3>
+              {prereqSatisfiedCount === servicePrereqs.length ? (
+                <Chip variant="outlined" color="success" size="small">
+                  ✓ All satisfied
+                </Chip>
+              ) : prereqFailedCount > 0 ? (
+                <Chip variant="outlined" color="error" size="small">
+                  {prereqSatisfiedCount}/{servicePrereqs.length} satisfied
+                </Chip>
+              ) : (
+                <Chip variant="outlined" color="secondary" size="small">
+                  {prereqSatisfiedCount}/{servicePrereqs.length} satisfied
+                </Chip>
+              )}
+            </div>
             <PrerequisiteList prerequisites={servicePrereqs} />
           </Paper>
         ) : null}

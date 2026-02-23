@@ -1,45 +1,51 @@
+import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 import { Button, Chip, cssVariableTheme, Icon, icons } from '@furystack/shades-common-components'
-import type { Prerequisite } from 'common'
+import type { Prerequisite, PrerequisiteCheckStatus } from 'common'
+import { PrerequisiteCheckResult } from 'common'
 
 import { PrerequisitesApiClient } from '../services/api-clients/prerequisites-api-client.js'
-import type { PrerequisiteCheckStatus } from './status-chips.js'
 import { PrerequisiteCheckChip, PrerequisiteTypeChip } from './status-chips.js'
-
-type CheckState = {
-  status: PrerequisiteCheckStatus
-  output?: string
-}
 
 type PrerequisiteListProps = {
   prerequisites: Prerequisite[]
-  onCheck?: (id: string) => void
 }
 
 export const PrerequisiteList = Shade<PrerequisiteListProps>({
   shadowDomName: 'shade-prerequisite-list',
-  render: ({ props, injector, useState }) => {
-    const [checkStates, setCheckStates] = useState<Record<string, CheckState>>('checkStates', {})
-
+  render: (options) => {
+    const { props, injector, useState } = options
     const api = injector.getInstance(PrerequisitesApiClient)
 
+    const [checkingIds, setCheckingIds] = useState<Set<string>>('checkingIds', new Set())
+
+    const checkResultsState = useCollectionSync(options, PrerequisiteCheckResult, {})
+    const checkResults =
+      checkResultsState.status === 'synced' || checkResultsState.status === 'cached'
+        ? checkResultsState.data.entries
+        : []
+
+    const checkResultMap = new Map(checkResults.map((r) => [r.prerequisiteId, r]))
+
+    const getStatus = (id: string): PrerequisiteCheckStatus => {
+      if (checkingIds.has(id)) return 'checking'
+      return checkResultMap.get(id)?.status ?? 'unchecked'
+    }
+
     const runCheck = async (prereq: Prerequisite) => {
-      setCheckStates({ ...checkStates, [prereq.id]: { status: 'checking' } })
+      setCheckingIds(new Set([...checkingIds, prereq.id]))
       try {
-        const { result } = await api.call({
+        await api.call({
           method: 'POST',
           action: '/prerequisites/:id/check',
           url: { id: prereq.id },
         })
-        setCheckStates({
-          ...checkStates,
-          [prereq.id]: { status: result.satisfied ? 'satisfied' : 'failed', output: result.output },
-        })
-      } catch (error) {
-        setCheckStates({
-          ...checkStates,
-          [prereq.id]: { status: 'failed', output: error instanceof Error ? error.message : 'Check failed' },
-        })
+      } catch {
+        // Error state will arrive via entity sync
+      } finally {
+        const next = new Set(checkingIds)
+        next.delete(prereq.id)
+        setCheckingIds(next)
       }
     }
 
@@ -53,9 +59,10 @@ export const PrerequisiteList = Shade<PrerequisiteListProps>({
       return <div style={{ opacity: '0.6', padding: '8px 0', fontSize: '14px' }}>No prerequisites assigned.</div>
     }
 
-    const allSatisfied = props.prerequisites.every((p) => checkStates[p.id]?.status === 'satisfied')
-    const anyFailed = props.prerequisites.some((p) => checkStates[p.id]?.status === 'failed')
-    const anyChecking = props.prerequisites.some((p) => checkStates[p.id]?.status === 'checking')
+    const statuses = props.prerequisites.map((p) => getStatus(p.id))
+    const allSatisfied = statuses.every((s) => s === 'satisfied')
+    const anyFailed = statuses.some((s) => s === 'failed')
+    const anyChecking = statuses.some((s) => s === 'checking')
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -81,7 +88,8 @@ export const PrerequisiteList = Shade<PrerequisiteListProps>({
           ) : null}
         </div>
         {props.prerequisites.map((prereq) => {
-          const state = checkStates[prereq.id] ?? { status: 'unchecked' as const }
+          const status = getStatus(prereq.id)
+          const result = checkResultMap.get(prereq.id)
           return (
             <div
               style={{
@@ -97,19 +105,19 @@ export const PrerequisiteList = Shade<PrerequisiteListProps>({
               <span style={{ fontWeight: '500', minWidth: '140px' }}>{prereq.name}</span>
               <PrerequisiteTypeChip type={prereq.type} />
               <div style={{ flex: '1' }} />
-              <PrerequisiteCheckChip status={state.status} />
+              <PrerequisiteCheckChip status={status} />
               <Button
                 variant="text"
                 size="small"
-                loading={state.status === 'checking'}
+                loading={status === 'checking'}
                 onclick={() => void runCheck(prereq)}
                 startIcon={<Icon icon={icons.refresh} size="small" />}
               >
                 Check
               </Button>
-              {state.output ? (
+              {result?.output ? (
                 <span
-                  title={state.output}
+                  title={result.output}
                   style={{
                     fontSize: '12px',
                     opacity: '0.7',
@@ -119,7 +127,7 @@ export const PrerequisiteList = Shade<PrerequisiteListProps>({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {state.output}
+                  {result.output}
                 </span>
               ) : null}
             </div>

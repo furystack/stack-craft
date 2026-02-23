@@ -8,6 +8,7 @@ import { setupIdentityRestApi } from './app-models/identity/setup-identity-rest-
 import { setupStacksRestApi } from './app-models/stacks/setup-stacks-rest-api.js'
 import { setupServicesRestApi } from './app-models/services/setup-services-rest-api.js'
 import { setupGitHubReposRestApi } from './app-models/github-repositories/setup-github-repos-rest-api.js'
+import { evaluatePrerequisites } from './app-models/prerequisites/evaluate-prerequisites.js'
 import { setupPrerequisitesRestApi } from './app-models/prerequisites/setup-prerequisites-rest-api.js'
 import { setupTokensRestApi } from './app-models/tokens/setup-tokens-rest-api.js'
 import { setupSystemRestApi } from './app-models/system/setup-system-rest-api.js'
@@ -39,6 +40,8 @@ const setupRestApis = async () => {
   await wsService.init(injector)
 
   setupEntitySync(injector)
+
+  void evaluatePrerequisites(injector)
 
   setupMcp(injector)
 }

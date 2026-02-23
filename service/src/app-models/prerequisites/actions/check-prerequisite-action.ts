@@ -3,7 +3,7 @@ import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { CheckPrerequisiteEndpoint, EnvironmentVariableValue, PrerequisiteConfig, PrerequisiteType } from 'common'
-import { Prerequisite, StackConfig } from 'common'
+import { Prerequisite, PrerequisiteCheckResult, StackConfig } from 'common'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 
@@ -186,8 +186,27 @@ export const CheckPrerequisiteAction: RequestAction<CheckPrerequisiteEndpoint> =
     envVarConfig = stackConfigs[0]?.environmentVariables?.[varName]
   }
 
+  const checkResultDs = repository.getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId')
+
+  await checkResultDs.update(injector, id, { status: 'checking' }).catch(() => {
+    // Entry may not exist yet if the prerequisite was created after startup
+  })
+
   try {
     const result = await runCheck(prereq.type, prereq.config, { envVarConfig })
+    const checkUpdate = {
+      status: result.satisfied ? ('satisfied' as const) : ('failed' as const),
+      output: result.output,
+      checkedAt: new Date().toISOString(),
+    }
+
+    const existing = await checkResultDs.find(injector, { filter: { prerequisiteId: { $eq: id } }, top: 1 })
+    if (existing.length > 0) {
+      await checkResultDs.update(injector, id, checkUpdate)
+    } else {
+      await checkResultDs.add(injector, { prerequisiteId: id, ...checkUpdate })
+    }
+
     if (result.satisfied) {
       await logger.information({
         message: `Prerequisite check passed: ${prereq.name}`,
@@ -199,6 +218,19 @@ export const CheckPrerequisiteAction: RequestAction<CheckPrerequisiteEndpoint> =
     return JsonResult(result)
   } catch (error) {
     const output = error instanceof Error ? error.message : 'Check failed'
+
+    const existing = await checkResultDs.find(injector, { filter: { prerequisiteId: { $eq: id } }, top: 1 })
+    if (existing.length > 0) {
+      await checkResultDs.update(injector, id, { status: 'failed', output, checkedAt: new Date().toISOString() })
+    } else {
+      await checkResultDs.add(injector, {
+        prerequisiteId: id,
+        status: 'failed',
+        output,
+        checkedAt: new Date().toISOString(),
+      })
+    }
+
     await logger.warning({ message: `Prerequisite check failed: ${prereq.name}`, data: { error } })
     return JsonResult({ satisfied: false, output })
   }
