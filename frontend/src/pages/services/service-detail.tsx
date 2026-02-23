@@ -9,6 +9,7 @@ import {
   Icon,
   icons,
   Loader,
+  MarkdownDisplay,
   NotyService,
   PageContainer,
   PageHeader,
@@ -23,6 +24,7 @@ import {
   ServiceDefinition,
   ServiceStateHistory,
   ServiceStatus,
+  StackConfig,
   StackDefinition,
 } from 'common'
 
@@ -149,17 +151,19 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     }
 
     const stackState = useEntitySync(options, StackDefinition, service.stackName)
+    const stackConfigState = useEntitySync(options, StackConfig, service.stackName)
     const reposState = useCollectionSync(options, GitHubRepository, {
       filter: { stackName: { $eq: service.stackName } },
     })
     const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
     const linkedRepo = service.repositoryId ? repos.find((r) => r.id === service.repositoryId) : undefined
-    const stackData = stackState.status === 'synced' ? stackState.data : undefined
-    const stack = stackData
+    const stackDef = stackState.status === 'synced' ? stackState.data : undefined
+    const stackConfig = stackConfigState.status === 'synced' ? stackConfigState.data : undefined
+    const stack = stackDef
       ? ({
-          ...stackData,
-          stackName: (stackData as Partial<StackView>).stackName ?? stackData.name,
-          mainDirectory: (stackData as Partial<StackView>).mainDirectory ?? '',
+          ...stackDef,
+          stackName: stackDef.name,
+          mainDirectory: stackConfig?.mainDirectory ?? '',
         } as StackView)
       : undefined
     const fullCwd = stack ? getServiceCwd(stack, service, linkedRepo ?? null) : null
@@ -271,7 +275,6 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       <PageContainer>
         <PageHeader
           title={service.displayName}
-          description={service.description}
           actions={
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <ServiceStatusIndicator service={service} />
@@ -300,6 +303,11 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             </div>
           }
         />
+        {service.description ? (
+          <Paper>
+            <MarkdownDisplay content={service.description} />
+          </Paper>
+        ) : null}
         <Paper>
           <div
             style={{
@@ -331,7 +339,22 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             ) : null}
             <strong>Working Directory</strong>
             <span style={{ fontFamily: 'monospace' }}>{fullCwd ?? '(loading…)'}</span>
-            <span />
+            {fullCwd ? (
+              <span style={{ display: 'flex', gap: '4px' }}>
+                <a href={`cursor://file/${fullCwd}`} style={{ color: 'inherit' }}>
+                  <Button variant="outlined" size="small" title="Open in Cursor">
+                    Cursor
+                  </Button>
+                </a>
+                <a href={`vscode://file/${fullCwd}`} style={{ color: 'inherit' }}>
+                  <Button variant="outlined" size="small" title="Open in VS Code">
+                    VS Code
+                  </Button>
+                </a>
+              </span>
+            ) : (
+              <span />
+            )}
             {service.repositoryId ? (
               <div style={{ display: 'contents' }}>
                 <strong>Clone</strong>

@@ -7,6 +7,7 @@ import {
   Icon,
   icons,
   Loader,
+  MarkdownDisplay,
   PageContainer,
   PageHeader,
   Paper,
@@ -138,7 +139,6 @@ export const Dashboard = Shade<DashboardProps>({
         <PageHeader
           icon={<Icon icon={icons.layers} />}
           title={currentStack?.displayName ?? props.stackName}
-          description={currentStack?.description}
           actions={
             <div style={{ display: 'flex', gap: '8px' }}>
               <NestedRouteLink href="/stacks/:stackName/export" params={{ stackName: props.stackName }}>
@@ -154,6 +154,11 @@ export const Dashboard = Shade<DashboardProps>({
             </div>
           }
         />
+        {currentStack?.description ? (
+          <Paper>
+            <MarkdownDisplay content={currentStack.description} />
+          </Paper>
+        ) : null}
 
         <Paper>
           <div

@@ -13,7 +13,7 @@ import {
   Paper,
 } from '@furystack/shades-common-components'
 import type { StackView } from 'common'
-import { StackDefinition } from 'common'
+import { StackConfig, StackDefinition } from 'common'
 
 import { ConfirmDialog } from '../../components/confirm-dialog.js'
 import { StackForm } from '../../components/entity-forms/stack-form.js'
@@ -30,8 +30,9 @@ export const EditStack = Shade<EditStackProps>({
     const [isConfirmingDelete, setIsConfirmingDelete] = useState('isConfirmingDelete', false)
 
     const stackState = useEntitySync(options, StackDefinition, props.stackName)
+    const configState = useEntitySync(options, StackConfig, props.stackName)
 
-    if (stackState.status === 'connecting') {
+    if (stackState.status === 'connecting' || configState.status === 'connecting') {
       return (
         <PageContainer>
           <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
@@ -59,7 +60,11 @@ export const EditStack = Shade<EditStackProps>({
       )
     }
 
-    const stack = stackState.data
+    const stackDef = stackState.data
+    const stackConfig = configState.status === 'synced' ? configState.data : undefined
+    const stack = stackDef
+      ? ({ ...stackDef, stackName: stackDef.name, mainDirectory: stackConfig?.mainDirectory ?? '' }) as StackView
+      : undefined
     if (!stack) {
       return (
         <PageContainer>

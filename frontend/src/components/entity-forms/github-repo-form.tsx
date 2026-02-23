@@ -1,5 +1,5 @@
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
-import { Button, Form, Icon, icons, Input } from '@furystack/shades-common-components'
+import { Button, Form, Icon, icons, Input, MarkdownInput } from '@furystack/shades-common-components'
 import type { GitHubRepository } from 'common'
 
 type GitHubRepoFormPayload = {
@@ -55,11 +55,11 @@ export const GitHubRepoForm = Shade<GitHubRepoFormProps>({
           required
           value={props.initial?.displayName ?? ''}
         />
-        <Input
+        <MarkdownInput
           name="description"
           labelTitle="Description"
-          variant="outlined"
           value={props.initial?.description ?? ''}
+          rows={4}
         />
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           {props.cancelHref ? (

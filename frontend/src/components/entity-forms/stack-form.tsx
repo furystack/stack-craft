@@ -1,5 +1,5 @@
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
-import { Button, Form, Icon, icons, Input } from '@furystack/shades-common-components'
+import { Button, Form, Icon, icons, Input, MarkdownInput } from '@furystack/shades-common-components'
 import type { StackView } from 'common'
 
 type StackFormPayload = {
@@ -58,11 +58,11 @@ export const StackForm = Shade<StackFormProps>({
           required
           value={props.initial?.displayName ?? ''}
         />
-        <Input
+        <MarkdownInput
           name="description"
           labelTitle="Description"
-          variant="outlined"
           value={props.initial?.description ?? ''}
+          rows={4}
         />
 
         <h4 style={{ margin: '0', opacity: '0.7' }}>Configuration</h4>

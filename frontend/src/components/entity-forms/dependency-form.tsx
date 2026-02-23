@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, Form, Icon, icons, Input } from '@furystack/shades-common-components'
+import { Button, Form, Icon, icons, Input, MarkdownInput } from '@furystack/shades-common-components'
 import type { Dependency } from 'common'
 
 type DependencyFormPayload = {
@@ -55,11 +55,11 @@ export const DependencyForm = Shade<DependencyFormProps>({
           value={props.initial?.checkCommand ?? ''}
           getHelperText={() => 'Command that returns exit code 0 if installed (e.g., node --version)'}
         />
-        <Input
+        <MarkdownInput
           name="installationHelp"
           labelTitle="Installation Help"
-          variant="outlined"
           value={props.initial?.installationHelp ?? ''}
+          rows={4}
           getHelperText={() => 'Instructions for installing this dependency'}
         />
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>

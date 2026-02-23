@@ -1,5 +1,5 @@
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
-import { Button, Checkbox, Form, Icon, icons, Input, Select } from '@furystack/shades-common-components'
+import { Button, Checkbox, Form, Icon, icons, Input, MarkdownInput, Select } from '@furystack/shades-common-components'
 import type { GitHubRepository, ServiceView } from 'common'
 
 type ServiceFormPayload = {
@@ -64,11 +64,11 @@ export const ServiceForm = Shade<ServiceFormProps>({
           required
           value={props.initial?.displayName ?? ''}
         />
-        <Input
+        <MarkdownInput
           name="description"
           labelTitle="Description"
-          variant="outlined"
           value={props.initial?.description ?? ''}
+          rows={4}
         />
         {props.repositories && props.repositories.length > 0 ? (
           <Select
