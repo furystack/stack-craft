@@ -1,9 +1,9 @@
 import { useEntitySync } from '@furystack/entity-sync-client'
-import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
 
-import { navigate } from '../../utils/navigate.js'
 import {
   Button,
+  ConfirmDialog,
   Icon,
   icons,
   Loader,
@@ -14,8 +14,6 @@ import {
 } from '@furystack/shades-common-components'
 import type { StackView } from 'common'
 import { StackConfig, StackDefinition } from 'common'
-
-import { ConfirmDialog } from '../../components/confirm-dialog.js'
 import { StackForm } from '../../components/entity-forms/stack-form.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
@@ -102,7 +100,7 @@ export const EditStack = Shade<EditStackProps>({
           body: `"${data.displayName ?? stack.displayName}" was updated successfully.`,
           type: 'success',
         })
-        navigate(injector, '/')
+        injector.getInstance(LocationService).navigate('/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -125,7 +123,7 @@ export const EditStack = Shade<EditStackProps>({
           body: `"${stack.displayName}" was deleted.`,
           type: 'success',
         })
-        navigate(injector, '/')
+        injector.getInstance(LocationService).navigate('/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -162,16 +160,13 @@ export const EditStack = Shade<EditStackProps>({
         <Paper>
           <StackForm mode="edit" initial={stack} onSubmit={(data) => void handleSave(data)} cancelHref="/" />
         </Paper>
-        {isConfirmingDelete ? (
-          <ConfirmDialog
-            title="Delete Stack"
-            message={`Are you sure you want to delete "${stack.displayName}"? All services, repositories, and prerequisites in this stack will be removed. This action cannot be undone.`}
-            confirmLabel="Delete"
-            variant="danger"
-            onConfirm={() => void handleDelete()}
-            onCancel={() => setIsConfirmingDelete(false)}
-          />
-        ) : null}
+        {ConfirmDialog(isConfirmingDelete, {
+          title: 'Delete Stack',
+          message: `Are you sure you want to delete "${stack.displayName}"? All services, repositories, and prerequisites in this stack will be removed. This action cannot be undone.`,
+          confirmText: 'Delete',
+          onConfirm: () => void handleDelete(),
+          onCancel: () => setIsConfirmingDelete(false),
+        })}
       </PageContainer>
     )
   },

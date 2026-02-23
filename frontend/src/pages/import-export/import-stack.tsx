@@ -1,6 +1,5 @@
-import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
 
-import { navigate } from '../../utils/navigate.js'
 import {
   Button,
   Checkbox,
@@ -72,9 +71,9 @@ export const ImportStack = Shade({
         })
         const hasAutoSetup = formData.autoSetup === 'on'
         if (hasAutoSetup && (parsed.services?.length ?? 0) > 0) {
-          navigate(injector, `/stacks/${parsed.stack.name}/setup`)
+          injector.getInstance(LocationService).navigate(`/stacks/${parsed.stack.name}/setup`)
         } else {
-          navigate(injector, '/')
+          injector.getInstance(LocationService).navigate('/')
         }
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {

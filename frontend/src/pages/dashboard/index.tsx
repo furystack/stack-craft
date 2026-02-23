@@ -1,5 +1,5 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
-import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
 
 import {
   Button,
@@ -14,7 +14,6 @@ import {
 } from '@furystack/shades-common-components'
 import { ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
 import type { ServiceView } from 'common'
-import { navigate } from '../../utils/navigate.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
 import { PrerequisiteTable } from '../../components/prerequisite-table.js'
@@ -48,7 +47,7 @@ export const Dashboard = Shade<DashboardProps>({
     // When no stackName is provided (route `/`), redirect to the first stack or show empty state
     if (!props.stackName) {
       if (stacks.length > 0) {
-        queueMicrotask(() => navigate(injector, `/stacks/${stacks[0].name}`))
+        queueMicrotask(() => injector.getInstance(LocationService).navigate(`/stacks/${stacks[0].name}`))
         return null
       }
 

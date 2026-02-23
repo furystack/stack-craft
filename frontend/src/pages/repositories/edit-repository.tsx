@@ -1,9 +1,9 @@
 import { useEntitySync } from '@furystack/entity-sync-client'
-import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
 
-import { navigate } from '../../utils/navigate.js'
 import {
   Button,
+  ConfirmDialog,
   Icon,
   icons,
   Loader,
@@ -14,8 +14,6 @@ import {
 } from '@furystack/shades-common-components'
 import type { GitHubRepository } from 'common'
 import { GitHubRepository as GitHubRepositoryModel } from 'common'
-
-import { ConfirmDialog } from '../../components/confirm-dialog.js'
 import { GitHubRepoForm } from '../../components/entity-forms/github-repo-form.js'
 import { GitHubReposApiClient } from '../../services/api-clients/github-repos-api-client.js'
 
@@ -97,7 +95,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           body: `"${data.displayName ?? repo.displayName}" was updated successfully.`,
           type: 'success',
         })
-        navigate(injector, '/')
+        injector.getInstance(LocationService).navigate('/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -120,7 +118,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           body: `"${repo.displayName}" was deleted.`,
           type: 'success',
         })
-        navigate(injector, '/')
+        injector.getInstance(LocationService).navigate('/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -163,16 +161,13 @@ export const EditRepository = Shade<EditRepositoryProps>({
             cancelHref="/"
           />
         </Paper>
-        {isConfirmingDelete ? (
-          <ConfirmDialog
-            title="Delete Repository"
-            message={`Are you sure you want to delete "${repo.displayName}"? This action cannot be undone.`}
-            confirmLabel="Delete"
-            variant="danger"
-            onConfirm={() => void handleDelete()}
-            onCancel={() => setIsConfirmingDelete(false)}
-          />
-        ) : null}
+        {ConfirmDialog(isConfirmingDelete, {
+          title: 'Delete Repository',
+          message: `Are you sure you want to delete "${repo.displayName}"? This action cannot be undone.`,
+          confirmText: 'Delete',
+          onConfirm: () => void handleDelete(),
+          onCancel: () => setIsConfirmingDelete(false),
+        })}
       </PageContainer>
     )
   },

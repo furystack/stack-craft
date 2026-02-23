@@ -5,6 +5,7 @@ import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {
   Button,
   CollectionService,
+  ConfirmDialog,
   DataGrid,
   Icon,
   icons,
@@ -28,14 +29,12 @@ import {
   StackConfig,
   StackDefinition,
 } from 'common'
-
-import { navigate } from '../../utils/navigate.js'
-
-import { ConfirmDialog } from '../../components/confirm-dialog.js'
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
 import { PrerequisiteList } from '../../components/prerequisite-list.js'
 import { ServiceStatusIndicator } from '../../components/service-status-indicator.js'
 import { BuildStatusChip, CloneStatusChip, InstallStatusChip, RunStatusChip } from '../../components/status-chips.js'
+import { GitHubReposApiClient } from '../../services/api-clients/github-repos-api-client.js'
+import { PrerequisitesApiClient } from '../../services/api-clients/prerequisites-api-client.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
 const eventLabels: Record<string, string> = {
@@ -161,6 +160,16 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     const allPrereqs =
       prereqsState.status === 'synced' || prereqsState.status === 'cached' ? prereqsState.data.entries : []
     const servicePrereqs = allPrereqs.filter((p) => service.prerequisiteIds.includes(p.id))
+
+    const otherServicesState = useCollectionSync(options, ServiceDefinition, {
+      filter: { stackName: { $eq: service.stackName } },
+    })
+    const otherServices = (
+      otherServicesState.status === 'synced' || otherServicesState.status === 'cached'
+        ? otherServicesState.data.entries
+        : []
+    ).filter((s) => s.id !== service.id)
+
     const stackDef = stackState.status === 'synced' ? stackState.data : undefined
     const stackConfig = stackConfigState.status === 'synced' ? stackConfigState.data : undefined
     const stack = stackDef
@@ -173,6 +182,9 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     const fullCwd = stack ? getServiceCwd(stack, service, linkedRepo ?? null) : null
 
     const api = injector.getInstance(ServicesApiClient)
+    const prereqsApi = injector.getInstance(PrerequisitesApiClient)
+    const reposApi = injector.getInstance(GitHubReposApiClient)
+    const noty = injector.getInstance(NotyService)
     const [actionInProgress, setActionInProgress] = useState<string | null>('actionInProgress', null)
 
     const runAction = async (action: string, apiAction: string) => {
@@ -207,16 +219,18 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             autoFetchEnabled: data.autoFetchEnabled,
             autoFetchIntervalMinutes: data.autoFetchIntervalMinutes,
             autoRestartOnFetch: data.autoRestartOnFetch,
+            prerequisiteIds: data.prerequisiteIds,
+            prerequisiteServiceIds: data.prerequisiteServiceIds,
           },
         })
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        noty.emit('onNotyAdded', {
           title: 'Service updated',
           body: `"${data.displayName ?? service.displayName}" was updated successfully.`,
           type: 'success',
         })
         setIsEditing(false)
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        noty.emit('onNotyAdded', {
           title: 'Error',
           body: error instanceof Error ? error.message : 'Failed to update service',
           type: 'error',
@@ -231,19 +245,58 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           action: '/services/:id',
           url: { id: service.id },
         })
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        noty.emit('onNotyAdded', {
           title: 'Service deleted',
           body: `"${service.displayName}" was deleted.`,
           type: 'success',
         })
-        navigate(injector, '/')
+        locationService.navigate('/')
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        noty.emit('onNotyAdded', {
           title: 'Error',
           body: error instanceof Error ? error.message : 'Failed to delete service',
           type: 'error',
         })
       }
+    }
+
+    const handleCreatePrerequisite = async (data: Partial<Prerequisite>): Promise<string> => {
+      const newId = crypto.randomUUID()
+      await prereqsApi.call({
+        method: 'POST',
+        action: '/prerequisites',
+        body: {
+          id: newId,
+          stackName: service.stackName,
+          name: data.name!,
+          type: data.type!,
+          config: data.config!,
+          installationHelp: data.installationHelp ?? '',
+        },
+      })
+      noty.emit('onNotyAdded', { title: 'Prerequisite added', body: `"${data.name}" was added.`, type: 'success' })
+      return newId
+    }
+
+    const handleCreateRepository = async (data: Partial<GitHubRepository>): Promise<string> => {
+      const newId = crypto.randomUUID()
+      await reposApi.call({
+        method: 'POST',
+        action: '/github-repositories',
+        body: {
+          id: newId,
+          stackName: service.stackName,
+          url: data.url!,
+          displayName: data.displayName!,
+          description: data.description ?? '',
+        },
+      })
+      noty.emit('onNotyAdded', {
+        title: 'Repository added',
+        body: `"${data.displayName}" was added.`,
+        type: 'success',
+      })
+      return newId
     }
 
     if (isEditing) {
@@ -266,8 +319,12 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
               mode="edit"
               stackName={service.stackName}
               repositories={repos}
+              prerequisites={allPrereqs}
+              otherServices={otherServices}
               initial={service}
-              onSubmit={(data) => void handleSave(data)}
+              onSubmit={(data: Partial<ServiceView>) => void handleSave(data)}
+              onCreatePrerequisite={(data: Partial<Prerequisite>) => handleCreatePrerequisite(data)}
+              onCreateRepository={(data: Partial<GitHubRepository>) => handleCreateRepository(data)}
               onCancel={() => setIsEditing(false)}
             />
           </Paper>
@@ -455,16 +512,13 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           </Paper>
         ) : null}
         <ServiceHistory serviceId={service.id} />
-        {isConfirmingDelete ? (
-          <ConfirmDialog
-            title="Delete Service"
-            message={`Are you sure you want to delete "${service.displayName}"? This action cannot be undone.`}
-            confirmLabel="Delete"
-            variant="danger"
-            onConfirm={() => void handleDelete()}
-            onCancel={() => setIsConfirmingDelete(false)}
-          />
-        ) : null}
+        {ConfirmDialog(isConfirmingDelete, {
+          title: 'Delete Service',
+          message: `Are you sure you want to delete "${service.displayName}"? This action cannot be undone.`,
+          confirmText: 'Delete',
+          onConfirm: () => void handleDelete(),
+          onCancel: () => setIsConfirmingDelete(false),
+        })}
       </PageContainer>
     )
   },
@@ -567,7 +621,7 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
                 entry.processUid ? (
                   <Button
                     size="small"
-                    onclick={() => navigate(injector, `/services/${props.serviceId}/logs/${entry.processUid}`)}
+                    onclick={() => injector.getInstance(LocationService).navigate(`/services/${props.serviceId}/logs/${entry.processUid}`)}
                   >
                     Show Logs
                   </Button>

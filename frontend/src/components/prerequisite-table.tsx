@@ -4,6 +4,7 @@ import { createComponent, Shade } from '@furystack/shades'
 import {
   Button,
   CollectionService,
+  ConfirmDialog,
   cssVariableTheme,
   DataGrid,
   Icon,
@@ -16,7 +17,6 @@ import type { Prerequisite } from 'common'
 import { Prerequisite as PrerequisiteModel } from 'common'
 
 import { PrerequisitesApiClient } from '../services/api-clients/prerequisites-api-client.js'
-import { ConfirmDialog } from './confirm-dialog.js'
 import { PrerequisiteForm } from './entity-forms/prerequisite-form.js'
 import type { PrerequisiteCheckStatus } from './status-chips.js'
 import { PrerequisiteCheckChip, PrerequisiteTypeChip } from './status-chips.js'
@@ -246,16 +246,13 @@ export const PrerequisiteTable = Shade<PrerequisiteTableProps>({
             ),
           }}
         />
-        {deletingPrereq ? (
-          <ConfirmDialog
-            title="Delete Prerequisite"
-            message={`Are you sure you want to delete "${deletingPrereq.name}"?`}
-            confirmLabel="Delete"
-            variant="danger"
-            onConfirm={() => void handleDelete(deletingPrereq)}
-            onCancel={() => setDeletingId(null)}
-          />
-        ) : null}
+        {ConfirmDialog(!!deletingPrereq, {
+          title: 'Delete Prerequisite',
+          message: `Are you sure you want to delete "${deletingPrereq?.name}"?`,
+          confirmText: 'Delete',
+          onConfirm: () => void handleDelete(deletingPrereq!),
+          onCancel: () => setDeletingId(null),
+        })}
       </div>
     )
   },
