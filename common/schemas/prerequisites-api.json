@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
-    "DependencyWritableFields": {
+    "PrerequisiteWritableFields": {
       "type": "object",
       "properties": {
         "id": {
@@ -14,34 +14,137 @@
         },
         "name": {
           "type": "string",
-          "description": "Human-readable dependency name (e.g. \"Node.js\")"
+          "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
         },
-        "checkCommand": {
-          "type": "string",
-          "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+        "type": {
+          "$ref": "#/definitions/PrerequisiteType",
+          "description": "Discriminator that determines the check logic and config shape"
+        },
+        "config": {
+          "$ref": "#/definitions/PrerequisiteConfig",
+          "description": "Type-specific configuration (stored as JSON TEXT in the database)"
         },
         "installationHelp": {
           "type": "string",
-          "description": "Help text shown when the dependency check fails"
+          "description": "Help text shown when the prerequisite check fails"
         }
       },
-      "required": ["id", "stackName", "name", "checkCommand", "installationHelp"],
+      "required": ["id", "stackName", "name", "type", "config", "installationHelp"],
       "additionalProperties": false
     },
-    "PostDependencyEndpoint": {
+    "PrerequisiteType": {
+      "type": "string",
+      "enum": [
+        "node",
+        "yarn",
+        "dotnet-sdk",
+        "dotnet-runtime",
+        "nuget-feed",
+        "git",
+        "github-cli",
+        "env-variable",
+        "custom-script"
+      ],
+      "description": "The type of prerequisite that must be satisfied before a stack or service can run."
+    },
+    "PrerequisiteConfig": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "feedUrl": {
+              "type": "string"
+            },
+            "feedName": {
+              "type": "string"
+            }
+          },
+          "required": ["feedUrl"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "not": {}
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "variableName": {
+              "type": "string"
+            }
+          },
+          "required": ["variableName"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "script": {
+              "type": "string"
+            }
+          },
+          "required": ["script"],
+          "additionalProperties": false
+        }
+      ],
+      "description": "Union of all possible prerequisite config shapes."
+    },
+    "PostPrerequisiteEndpoint": {
       "type": "object",
       "properties": {
         "result": {
-          "$ref": "#/definitions/Dependency"
+          "$ref": "#/definitions/Prerequisite"
         },
         "body": {
-          "$ref": "#/definitions/WithOptionalId%3CDependencyWritableFields%2C%22id%22%3E"
+          "$ref": "#/definitions/WithOptionalId%3CPrerequisiteWritableFields%2C%22id%22%3E"
         }
       },
       "required": ["result", "body"],
       "additionalProperties": false
     },
-    "Dependency": {
+    "Prerequisite": {
       "type": "object",
       "properties": {
         "id": {
@@ -54,15 +157,19 @@
         },
         "name": {
           "type": "string",
-          "description": "Human-readable dependency name (e.g. \"Node.js\")"
+          "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
         },
-        "checkCommand": {
-          "type": "string",
-          "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+        "type": {
+          "$ref": "#/definitions/PrerequisiteType",
+          "description": "Discriminator that determines the check logic and config shape"
+        },
+        "config": {
+          "$ref": "#/definitions/PrerequisiteConfig",
+          "description": "Type-specific configuration (stored as JSON TEXT in the database)"
         },
         "installationHelp": {
           "type": "string",
-          "description": "Help text shown when the dependency check fails"
+          "description": "Help text shown when the prerequisite check fails"
         },
         "createdAt": {
           "type": "string"
@@ -71,11 +178,11 @@
           "type": "string"
         }
       },
-      "required": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"],
+      "required": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"],
       "additionalProperties": false,
-      "description": "Shareable dependency definition. Describes an external prerequisite (e.g. Node.js, Docker) that services may require. Included in stack exports and shared between installations."
+      "description": "Shareable prerequisite definition. Describes an external requirement (e.g. Node.js, Git, an env variable) that a stack or service may need to be satisfied before it can run. Included in stack exports and shared between installations."
     },
-    "WithOptionalId<DependencyWritableFields,\"id\">": {
+    "WithOptionalId<PrerequisiteWritableFields,\"id\">": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -89,23 +196,27 @@
         },
         "name": {
           "type": "string",
-          "description": "Human-readable dependency name (e.g. \"Node.js\")"
+          "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
         },
-        "checkCommand": {
-          "type": "string",
-          "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+        "type": {
+          "$ref": "#/definitions/PrerequisiteType",
+          "description": "Discriminator that determines the check logic and config shape"
+        },
+        "config": {
+          "$ref": "#/definitions/PrerequisiteConfig",
+          "description": "Type-specific configuration (stored as JSON TEXT in the database)"
         },
         "installationHelp": {
           "type": "string",
-          "description": "Help text shown when the dependency check fails"
+          "description": "Help text shown when the prerequisite check fails"
         }
       },
-      "required": ["checkCommand", "installationHelp", "name", "stackName"]
+      "required": ["config", "installationHelp", "name", "stackName", "type"]
     },
-    "PatchDependencyEndpoint": {
-      "$ref": "#/definitions/PatchEndpoint%3CDependencyWritableFields%2C%22id%22%3E"
+    "PatchPrerequisiteEndpoint": {
+      "$ref": "#/definitions/PatchEndpoint%3CPrerequisiteWritableFields%2C%22id%22%3E"
     },
-    "PatchEndpoint<DependencyWritableFields,\"id\">": {
+    "PatchEndpoint<PrerequisiteWritableFields,\"id\">": {
       "type": "object",
       "properties": {
         "body": {
@@ -121,15 +232,19 @@
             },
             "name": {
               "type": "string",
-              "description": "Human-readable dependency name (e.g. \"Node.js\")"
+              "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
             },
-            "checkCommand": {
-              "type": "string",
-              "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+            "type": {
+              "$ref": "#/definitions/PrerequisiteType",
+              "description": "Discriminator that determines the check logic and config shape"
+            },
+            "config": {
+              "$ref": "#/definitions/PrerequisiteConfig",
+              "description": "Type-specific configuration (stored as JSON TEXT in the database)"
             },
             "installationHelp": {
               "type": "string",
-              "description": "Help text shown when the dependency check fails"
+              "description": "Help text shown when the prerequisite check fails"
             }
           },
           "additionalProperties": false
@@ -153,7 +268,7 @@
       "additionalProperties": false,
       "description": "Endpoint model for updating entities"
     },
-    "CheckDependencyEndpoint": {
+    "CheckPrerequisiteEndpoint": {
       "type": "object",
       "properties": {
         "url": {
@@ -183,43 +298,43 @@
       "required": ["url", "result"],
       "additionalProperties": false
     },
-    "DependenciesApi": {
+    "PrerequisitesApi": {
       "type": "object",
       "properties": {
         "GET": {
           "type": "object",
           "properties": {
-            "/dependencies": {
-              "$ref": "#/definitions/GetCollectionEndpoint%3CDependency%3E"
+            "/prerequisites": {
+              "$ref": "#/definitions/GetCollectionEndpoint%3CPrerequisite%3E"
             },
-            "/dependencies/:id": {
-              "$ref": "#/definitions/GetEntityEndpoint%3CDependency%2C%22id%22%3E"
+            "/prerequisites/:id": {
+              "$ref": "#/definitions/GetEntityEndpoint%3CPrerequisite%2C%22id%22%3E"
             }
           },
-          "required": ["/dependencies", "/dependencies/:id"],
+          "required": ["/prerequisites", "/prerequisites/:id"],
           "additionalProperties": false
         },
         "POST": {
           "type": "object",
           "properties": {
-            "/dependencies": {
-              "$ref": "#/definitions/PostDependencyEndpoint"
+            "/prerequisites": {
+              "$ref": "#/definitions/PostPrerequisiteEndpoint"
             },
-            "/dependencies/:id/check": {
-              "$ref": "#/definitions/CheckDependencyEndpoint"
+            "/prerequisites/:id/check": {
+              "$ref": "#/definitions/CheckPrerequisiteEndpoint"
             }
           },
-          "required": ["/dependencies", "/dependencies/:id/check"],
+          "required": ["/prerequisites", "/prerequisites/:id/check"],
           "additionalProperties": false
         },
         "PATCH": {
           "type": "object",
           "properties": {
-            "/dependencies/:id": {
-              "$ref": "#/definitions/PatchDependencyEndpoint"
+            "/prerequisites/:id": {
+              "$ref": "#/definitions/PatchPrerequisiteEndpoint"
             }
           },
-          "required": ["/dependencies/:id"],
+          "required": ["/prerequisites/:id"],
           "additionalProperties": false
         },
         "PUT": {
@@ -240,11 +355,11 @@
         "DELETE": {
           "type": "object",
           "properties": {
-            "/dependencies/:id": {
-              "$ref": "#/definitions/DeleteEndpoint%3CDependency%2C%22id%22%3E"
+            "/prerequisites/:id": {
+              "$ref": "#/definitions/DeleteEndpoint%3CPrerequisite%2C%22id%22%3E"
             }
           },
-          "required": ["/dependencies/:id"],
+          "required": ["/prerequisites/:id"],
           "additionalProperties": false
         },
         "HEAD": {
@@ -311,27 +426,27 @@
       "required": ["GET", "POST", "PATCH", "DELETE"],
       "additionalProperties": false
     },
-    "GetCollectionEndpoint<Dependency>": {
+    "GetCollectionEndpoint<Prerequisite>": {
       "type": "object",
       "properties": {
         "query": {
           "type": "object",
           "properties": {
             "findOptions": {
-              "$ref": "#/definitions/FindOptions%3CDependency%2C(%22id%22%7C%22stackName%22%7C%22name%22%7C%22checkCommand%22%7C%22installationHelp%22%7C%22createdAt%22%7C%22updatedAt%22)%5B%5D%3E"
+              "$ref": "#/definitions/FindOptions%3CPrerequisite%2C(%22id%22%7C%22stackName%22%7C%22name%22%7C%22type%22%7C%22config%22%7C%22installationHelp%22%7C%22createdAt%22%7C%22updatedAt%22)%5B%5D%3E"
             }
           },
           "additionalProperties": false
         },
         "result": {
-          "$ref": "#/definitions/GetCollectionResult%3CDependency%3E"
+          "$ref": "#/definitions/GetCollectionResult%3CPrerequisite%3E"
         }
       },
       "required": ["query", "result"],
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
-    "FindOptions<Dependency,(\"id\"|\"stackName\"|\"name\"|\"checkCommand\"|\"installationHelp\"|\"createdAt\"|\"updatedAt\")[]>": {
+    "FindOptions<Prerequisite,(\"id\"|\"stackName\"|\"name\"|\"type\"|\"config\"|\"installationHelp\"|\"createdAt\"|\"updatedAt\")[]>": {
       "type": "object",
       "properties": {
         "top": {
@@ -357,7 +472,11 @@
               "type": "string",
               "enum": ["ASC", "DESC"]
             },
-            "checkCommand": {
+            "type": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "config": {
               "type": "string",
               "enum": ["ASC", "DESC"]
             },
@@ -381,44 +500,44 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"]
+            "enum": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"]
           },
           "description": "The result set will be limited to these fields"
         },
         "filter": {
-          "$ref": "#/definitions/FilterType%3CDependency%3E",
+          "$ref": "#/definitions/FilterType%3CPrerequisite%3E",
           "description": "The fields should match this filter"
         }
       },
       "additionalProperties": false,
       "description": "Type for default filtering model"
     },
-    "FilterType<Dependency>": {
+    "FilterType<Prerequisite>": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "$and": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/FilterType%3CDependency%3E"
+            "$ref": "#/definitions/FilterType%3CPrerequisite%3E"
           }
         },
         "$not": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/FilterType%3CDependency%3E"
+            "$ref": "#/definitions/FilterType%3CPrerequisite%3E"
           }
         },
         "$nor": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/FilterType%3CDependency%3E"
+            "$ref": "#/definitions/FilterType%3CPrerequisite%3E"
           }
         },
         "$or": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/FilterType%3CDependency%3E"
+            "$ref": "#/definitions/FilterType%3CPrerequisite%3E"
           }
         },
         "id": {
@@ -548,19 +667,19 @@
               "properties": {
                 "$startsWith": {
                   "type": "string",
-                  "description": "Human-readable dependency name (e.g. \"Node.js\")"
+                  "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
                 },
                 "$endsWith": {
                   "type": "string",
-                  "description": "Human-readable dependency name (e.g. \"Node.js\")"
+                  "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
                 },
                 "$like": {
                   "type": "string",
-                  "description": "Human-readable dependency name (e.g. \"Node.js\")"
+                  "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
                 },
                 "$regex": {
                   "type": "string",
-                  "description": "Human-readable dependency name (e.g. \"Node.js\")"
+                  "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
                 }
               },
               "additionalProperties": false
@@ -570,11 +689,11 @@
               "properties": {
                 "$eq": {
                   "type": "string",
-                  "description": "Human-readable dependency name (e.g. \"Node.js\")"
+                  "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
                 },
                 "$ne": {
                   "type": "string",
-                  "description": "Human-readable dependency name (e.g. \"Node.js\")"
+                  "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
                 }
               },
               "additionalProperties": false
@@ -586,14 +705,14 @@
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "description": "Human-readable dependency name (e.g. \"Node.js\")"
+                    "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "description": "Human-readable dependency name (e.g. \"Node.js\")"
+                    "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
                   }
                 }
               },
@@ -601,26 +720,26 @@
             }
           ]
         },
-        "checkCommand": {
+        "type": {
           "anyOf": [
             {
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string",
-                  "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+                  "$ref": "#/definitions/PrerequisiteType",
+                  "description": "Discriminator that determines the check logic and config shape"
                 },
                 "$endsWith": {
-                  "type": "string",
-                  "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+                  "$ref": "#/definitions/PrerequisiteType",
+                  "description": "Discriminator that determines the check logic and config shape"
                 },
                 "$like": {
-                  "type": "string",
-                  "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+                  "$ref": "#/definitions/PrerequisiteType",
+                  "description": "Discriminator that determines the check logic and config shape"
                 },
                 "$regex": {
-                  "type": "string",
-                  "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+                  "$ref": "#/definitions/PrerequisiteType",
+                  "description": "Discriminator that determines the check logic and config shape"
                 }
               },
               "additionalProperties": false
@@ -629,12 +748,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string",
-                  "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+                  "$ref": "#/definitions/PrerequisiteType",
+                  "description": "Discriminator that determines the check logic and config shape"
                 },
                 "$ne": {
-                  "type": "string",
-                  "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+                  "$ref": "#/definitions/PrerequisiteType",
+                  "description": "Discriminator that determines the check logic and config shape"
                 }
               },
               "additionalProperties": false
@@ -645,15 +764,53 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string",
-                    "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+                    "$ref": "#/definitions/PrerequisiteType",
+                    "description": "Discriminator that determines the check logic and config shape"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string",
-                    "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+                    "$ref": "#/definitions/PrerequisiteType",
+                    "description": "Discriminator that determines the check logic and config shape"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "config": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "$ref": "#/definitions/PrerequisiteConfig",
+                  "description": "Type-specific configuration (stored as JSON TEXT in the database)"
+                },
+                "$ne": {
+                  "$ref": "#/definitions/PrerequisiteConfig",
+                  "description": "Type-specific configuration (stored as JSON TEXT in the database)"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/PrerequisiteConfig",
+                    "description": "Type-specific configuration (stored as JSON TEXT in the database)"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/PrerequisiteConfig",
+                    "description": "Type-specific configuration (stored as JSON TEXT in the database)"
                   }
                 }
               },
@@ -668,19 +825,19 @@
               "properties": {
                 "$startsWith": {
                   "type": "string",
-                  "description": "Help text shown when the dependency check fails"
+                  "description": "Help text shown when the prerequisite check fails"
                 },
                 "$endsWith": {
                   "type": "string",
-                  "description": "Help text shown when the dependency check fails"
+                  "description": "Help text shown when the prerequisite check fails"
                 },
                 "$like": {
                   "type": "string",
-                  "description": "Help text shown when the dependency check fails"
+                  "description": "Help text shown when the prerequisite check fails"
                 },
                 "$regex": {
                   "type": "string",
-                  "description": "Help text shown when the dependency check fails"
+                  "description": "Help text shown when the prerequisite check fails"
                 }
               },
               "additionalProperties": false
@@ -690,11 +847,11 @@
               "properties": {
                 "$eq": {
                   "type": "string",
-                  "description": "Help text shown when the dependency check fails"
+                  "description": "Help text shown when the prerequisite check fails"
                 },
                 "$ne": {
                   "type": "string",
-                  "description": "Help text shown when the dependency check fails"
+                  "description": "Help text shown when the prerequisite check fails"
                 }
               },
               "additionalProperties": false
@@ -706,14 +863,14 @@
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "description": "Help text shown when the dependency check fails"
+                    "description": "Help text shown when the prerequisite check fails"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "description": "Help text shown when the dependency check fails"
+                    "description": "Help text shown when the prerequisite check fails"
                   }
                 }
               },
@@ -827,7 +984,7 @@
         }
       }
     },
-    "GetCollectionResult<Dependency>": {
+    "GetCollectionResult<Prerequisite>": {
       "type": "object",
       "properties": {
         "count": {
@@ -837,7 +994,7 @@
         "entries": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Dependency"
+            "$ref": "#/definitions/Prerequisite"
           },
           "description": "List of the selected entities"
         }
@@ -846,7 +1003,7 @@
       "additionalProperties": false,
       "description": "Response Model for GetCollection"
     },
-    "GetEntityEndpoint<Dependency,\"id\">": {
+    "GetEntityEndpoint<Prerequisite,\"id\">": {
       "type": "object",
       "properties": {
         "query": {
@@ -856,7 +1013,7 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"]
+                "enum": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"]
               },
               "description": "The list of fields to select"
             }
@@ -875,14 +1032,14 @@
           "additionalProperties": false
         },
         "result": {
-          "$ref": "#/definitions/Dependency"
+          "$ref": "#/definitions/Prerequisite"
         }
       },
       "required": ["query", "url", "result"],
       "additionalProperties": false,
       "description": "Endpoint model for getting a single entity"
     },
-    "DeleteEndpoint<Dependency,\"id\">": {
+    "DeleteEndpoint<Prerequisite,\"id\">": {
       "type": "object",
       "properties": {
         "url": {

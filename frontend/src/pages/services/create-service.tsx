@@ -40,7 +40,7 @@ export const CreateService = Shade<CreateServiceProps>({
             autoFetchIntervalMinutes: data.autoFetchIntervalMinutes ?? 60,
             repositoryId: data.repositoryId,
             autoRestartOnFetch: data.autoRestartOnFetch ?? false,
-            dependencyIds: [],
+            prerequisiteIds: [],
             prerequisiteServiceIds: [],
           },
         })

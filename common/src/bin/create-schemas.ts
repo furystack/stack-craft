@@ -43,8 +43,8 @@ export const apiValues: SchemaGenerationSetting[] = [
     type: '*',
   },
   {
-    inputFile: './src/apis/dependencies.ts',
-    outputFile: './schemas/dependencies-api.json',
+    inputFile: './src/apis/prerequisites.ts',
+    outputFile: './schemas/prerequisites-api.json',
     type: '*',
   },
   {

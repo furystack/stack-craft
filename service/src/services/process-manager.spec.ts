@@ -31,7 +31,7 @@ const createTestServiceDefinition = (overrides: Partial<ServiceDefinition> = {})
   runCommand: 'echo hello',
   installCommand: 'echo install',
   buildCommand: 'echo build',
-  dependencyIds: [],
+  prerequisiteIds: [],
   prerequisiteServiceIds: [],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),

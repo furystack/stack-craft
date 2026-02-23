@@ -3,7 +3,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { Dependency, GitHubRepository, ServiceDefinition, ServiceStatus, StackConfig, StackDefinition } from 'common'
+import { GitHubRepository, Prerequisite, ServiceDefinition, ServiceStatus, StackConfig, StackDefinition } from 'common'
 import { randomUUID } from 'crypto'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { z } from 'zod'
@@ -61,7 +61,7 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
   mcp.registerTool(
     'get_stack',
     {
-      description: 'Get a full stack definition with services, repositories, and dependencies',
+      description: 'Get a full stack definition with services, repositories, and prerequisites',
       inputSchema: { stackName: z.string() },
     },
     async ({ stackName }) => {
@@ -81,13 +81,13 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
       const repos = await repository
         .getDataSetFor(GitHubRepository, 'id')
         .find(elevated, { filter: { stackName: { $eq: stackName } } })
-      const deps = await repository
-        .getDataSetFor(Dependency, 'id')
+      const prereqs = await repository
+        .getDataSetFor(Prerequisite, 'id')
         .find(elevated, { filter: { stackName: { $eq: stackName } } })
 
       return textResult(
         JSON.stringify(
-          { stack: { ...stack, ...configs[0] }, services, repositories: repos, dependencies: deps },
+          { stack: { ...stack, ...configs[0] }, services, repositories: repos, prerequisites: prereqs },
           null,
           2,
         ),
@@ -177,24 +177,24 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
   )
 
   mcp.registerTool(
-    'check_dependency',
-    { description: 'Run a dependency check command', inputSchema: { dependencyId: z.string() } },
-    async ({ dependencyId }) => {
-      const deps = await repository
-        .getDataSetFor(Dependency, 'id')
-        .find(elevated, { filter: { id: { $eq: dependencyId } }, top: 1 })
-      const dep = deps[0]
-      if (!dep) return errorResult('Dependency not found')
+    'check_prerequisite',
+    { description: 'Check if a prerequisite is satisfied', inputSchema: { prerequisiteId: z.string() } },
+    async ({ prerequisiteId }) => {
+      const prereqs = await repository
+        .getDataSetFor(Prerequisite, 'id')
+        .find(elevated, { filter: { id: { $eq: prerequisiteId } }, top: 1 })
+      const prereq = prereqs[0]
+      if (!prereq) return errorResult('Prerequisite not found')
 
-      const { execFile } = await import('child_process')
-      const { promisify } = await import('util')
-      const execFileAsync = promisify(execFile)
+      const { runCheck } = await import('../app-models/prerequisites/actions/check-prerequisite-action.js')
 
       try {
-        const { stdout } = await execFileAsync('/bin/sh', ['-c', dep.checkCommand], { timeout: 30000 })
-        return textResult(`${dep.name}: satisfied\n${stdout.trim()}`)
+        const result = await runCheck(prereq.type, prereq.config)
+        return result.satisfied
+          ? textResult(`${prereq.name}: satisfied\n${result.output}`)
+          : errorResult(`${prereq.name}: NOT satisfied\n${result.output}\n${prereq.installationHelp}`)
       } catch {
-        return errorResult(`${dep.name}: NOT satisfied\n${dep.installationHelp}`)
+        return errorResult(`${prereq.name}: NOT satisfied\n${prereq.installationHelp}`)
       }
     },
   )

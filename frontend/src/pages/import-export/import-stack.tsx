@@ -88,7 +88,7 @@ export const ImportStack = Shade({
         <PageHeader
           icon="📥"
           title="Import Stack"
-          description="Paste the exported JSON data below to import a stack with all its services, repositories, and dependencies."
+          description="Paste the exported JSON data below to import a stack with all its services, repositories, and prerequisites."
         />
         <Paper>
           {!parsed ? (
@@ -136,7 +136,7 @@ export const ImportStack = Shade({
                 <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
                   <span>{parsed.services?.length ?? 0} service(s)</span>
                   <span>{parsed.repositories?.length ?? 0} repository(ies)</span>
-                  <span>{parsed.dependencies?.length ?? 0} dependency(ies)</span>
+                  <span>{parsed.prerequisites?.length ?? 0} prerequisite(s)</span>
                 </div>
 
                 <Input
@@ -150,7 +150,7 @@ export const ImportStack = Shade({
                 {(parsed.services?.length ?? 0) > 0 ? (
                   <Checkbox
                     name="autoSetup"
-                    labelTitle="Set up services after import (clone repositories, install dependencies, build)"
+                    labelTitle="Set up services after import (clone repositories, install, build)"
                     checked={true}
                   />
                 ) : null}

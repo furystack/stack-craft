@@ -205,12 +205,12 @@
                     "type": "string",
                     "description": "Optional FK to  {@link  GitHubRepository.id  }"
                   },
-                  "dependencyIds": {
+                  "prerequisiteIds": {
                     "type": "array",
                     "items": {
                       "type": "string"
                     },
-                    "description": "IDs of  {@link  Dependency  }  entities required by this service"
+                    "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
                   },
                   "prerequisiteServiceIds": {
                     "type": "array",
@@ -237,7 +237,7 @@
                   "stackName",
                   "displayName",
                   "description",
-                  "dependencyIds",
+                  "prerequisiteIds",
                   "prerequisiteServiceIds",
                   "runCommand"
                 ],
@@ -274,7 +274,7 @@
                 "additionalProperties": false
               }
             },
-            "dependencies": {
+            "prerequisites": {
               "type": "array",
               "items": {
                 "type": "object",
@@ -289,28 +289,131 @@
                   },
                   "name": {
                     "type": "string",
-                    "description": "Human-readable dependency name (e.g. \"Node.js\")"
+                    "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
                   },
-                  "checkCommand": {
-                    "type": "string",
-                    "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+                  "type": {
+                    "$ref": "#/definitions/PrerequisiteType",
+                    "description": "Discriminator that determines the check logic and config shape"
+                  },
+                  "config": {
+                    "$ref": "#/definitions/PrerequisiteConfig",
+                    "description": "Type-specific configuration (stored as JSON TEXT in the database)"
                   },
                   "installationHelp": {
                     "type": "string",
-                    "description": "Help text shown when the dependency check fails"
+                    "description": "Help text shown when the prerequisite check fails"
                   }
                 },
-                "required": ["id", "stackName", "name", "checkCommand", "installationHelp"],
+                "required": ["id", "stackName", "name", "type", "config", "installationHelp"],
                 "additionalProperties": false
               }
             }
           },
-          "required": ["stack", "services", "repositories", "dependencies"],
+          "required": ["stack", "services", "repositories", "prerequisites"],
           "additionalProperties": false
         }
       },
       "required": ["url", "result"],
       "additionalProperties": false
+    },
+    "PrerequisiteType": {
+      "type": "string",
+      "enum": [
+        "node",
+        "yarn",
+        "dotnet-sdk",
+        "dotnet-runtime",
+        "nuget-feed",
+        "git",
+        "github-cli",
+        "env-variable",
+        "custom-script"
+      ],
+      "description": "The type of prerequisite that must be satisfied before a stack or service can run."
+    },
+    "PrerequisiteConfig": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "feedUrl": {
+              "type": "string"
+            },
+            "feedName": {
+              "type": "string"
+            }
+          },
+          "required": ["feedUrl"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "not": {}
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "variableName": {
+              "type": "string"
+            }
+          },
+          "required": ["variableName"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "script": {
+              "type": "string"
+            }
+          },
+          "required": ["script"],
+          "additionalProperties": false
+        }
+      ],
+      "description": "Union of all possible prerequisite config shapes."
     },
     "ImportStackEndpoint": {
       "type": "object",
@@ -376,12 +479,12 @@
                     "type": "string",
                     "description": "Optional FK to  {@link  GitHubRepository.id  }"
                   },
-                  "dependencyIds": {
+                  "prerequisiteIds": {
                     "type": "array",
                     "items": {
                       "type": "string"
                     },
-                    "description": "IDs of  {@link  Dependency  }  entities required by this service"
+                    "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
                   },
                   "prerequisiteServiceIds": {
                     "type": "array",
@@ -408,7 +511,7 @@
                   "stackName",
                   "displayName",
                   "description",
-                  "dependencyIds",
+                  "prerequisiteIds",
                   "prerequisiteServiceIds",
                   "runCommand"
                 ],
@@ -445,7 +548,7 @@
                 "additionalProperties": false
               }
             },
-            "dependencies": {
+            "prerequisites": {
               "type": "array",
               "items": {
                 "type": "object",
@@ -460,18 +563,22 @@
                   },
                   "name": {
                     "type": "string",
-                    "description": "Human-readable dependency name (e.g. \"Node.js\")"
+                    "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
                   },
-                  "checkCommand": {
-                    "type": "string",
-                    "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
+                  "type": {
+                    "$ref": "#/definitions/PrerequisiteType",
+                    "description": "Discriminator that determines the check logic and config shape"
+                  },
+                  "config": {
+                    "$ref": "#/definitions/PrerequisiteConfig",
+                    "description": "Type-specific configuration (stored as JSON TEXT in the database)"
                   },
                   "installationHelp": {
                     "type": "string",
-                    "description": "Help text shown when the dependency check fails"
+                    "description": "Help text shown when the prerequisite check fails"
                   }
                 },
-                "required": ["id", "stackName", "name", "checkCommand", "installationHelp"],
+                "required": ["id", "stackName", "name", "type", "config", "installationHelp"],
                 "additionalProperties": false
               }
             },
@@ -507,7 +614,7 @@
               "additionalProperties": false
             }
           },
-          "required": ["stack", "services", "repositories", "dependencies", "config"],
+          "required": ["stack", "services", "repositories", "prerequisites", "config"],
           "additionalProperties": false
         }
       },

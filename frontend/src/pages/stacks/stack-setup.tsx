@@ -151,7 +151,7 @@ export const StackSetup = Shade<StackSetupProps>({
         <PageHeader
           icon={<Icon icon={icons.settings} />}
           title={`Set Up: ${currentStack?.displayName ?? props.stackName}`}
-          description="Clone repositories, install dependencies, and build services."
+          description="Clone repositories, install packages, and build services."
           actions={
             <div style={{ display: 'flex', gap: '8px' }}>
               {allReady ? (

@@ -2,7 +2,7 @@ import { RequestError } from '@furystack/rest'
 import { getRepository } from '@furystack/repository'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ExportStackEndpoint } from 'common'
-import { Dependency, GitHubRepository, ServiceDefinition, StackDefinition } from 'common'
+import { GitHubRepository, Prerequisite, ServiceDefinition, StackDefinition } from 'common'
 
 export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ injector, getUrlParams }) => {
   const { id: stackName } = getUrlParams()
@@ -18,10 +18,10 @@ export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ in
 
   const serviceDs = repository.getDataSetFor(ServiceDefinition, 'id')
   const repoDs = repository.getDataSetFor(GitHubRepository, 'id')
-  const depDs = repository.getDataSetFor(Dependency, 'id')
+  const prereqDs = repository.getDataSetFor(Prerequisite, 'id')
   const services = await serviceDs.find(injector, { filter: { stackName: { $eq: stackName } } })
   const repositories = await repoDs.find(injector, { filter: { stackName: { $eq: stackName } } })
-  const dependencies = await depDs.find(injector, { filter: { stackName: { $eq: stackName } } })
+  const prerequisites = await prereqDs.find(injector, { filter: { stackName: { $eq: stackName } } })
 
   const stripTimestamps = <T extends { createdAt?: string; updatedAt?: string }>({
     createdAt: _c,
@@ -33,6 +33,6 @@ export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ in
     stack: stripTimestamps(stack),
     services: services.map(stripTimestamps),
     repositories: repositories.map(stripTimestamps),
-    dependencies: dependencies.map(stripTimestamps),
+    prerequisites: prerequisites.map(stripTimestamps),
   })
 }

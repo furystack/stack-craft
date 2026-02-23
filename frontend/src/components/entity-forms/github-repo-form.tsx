@@ -55,12 +55,7 @@ export const GitHubRepoForm = Shade<GitHubRepoFormProps>({
           required
           value={props.initial?.displayName ?? ''}
         />
-        <MarkdownInput
-          name="description"
-          labelTitle="Description"
-          value={props.initial?.description ?? ''}
-          rows={4}
-        />
+        <MarkdownInput name="description" labelTitle="Description" value={props.initial?.description ?? ''} rows={4} />
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           {props.cancelHref ? (
             <NestedRouteLink href={props.cancelHref}>

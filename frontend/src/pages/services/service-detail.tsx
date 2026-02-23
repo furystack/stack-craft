@@ -33,12 +33,7 @@ import { navigate } from '../../utils/navigate.js'
 import { ConfirmDialog } from '../../components/confirm-dialog.js'
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
 import { ServiceStatusIndicator } from '../../components/service-status-indicator.js'
-import {
-  BuildStatusChip,
-  CloneStatusChip,
-  InstallStatusChip,
-  RunStatusChip,
-} from '../../components/status-chips.js'
+import { BuildStatusChip, CloneStatusChip, InstallStatusChip, RunStatusChip } from '../../components/status-chips.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
 const eventLabels: Record<string, string> = {
@@ -329,7 +324,11 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                 <span>
                   {linkedRepo.url ? (
                     <a href={linkedRepo.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
-                      <Button variant="outlined" size="small" startIcon={<Icon icon={icons.externalLink} size="small" />}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<Icon icon={icons.externalLink} size="small" />}
+                      >
                         Open
                       </Button>
                     </a>

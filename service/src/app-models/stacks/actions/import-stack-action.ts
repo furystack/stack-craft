@@ -4,8 +4,8 @@ import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ImportStackEndpoint } from 'common'
 import {
-  Dependency,
   GitHubRepository,
+  Prerequisite,
   ServiceConfig,
   ServiceDefinition,
   ServiceStateHistory,
@@ -27,7 +27,7 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
   const stackDefDs = repository.getDataSetFor(StackDefinition, 'name')
   const stackConfigDs = repository.getDataSetFor(StackConfig, 'stackName')
   const repoDs = repository.getDataSetFor(GitHubRepository, 'id')
-  const depDs = repository.getDataSetFor(Dependency, 'id')
+  const prereqDs = repository.getDataSetFor(Prerequisite, 'id')
   const svcDefDs = repository.getDataSetFor(ServiceDefinition, 'id')
   const svcConfigDs = repository.getDataSetFor(ServiceConfig, 'serviceId')
   const svcStatusDs = repository.getDataSetFor(ServiceStatus, 'serviceId')
@@ -40,8 +40,8 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
     updatedAt: now,
   }))
 
-  const dependencies = body.dependencies.map((dep) => ({
-    ...dep,
+  const prerequisites = body.prerequisites.map((prereq) => ({
+    ...prereq,
     stackName,
     createdAt: now,
     updatedAt: now,
@@ -71,8 +71,8 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
     if (repositories.length > 0) {
       await repoDs.add(injector, ...repositories)
     }
-    if (dependencies.length > 0) {
-      await depDs.add(injector, ...dependencies)
+    if (prerequisites.length > 0) {
+      await prereqDs.add(injector, ...prerequisites)
     }
     if (serviceDefinitions.length > 0) {
       await svcDefDs.add(injector, ...serviceDefinitions)
@@ -140,8 +140,8 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
         /* rollback */
       })
     }
-    if (dependencies.length > 0) {
-      await depDs.remove(injector, ...dependencies.map((d) => d.id)).catch(() => {
+    if (prerequisites.length > 0) {
+      await prereqDs.remove(injector, ...prerequisites.map((p) => p.id)).catch(() => {
         /* rollback */
       })
     }

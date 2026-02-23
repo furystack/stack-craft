@@ -58,12 +58,7 @@ export const StackForm = Shade<StackFormProps>({
           required
           value={props.initial?.displayName ?? ''}
         />
-        <MarkdownInput
-          name="description"
-          labelTitle="Description"
-          value={props.initial?.description ?? ''}
-          rows={4}
-        />
+        <MarkdownInput name="description" labelTitle="Description" value={props.initial?.description ?? ''} rows={4} />
 
         <h4 style={{ margin: '0', opacity: '0.7' }}>Configuration</h4>
         <Input

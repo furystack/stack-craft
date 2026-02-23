@@ -63,7 +63,7 @@ export const EditStack = Shade<EditStackProps>({
     const stackDef = stackState.data
     const stackConfig = configState.status === 'synced' ? configState.data : undefined
     const stack = stackDef
-      ? ({ ...stackDef, stackName: stackDef.name, mainDirectory: stackConfig?.mainDirectory ?? '' }) as StackView
+      ? ({ ...stackDef, stackName: stackDef.name, mainDirectory: stackConfig?.mainDirectory ?? '' } as StackView)
       : undefined
     if (!stack) {
       return (
@@ -165,7 +165,7 @@ export const EditStack = Shade<EditStackProps>({
         {isConfirmingDelete ? (
           <ConfirmDialog
             title="Delete Stack"
-            message={`Are you sure you want to delete "${stack.displayName}"? All services, repositories, and dependencies in this stack will be removed. This action cannot be undone.`}
+            message={`Are you sure you want to delete "${stack.displayName}"? All services, repositories, and prerequisites in this stack will be removed. This action cannot be undone.`}
             confirmLabel="Delete"
             variant="danger"
             onConfirm={() => void handleDelete()}

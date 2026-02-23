@@ -28,12 +28,12 @@
           "type": "string",
           "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
-        "dependencyIds": {
+        "prerequisiteIds": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "IDs of  {@link  Dependency  }  entities required by this service"
+          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
         },
         "prerequisiteServiceIds": {
           "type": "array",
@@ -60,7 +60,7 @@
         "stackName",
         "displayName",
         "description",
-        "dependencyIds",
+        "prerequisiteIds",
         "prerequisiteServiceIds",
         "runCommand"
       ],
@@ -129,12 +129,12 @@
           "type": "string",
           "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
-        "dependencyIds": {
+        "prerequisiteIds": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "IDs of  {@link  Dependency  }  entities required by this service"
+          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
         },
         "prerequisiteServiceIds": {
           "type": "array",
@@ -160,10 +160,10 @@
         "autoFetchEnabled",
         "autoFetchIntervalMinutes",
         "autoRestartOnFetch",
-        "dependencyIds",
         "description",
         "displayName",
         "id",
+        "prerequisiteIds",
         "prerequisiteServiceIds",
         "runCommand",
         "stackName"
@@ -259,12 +259,12 @@
           "type": "string",
           "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
-        "dependencyIds": {
+        "prerequisiteIds": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "IDs of  {@link  Dependency  }  entities required by this service"
+          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
         },
         "prerequisiteServiceIds": {
           "type": "array",
@@ -293,11 +293,11 @@
         "buildStatus",
         "cloneStatus",
         "createdAt",
-        "dependencyIds",
         "description",
         "displayName",
         "id",
         "installStatus",
+        "prerequisiteIds",
         "prerequisiteServiceIds",
         "runCommand",
         "runStatus",
@@ -351,12 +351,12 @@
           "type": "string",
           "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
-        "dependencyIds": {
+        "prerequisiteIds": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "IDs of  {@link  Dependency  }  entities required by this service"
+          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
         },
         "prerequisiteServiceIds": {
           "type": "array",
@@ -394,9 +394,9 @@
         "autoFetchEnabled",
         "autoFetchIntervalMinutes",
         "autoRestartOnFetch",
-        "dependencyIds",
         "description",
         "displayName",
+        "prerequisiteIds",
         "prerequisiteServiceIds",
         "runCommand",
         "stackName"
@@ -435,12 +435,12 @@
               "type": "string",
               "description": "Optional FK to  {@link  GitHubRepository.id  }"
             },
-            "dependencyIds": {
+            "prerequisiteIds": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "IDs of  {@link  Dependency  }  entities required by this service"
+              "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
             },
             "prerequisiteServiceIds": {
               "type": "array",
@@ -917,7 +917,7 @@
           "type": "object",
           "properties": {
             "findOptions": {
-              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22dependencyIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22)%5B%5D%3E"
+              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22)%5B%5D%3E"
             }
           },
           "additionalProperties": false
@@ -930,7 +930,7 @@
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
-    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"dependencyIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\")[]>": {
+    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\")[]>": {
       "type": "object",
       "properties": {
         "top": {
@@ -968,7 +968,7 @@
               "type": "string",
               "enum": ["ASC", "DESC"]
             },
-            "dependencyIds": {
+            "prerequisiteIds": {
               "type": "string",
               "enum": ["ASC", "DESC"]
             },
@@ -1063,7 +1063,7 @@
               "description",
               "workingDirectory",
               "repositoryId",
-              "dependencyIds",
+              "prerequisiteIds",
               "prerequisiteServiceIds",
               "installCommand",
               "buildCommand",
@@ -1467,7 +1467,7 @@
             }
           ]
         },
-        "dependencyIds": {
+        "prerequisiteIds": {
           "anyOf": [
             {
               "type": "object",
@@ -1477,14 +1477,14 @@
                   "items": {
                     "type": "string"
                   },
-                  "description": "IDs of  {@link  Dependency  }  entities required by this service"
+                  "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
                 },
                 "$ne": {
                   "type": "array",
                   "items": {
                     "type": "string"
                   },
-                  "description": "IDs of  {@link  Dependency  }  entities required by this service"
+                  "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
                 }
               },
               "additionalProperties": false
@@ -1499,7 +1499,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "IDs of  {@link  Dependency  }  entities required by this service"
+                    "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
                   }
                 },
                 "$nin": {
@@ -1509,7 +1509,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "IDs of  {@link  Dependency  }  entities required by this service"
+                    "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
                   }
                 }
               },
@@ -2517,7 +2517,7 @@
                   "description",
                   "workingDirectory",
                   "repositoryId",
-                  "dependencyIds",
+                  "prerequisiteIds",
                   "prerequisiteServiceIds",
                   "installCommand",
                   "buildCommand",

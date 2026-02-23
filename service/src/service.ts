@@ -8,7 +8,7 @@ import { setupIdentityRestApi } from './app-models/identity/setup-identity-rest-
 import { setupStacksRestApi } from './app-models/stacks/setup-stacks-rest-api.js'
 import { setupServicesRestApi } from './app-models/services/setup-services-rest-api.js'
 import { setupGitHubReposRestApi } from './app-models/github-repositories/setup-github-repos-rest-api.js'
-import { setupDependenciesRestApi } from './app-models/dependencies/setup-dependencies-rest-api.js'
+import { setupPrerequisitesRestApi } from './app-models/prerequisites/setup-prerequisites-rest-api.js'
 import { setupTokensRestApi } from './app-models/tokens/setup-tokens-rest-api.js'
 import { setupLogStore } from './app-models/logs/setup-log-store.js'
 import { ProcessManager } from './services/process-manager.js'
@@ -30,7 +30,7 @@ const setupRestApis = async () => {
   await setupStacksRestApi(injector)
   await setupServicesRestApi(injector)
   await setupGitHubReposRestApi(injector)
-  await setupDependenciesRestApi(injector)
+  await setupPrerequisitesRestApi(injector)
   await setupTokensRestApi(injector)
 
   const wsService = injector.getInstance(WebsocketService)

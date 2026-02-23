@@ -24,8 +24,8 @@ export class ServiceDefinition {
   /** Optional FK to {@link GitHubRepository.id} */
   repositoryId?: string
 
-  /** IDs of {@link Dependency} entities required by this service */
-  dependencyIds: string[] = []
+  /** IDs of {@link Prerequisite} entities required by this service */
+  prerequisiteIds: string[] = []
 
   /** IDs of other {@link ServiceDefinition} entities that must be running first */
   prerequisiteServiceIds: string[] = []

@@ -64,12 +64,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
           required
           value={props.initial?.displayName ?? ''}
         />
-        <MarkdownInput
-          name="description"
-          labelTitle="Description"
-          value={props.initial?.description ?? ''}
-          rows={4}
-        />
+        <MarkdownInput name="description" labelTitle="Description" value={props.initial?.description ?? ''} rows={4} />
         {props.repositories && props.repositories.length > 0 ? (
           <Select
             name="repositoryId"

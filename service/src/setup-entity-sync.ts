@@ -2,6 +2,7 @@ import type { Injector } from '@furystack/inject'
 import { useEntitySync } from '@furystack/entity-sync-service'
 import {
   GitHubRepository,
+  Prerequisite,
   PublicApiToken,
   ServiceConfig,
   ServiceDefinition,
@@ -22,6 +23,7 @@ export const setupEntitySync = (injector: Injector) => {
       { model: ServiceConfig, primaryKey: 'serviceId' },
       { model: ServiceStatus, primaryKey: 'serviceId' },
       { model: GitHubRepository, primaryKey: 'id' },
+      { model: Prerequisite, primaryKey: 'id' },
       { model: ServiceLogEntry, primaryKey: 'id', debounceMs: 250 },
       { model: ServiceStateHistory, primaryKey: 'id', debounceMs: 250 },
     ],

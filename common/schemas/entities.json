@@ -26,40 +26,6 @@
       "required": ["id", "username", "name", "tokenHash", "createdAt"],
       "additionalProperties": false
     },
-    "Dependency": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "UUID primary key"
-        },
-        "stackName": {
-          "type": "string",
-          "description": "FK to  {@link  StackDefinition.name  }"
-        },
-        "name": {
-          "type": "string",
-          "description": "Human-readable dependency name (e.g. \"Node.js\")"
-        },
-        "checkCommand": {
-          "type": "string",
-          "description": "Shell command to check if the dependency is satisfied (e.g. \"node --version\")"
-        },
-        "installationHelp": {
-          "type": "string",
-          "description": "Help text shown when the dependency check fails"
-        },
-        "createdAt": {
-          "type": "string"
-        },
-        "updatedAt": {
-          "type": "string"
-        }
-      },
-      "required": ["id", "stackName", "name", "checkCommand", "installationHelp", "createdAt", "updatedAt"],
-      "additionalProperties": false,
-      "description": "Shareable dependency definition. Describes an external prerequisite (e.g. Node.js, Docker) that services may require. Included in stack exports and shared between installations."
-    },
     "GitHubRepository": {
       "type": "object",
       "properties": {
@@ -185,12 +151,12 @@
           "type": "string",
           "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
-        "dependencyIds": {
+        "prerequisiteIds": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "IDs of  {@link  Dependency  }  entities required by this service"
+          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
         },
         "prerequisiteServiceIds": {
           "type": "array",
@@ -223,7 +189,7 @@
         "stackName",
         "displayName",
         "description",
-        "dependencyIds",
+        "prerequisiteIds",
         "prerequisiteServiceIds",
         "runCommand",
         "createdAt",
@@ -433,6 +399,246 @@
       "required": ["id", "serviceId", "processUid", "stream", "line", "createdAt"],
       "additionalProperties": false
     },
+    "PrerequisiteType": {
+      "type": "string",
+      "enum": [
+        "node",
+        "yarn",
+        "dotnet-sdk",
+        "dotnet-runtime",
+        "nuget-feed",
+        "git",
+        "github-cli",
+        "env-variable",
+        "custom-script"
+      ],
+      "description": "The type of prerequisite that must be satisfied before a stack or service can run."
+    },
+    "PrerequisiteConfigMap": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        "yarn": {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        "dotnet-sdk": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        "dotnet-runtime": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        "nuget-feed": {
+          "type": "object",
+          "properties": {
+            "feedUrl": {
+              "type": "string"
+            },
+            "feedName": {
+              "type": "string"
+            }
+          },
+          "required": ["feedUrl"],
+          "additionalProperties": false
+        },
+        "git": {
+          "type": "object",
+          "additionalProperties": {
+            "not": {}
+          }
+        },
+        "github-cli": {
+          "type": "object",
+          "additionalProperties": {
+            "not": {}
+          }
+        },
+        "env-variable": {
+          "type": "object",
+          "properties": {
+            "variableName": {
+              "type": "string"
+            }
+          },
+          "required": ["variableName"],
+          "additionalProperties": false
+        },
+        "custom-script": {
+          "type": "object",
+          "properties": {
+            "script": {
+              "type": "string"
+            }
+          },
+          "required": ["script"],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "node",
+        "yarn",
+        "dotnet-sdk",
+        "dotnet-runtime",
+        "nuget-feed",
+        "git",
+        "github-cli",
+        "env-variable",
+        "custom-script"
+      ],
+      "additionalProperties": false,
+      "description": "Maps each prerequisite type to its type-specific configuration shape."
+    },
+    "PrerequisiteConfig": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "feedUrl": {
+              "type": "string"
+            },
+            "feedName": {
+              "type": "string"
+            }
+          },
+          "required": ["feedUrl"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "not": {}
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "variableName": {
+              "type": "string"
+            }
+          },
+          "required": ["variableName"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "script": {
+              "type": "string"
+            }
+          },
+          "required": ["script"],
+          "additionalProperties": false
+        }
+      ],
+      "description": "Union of all possible prerequisite config shapes."
+    },
+    "Prerequisite": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "UUID primary key"
+        },
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
+        },
+        "type": {
+          "$ref": "#/definitions/PrerequisiteType",
+          "description": "Discriminator that determines the check logic and config shape"
+        },
+        "config": {
+          "$ref": "#/definitions/PrerequisiteConfig",
+          "description": "Type-specific configuration (stored as JSON TEXT in the database)"
+        },
+        "installationHelp": {
+          "type": "string",
+          "description": "Help text shown when the prerequisite check fails"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"],
+      "additionalProperties": false,
+      "description": "Shareable prerequisite definition. Describes an external requirement (e.g. Node.js, Git, an env variable) that a stack or service may need to be satisfied before it can run. Included in stack exports and shared between installations."
+    },
     "PublicApiToken": {
       "type": "object",
       "properties": {
@@ -566,12 +772,12 @@
           "type": "string",
           "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
-        "dependencyIds": {
+        "prerequisiteIds": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "IDs of  {@link  Dependency  }  entities required by this service"
+          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
         },
         "prerequisiteServiceIds": {
           "type": "array",
@@ -600,11 +806,11 @@
         "buildStatus",
         "cloneStatus",
         "createdAt",
-        "dependencyIds",
         "description",
         "displayName",
         "id",
         "installStatus",
+        "prerequisiteIds",
         "prerequisiteServiceIds",
         "runCommand",
         "runStatus",

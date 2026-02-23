@@ -103,7 +103,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
             autoFetchEnabled: false,
             autoFetchIntervalMinutes: 60,
             autoRestartOnFetch: false,
-            dependencyIds: [],
+            prerequisiteIds: [],
             prerequisiteServiceIds: [],
           },
         })
@@ -419,13 +419,13 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
         {stepIndicator}
         <h2 style={{ margin: '0 0 4px 0' }}>Set Up Service</h2>
         <p style={{ margin: '0 0 20px 0', opacity: '0.7', fontSize: '14px' }}>
-          Step 3 of 3: Clone the repository, install dependencies, and build "{state.createdServiceName}".
+          Step 3 of 3: Clone the repository, install packages, and build "{state.createdServiceName}".
         </p>
 
         {state.setupStatus === 'idle' ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <p style={{ margin: '0 0 16px 0' }}>
-              This will clone the repository, install dependencies, and build the service.
+              This will clone the repository, install packages, and build the service.
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <Button

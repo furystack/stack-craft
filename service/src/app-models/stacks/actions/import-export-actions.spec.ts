@@ -3,8 +3,8 @@ import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import {
-  Dependency,
   GitHubRepository,
+  Prerequisite,
   ServiceConfig,
   ServiceDefinition,
   ServiceStateHistory,
@@ -40,7 +40,7 @@ describe('Import/Export Stack Actions', () => {
   let serviceConfigStore: InMemoryStore<ServiceConfig, 'serviceId'>
   let serviceStatusStore: InMemoryStore<ServiceStatus, 'serviceId'>
   let repoStore: InMemoryStore<GitHubRepository, 'id'>
-  let depStore: InMemoryStore<Dependency, 'id'>
+  let prereqStore: InMemoryStore<Prerequisite, 'id'>
 
   beforeEach(() => {
     injector = new Injector()
@@ -52,7 +52,7 @@ describe('Import/Export Stack Actions', () => {
     serviceConfigStore = new InMemoryStore({ model: ServiceConfig, primaryKey: 'serviceId' })
     serviceStatusStore = new InMemoryStore({ model: ServiceStatus, primaryKey: 'serviceId' })
     repoStore = new InMemoryStore({ model: GitHubRepository, primaryKey: 'id' })
-    depStore = new InMemoryStore({ model: Dependency, primaryKey: 'id' })
+    prereqStore = new InMemoryStore({ model: Prerequisite, primaryKey: 'id' })
 
     addStore(injector, stackDefStore)
       .addStore(stackConfigStore)
@@ -60,7 +60,7 @@ describe('Import/Export Stack Actions', () => {
       .addStore(serviceConfigStore)
       .addStore(serviceStatusStore)
       .addStore(repoStore)
-      .addStore(depStore)
+      .addStore(prereqStore)
       .addStore(new InMemoryStore({ model: ServiceStateHistory, primaryKey: 'id' }))
 
     getRepository(injector).createDataSet(StackDefinition, 'name', {})
@@ -69,7 +69,7 @@ describe('Import/Export Stack Actions', () => {
     getRepository(injector).createDataSet(ServiceConfig, 'serviceId', {})
     getRepository(injector).createDataSet(ServiceStatus, 'serviceId', {})
     getRepository(injector).createDataSet(GitHubRepository, 'id', {})
-    getRepository(injector).createDataSet(Dependency, 'id', {})
+    getRepository(injector).createDataSet(Prerequisite, 'id', {})
     getRepository(injector).createDataSet(ServiceStateHistory, 'id', {})
   })
 
@@ -94,7 +94,7 @@ describe('Import/Export Stack Actions', () => {
         description: '',
         workingDirectory: 'svc1',
         runCommand: 'echo hello',
-        dependencyIds: [],
+        prerequisiteIds: [],
         prerequisiteServiceIds: [],
         createdAt: ts,
         updatedAt: ts,
@@ -108,11 +108,12 @@ describe('Import/Export Stack Actions', () => {
         createdAt: ts,
         updatedAt: ts,
       })
-      await depStore.add({
-        id: 'dep-1',
+      await prereqStore.add({
+        id: 'prereq-1',
         stackName: 'my-stack',
         name: 'Node.js',
-        checkCommand: 'node --version',
+        type: 'node',
+        config: { minimumVersion: '18.0.0' },
         installationHelp: 'Install Node.js',
         createdAt: ts,
         updatedAt: ts,
@@ -128,13 +129,13 @@ describe('Import/Export Stack Actions', () => {
         stack: StackDefinition
         services: ServiceDefinition[]
         repositories: GitHubRepository[]
-        dependencies: Dependency[]
+        prerequisites: Prerequisite[]
       }
       expect(body.stack.name).toBe('my-stack')
       expect(body.services).toHaveLength(1)
       expect(body.services[0]?.displayName).toBe('Service 1')
       expect(body.repositories).toHaveLength(1)
-      expect(body.dependencies).toHaveLength(1)
+      expect(body.prerequisites).toHaveLength(1)
     })
 
     it('should only export entities belonging to the specified stack', async () => {
@@ -151,7 +152,7 @@ describe('Import/Export Stack Actions', () => {
           description: '',
           workingDirectory: 'svc',
           runCommand: 'echo a',
-          dependencyIds: [],
+          prerequisiteIds: [],
           prerequisiteServiceIds: [],
           createdAt: ts,
           updatedAt: ts,
@@ -163,7 +164,7 @@ describe('Import/Export Stack Actions', () => {
           description: '',
           workingDirectory: 'svc',
           runCommand: 'echo b',
-          dependencyIds: [],
+          prerequisiteIds: [],
           prerequisiteServiceIds: [],
           createdAt: ts,
           updatedAt: ts,
@@ -191,7 +192,7 @@ describe('Import/Export Stack Actions', () => {
   })
 
   describe('ImportStackAction', () => {
-    it('should import a stack with services, repos and dependencies', async () => {
+    it('should import a stack with services, repos and prerequisites', async () => {
       const importBody = {
         stack: {
           name: 'imported-stack',
@@ -206,7 +207,7 @@ describe('Import/Export Stack Actions', () => {
             description: '',
             workingDirectory: 'svc',
             runCommand: 'echo hello',
-            dependencyIds: [],
+            prerequisiteIds: [],
             prerequisiteServiceIds: [],
           },
         ],
@@ -219,12 +220,13 @@ describe('Import/Export Stack Actions', () => {
             description: '',
           },
         ],
-        dependencies: [
+        prerequisites: [
           {
-            id: 'imp-dep-1',
+            id: 'imp-prereq-1',
             stackName: 'imported-stack',
             name: 'Git',
-            checkCommand: 'git --version',
+            type: 'git' as const,
+            config: {},
             installationHelp: 'Install Git',
           },
         ],
@@ -261,8 +263,8 @@ describe('Import/Export Stack Actions', () => {
       const repos = await repoStore.find({})
       expect(repos).toHaveLength(1)
 
-      const deps = await depStore.find({})
-      expect(deps).toHaveLength(1)
+      const prereqs = await prereqStore.find({})
+      expect(prereqs).toHaveLength(1)
       await elevated[Symbol.asyncDispose]()
     })
 
@@ -281,12 +283,12 @@ describe('Import/Export Stack Actions', () => {
             description: '',
             workingDirectory: 'svc',
             runCommand: 'echo hi',
-            dependencyIds: [],
+            prerequisiteIds: [],
             prerequisiteServiceIds: [],
           },
         ],
         repositories: [],
-        dependencies: [],
+        prerequisites: [],
         config: {
           mainDirectory: '/tmp/reset',
         },

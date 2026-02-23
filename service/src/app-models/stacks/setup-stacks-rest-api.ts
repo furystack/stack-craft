@@ -5,8 +5,8 @@ import { RequestError } from '@furystack/rest'
 import { JsonResult, useRestService, Validate } from '@furystack/rest-service'
 import type { StacksApi, StackView } from 'common'
 import {
-  Dependency,
   GitHubRepository,
+  Prerequisite,
   ServiceConfig,
   ServiceDefinition,
   ServiceStatus,
@@ -177,14 +177,14 @@ export const setupStacksRestApi = async (injector: Injector) => {
               })
           }
 
-          const deps = await repo
-            .getDataSetFor(Dependency, 'id')
+          const prereqs = await repo
+            .getDataSetFor(Prerequisite, 'id')
             .find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
-          const depIds = deps.map((d) => d.id)
-          if (depIds.length > 0) {
+          const prereqIds = prereqs.map((p) => p.id)
+          if (prereqIds.length > 0) {
             await repo
-              .getDataSetFor(Dependency, 'id')
-              .remove(i, ...depIds)
+              .getDataSetFor(Prerequisite, 'id')
+              .remove(i, ...prereqIds)
               .catch(() => {
                 /* Already removed */
               })

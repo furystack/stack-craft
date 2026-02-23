@@ -1,7 +1,7 @@
 import type { WithOptionalId } from '@furystack/core'
 import type { DeleteEndpoint, GetCollectionEndpoint, GetEntityEndpoint, PatchEndpoint, RestApi } from '@furystack/rest'
-import type { Dependency } from '../models/dependency.js'
 import type { GitHubRepository } from '../models/github-repository.js'
+import type { Prerequisite } from '../models/prerequisite.js'
 import type { ServiceConfig } from '../models/service-config.js'
 import type { ServiceDefinition } from '../models/service-definition.js'
 import type { StackConfig } from '../models/stack-config.js'
@@ -16,7 +16,7 @@ export type PatchStackEndpoint = PatchEndpoint<StackWritableFields, 'name'>
 type ShareableStackDefinition = Omit<StackDefinition, 'createdAt' | 'updatedAt'>
 type ShareableServiceDefinition = Omit<ServiceDefinition, 'createdAt' | 'updatedAt'>
 type ShareableGitHubRepository = Omit<GitHubRepository, 'createdAt' | 'updatedAt'>
-type ShareableDependency = Omit<Dependency, 'createdAt' | 'updatedAt'>
+type ShareablePrerequisite = Omit<Prerequisite, 'createdAt' | 'updatedAt'>
 
 export type ExportStackEndpoint = {
   url: { id: string }
@@ -24,7 +24,7 @@ export type ExportStackEndpoint = {
     stack: ShareableStackDefinition
     services: ShareableServiceDefinition[]
     repositories: ShareableGitHubRepository[]
-    dependencies: ShareableDependency[]
+    prerequisites: ShareablePrerequisite[]
   }
 }
 
@@ -34,7 +34,7 @@ export type ImportStackEndpoint = {
     stack: ShareableStackDefinition
     services: ShareableServiceDefinition[]
     repositories: ShareableGitHubRepository[]
-    dependencies: ShareableDependency[]
+    prerequisites: ShareablePrerequisite[]
     config: {
       mainDirectory: string
       services?: Record<

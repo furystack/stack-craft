@@ -5,8 +5,8 @@ import { useSequelize } from '@furystack/sequelize-store'
 import { PasswordCredential } from '@furystack/security'
 import {
   ApiToken,
-  Dependency,
   GitHubRepository,
+  Prerequisite,
   ServiceConfig,
   ServiceDefinition,
   ServiceStateHistory,
@@ -15,6 +15,7 @@ import {
   StackDefinition,
   User,
 } from 'common'
+import type { PrerequisiteConfig, PrerequisiteType } from 'common'
 import { DataTypes, Model } from 'sequelize'
 import type { Options, Sequelize } from 'sequelize'
 import sqlite from 'sqlite3'
@@ -46,7 +47,7 @@ class ServiceDefinitionModel extends Model<ServiceDefinition, ServiceDefinition>
   declare description: string
   declare workingDirectory: string | undefined
   declare repositoryId: string | undefined
-  declare dependencyIds: string[]
+  declare prerequisiteIds: string[]
   declare prerequisiteServiceIds: string[]
   declare installCommand: string | undefined
   declare buildCommand: string | undefined
@@ -101,11 +102,12 @@ class GitHubRepositoryModel extends Model<GitHubRepository, GitHubRepository> im
   declare updatedAt: string
 }
 
-class DependencyModel extends Model<Dependency, Dependency> implements Dependency {
+class PrerequisiteModel extends Model<Prerequisite, Prerequisite> implements Prerequisite {
   declare id: string
   declare stackName: string
   declare name: string
-  declare checkCommand: string
+  declare type: PrerequisiteType
+  declare config: PrerequisiteConfig
   declare installationHelp: string
   declare createdAt: string
   declare updatedAt: string
@@ -220,7 +222,7 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
     { sequelize, indexes: [{ fields: ['stackName'] }] },
   )
 
-  DependencyModel.init(
+  PrerequisiteModel.init(
     {
       id: { type: DataTypes.STRING, primaryKey: true },
       stackName: {
@@ -229,7 +231,18 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
         references: { model: StackDefinitionModel, key: 'name' },
       },
       name: { type: DataTypes.STRING, allowNull: false },
-      checkCommand: { type: DataTypes.STRING, allowNull: false },
+      type: { type: DataTypes.STRING, allowNull: false },
+      config: {
+        type: DataTypes.TEXT,
+        defaultValue: '{}',
+        get() {
+          const raw = this.getDataValue('config')
+          return typeof raw === 'string' ? (JSON.parse(raw) as PrerequisiteConfig) : raw
+        },
+        set(val: PrerequisiteConfig) {
+          this.setDataValue('config', JSON.stringify(val) as unknown as PrerequisiteConfig)
+        },
+      },
       installationHelp: { type: DataTypes.TEXT, defaultValue: '' },
       createdAt: { type: DataTypes.DATE },
       updatedAt: { type: DataTypes.DATE },
@@ -253,15 +266,15 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
         allowNull: true,
         references: { model: GitHubRepositoryModel, key: 'id' },
       },
-      dependencyIds: {
+      prerequisiteIds: {
         type: DataTypes.TEXT,
         defaultValue: '[]',
         get() {
-          const raw = this.getDataValue('dependencyIds')
+          const raw = this.getDataValue('prerequisiteIds')
           return typeof raw === 'string' ? (JSON.parse(raw) as string[]) : raw
         },
         set(val: string[]) {
-          this.setDataValue('dependencyIds', JSON.stringify(val) as unknown as string[])
+          this.setDataValue('prerequisiteIds', JSON.stringify(val) as unknown as string[])
         },
       },
       prerequisiteServiceIds: {
@@ -378,8 +391,8 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
   StackDefinitionModel.hasMany(GitHubRepositoryModel, { foreignKey: 'stackName', onDelete: 'CASCADE' })
   GitHubRepositoryModel.belongsTo(StackDefinitionModel, { foreignKey: 'stackName' })
 
-  StackDefinitionModel.hasMany(DependencyModel, { foreignKey: 'stackName', onDelete: 'CASCADE' })
-  DependencyModel.belongsTo(StackDefinitionModel, { foreignKey: 'stackName' })
+  StackDefinitionModel.hasMany(PrerequisiteModel, { foreignKey: 'stackName', onDelete: 'CASCADE' })
+  PrerequisiteModel.belongsTo(StackDefinitionModel, { foreignKey: 'stackName' })
 
   GitHubRepositoryModel.hasMany(ServiceDefinitionModel, { foreignKey: 'repositoryId', onDelete: 'SET NULL' })
   ServiceDefinitionModel.belongsTo(GitHubRepositoryModel, { foreignKey: 'repositoryId' })
@@ -452,8 +465,8 @@ export const setupDataStore = async (injector: Injector) => {
   })
   useSequelize({
     injector,
-    model: Dependency,
-    sequelizeModel: DependencyModel,
+    model: Prerequisite,
+    sequelizeModel: PrerequisiteModel,
     primaryKey: 'id',
     options: dbOptions,
     initModel: initOnce,
@@ -506,7 +519,7 @@ export const setupDataStore = async (injector: Injector) => {
   getRepository(injector).createDataSet(StackDefinition, 'name', { ...authorizedDataSet })
   getRepository(injector).createDataSet(StackConfig, 'stackName', { ...authorizedDataSet })
   getRepository(injector).createDataSet(GitHubRepository, 'id', { ...authorizedDataSet })
-  getRepository(injector).createDataSet(Dependency, 'id', { ...authorizedDataSet })
+  getRepository(injector).createDataSet(Prerequisite, 'id', { ...authorizedDataSet })
   getRepository(injector).createDataSet(ServiceDefinition, 'id', { ...authorizedDataSet })
   getRepository(injector).createDataSet(ServiceConfig, 'serviceId', { ...authorizedDataSet })
   getRepository(injector).createDataSet(ServiceStatus, 'serviceId', { ...authorizedDataSet })

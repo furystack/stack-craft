@@ -96,7 +96,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
             description: body.description ?? '',
             workingDirectory: body.workingDirectory,
             repositoryId: body.repositoryId,
-            dependencyIds: body.dependencyIds ?? [],
+            prerequisiteIds: body.prerequisiteIds ?? [],
             prerequisiteServiceIds: body.prerequisiteServiceIds ?? [],
             installCommand: body.installCommand,
             buildCommand: body.buildCommand,
@@ -149,7 +149,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
           if (body.description !== undefined) defFields.description = body.description
           if (body.workingDirectory !== undefined) defFields.workingDirectory = body.workingDirectory
           if (body.repositoryId !== undefined) defFields.repositoryId = body.repositoryId
-          if (body.dependencyIds !== undefined) defFields.dependencyIds = body.dependencyIds
+          if (body.prerequisiteIds !== undefined) defFields.prerequisiteIds = body.prerequisiteIds
           if (body.prerequisiteServiceIds !== undefined) defFields.prerequisiteServiceIds = body.prerequisiteServiceIds
           if (body.installCommand !== undefined) defFields.installCommand = body.installCommand
           if (body.buildCommand !== undefined) defFields.buildCommand = body.buildCommand
