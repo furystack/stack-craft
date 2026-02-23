@@ -4,7 +4,6 @@ import { createComponent, LocationService, NestedRouteLink, Shade } from '@furys
 import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {
   Button,
-  ButtonGroup,
   CollectionService,
   DataGrid,
   Icon,
@@ -32,6 +31,12 @@ import { navigate } from '../../utils/navigate.js'
 import { ConfirmDialog } from '../../components/confirm-dialog.js'
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
 import { ServiceStatusIndicator } from '../../components/service-status-indicator.js'
+import {
+  BuildStatusChip,
+  CloneStatusChip,
+  InstallStatusChip,
+  RunStatusChip,
+} from '../../components/status-chips.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
 const eventLabels: Record<string, string> = {
@@ -270,50 +275,6 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           actions={
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <ServiceStatusIndicator service={service} />
-              <ButtonGroup variant="outlined">
-                {service.runStatus !== 'running' ? (
-                  <Button
-                    size="small"
-                    color="success"
-                    loading={actionInProgress === 'start'}
-                    disabled={!!actionInProgress}
-                    onclick={() => void runAction('start', '/services/:id/start')}
-                    startIcon={<Icon icon={icons.play} size="small" />}
-                  >
-                    Start
-                  </Button>
-                ) : (
-                  <Button
-                    size="small"
-                    loading={actionInProgress === 'stop'}
-                    disabled={!!actionInProgress}
-                    onclick={() => void runAction('stop', '/services/:id/stop')}
-                    startIcon={<Icon icon={icons.stopCircle} size="small" />}
-                  >
-                    Stop
-                  </Button>
-                )}
-                <Button
-                  size="small"
-                  loading={actionInProgress === 'restart'}
-                  disabled={!!actionInProgress}
-                  onclick={() => void runAction('restart', '/services/:id/restart')}
-                  startIcon={<Icon icon={icons.refresh} size="small" />}
-                >
-                  Restart
-                </Button>
-                {service.repositoryId ? (
-                  <Button
-                    size="small"
-                    loading={actionInProgress === 'update'}
-                    disabled={!!actionInProgress}
-                    onclick={() => void runAction('update', '/services/:id/update')}
-                    startIcon={<Icon icon={icons.download} size="small" />}
-                  >
-                    Update
-                  </Button>
-                ) : null}
-              </ButtonGroup>
               <NestedRouteLink href={`/services/${service.id}/logs`}>
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.file} size="small" />}>
                   Logs
@@ -340,7 +301,15 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           }
         />
         <Paper>
-          <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '8px 16px', fontSize: '14px' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '200px 1fr auto',
+              gap: '8px 16px',
+              fontSize: '14px',
+              alignItems: 'center',
+            }}
+          >
             {linkedRepo ? (
               <div style={{ display: 'contents' }}>
                 <strong>Repository</strong>
@@ -349,46 +318,43 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                     {linkedRepo.displayName}
                   </NestedRouteLink>
                 </span>
+                <span>
+                  {linkedRepo.url ? (
+                    <a href={linkedRepo.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+                      <Button variant="outlined" size="small" startIcon={<Icon icon={icons.externalLink} size="small" />}>
+                        Open
+                      </Button>
+                    </a>
+                  ) : null}
+                </span>
               </div>
             ) : null}
             <strong>Working Directory</strong>
             <span style={{ fontFamily: 'monospace' }}>{fullCwd ?? '(loading…)'}</span>
-            <strong>Run Command</strong>
-            <span style={{ fontFamily: 'monospace' }}>{service.runCommand}</span>
-            {service.installCommand ? (
-              <div style={{ display: 'contents' }}>
-                <strong>Install Command</strong>
-                <span style={{ fontFamily: 'monospace' }}>{service.installCommand}</span>
-              </div>
-            ) : null}
-            {service.buildCommand ? (
-              <div style={{ display: 'contents' }}>
-                <strong>Build Command</strong>
-                <span style={{ fontFamily: 'monospace' }}>{service.buildCommand}</span>
-              </div>
-            ) : null}
+            <span />
             {service.repositoryId ? (
               <div style={{ display: 'contents' }}>
-                <strong>Clone Status</strong>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>{service.cloneStatus}</span>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    loading={actionInProgress === 'pull'}
-                    disabled={!!actionInProgress}
-                    onclick={() => void runAction('pull', '/services/:id/pull')}
-                    startIcon={<Icon icon={icons.download} size="small" />}
-                  >
-                    {service.cloneStatus === 'not-cloned' ? 'Clone' : 'Pull'}
-                  </Button>
-                </div>
+                <strong>Clone</strong>
+                <CloneStatusChip status={service.cloneStatus} />
+                <Button
+                  variant="outlined"
+                  size="small"
+                  loading={actionInProgress === 'pull'}
+                  disabled={!!actionInProgress}
+                  onclick={() => void runAction('pull', '/services/:id/pull')}
+                  startIcon={<Icon icon={icons.download} size="small" />}
+                >
+                  {service.cloneStatus === 'not-cloned' ? 'Clone' : 'Pull'}
+                </Button>
               </div>
             ) : null}
-            <strong>Install Status</strong>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>{service.installStatus}</span>
-              {service.installCommand ? (
+            {service.installCommand ? (
+              <div style={{ display: 'contents' }}>
+                <strong>Install</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontFamily: 'monospace' }}>{service.installCommand}</span>
+                  <InstallStatusChip status={service.installStatus} />
+                </div>
                 <Button
                   variant="outlined"
                   size="small"
@@ -399,12 +365,15 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                 >
                   Install
                 </Button>
-              ) : null}
-            </div>
-            <strong>Build Status</strong>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>{service.buildStatus}</span>
-              {service.buildCommand ? (
+              </div>
+            ) : null}
+            {service.buildCommand ? (
+              <div style={{ display: 'contents' }}>
+                <strong>Build</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontFamily: 'monospace' }}>{service.buildCommand}</span>
+                  <BuildStatusChip status={service.buildStatus} />
+                </div>
                 <Button
                   variant="outlined"
                   size="small"
@@ -415,10 +384,37 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                 >
                   Build
                 </Button>
-              ) : null}
+              </div>
+            ) : null}
+            <strong>Run</strong>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontFamily: 'monospace' }}>{service.runCommand}</span>
+              <RunStatusChip status={service.runStatus} />
             </div>
-            <strong>Run Status</strong>
-            <span>{service.runStatus}</span>
+            {service.runStatus !== 'running' ? (
+              <Button
+                variant="outlined"
+                size="small"
+                color="success"
+                loading={actionInProgress === 'start'}
+                disabled={!!actionInProgress}
+                onclick={() => void runAction('start', '/services/:id/start')}
+                startIcon={<Icon icon={icons.play} size="small" />}
+              >
+                Start
+              </Button>
+            ) : (
+              <Button
+                variant="outlined"
+                size="small"
+                loading={actionInProgress === 'stop'}
+                disabled={!!actionInProgress}
+                onclick={() => void runAction('stop', '/services/:id/stop')}
+                startIcon={<Icon icon={icons.stopCircle} size="small" />}
+              >
+                Stop
+              </Button>
+            )}
           </div>
         </Paper>
         <ServiceHistory serviceId={service.id} />

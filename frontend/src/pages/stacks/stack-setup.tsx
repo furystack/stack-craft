@@ -3,7 +3,6 @@ import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 
 import {
   Button,
-  Chip,
   cssVariableTheme,
   Icon,
   icons,
@@ -13,10 +12,10 @@ import {
   PageHeader,
   Paper,
 } from '@furystack/shades-common-components'
-import type { Palette } from '@furystack/shades-common-components'
-import type { CloneStatus, BuildStatus, InstallStatus, ServiceView } from 'common'
+import type { ServiceView } from 'common'
 import { ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
 
+import { BuildStatusChip, CloneStatusChip, InstallStatusChip } from '../../components/status-chips.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
@@ -24,84 +23,16 @@ type StackSetupProps = {
   stackName: string
 }
 
-type PhaseStatus = 'pending' | 'in-progress' | 'done' | 'failed' | 'skipped'
-
-const getClonePhase = (svc: ServiceView): PhaseStatus => {
-  if (!svc.repositoryId) return 'skipped'
-  const map: Record<CloneStatus, PhaseStatus> = {
-    'not-cloned': 'pending',
-    cloning: 'in-progress',
-    cloned: 'done',
-    failed: 'failed',
-  }
-  return map[svc.cloneStatus] ?? 'pending'
-}
-
-const getInstallPhase = (svc: ServiceView): PhaseStatus => {
-  if (!svc.installCommand) return 'skipped'
-  const map: Record<InstallStatus, PhaseStatus> = {
-    'not-installed': 'pending',
-    installing: 'in-progress',
-    installed: 'done',
-    failed: 'failed',
-  }
-  return map[svc.installStatus] ?? 'pending'
-}
-
-const getBuildPhase = (svc: ServiceView): PhaseStatus => {
-  if (!svc.buildCommand) return 'skipped'
-  const map: Record<BuildStatus, PhaseStatus> = {
-    'not-built': 'pending',
-    building: 'in-progress',
-    built: 'done',
-    failed: 'failed',
-  }
-  return map[svc.buildStatus] ?? 'pending'
-}
-
-const phaseIcon: Record<PhaseStatus, string> = {
-  pending: '·',
-  'in-progress': '⏳',
-  done: '✓',
-  failed: '✗',
-  skipped: '—',
-}
-
-const phaseColor: Record<PhaseStatus, keyof Palette | 'secondary'> = {
-  pending: 'secondary',
-  'in-progress': 'warning',
-  done: 'success',
-  failed: 'error',
-  skipped: 'secondary',
-}
-
 const isServiceReady = (svc: ServiceView): boolean => {
-  const clone = getClonePhase(svc)
-  const install = getInstallPhase(svc)
-  const build = getBuildPhase(svc)
-  return (
-    (clone === 'done' || clone === 'skipped') &&
-    (install === 'done' || install === 'skipped') &&
-    (build === 'done' || build === 'skipped')
-  )
+  const cloneOk = !svc.repositoryId || svc.cloneStatus === 'cloned'
+  const installOk = !svc.installCommand || svc.installStatus === 'installed'
+  const buildOk = !svc.buildCommand || svc.buildStatus === 'built'
+  return cloneOk && installOk && buildOk
 }
 
 const isServiceInProgress = (svc: ServiceView): boolean => {
-  return (
-    getClonePhase(svc) === 'in-progress' ||
-    getInstallPhase(svc) === 'in-progress' ||
-    getBuildPhase(svc) === 'in-progress'
-  )
+  return svc.cloneStatus === 'cloning' || svc.installStatus === 'installing' || svc.buildStatus === 'building'
 }
-
-const PhaseChip = Shade<{ status: PhaseStatus; label: string }>({
-  shadowDomName: 'shade-phase-chip',
-  render: ({ props }) => (
-    <Chip variant="outlined" color={phaseColor[props.status]} size="small">
-      {phaseIcon[props.status]} {props.label}
-    </Chip>
-  ),
-})
 
 export const StackSetup = Shade<StackSetupProps>({
   shadowDomName: 'shade-stack-setup',
@@ -274,9 +205,6 @@ export const StackSetup = Shade<StackSetupProps>({
             </thead>
             <tbody>
               {services.map((svc) => {
-                const clone = getClonePhase(svc)
-                const install = getInstallPhase(svc)
-                const build = getBuildPhase(svc)
                 const ready = isServiceReady(svc)
                 const inProgress = isServiceInProgress(svc) || setupTriggered.has(svc.id)
 
@@ -295,13 +223,13 @@ export const StackSetup = Shade<StackSetupProps>({
                       ) : null}
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                      <PhaseChip status={clone} label="Clone" />
+                      <CloneStatusChip status={svc.cloneStatus} />
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                      <PhaseChip status={install} label="Install" />
+                      <InstallStatusChip status={svc.installStatus} />
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                      <PhaseChip status={build} label="Build" />
+                      <BuildStatusChip status={svc.buildStatus} />
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>

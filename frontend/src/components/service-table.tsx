@@ -8,7 +8,7 @@ import type { ServiceView } from 'common'
 
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
 import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
-import { ServiceStatusIndicator } from './service-status-indicator.js'
+import { RunStatusChip } from './status-chips.js'
 
 type ServiceTableProps = {
   services: ServiceView[]
@@ -86,7 +86,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
               ) : null}
             </span>
           ),
-          runStatus: (entry) => <ServiceStatusIndicator service={entry} />,
+          runStatus: (entry) => <RunStatusChip status={entry.runStatus} />,
           actions: (entry) => {
             const needsSetup =
               (entry.repositoryId && entry.cloneStatus !== 'cloned') ||
