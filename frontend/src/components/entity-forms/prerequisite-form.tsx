@@ -119,10 +119,7 @@ export const PrerequisiteForm = Shade<PrerequisiteFormProps>({
           options={typeOptions}
           value={props.initial?.type ?? ''}
           placeholder="Select a prerequisite type..."
-          onchange={(ev) => {
-            const value = (ev.target as HTMLSelectElement).value as PrerequisiteType
-            setSelectedType(value)
-          }}
+          onValueChange={(value) => setSelectedType(value as PrerequisiteType)}
         />
 
         {(selectedType === 'node' || selectedType === 'yarn') && (

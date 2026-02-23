@@ -201,6 +201,16 @@ export const PrerequisiteTable = Shade<PrerequisiteTableProps>({
 
     return (
       <div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            onclick={() => setIsCreating(true)}
+            startIcon={<Icon icon={icons.plus} size="small" />}
+          >
+            Add Prerequisite
+          </Button>
+        </div>
         <DataGrid<Prerequisite, PrerequisiteColumn>
           columns={['name', 'type', 'status', 'actions']}
           findOptions={findOptions}

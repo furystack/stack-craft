@@ -280,11 +280,11 @@ export const createMcpRequestHandler = (injector: Injector, sessionManager: McpS
         const mcp = createMcpServer(injector, elevated)
         await mcp.connect(transport)
 
+        await transport.handleRequest(req, res)
+
         if (transport.sessionId) {
           sessionManager.register(transport.sessionId, transport)
         }
-
-        await transport.handleRequest(req, res)
         return
       }
 

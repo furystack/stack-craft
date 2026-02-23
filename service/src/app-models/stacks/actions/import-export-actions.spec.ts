@@ -20,7 +20,7 @@ import { ImportStackAction } from './import-stack-action.js'
 class AutoIncrementStore<T extends { id: number }> extends InMemoryStore<T, 'id'> {
   private nextId = 1
 
-  async add(...items: T[]): Promise<T[]> {
+  public async add(...items: T[]) {
     const withIds = items.map((item) => ({
       ...item,
       id: item.id || this.nextId++,

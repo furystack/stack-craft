@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { runCheck, CheckPrerequisiteAction } from './check-prerequisite-action.js'
 
 const execFileMock = vi.hoisted(() =>
-  vi.fn<[string, string[], { timeout: number }], Promise<{ stdout: string; stderr: string }>>(),
+  vi.fn<(cmd: string, args: string[], options: { timeout: number }) => Promise<{ stdout: string; stderr: string }>>(),
 )
 
 vi.mock('child_process', () => ({
