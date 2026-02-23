@@ -31,6 +31,7 @@ import {
 } from 'common'
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
 import { PrerequisiteList } from '../../components/prerequisite-list.js'
+import { ServiceEnvOverrides } from '../../components/service-env-overrides.js'
 import { ServiceStatusIndicator } from '../../components/service-status-indicator.js'
 import { BuildStatusChip, CloneStatusChip, InstallStatusChip, RunStatusChip } from '../../components/status-chips.js'
 import { GitHubReposApiClient } from '../../services/api-clients/github-repos-api-client.js'
@@ -137,6 +138,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       autoFetchEnabled: false,
       autoFetchIntervalMinutes: 60,
       autoRestartOnFetch: false,
+      environmentVariableOverrides: {},
       cloneStatus: 'not-cloned',
       installStatus: 'not-installed',
       buildStatus: 'not-built',
@@ -511,6 +513,13 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             <PrerequisiteList prerequisites={servicePrereqs} />
           </Paper>
         ) : null}
+        {servicePrereqs.some((p) => p.type === 'env-variable') ? (
+          <ServiceEnvOverrides
+            service={service}
+            envPrereqs={servicePrereqs.filter((p) => p.type === 'env-variable')}
+            stackEnvVars={stackConfig?.environmentVariables ?? {}}
+          />
+        ) : null}
         <ServiceHistory serviceId={service.id} />
         {ConfirmDialog(isConfirmingDelete, {
           title: 'Delete Service',
@@ -621,7 +630,11 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
                 entry.processUid ? (
                   <Button
                     size="small"
-                    onclick={() => injector.getInstance(LocationService).navigate(`/services/${props.serviceId}/logs/${entry.processUid}`)}
+                    onclick={() =>
+                      injector
+                        .getInstance(LocationService)
+                        .navigate(`/services/${props.serviceId}/logs/${entry.processUid}`)
+                    }
                   >
                     Show Logs
                   </Button>

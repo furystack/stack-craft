@@ -64,6 +64,7 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
     await stackConfigDs.add(injector, {
       stackName,
       mainDirectory: body.config.mainDirectory,
+      environmentVariables: body.config.environmentVariables ?? {},
       createdAt: now,
       updatedAt: now,
     })
@@ -85,6 +86,7 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
         autoFetchEnabled: userConfig?.autoFetchEnabled ?? false,
         autoFetchIntervalMinutes: userConfig?.autoFetchIntervalMinutes ?? 60,
         autoRestartOnFetch: userConfig?.autoRestartOnFetch ?? false,
+        environmentVariableOverrides: userConfig?.environmentVariableOverrides ?? {},
         createdAt: now,
         updatedAt: now,
       })

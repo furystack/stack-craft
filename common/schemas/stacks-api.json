@@ -9,6 +9,13 @@
           "type": "string",
           "description": "Absolute path to the root directory for all services in this stack"
         },
+        "environmentVariables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Stack-level environment variable values, keyed by variable name"
+        },
         "name": {
           "type": "string",
           "description": "Unique kebab-case identifier for the stack"
@@ -22,7 +29,24 @@
           "description": "Optional description of what this stack does"
         }
       },
-      "required": ["description", "displayName", "mainDirectory", "name"]
+      "required": ["description", "displayName", "environmentVariables", "mainDirectory", "name"]
+    },
+    "EnvironmentVariableValue": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["inherit", "custom"],
+          "description": "Whether to inherit the value from the host system or use a custom value"
+        },
+        "customValue": {
+          "type": "string",
+          "description": "The custom value to use when source is 'custom'"
+        }
+      },
+      "required": ["source"],
+      "additionalProperties": false,
+      "description": "Describes how an environment variable's value is resolved. Used in  {@link  StackConfig  }  for stack-level defaults and in  {@link  ServiceConfig  }  for per-service overrides."
     },
     "PostStackEndpoint": {
       "type": "object",
@@ -49,6 +73,13 @@
           "type": "string",
           "description": "Absolute path to the root directory for all services in this stack"
         },
+        "environmentVariables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Stack-level environment variable values, keyed by variable name"
+        },
         "createdAt": {
           "type": "string"
         },
@@ -68,7 +99,16 @@
           "description": "Optional description of what this stack does"
         }
       },
-      "required": ["createdAt", "description", "displayName", "mainDirectory", "name", "stackName", "updatedAt"],
+      "required": [
+        "createdAt",
+        "description",
+        "displayName",
+        "environmentVariables",
+        "mainDirectory",
+        "name",
+        "stackName",
+        "updatedAt"
+      ],
       "description": "Full stack view combining definition and config for API responses"
     },
     "WithOptionalId<StackWritableFields,\"name\">": {
@@ -90,9 +130,16 @@
         "mainDirectory": {
           "type": "string",
           "description": "Absolute path to the root directory for all services in this stack"
+        },
+        "environmentVariables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Stack-level environment variable values, keyed by variable name"
         }
       },
-      "required": ["description", "displayName", "mainDirectory"]
+      "required": ["description", "displayName", "environmentVariables", "mainDirectory"]
     },
     "PatchStackEndpoint": {
       "$ref": "#/definitions/PatchEndpoint%3CStackWritableFields%2C%22name%22%3E"
@@ -118,6 +165,13 @@
             "mainDirectory": {
               "type": "string",
               "description": "Absolute path to the root directory for all services in this stack"
+            },
+            "environmentVariables": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/EnvironmentVariableValue"
+              },
+              "description": "Stack-level environment variable values, keyed by variable name"
             }
           },
           "additionalProperties": false
@@ -588,11 +642,24 @@
                 "mainDirectory": {
                   "type": "string"
                 },
+                "environmentVariables": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/definitions/EnvironmentVariableValue"
+                  }
+                },
                 "services": {
                   "type": "object",
                   "additionalProperties": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
+                      "environmentVariableOverrides": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "$ref": "#/definitions/EnvironmentVariableValue"
+                        }
+                      },
                       "autoFetchEnabled": {
                         "type": "boolean",
                         "description": "Whether automatic git fetch is enabled"
@@ -605,8 +672,7 @@
                         "type": "boolean",
                         "description": "Whether to automatically restart the service when new commits are fetched"
                       }
-                    },
-                    "additionalProperties": false
+                    }
                   }
                 }
               },
@@ -789,7 +855,7 @@
           "type": "object",
           "properties": {
             "findOptions": {
-              "$ref": "#/definitions/FindOptions%3CStackView%2C(%22name%22%7C%22displayName%22%7C%22description%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22stackName%22%7C%22mainDirectory%22)%5B%5D%3E"
+              "$ref": "#/definitions/FindOptions%3CStackView%2C(%22name%22%7C%22displayName%22%7C%22description%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22stackName%22%7C%22mainDirectory%22%7C%22environmentVariables%22)%5B%5D%3E"
             }
           },
           "additionalProperties": false
@@ -802,7 +868,7 @@
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
-    "FindOptions<StackView,(\"name\"|\"displayName\"|\"description\"|\"createdAt\"|\"updatedAt\"|\"stackName\"|\"mainDirectory\")[]>": {
+    "FindOptions<StackView,(\"name\"|\"displayName\"|\"description\"|\"createdAt\"|\"updatedAt\"|\"stackName\"|\"mainDirectory\"|\"environmentVariables\")[]>": {
       "type": "object",
       "properties": {
         "top": {
@@ -843,6 +909,10 @@
             "mainDirectory": {
               "type": "string",
               "enum": ["ASC", "DESC"]
+            },
+            "environmentVariables": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
             }
           },
           "additionalProperties": false,
@@ -852,7 +922,16 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["name", "displayName", "description", "createdAt", "updatedAt", "stackName", "mainDirectory"]
+            "enum": [
+              "name",
+              "displayName",
+              "description",
+              "createdAt",
+              "updatedAt",
+              "stackName",
+              "mainDirectory",
+              "environmentVariables"
+            ]
           },
           "description": "The result set will be limited to these fields"
         },
@@ -1295,6 +1374,56 @@
               "additionalProperties": false
             }
           ]
+        },
+        "environmentVariables": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/definitions/EnvironmentVariableValue"
+                  },
+                  "description": "Stack-level environment variable values, keyed by variable name"
+                },
+                "$ne": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/definitions/EnvironmentVariableValue"
+                  },
+                  "description": "Stack-level environment variable values, keyed by variable name"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/definitions/EnvironmentVariableValue"
+                    },
+                    "description": "Stack-level environment variable values, keyed by variable name"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/definitions/EnvironmentVariableValue"
+                    },
+                    "description": "Stack-level environment variable values, keyed by variable name"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
         }
       }
     },
@@ -1327,7 +1456,16 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": ["name", "displayName", "description", "createdAt", "updatedAt", "stackName", "mainDirectory"]
+                "enum": [
+                  "name",
+                  "displayName",
+                  "description",
+                  "createdAt",
+                  "updatedAt",
+                  "stackName",
+                  "mainDirectory",
+                  "environmentVariables"
+                ]
               },
               "description": "The list of fields to select"
             }

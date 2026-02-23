@@ -84,10 +84,40 @@
         "autoRestartOnFetch": {
           "type": "boolean",
           "description": "Whether to automatically restart the service when new commits are fetched"
+        },
+        "environmentVariableOverrides": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
         }
       },
-      "required": ["serviceId", "autoFetchEnabled", "autoFetchIntervalMinutes", "autoRestartOnFetch"],
+      "required": [
+        "serviceId",
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch",
+        "environmentVariableOverrides"
+      ],
       "additionalProperties": false
+    },
+    "EnvironmentVariableValue": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["inherit", "custom"],
+          "description": "Whether to inherit the value from the host system or use a custom value"
+        },
+        "customValue": {
+          "type": "string",
+          "description": "The custom value to use when source is 'custom'"
+        }
+      },
+      "required": ["source"],
+      "additionalProperties": false,
+      "description": "Describes how an environment variable's value is resolved. Used in  {@link  StackConfig  }  for stack-level defaults and in  {@link  ServiceConfig  }  for per-service overrides."
     },
     "ServiceWritableFields": {
       "type": "object",
@@ -104,6 +134,13 @@
         "autoRestartOnFetch": {
           "type": "boolean",
           "description": "Whether to automatically restart the service when new commits are fetched"
+        },
+        "environmentVariableOverrides": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
         },
         "id": {
           "type": "string",
@@ -162,6 +199,7 @@
         "autoRestartOnFetch",
         "description",
         "displayName",
+        "environmentVariableOverrides",
         "id",
         "prerequisiteIds",
         "prerequisiteServiceIds",
@@ -232,6 +270,13 @@
           "type": "boolean",
           "description": "Whether to automatically restart the service when new commits are fetched"
         },
+        "environmentVariableOverrides": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+        },
         "createdAt": {
           "type": "string"
         },
@@ -295,6 +340,7 @@
         "createdAt",
         "description",
         "displayName",
+        "environmentVariableOverrides",
         "id",
         "installStatus",
         "prerequisiteIds",
@@ -388,6 +434,13 @@
         "autoRestartOnFetch": {
           "type": "boolean",
           "description": "Whether to automatically restart the service when new commits are fetched"
+        },
+        "environmentVariableOverrides": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
         }
       },
       "required": [
@@ -396,6 +449,7 @@
         "autoRestartOnFetch",
         "description",
         "displayName",
+        "environmentVariableOverrides",
         "prerequisiteIds",
         "prerequisiteServiceIds",
         "runCommand",
@@ -472,6 +526,13 @@
             "autoRestartOnFetch": {
               "type": "boolean",
               "description": "Whether to automatically restart the service when new commits are fetched"
+            },
+            "environmentVariableOverrides": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/EnvironmentVariableValue"
+              },
+              "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
             }
           },
           "additionalProperties": false
@@ -917,7 +978,7 @@
           "type": "object",
           "properties": {
             "findOptions": {
-              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22)%5B%5D%3E"
+              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22environmentVariableOverrides%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22)%5B%5D%3E"
             }
           },
           "additionalProperties": false
@@ -930,7 +991,7 @@
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
-    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\")[]>": {
+    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"environmentVariableOverrides\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\")[]>": {
       "type": "object",
       "properties": {
         "top": {
@@ -1012,6 +1073,10 @@
               "type": "string",
               "enum": ["ASC", "DESC"]
             },
+            "environmentVariableOverrides": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
             "cloneStatus": {
               "type": "string",
               "enum": ["ASC", "DESC"]
@@ -1074,6 +1139,7 @@
               "autoFetchEnabled",
               "autoFetchIntervalMinutes",
               "autoRestartOnFetch",
+              "environmentVariableOverrides",
               "cloneStatus",
               "installStatus",
               "buildStatus",
@@ -2031,6 +2097,56 @@
             }
           ]
         },
+        "environmentVariableOverrides": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/definitions/EnvironmentVariableValue"
+                  },
+                  "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+                },
+                "$ne": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/definitions/EnvironmentVariableValue"
+                  },
+                  "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/definitions/EnvironmentVariableValue"
+                    },
+                    "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/definitions/EnvironmentVariableValue"
+                    },
+                    "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
         "cloneStatus": {
           "anyOf": [
             {
@@ -2528,6 +2644,7 @@
                   "autoFetchEnabled",
                   "autoFetchIntervalMinutes",
                   "autoRestartOnFetch",
+                  "environmentVariableOverrides",
                   "cloneStatus",
                   "installStatus",
                   "buildStatus",

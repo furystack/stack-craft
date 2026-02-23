@@ -60,6 +60,7 @@ export const CreateService = Shade<CreateServiceProps>({
             autoRestartOnFetch: data.autoRestartOnFetch ?? false,
             prerequisiteIds: data.prerequisiteIds ?? [],
             prerequisiteServiceIds: data.prerequisiteServiceIds ?? [],
+            environmentVariableOverrides: data.environmentVariableOverrides ?? {},
           },
         })
         noty.emit('onNotyAdded', {

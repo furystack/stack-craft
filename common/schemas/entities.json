@@ -26,6 +26,23 @@
       "required": ["id", "username", "name", "tokenHash", "createdAt"],
       "additionalProperties": false
     },
+    "EnvironmentVariableValue": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["inherit", "custom"],
+          "description": "Whether to inherit the value from the host system or use a custom value"
+        },
+        "customValue": {
+          "type": "string",
+          "description": "The custom value to use when source is 'custom'"
+        }
+      },
+      "required": ["source"],
+      "additionalProperties": false,
+      "description": "Describes how an environment variable's value is resolved. Used in  {@link  StackConfig  }  for stack-level defaults and in  {@link  ServiceConfig  }  for per-service overrides."
+    },
     "GitHubRepository": {
       "type": "object",
       "properties": {
@@ -113,6 +130,13 @@
           "type": "string",
           "description": "Absolute path to the root directory for all services in this stack"
         },
+        "environmentVariables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Stack-level environment variable values, keyed by variable name"
+        },
         "createdAt": {
           "type": "string"
         },
@@ -120,7 +144,7 @@
           "type": "string"
         }
       },
-      "required": ["stackName", "mainDirectory", "createdAt", "updatedAt"],
+      "required": ["stackName", "mainDirectory", "environmentVariables", "createdAt", "updatedAt"],
       "additionalProperties": false,
       "description": "User-specific stack configuration. Contains settings unique to this installation/machine. Not included in exports - set by the user during import/installation."
     },
@@ -217,6 +241,13 @@
           "type": "boolean",
           "description": "Whether to automatically restart the service when new commits are fetched"
         },
+        "environmentVariableOverrides": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+        },
         "createdAt": {
           "type": "string"
         },
@@ -229,6 +260,7 @@
         "autoFetchEnabled",
         "autoFetchIntervalMinutes",
         "autoRestartOnFetch",
+        "environmentVariableOverrides",
         "createdAt",
         "updatedAt"
       ],
@@ -673,6 +705,13 @@
           "type": "string",
           "description": "Absolute path to the root directory for all services in this stack"
         },
+        "environmentVariables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Stack-level environment variable values, keyed by variable name"
+        },
         "createdAt": {
           "type": "string"
         },
@@ -692,7 +731,16 @@
           "description": "Optional description of what this stack does"
         }
       },
-      "required": ["createdAt", "description", "displayName", "mainDirectory", "name", "stackName", "updatedAt"],
+      "required": [
+        "createdAt",
+        "description",
+        "displayName",
+        "environmentVariables",
+        "mainDirectory",
+        "name",
+        "stackName",
+        "updatedAt"
+      ],
       "description": "Full stack view combining definition and config for API responses"
     },
     "ServiceView": {
@@ -744,6 +792,13 @@
         "autoRestartOnFetch": {
           "type": "boolean",
           "description": "Whether to automatically restart the service when new commits are fetched"
+        },
+        "environmentVariableOverrides": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
         },
         "createdAt": {
           "type": "string"
@@ -808,6 +863,7 @@
         "createdAt",
         "description",
         "displayName",
+        "environmentVariableOverrides",
         "id",
         "installStatus",
         "prerequisiteIds",

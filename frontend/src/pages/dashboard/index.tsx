@@ -100,6 +100,7 @@ export const Dashboard = Shade<DashboardProps>({
       autoFetchEnabled: false,
       autoFetchIntervalMinutes: 60,
       autoRestartOnFetch: false,
+      environmentVariableOverrides: {},
       cloneStatus: 'not-cloned' as const,
       installStatus: 'not-installed' as const,
       buildStatus: 'not-built' as const,

@@ -84,7 +84,13 @@ export const setupStacksRestApi = async (injector: Injector) => {
             createdAt: now,
             updatedAt: now,
           }
-          const config = { stackName: name, mainDirectory: body.mainDirectory, createdAt: now, updatedAt: now }
+          const config = {
+            stackName: name,
+            mainDirectory: body.mainDirectory,
+            environmentVariables: body.environmentVariables ?? {},
+            createdAt: now,
+            updatedAt: now,
+          }
           await repo.getDataSetFor(StackDefinition, 'name').add(i, def)
           await repo.getDataSetFor(StackConfig, 'stackName').add(i, config)
           return JsonResult({ ...def, ...config })
@@ -126,6 +132,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
 
           const configFields: Partial<StackConfig> = {}
           if (body.mainDirectory !== undefined) configFields.mainDirectory = body.mainDirectory
+          if (body.environmentVariables !== undefined) configFields.environmentVariables = body.environmentVariables
 
           if (Object.keys(defFields).length > 0) {
             await repo.getDataSetFor(StackDefinition, 'name').update(i, id, defFields)

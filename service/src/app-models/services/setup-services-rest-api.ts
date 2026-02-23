@@ -24,6 +24,7 @@ const mergeServiceView = (
   autoFetchEnabled: false,
   autoFetchIntervalMinutes: 60,
   autoRestartOnFetch: false,
+  environmentVariableOverrides: {},
   cloneStatus: 'not-cloned',
   installStatus: 'not-installed',
   buildStatus: 'not-built',
@@ -110,6 +111,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
             autoFetchEnabled: body.autoFetchEnabled ?? false,
             autoFetchIntervalMinutes: body.autoFetchIntervalMinutes ?? 60,
             autoRestartOnFetch: body.autoRestartOnFetch ?? false,
+            environmentVariableOverrides: body.environmentVariableOverrides ?? {},
             createdAt: now,
             updatedAt: now,
           }
@@ -160,6 +162,8 @@ export const setupServicesRestApi = async (injector: Injector) => {
           if (body.autoFetchIntervalMinutes !== undefined)
             configFields.autoFetchIntervalMinutes = body.autoFetchIntervalMinutes
           if (body.autoRestartOnFetch !== undefined) configFields.autoRestartOnFetch = body.autoRestartOnFetch
+          if (body.environmentVariableOverrides !== undefined)
+            configFields.environmentVariableOverrides = body.environmentVariableOverrides
 
           if (Object.keys(defFields).length > 0) {
             await repo.getDataSetFor(ServiceDefinition, 'id').update(i, id, defFields)

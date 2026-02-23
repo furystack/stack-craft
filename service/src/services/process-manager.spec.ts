@@ -4,6 +4,7 @@ import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import {
   GitHubRepository,
+  Prerequisite,
   ServiceConfig,
   ServiceDefinition,
   ServiceLogEntry,
@@ -204,6 +205,7 @@ describe('ProcessManager', () => {
       autoFetchEnabled: false,
       autoFetchIntervalMinutes: 60,
       autoRestartOnFetch: false,
+      environmentVariableOverrides: {},
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -219,6 +221,7 @@ describe('ProcessManager', () => {
     addStore(injector, new InMemoryStore({ model: ServiceStatus, primaryKey: 'serviceId' }))
     addStore(injector, new InMemoryStore({ model: StackConfig, primaryKey: 'stackName' }))
     addStore(injector, new InMemoryStore({ model: GitHubRepository, primaryKey: 'id' }))
+    addStore(injector, new InMemoryStore({ model: Prerequisite, primaryKey: 'id' }))
     addStore(injector, new InMemoryStore({ model: ServiceLogEntry, primaryKey: 'id' }))
     addStore(injector, new InMemoryStore({ model: ServiceStateHistory, primaryKey: 'id' }))
 
@@ -227,6 +230,7 @@ describe('ProcessManager', () => {
     getRepository(injector).createDataSet(ServiceStatus, 'serviceId', {})
     getRepository(injector).createDataSet(StackConfig, 'stackName', {})
     getRepository(injector).createDataSet(GitHubRepository, 'id', {})
+    getRepository(injector).createDataSet(Prerequisite, 'id', {})
     getRepository(injector).createDataSet(ServiceLogEntry, 'id', {})
     getRepository(injector).createDataSet(ServiceStateHistory, 'id', {})
 
@@ -243,6 +247,7 @@ describe('ProcessManager', () => {
     await getRepository(elevated).getDataSetFor(StackConfig, 'stackName').add(elevated, {
       stackName: 'test-stack',
       mainDirectory: tmpdir(),
+      environmentVariables: {},
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })

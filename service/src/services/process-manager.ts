@@ -2,7 +2,15 @@ import { Injectable, Injected, type Injector, getInjectorReference } from '@fury
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import type { CloneStatus, InstallStatus, BuildStatus, RunStatus, ServiceStateEvent, TriggerSource } from 'common'
-import { GitHubRepository, ServiceDefinition, ServiceStateHistory, ServiceStatus, StackConfig } from 'common'
+import {
+  GitHubRepository,
+  Prerequisite,
+  ServiceConfig,
+  ServiceDefinition,
+  ServiceStateHistory,
+  ServiceStatus,
+  StackConfig,
+} from 'common'
 import { getServiceCwd } from 'common'
 import { type ChildProcess, spawn } from 'child_process'
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs'
@@ -199,8 +207,9 @@ export class ProcessManager {
       })
 
       const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
+      const envVars = await this.resolveServiceEnvVars(serviceId)
       const processUid = randomUUID()
-      const child = this.spawnCommand(svc.runCommand, cwd)
+      const child = this.spawnCommand(svc.runCommand, cwd, envVars)
 
       const managed: ManagedProcess = {
         serviceId,
@@ -610,7 +619,8 @@ export class ProcessManager {
     const processUid = randomUUID()
     await this.updateServiceStatus(serviceId, progressStatus, progressEvent, trigger, undefined, { processUid })
 
-    const child = this.spawnCommand(command, cwd)
+    const envVars = await this.resolveServiceEnvVars(serviceId)
+    const child = this.spawnCommand(command, cwd, envVars)
 
     const managed: ManagedProcess = {
       serviceId,
@@ -720,7 +730,57 @@ export class ProcessManager {
     return env
   }
 
-  private spawnCommand(command: string, cwd: string): ChildProcess {
+  /**
+   * Resolves the effective environment variables for a service by looking up
+   * its env-variable prerequisites and merging stack-level defaults with
+   * optional service-level overrides.
+   */
+  public async resolveServiceEnvVars(serviceId: string): Promise<Record<string, string>> {
+    const elevated = this.getElevatedInjector()
+    const repository = getRepository(elevated)
+
+    const services = await repository
+      .getDataSetFor(ServiceDefinition, 'id')
+      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
+    const svc = services[0]
+    if (!svc) return {}
+
+    const allPrereqs = await repository
+      .getDataSetFor(Prerequisite, 'id')
+      .find(elevated, { filter: { stackName: { $eq: svc.stackName } } })
+    const envPrereqs = allPrereqs.filter((p) => p.type === 'env-variable' && svc.prerequisiteIds.includes(p.id))
+    if (envPrereqs.length === 0) return {}
+
+    const stackConfigs = await repository
+      .getDataSetFor(StackConfig, 'stackName')
+      .find(elevated, { filter: { stackName: { $eq: svc.stackName } }, top: 1 })
+    const stackConfig = stackConfigs[0]
+
+    const svcConfigs = await repository
+      .getDataSetFor(ServiceConfig, 'serviceId')
+      .find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+    const svcConfig = svcConfigs[0]
+
+    const resolved: Record<string, string> = {}
+    for (const prereq of envPrereqs) {
+      const varName = (prereq.config as { variableName: string }).variableName
+      const override = svcConfig?.environmentVariableOverrides?.[varName]
+      const stackDefault = stackConfig?.environmentVariables?.[varName]
+      const config = override ?? stackDefault
+
+      if (config?.source === 'custom' && config.customValue !== undefined) {
+        resolved[varName] = config.customValue
+      } else if (config?.source === 'inherit' || !config) {
+        const globalValue = process.env[varName]
+        if (globalValue !== undefined) {
+          resolved[varName] = globalValue
+        }
+      }
+    }
+    return resolved
+  }
+
+  private spawnCommand(command: string, cwd: string, extraEnv?: Record<string, string>): ChildProcess {
     const isWindows = process.platform === 'win32'
     const shell = isWindows ? 'cmd.exe' : '/bin/sh'
     const shellFlag = isWindows ? '/c' : '-c'
@@ -728,7 +788,7 @@ export class ProcessManager {
     return spawn(shell, [shellFlag, command], {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: ProcessManager.getSafeEnv(),
+      env: { ...ProcessManager.getSafeEnv(), ...extraEnv },
       detached: true,
     })
   }

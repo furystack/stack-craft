@@ -1,5 +1,6 @@
 import type { WithOptionalId } from '@furystack/core'
 import type { DeleteEndpoint, GetCollectionEndpoint, GetEntityEndpoint, PatchEndpoint, RestApi } from '@furystack/rest'
+import type { EnvironmentVariableValue } from '../models/environment-variable-value.js'
 import type { GitHubRepository } from '../models/github-repository.js'
 import type { Prerequisite } from '../models/prerequisite.js'
 import type { ServiceConfig } from '../models/service-config.js'
@@ -37,9 +38,12 @@ export type ImportStackEndpoint = {
     prerequisites: ShareablePrerequisite[]
     config: {
       mainDirectory: string
+      environmentVariables?: Record<string, EnvironmentVariableValue>
       services?: Record<
         string,
-        Partial<Pick<ServiceConfig, 'autoFetchEnabled' | 'autoFetchIntervalMinutes' | 'autoRestartOnFetch'>>
+        Partial<Pick<ServiceConfig, 'autoFetchEnabled' | 'autoFetchIntervalMinutes' | 'autoRestartOnFetch'>> & {
+          environmentVariableOverrides?: Record<string, EnvironmentVariableValue>
+        }
       >
     }
   }

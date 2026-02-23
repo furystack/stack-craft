@@ -78,6 +78,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
             repositoryId: data.repositoryId,
             prerequisiteIds: data.prerequisiteIds ?? [],
             prerequisiteServiceIds: data.prerequisiteServiceIds ?? [],
+            environmentVariableOverrides: data.environmentVariableOverrides ?? {},
           },
         })
 

@@ -1,4 +1,5 @@
 export * from './user.js'
+export * from './environment-variable-value.js'
 export * from './stack-definition.js'
 export * from './stack-config.js'
 export * from './service-definition.js'

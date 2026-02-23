@@ -15,7 +15,7 @@ import {
   StackDefinition,
   User,
 } from 'common'
-import type { PrerequisiteConfig, PrerequisiteType } from 'common'
+import type { EnvironmentVariableValue, PrerequisiteConfig, PrerequisiteType } from 'common'
 import { DataTypes, Model } from 'sequelize'
 import type { Options, Sequelize } from 'sequelize'
 import sqlite from 'sqlite3'
@@ -36,6 +36,7 @@ class StackDefinitionModel extends Model<StackDefinition, StackDefinition> imple
 class StackConfigModel extends Model<StackConfig, StackConfig> implements StackConfig {
   declare stackName: string
   declare mainDirectory: string
+  declare environmentVariables: Record<string, EnvironmentVariableValue>
   declare createdAt: string
   declare updatedAt: string
 }
@@ -61,6 +62,7 @@ class ServiceConfigModel extends Model<ServiceConfig, ServiceConfig> implements 
   declare autoFetchEnabled: boolean
   declare autoFetchIntervalMinutes: number
   declare autoRestartOnFetch: boolean
+  declare environmentVariableOverrides: Record<string, EnvironmentVariableValue>
   declare createdAt: string
   declare updatedAt: string
 }
@@ -199,6 +201,20 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
         references: { model: StackDefinitionModel, key: 'name' },
       },
       mainDirectory: { type: DataTypes.STRING, allowNull: false },
+      environmentVariables: {
+        type: DataTypes.TEXT,
+        defaultValue: '{}',
+        get() {
+          const raw = this.getDataValue('environmentVariables')
+          return typeof raw === 'string' ? (JSON.parse(raw) as Record<string, EnvironmentVariableValue>) : (raw ?? {})
+        },
+        set(val: Record<string, EnvironmentVariableValue>) {
+          this.setDataValue(
+            'environmentVariables',
+            JSON.stringify(val) as unknown as Record<string, EnvironmentVariableValue>,
+          )
+        },
+      },
       createdAt: { type: DataTypes.DATE },
       updatedAt: { type: DataTypes.DATE },
     },
@@ -307,6 +323,20 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
       autoFetchEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
       autoFetchIntervalMinutes: { type: DataTypes.INTEGER, defaultValue: 60 },
       autoRestartOnFetch: { type: DataTypes.BOOLEAN, defaultValue: false },
+      environmentVariableOverrides: {
+        type: DataTypes.TEXT,
+        defaultValue: '{}',
+        get() {
+          const raw = this.getDataValue('environmentVariableOverrides')
+          return typeof raw === 'string' ? (JSON.parse(raw) as Record<string, EnvironmentVariableValue>) : (raw ?? {})
+        },
+        set(val: Record<string, EnvironmentVariableValue>) {
+          this.setDataValue(
+            'environmentVariableOverrides',
+            JSON.stringify(val) as unknown as Record<string, EnvironmentVariableValue>,
+          )
+        },
+      },
       createdAt: { type: DataTypes.DATE },
       updatedAt: { type: DataTypes.DATE },
     },

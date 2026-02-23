@@ -2,8 +2,8 @@ import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
-import type { CheckPrerequisiteEndpoint, PrerequisiteConfig, PrerequisiteType } from 'common'
-import { Prerequisite } from 'common'
+import type { CheckPrerequisiteEndpoint, EnvironmentVariableValue, PrerequisiteConfig, PrerequisiteType } from 'common'
+import { Prerequisite, StackConfig } from 'common'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 
@@ -113,11 +113,20 @@ const checkGithubCli = async (): Promise<CheckResult> => {
   return { satisfied: true, output }
 }
 
-const checkEnvVariable = (config: { variableName: string }): CheckResult => {
+const checkEnvVariable = (
+  config: { variableName: string },
+  configuredValue?: EnvironmentVariableValue,
+): CheckResult => {
+  if (configuredValue?.source === 'custom' && configuredValue.customValue !== undefined) {
+    return { satisfied: true, output: `Environment variable ${config.variableName} is configured with a custom value` }
+  }
+
   const value = process.env[config.variableName]
   if (value !== undefined) {
-    return { satisfied: true, output: `Environment variable ${config.variableName} is set` }
+    const label = configuredValue?.source === 'inherit' ? 'set (inherited)' : 'set'
+    return { satisfied: true, output: `Environment variable ${config.variableName} is ${label}` }
   }
+
   return { satisfied: false, output: `Environment variable ${config.variableName} is not set` }
 }
 
@@ -126,7 +135,11 @@ const checkCustomScript = async (config: { script: string }): Promise<CheckResul
   return { satisfied: true, output: (stdout || stderr).trim() }
 }
 
-export const runCheck = async (type: PrerequisiteType, config: PrerequisiteConfig): Promise<CheckResult> => {
+export const runCheck = async (
+  type: PrerequisiteType,
+  config: PrerequisiteConfig,
+  options?: { envVarConfig?: EnvironmentVariableValue },
+): Promise<CheckResult> => {
   switch (type) {
     case 'node':
       return checkNode(config as { minimumVersion: string })
@@ -143,7 +156,7 @@ export const runCheck = async (type: PrerequisiteType, config: PrerequisiteConfi
     case 'github-cli':
       return checkGithubCli()
     case 'env-variable':
-      return checkEnvVariable(config as { variableName: string })
+      return checkEnvVariable(config as { variableName: string }, options?.envVarConfig)
     case 'custom-script':
       return checkCustomScript(config as { script: string })
     default:
@@ -155,7 +168,8 @@ export const CheckPrerequisiteAction: RequestAction<CheckPrerequisiteEndpoint> =
   const logger = getLogger(injector).withScope('CheckPrerequisite')
   const { id } = getUrlParams()
 
-  const depDs = getRepository(injector).getDataSetFor(Prerequisite, 'id')
+  const repository = getRepository(injector)
+  const depDs = repository.getDataSetFor(Prerequisite, 'id')
   const results = await depDs.find(injector, { filter: { id: { $eq: id } }, top: 1 })
   const prereq = results[0]
 
@@ -163,8 +177,17 @@ export const CheckPrerequisiteAction: RequestAction<CheckPrerequisiteEndpoint> =
     throw new RequestError('Prerequisite not found', 404)
   }
 
+  let envVarConfig: EnvironmentVariableValue | undefined
+  if (prereq.type === 'env-variable') {
+    const varName = (prereq.config as { variableName: string }).variableName
+    const stackConfigs = await repository
+      .getDataSetFor(StackConfig, 'stackName')
+      .find(injector, { filter: { stackName: { $eq: prereq.stackName } }, top: 1 })
+    envVarConfig = stackConfigs[0]?.environmentVariables?.[varName]
+  }
+
   try {
-    const result = await runCheck(prereq.type, prereq.config)
+    const result = await runCheck(prereq.type, prereq.config, { envVarConfig })
     if (result.satisfied) {
       await logger.information({
         message: `Prerequisite check passed: ${prereq.name}`,

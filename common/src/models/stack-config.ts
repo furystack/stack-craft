@@ -1,3 +1,5 @@
+import type { EnvironmentVariableValue } from './environment-variable-value.js'
+
 /**
  * User-specific stack configuration.
  * Contains settings unique to this installation/machine.
@@ -10,6 +12,9 @@ export class StackConfig {
 
   /** Absolute path to the root directory for all services in this stack */
   mainDirectory!: string
+
+  /** Stack-level environment variable values, keyed by variable name */
+  environmentVariables: Record<string, EnvironmentVariableValue> = {}
 
   createdAt!: string
   updatedAt!: string

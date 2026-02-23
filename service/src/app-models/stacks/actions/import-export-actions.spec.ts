@@ -430,5 +430,63 @@ describe('Import/Export Stack Actions', () => {
 
       await elevated[Symbol.asyncDispose]()
     })
+
+    it('should persist environment variable config during import', async () => {
+      const importBody = {
+        stack: {
+          name: 'env-vars-stack',
+          displayName: 'Env Vars Stack',
+          description: '',
+        },
+        services: [
+          {
+            id: 'env-svc-1',
+            stackName: 'env-vars-stack',
+            displayName: 'Env Service',
+            description: '',
+            workingDirectory: 'svc',
+            runCommand: 'echo hello',
+            prerequisiteIds: [],
+            prerequisiteServiceIds: [],
+          },
+        ],
+        repositories: [],
+        prerequisites: [],
+        config: {
+          mainDirectory: '/tmp/env-test',
+          environmentVariables: {
+            DATABASE_URL: { source: 'custom' as const, customValue: 'postgres://localhost/db' },
+            API_KEY: { source: 'inherit' as const },
+          },
+          services: {
+            'env-svc-1': {
+              environmentVariableOverrides: {
+                DATABASE_URL: { source: 'custom' as const, customValue: 'postgres://localhost/svc-db' },
+              },
+            },
+          },
+        },
+      }
+
+      const elevated = useSystemIdentityContext({ injector })
+      await ImportStackAction(createMockActionContext({ injector: elevated, body: importBody }))
+
+      const stackConfigs = await stackConfigStore.find({})
+      const stackConfig = stackConfigs.find((c) => c.stackName === 'env-vars-stack')
+      expect(stackConfig?.environmentVariables).toEqual({
+        DATABASE_URL: { source: 'custom', customValue: 'postgres://localhost/db' },
+        API_KEY: { source: 'inherit' },
+      })
+
+      const [svcConfig] = await serviceConfigStore.find({
+        filter: { serviceId: { $eq: 'env-svc-1' } },
+        top: 1,
+      })
+      expect(svcConfig?.environmentVariableOverrides).toEqual({
+        DATABASE_URL: { source: 'custom', customValue: 'postgres://localhost/svc-db' },
+      })
+
+      await elevated[Symbol.asyncDispose]()
+    })
   })
 })

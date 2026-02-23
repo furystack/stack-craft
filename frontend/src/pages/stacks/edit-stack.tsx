@@ -12,8 +12,9 @@ import {
   PageHeader,
   Paper,
 } from '@furystack/shades-common-components'
-import type { StackView } from 'common'
+import type { EnvironmentVariableValue, StackView } from 'common'
 import { StackConfig, StackDefinition } from 'common'
+import { EnvironmentVariablesManager } from '../../components/environment-variables-manager.js'
 import { StackForm } from '../../components/entity-forms/stack-form.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
@@ -160,6 +161,33 @@ export const EditStack = Shade<EditStackProps>({
         <Paper>
           <StackForm mode="edit" initial={stack} onSubmit={(data) => void handleSave(data)} cancelHref="/" />
         </Paper>
+        <EnvironmentVariablesManager
+          stackName={stack.name}
+          environmentVariables={stackConfig?.environmentVariables ?? {}}
+          onSave={(updated: Record<string, EnvironmentVariableValue>) => {
+            void api
+              .call({
+                method: 'PATCH',
+                action: '/stacks/:id',
+                url: { id: stack.name },
+                body: { environmentVariables: updated },
+              })
+              .then(() => {
+                injector.getInstance(NotyService).emit('onNotyAdded', {
+                  title: 'Environment variables saved',
+                  body: 'Stack environment variables were updated.',
+                  type: 'success',
+                })
+              })
+              .catch((error: unknown) => {
+                injector.getInstance(NotyService).emit('onNotyAdded', {
+                  title: 'Error',
+                  body: error instanceof Error ? error.message : 'Failed to save environment variables',
+                  type: 'error',
+                })
+              })
+          }}
+        />
         {ConfirmDialog(isConfirmingDelete, {
           title: 'Delete Stack',
           message: `Are you sure you want to delete "${stack.displayName}"? All services, repositories, and prerequisites in this stack will be removed. This action cannot be undone.`,

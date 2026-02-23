@@ -2,7 +2,7 @@ import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/co
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { Prerequisite } from 'common'
+import { Prerequisite, StackConfig } from 'common'
 import type { PrerequisiteConfig, PrerequisiteType } from 'common'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -20,10 +20,7 @@ vi.mock('util', () => ({
   promisify: () => execFileMock,
 }))
 
-const createMockActionContext = (options: {
-  injector: Injector
-  urlParams?: Record<string, string>
-}) => ({
+const createMockActionContext = (options: { injector: Injector; urlParams?: Record<string, string> }) => ({
   injector: options.injector,
   getBody: () => Promise.resolve(undefined as never),
   getUrlParams: () => (options.urlParams ?? {}) as never,
@@ -35,6 +32,7 @@ const createMockActionContext = (options: {
 describe('CheckPrerequisiteAction', () => {
   let injector: Injector
   let prereqStore: InMemoryStore<Prerequisite, 'id'>
+  let stackConfigStore: InMemoryStore<StackConfig, 'stackName'>
 
   beforeEach(() => {
     injector = new Injector()
@@ -43,6 +41,10 @@ describe('CheckPrerequisiteAction', () => {
     prereqStore = new InMemoryStore({ model: Prerequisite, primaryKey: 'id' })
     addStore(injector, prereqStore)
     getRepository(injector).createDataSet(Prerequisite, 'id', {})
+
+    stackConfigStore = new InMemoryStore({ model: StackConfig, primaryKey: 'stackName' })
+    addStore(injector, stackConfigStore)
+    getRepository(injector).createDataSet(StackConfig, 'stackName', {})
 
     vi.clearAllMocks()
   })
@@ -118,6 +120,53 @@ describe('CheckPrerequisiteAction', () => {
         const result = await runCheck('env-variable', { variableName: 'DEFINITELY_NOT_SET_VAR_12345' })
         expect(result.satisfied).toBe(false)
       })
+
+      it('should return satisfied when configured as custom with value', async () => {
+        delete process.env.CUSTOM_ONLY_VAR_12345
+        const result = await runCheck(
+          'env-variable',
+          { variableName: 'CUSTOM_ONLY_VAR_12345' },
+          {
+            envVarConfig: { source: 'custom', customValue: 'my-secret' },
+          },
+        )
+        expect(result.satisfied).toBe(true)
+        expect(result.output).toContain('custom value')
+      })
+
+      it('should return satisfied when configured as inherit and globally available', async () => {
+        const originalEnv = process.env.INHERIT_VAR_12345
+        process.env.INHERIT_VAR_12345 = 'global-value'
+        try {
+          const result = await runCheck(
+            'env-variable',
+            { variableName: 'INHERIT_VAR_12345' },
+            {
+              envVarConfig: { source: 'inherit' },
+            },
+          )
+          expect(result.satisfied).toBe(true)
+          expect(result.output).toContain('inherited')
+        } finally {
+          if (originalEnv === undefined) {
+            delete process.env.INHERIT_VAR_12345
+          } else {
+            process.env.INHERIT_VAR_12345 = originalEnv
+          }
+        }
+      })
+
+      it('should return not satisfied when configured as inherit but not globally available', async () => {
+        delete process.env.MISSING_INHERIT_VAR_12345
+        const result = await runCheck(
+          'env-variable',
+          { variableName: 'MISSING_INHERIT_VAR_12345' },
+          {
+            envVarConfig: { source: 'inherit' },
+          },
+        )
+        expect(result.satisfied).toBe(false)
+      })
     })
 
     describe('custom-script', () => {
@@ -187,11 +236,44 @@ describe('CheckPrerequisiteAction', () => {
     it('should throw 404 for non-existent prerequisite', async () => {
       const elevated = useSystemIdentityContext({ injector })
       await expect(
-        CheckPrerequisiteAction(
-          createMockActionContext({ injector: elevated, urlParams: { id: 'nonexistent' } }),
-        ),
+        CheckPrerequisiteAction(createMockActionContext({ injector: elevated, urlParams: { id: 'nonexistent' } })),
       ).rejects.toThrow('Prerequisite not found')
       await elevated[Symbol.asyncDispose]()
+    })
+
+    it('should check env-variable prerequisite using stack config', async () => {
+      const ts = new Date().toISOString()
+      delete process.env.STACK_CONFIGURED_VAR_12345
+
+      await prereqStore.add({
+        id: 'prereq-env-1',
+        stackName: 'test-stack',
+        name: 'Database URL',
+        type: 'env-variable',
+        config: { variableName: 'STACK_CONFIGURED_VAR_12345' },
+        installationHelp: '',
+        createdAt: ts,
+        updatedAt: ts,
+      })
+      await stackConfigStore.add({
+        stackName: 'test-stack',
+        mainDirectory: '/tmp',
+        environmentVariables: {
+          STACK_CONFIGURED_VAR_12345: { source: 'custom', customValue: 'configured-value' },
+        },
+        createdAt: ts,
+        updatedAt: ts,
+      })
+
+      const elevated = useSystemIdentityContext({ injector })
+      const result = await CheckPrerequisiteAction(
+        createMockActionContext({ injector: elevated, urlParams: { id: 'prereq-env-1' } }),
+      )
+      await elevated[Symbol.asyncDispose]()
+
+      const body = result.chunk as { satisfied: boolean; output: string }
+      expect(body.satisfied).toBe(true)
+      expect(body.output).toContain('custom value')
     })
 
     it('should return not satisfied when check throws', async () => {

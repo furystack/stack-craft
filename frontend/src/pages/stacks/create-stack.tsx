@@ -18,6 +18,7 @@ export const CreateStack = Shade({
             displayName: data.displayName!,
             description: data.description ?? '',
             mainDirectory: data.mainDirectory!,
+            environmentVariables: {},
           },
         })
         injector.getInstance(NotyService).emit('onNotyAdded', {

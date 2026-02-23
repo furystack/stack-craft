@@ -52,6 +52,11 @@ export const apiValues: SchemaGenerationSetting[] = [
     outputFile: './schemas/tokens-api.json',
     type: '*',
   },
+  {
+    inputFile: './src/apis/system.ts',
+    outputFile: './schemas/system-api.json',
+    type: '*',
+  },
 ]
 
 export const exec = async (): Promise<void> => {
