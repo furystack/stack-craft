@@ -123,7 +123,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
             rows={4}
           />
 
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ flex: '1' }}>
               <Select
                 name="repositoryId"
@@ -137,11 +137,11 @@ export const ServiceForm = Shade<ServiceFormProps>({
             </div>
             {props.onCreateRepository ? (
               <Button
+                type="button"
                 variant="outlined"
                 size="small"
                 onclick={() => setIsCreatingRepo(true)}
                 startIcon={<Icon icon={icons.plus} size="small" />}
-                style={{ marginBottom: '4px' }}
               >
                 New
               </Button>
@@ -224,6 +224,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
               )}
               {props.onCreatePrerequisite ? (
                 <Button
+                  type="button"
                   variant="outlined"
                   size="small"
                   onclick={() => setIsCreatingPrereq(true)}
