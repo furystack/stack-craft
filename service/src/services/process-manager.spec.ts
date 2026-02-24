@@ -34,6 +34,7 @@ const createTestServiceDefinition = (overrides: Partial<ServiceDefinition> = {})
   buildCommand: 'echo build',
   prerequisiteIds: [],
   prerequisiteServiceIds: [],
+  files: [],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   ...overrides,

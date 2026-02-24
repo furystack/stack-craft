@@ -11,7 +11,7 @@ import {
   Paper,
   Select,
 } from '@furystack/shades-common-components'
-import type { GitHubRepository, Prerequisite, ServiceView } from 'common'
+import type { GitHubRepository, Prerequisite, ServiceFile, ServiceView } from 'common'
 
 import { prerequisiteTypeLabels } from '../status-chips.js'
 import { GitHubRepoForm } from './github-repo-form.js'
@@ -62,6 +62,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
     )
     const [isCreatingPrereq, setIsCreatingPrereq] = useState('isCreatingPrereq', false)
     const [isCreatingRepo, setIsCreatingRepo] = useState('isCreatingRepo', false)
+    const [sharedFiles, setSharedFiles] = useState<ServiceFile[]>('sharedFiles', props.initial?.files ?? [])
 
     const togglePrereqId = (id: string) => {
       const updated = selectedPrereqIds.includes(id)
@@ -101,6 +102,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
               autoRestartOnFetch: data.autoRestartOnFetch === 'on',
               prerequisiteIds: selectedPrereqIds,
               prerequisiteServiceIds: selectedPrereqServiceIds,
+              files: sharedFiles.filter((f) => f.relativePath.trim().length > 0),
             })
           }
           disableOnSubmit
@@ -179,6 +181,90 @@ export const ServiceForm = Shade<ServiceFormProps>({
             value={props.initial?.buildCommand ?? ''}
             getHelperText={() => 'e.g., npm run build, yarn build, dotnet build'}
           />
+
+          <div>
+            <h4 style={{ margin: '0 0 8px 0', opacity: '0.7' }}>Shared Files</h4>
+            <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: '13px' }}>
+              Files placed relative to the service root (e.g. .env, appConfig.local.json).
+            </p>
+            {sharedFiles.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '8px' }}>
+                {sharedFiles.map((file, index) => (
+                  <div
+                    style={{
+                      border: '2px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                      <input
+                        type="text"
+                        placeholder="Relative path (e.g. .env)"
+                        value={file.relativePath}
+                        oninput={(ev: Event) => {
+                          const updated = [...sharedFiles]
+                          updated[index] = { ...updated[index], relativePath: (ev.target as HTMLInputElement).value }
+                          setSharedFiles(updated)
+                        }}
+                        style={{
+                          flex: '1',
+                          padding: '6px 10px',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          background: 'transparent',
+                          color: 'inherit',
+                          fontFamily: 'monospace',
+                          fontSize: '13px',
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        onclick={() => setSharedFiles(sharedFiles.filter((_, i) => i !== index))}
+                        startIcon={<Icon icon={icons.close} size="small" />}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                    <textarea
+                      placeholder="File content"
+                      value={file.content}
+                      oninput={(ev: Event) => {
+                        const updated = [...sharedFiles]
+                        updated[index] = { ...updated[index], content: (ev.target as HTMLTextAreaElement).value }
+                        setSharedFiles(updated)
+                      }}
+                      rows={4}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '4px',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        background: 'transparent',
+                        color: 'inherit',
+                        fontFamily: 'monospace',
+                        fontSize: '13px',
+                        resize: 'vertical',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <Button
+              type="button"
+              variant="outlined"
+              size="small"
+              onclick={() => setSharedFiles([...sharedFiles, { relativePath: '', content: '' }])}
+              startIcon={<Icon icon={icons.plus} size="small" />}
+            >
+              Add File
+            </Button>
+          </div>
 
           {props.prerequisites ? (
             <div>

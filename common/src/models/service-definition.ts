@@ -1,3 +1,11 @@
+/** A file to be placed relative to the service root (e.g. .env, appConfig.local.json) */
+export type ServiceFile = {
+  /** Path relative to the service working directory */
+  relativePath: string
+  /** File content (usually plain text) */
+  content: string
+}
+
 /**
  * Shareable service definition.
  * Contains the immutable description of a service and its commands.
@@ -38,6 +46,9 @@ export class ServiceDefinition {
 
   /** Shell command to run the service (e.g. "npm start") */
   runCommand!: string
+
+  /** Shared files placed relative to the service root */
+  files: ServiceFile[] = []
 
   createdAt!: string
   updatedAt!: string

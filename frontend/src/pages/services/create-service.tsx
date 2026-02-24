@@ -60,6 +60,7 @@ export const CreateService = Shade<CreateServiceProps>({
             autoRestartOnFetch: data.autoRestartOnFetch ?? false,
             prerequisiteIds: data.prerequisiteIds ?? [],
             prerequisiteServiceIds: data.prerequisiteServiceIds ?? [],
+            files: data.files ?? [],
             environmentVariableOverrides: data.environmentVariableOverrides ?? {},
           },
         })

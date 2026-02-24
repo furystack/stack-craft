@@ -263,6 +263,10 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
             installCommand: z.string().optional(),
             buildCommand: z.string().optional(),
             runCommand: z.string(),
+            files: z
+              .array(z.object({ relativePath: z.string(), content: z.string() }))
+              .optional()
+              .describe('Shared files placed relative to the service root'),
           }),
         ),
         repositories: z.array(
@@ -340,6 +344,7 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
           description: svc.description ?? '',
           prerequisiteIds: svc.prerequisiteIds ?? [],
           prerequisiteServiceIds: svc.prerequisiteServiceIds ?? [],
+          files: svc.files ?? [],
           stackName,
           createdAt: now,
           updatedAt: now,

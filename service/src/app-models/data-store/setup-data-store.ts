@@ -16,7 +16,7 @@ import {
   StackDefinition,
   User,
 } from 'common'
-import type { EnvironmentVariableValue, PrerequisiteConfig, PrerequisiteType } from 'common'
+import type { EnvironmentVariableValue, PrerequisiteConfig, PrerequisiteType, ServiceFile } from 'common'
 import { DataTypes, Model } from 'sequelize'
 import type { Options, Sequelize } from 'sequelize'
 import sqlite from 'sqlite3'
@@ -54,6 +54,7 @@ class ServiceDefinitionModel extends Model<ServiceDefinition, ServiceDefinition>
   declare installCommand: string | undefined
   declare buildCommand: string | undefined
   declare runCommand: string
+  declare files: ServiceFile[]
   declare createdAt: string
   declare updatedAt: string
 }
@@ -308,6 +309,17 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
       installCommand: { type: DataTypes.STRING, allowNull: true },
       buildCommand: { type: DataTypes.STRING, allowNull: true },
       runCommand: { type: DataTypes.STRING, allowNull: false },
+      files: {
+        type: DataTypes.TEXT,
+        defaultValue: '[]',
+        get() {
+          const raw = this.getDataValue('files')
+          return typeof raw === 'string' ? (JSON.parse(raw) as ServiceFile[]) : raw
+        },
+        set(val: ServiceFile[]) {
+          this.setDataValue('files', JSON.stringify(val) as unknown as ServiceFile[])
+        },
+      },
       createdAt: { type: DataTypes.DATE },
       updatedAt: { type: DataTypes.DATE },
     },

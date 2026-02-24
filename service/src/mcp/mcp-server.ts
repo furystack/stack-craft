@@ -9,6 +9,7 @@ import { resolveTokenUser } from '../middleware/bearer-token-auth.js'
 import { registerEnvVariableTools } from './tools/env-variable-tools.js'
 import { registerPrerequisiteTools } from './tools/prerequisite-tools.js'
 import { registerRepositoryTools } from './tools/repository-tools.js'
+import { registerServiceFileTools } from './tools/service-file-tools.js'
 import { registerServiceTools } from './tools/service-tools.js'
 import { registerStackTools } from './tools/stack-tools.js'
 import { registerSystemTools } from './tools/system-tools.js'
@@ -21,6 +22,7 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
   registerPrerequisiteTools(mcp, injector, elevated)
   registerRepositoryTools(mcp, injector, elevated)
   registerEnvVariableTools(mcp, injector, elevated)
+  registerServiceFileTools(mcp, injector, elevated)
   registerSystemTools(mcp, injector, elevated)
 
   return mcp

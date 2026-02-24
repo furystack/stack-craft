@@ -237,6 +237,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             autoRestartOnFetch: data.autoRestartOnFetch,
             prerequisiteIds: data.prerequisiteIds,
             prerequisiteServiceIds: data.prerequisiteServiceIds,
+            files: data.files,
           },
         })
         noty.emit('onNotyAdded', {
@@ -538,6 +539,100 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             )}
           </div>
         </Paper>
+        {service.files && service.files.length > 0 ? (
+          <Paper>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <h3 style={{ margin: '0' }}>Shared Files</h3>
+              <Chip variant="outlined" size="small">
+                {service.files.length} file(s)
+              </Chip>
+              <Button
+                variant="outlined"
+                size="small"
+                loading={actionInProgress === 'apply-files-all'}
+                disabled={!!actionInProgress}
+                onclick={async () => {
+                  setActionInProgress('apply-files-all')
+                  try {
+                    await api.call({
+                      method: 'POST',
+                      action: '/services/:id/apply-files',
+                      url: { id: service.id },
+                      body: {},
+                    })
+                    noty.emit('onNotyAdded', {
+                      title: 'Files applied',
+                      body: `All shared files were written to disk.`,
+                      type: 'success',
+                    })
+                  } catch (error) {
+                    noty.emit('onNotyAdded', {
+                      title: 'Error',
+                      body: error instanceof Error ? error.message : 'Failed to apply files',
+                      type: 'error',
+                    })
+                  } finally {
+                    setActionInProgress(null)
+                  }
+                }}
+                startIcon={<Icon icon={icons.download} size="small" />}
+              >
+                Apply All
+              </Button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {service.files.map((file) => (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    fontFamily: 'monospace',
+                    fontSize: '13px',
+                  }}
+                >
+                  <span style={{ flex: '1', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.relativePath}</span>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    loading={actionInProgress === `apply-file-${file.relativePath}`}
+                    disabled={!!actionInProgress}
+                    onclick={async () => {
+                      setActionInProgress(`apply-file-${file.relativePath}`)
+                      try {
+                        await api.call({
+                          method: 'POST',
+                          action: '/services/:id/apply-files',
+                          url: { id: service.id },
+                          body: { relativePath: file.relativePath },
+                        })
+                        noty.emit('onNotyAdded', {
+                          title: 'File applied',
+                          body: `${file.relativePath} was written to disk.`,
+                          type: 'success',
+                        })
+                      } catch (error) {
+                        noty.emit('onNotyAdded', {
+                          title: 'Error',
+                          body: error instanceof Error ? error.message : 'Failed to apply file',
+                          type: 'error',
+                        })
+                      } finally {
+                        setActionInProgress(null)
+                      }
+                    }}
+                    startIcon={<Icon icon={icons.download} size="small" />}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </Paper>
+        ) : null}
         {servicePrereqs.length > 0 ? (
           <Paper>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>

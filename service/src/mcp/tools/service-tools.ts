@@ -115,6 +115,10 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
         installCommand: z.string().optional().describe('e.g. "npm install"'),
         buildCommand: z.string().optional().describe('e.g. "npm run build"'),
         runCommand: z.string().describe('e.g. "npm start"'),
+        files: z
+          .array(z.object({ relativePath: z.string(), content: z.string() }))
+          .optional()
+          .describe('Shared files placed relative to the service root'),
         autoFetchEnabled: z.boolean().optional(),
         autoFetchIntervalMinutes: z.number().optional(),
         autoRestartOnFetch: z.boolean().optional(),
@@ -133,6 +137,7 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
       installCommand,
       buildCommand,
       runCommand,
+      files,
       autoFetchEnabled,
       autoFetchIntervalMinutes,
       autoRestartOnFetch,
@@ -154,6 +159,7 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
           installCommand,
           buildCommand,
           runCommand,
+          files: files ?? [],
           createdAt: now,
           updatedAt: now,
         }
@@ -203,6 +209,10 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
         installCommand: z.string().optional(),
         buildCommand: z.string().optional(),
         runCommand: z.string().optional(),
+        files: z
+          .array(z.object({ relativePath: z.string(), content: z.string() }))
+          .optional()
+          .describe('Replace all shared files for this service'),
         autoFetchEnabled: z.boolean().optional(),
         autoFetchIntervalMinutes: z.number().optional(),
         autoRestartOnFetch: z.boolean().optional(),
@@ -220,6 +230,7 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
       installCommand,
       buildCommand,
       runCommand,
+      files,
       autoFetchEnabled,
       autoFetchIntervalMinutes,
       autoRestartOnFetch,
@@ -236,6 +247,7 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
         if (installCommand !== undefined) defFields.installCommand = installCommand
         if (buildCommand !== undefined) defFields.buildCommand = buildCommand
         if (runCommand !== undefined) defFields.runCommand = runCommand
+        if (files !== undefined) defFields.files = files
 
         const configFields: Partial<ServiceConfig> = {}
         if (autoFetchEnabled !== undefined) configFields.autoFetchEnabled = autoFetchEnabled

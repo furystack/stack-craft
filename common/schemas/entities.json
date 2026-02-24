@@ -148,6 +148,22 @@
       "additionalProperties": false,
       "description": "User-specific stack configuration. Contains settings unique to this installation/machine. Not included in exports - set by the user during import/installation."
     },
+    "ServiceFile": {
+      "type": "object",
+      "properties": {
+        "relativePath": {
+          "type": "string",
+          "description": "Path relative to the service working directory"
+        },
+        "content": {
+          "type": "string",
+          "description": "File content (usually plain text)"
+        }
+      },
+      "required": ["relativePath", "content"],
+      "additionalProperties": false,
+      "description": "A file to be placed relative to the service root (e.g. .env, appConfig.local.json)"
+    },
     "ServiceDefinition": {
       "type": "object",
       "properties": {
@@ -201,6 +217,13 @@
           "type": "string",
           "description": "Shell command to run the service (e.g. \"npm start\")"
         },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Shared files placed relative to the service root"
+        },
         "createdAt": {
           "type": "string"
         },
@@ -216,6 +239,7 @@
         "prerequisiteIds",
         "prerequisiteServiceIds",
         "runCommand",
+        "files",
         "createdAt",
         "updatedAt"
       ],
@@ -881,6 +905,13 @@
         "runCommand": {
           "type": "string",
           "description": "Shell command to run the service (e.g. \"npm start\")"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Shared files placed relative to the service root"
         }
       },
       "required": [
@@ -893,6 +924,7 @@
         "description",
         "displayName",
         "environmentVariableOverrides",
+        "files",
         "id",
         "installStatus",
         "prerequisiteIds",

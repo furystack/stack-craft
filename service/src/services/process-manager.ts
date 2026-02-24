@@ -18,6 +18,7 @@ import { randomUUID } from 'crypto'
 import { dirname, join, resolve as resolvePosix } from 'path'
 
 import { useSystemIdentityContext } from '@furystack/core'
+import { applyServiceFiles } from '../utils/apply-service-files.js'
 import { resolvePath } from '../utils/resolve-path.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { GitService } from './git-service.js'
@@ -375,11 +376,13 @@ export class ProcessManager {
         mkdirSync(dirname(cwd), { recursive: true })
         await git.clone(repo.url, cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       } else if (isGitRepo) {
         await this.logger.information({ message: `Pulling in ${cwd}` })
         const { updated } = await git.pull(cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        this.applySharedFiles(svc, cwd)
         return { cloned: false, pulled: true, updated }
       } else {
         const dirContents = readdirSync(cwd)
@@ -392,6 +395,7 @@ export class ProcessManager {
         mkdirSync(dirname(cwd), { recursive: true })
         await git.clone(repo.url, cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       }
     } catch (error) {
@@ -400,6 +404,45 @@ export class ProcessManager {
       })
       throw error
     }
+  }
+
+  private applySharedFiles(svc: ServiceDefinition, cwd: string): void {
+    const files = svc.files ?? []
+    if (files.length === 0) return
+    try {
+      const applied = applyServiceFiles(cwd, files)
+      void this.logger.information({
+        message: `Applied ${applied.length} shared file(s) for ${svc.displayName}: ${applied.join(', ')}`,
+      })
+    } catch (error) {
+      void this.logger.warning({
+        message: `Failed to apply shared files for ${svc.displayName}: ${(error as Error).message}`,
+      })
+    }
+  }
+
+  /**
+   * Manually applies shared files for a service to disk.
+   * @param relativePath - If provided, only the file matching this path is applied
+   * @returns The list of relative paths that were written
+   */
+  public async applyFiles(serviceId: string, relativePath?: string): Promise<string[]> {
+    const elevated = this.getElevatedInjector()
+    const services = await getRepository(elevated)
+      .getDataSetFor(ServiceDefinition, 'id')
+      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
+    const svc = services[0]
+    if (!svc) throw new Error(`Service not found: ${serviceId}`)
+
+    const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
+    const files = svc.files ?? []
+
+    if (relativePath) {
+      const file = files.find((f) => f.relativePath === relativePath)
+      if (!file) throw new Error(`File not found in service definition: ${relativePath}`)
+    }
+
+    return applyServiceFiles(cwd, files, relativePath)
   }
 
   /**

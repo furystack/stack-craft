@@ -53,6 +53,13 @@
         "runCommand": {
           "type": "string",
           "description": "Shell command to run the service (e.g. \"npm start\")"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Shared files placed relative to the service root"
         }
       },
       "required": [
@@ -62,9 +69,26 @@
         "description",
         "prerequisiteIds",
         "prerequisiteServiceIds",
-        "runCommand"
+        "runCommand",
+        "files"
       ],
       "additionalProperties": false
+    },
+    "ServiceFile": {
+      "type": "object",
+      "properties": {
+        "relativePath": {
+          "type": "string",
+          "description": "Path relative to the service working directory"
+        },
+        "content": {
+          "type": "string",
+          "description": "File content (usually plain text)"
+        }
+      },
+      "required": ["relativePath", "content"],
+      "additionalProperties": false,
+      "description": "A file to be placed relative to the service root (e.g. .env, appConfig.local.json)"
     },
     "ServiceConfigWritableFields": {
       "type": "object",
@@ -191,6 +215,13 @@
         "runCommand": {
           "type": "string",
           "description": "Shell command to run the service (e.g. \"npm start\")"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Shared files placed relative to the service root"
         }
       },
       "required": [
@@ -200,6 +231,7 @@
         "description",
         "displayName",
         "environmentVariableOverrides",
+        "files",
         "id",
         "prerequisiteIds",
         "prerequisiteServiceIds",
@@ -329,6 +361,13 @@
         "runCommand": {
           "type": "string",
           "description": "Shell command to run the service (e.g. \"npm start\")"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Shared files placed relative to the service root"
         }
       },
       "required": [
@@ -341,6 +380,7 @@
         "description",
         "displayName",
         "environmentVariableOverrides",
+        "files",
         "id",
         "installStatus",
         "prerequisiteIds",
@@ -423,6 +463,13 @@
           "type": "string",
           "description": "Shell command to run the service (e.g. \"npm start\")"
         },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Shared files placed relative to the service root"
+        },
         "autoFetchEnabled": {
           "type": "boolean",
           "description": "Whether automatic git fetch is enabled"
@@ -450,6 +497,7 @@
         "description",
         "displayName",
         "environmentVariableOverrides",
+        "files",
         "prerequisiteIds",
         "prerequisiteServiceIds",
         "runCommand",
@@ -514,6 +562,13 @@
             "runCommand": {
               "type": "string",
               "description": "Shell command to run the service (e.g. \"npm start\")"
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ServiceFile"
+              },
+              "description": "Shared files placed relative to the service root"
             },
             "autoFetchEnabled": {
               "type": "boolean",
@@ -584,6 +639,51 @@
         }
       },
       "required": ["url", "result"],
+      "additionalProperties": false
+    },
+    "ApplyServiceFilesEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "body": {
+          "type": "object",
+          "properties": {
+            "relativePath": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "serviceId": {
+              "type": "string"
+            },
+            "applied": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["success", "serviceId", "applied"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["url", "body", "result"],
       "additionalProperties": false
     },
     "ServiceLogsEndpoint": {
@@ -854,6 +954,9 @@
             },
             "/services/:id/update": {
               "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/apply-files": {
+              "$ref": "#/definitions/ApplyServiceFilesEndpoint"
             }
           },
           "required": [
@@ -865,7 +968,8 @@
             "/services/:id/build",
             "/services/:id/pull",
             "/services/:id/setup",
-            "/services/:id/update"
+            "/services/:id/update",
+            "/services/:id/apply-files"
           ],
           "additionalProperties": false
         },
@@ -978,7 +1082,7 @@
           "type": "object",
           "properties": {
             "findOptions": {
-              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22environmentVariableOverrides%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22)%5B%5D%3E"
+              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22files%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22environmentVariableOverrides%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22)%5B%5D%3E"
             }
           },
           "additionalProperties": false
@@ -991,7 +1095,7 @@
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
-    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"environmentVariableOverrides\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\")[]>": {
+    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"files\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"environmentVariableOverrides\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\")[]>": {
       "type": "object",
       "properties": {
         "top": {
@@ -1046,6 +1150,10 @@
               "enum": ["ASC", "DESC"]
             },
             "runCommand": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "files": {
               "type": "string",
               "enum": ["ASC", "DESC"]
             },
@@ -1133,6 +1241,7 @@
               "installCommand",
               "buildCommand",
               "runCommand",
+              "files",
               "createdAt",
               "updatedAt",
               "serviceId",
@@ -1790,6 +1899,56 @@
                   "items": {
                     "type": "string",
                     "description": "Shell command to run the service (e.g. \"npm start\")"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "files": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/ServiceFile"
+                  },
+                  "description": "Shared files placed relative to the service root"
+                },
+                "$ne": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/ServiceFile"
+                  },
+                  "description": "Shared files placed relative to the service root"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/ServiceFile"
+                    },
+                    "description": "Shared files placed relative to the service root"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/ServiceFile"
+                    },
+                    "description": "Shared files placed relative to the service root"
                   }
                 }
               },
@@ -2638,6 +2797,7 @@
                   "installCommand",
                   "buildCommand",
                   "runCommand",
+                  "files",
                   "createdAt",
                   "updatedAt",
                   "serviceId",

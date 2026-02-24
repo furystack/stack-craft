@@ -69,9 +69,7 @@ export const registerPrerequisiteTools = (mcp: McpServer, _injector: Injector, e
             'custom-script',
           ])
           .describe('Prerequisite type'),
-        config: z
-          .record(z.string(), z.unknown())
-          .describe('Type-specific config (e.g. { minimumVersion: "18.0.0" })'),
+        config: z.record(z.string(), z.unknown()).describe('Type-specific config (e.g. { minimumVersion: "18.0.0" })'),
         installationHelp: z.string().optional().describe('Help text shown when check fails'),
       },
     },

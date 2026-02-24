@@ -284,6 +284,13 @@
                   "runCommand": {
                     "type": "string",
                     "description": "Shell command to run the service (e.g. \"npm start\")"
+                  },
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/ServiceFile"
+                    },
+                    "description": "Shared files placed relative to the service root"
                   }
                 },
                 "required": [
@@ -293,7 +300,8 @@
                   "description",
                   "prerequisiteIds",
                   "prerequisiteServiceIds",
-                  "runCommand"
+                  "runCommand",
+                  "files"
                 ],
                 "additionalProperties": false
               }
@@ -369,6 +377,22 @@
       },
       "required": ["url", "result"],
       "additionalProperties": false
+    },
+    "ServiceFile": {
+      "type": "object",
+      "properties": {
+        "relativePath": {
+          "type": "string",
+          "description": "Path relative to the service working directory"
+        },
+        "content": {
+          "type": "string",
+          "description": "File content (usually plain text)"
+        }
+      },
+      "required": ["relativePath", "content"],
+      "additionalProperties": false,
+      "description": "A file to be placed relative to the service root (e.g. .env, appConfig.local.json)"
     },
     "PrerequisiteType": {
       "type": "string",
@@ -558,6 +582,13 @@
                   "runCommand": {
                     "type": "string",
                     "description": "Shell command to run the service (e.g. \"npm start\")"
+                  },
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/ServiceFile"
+                    },
+                    "description": "Shared files placed relative to the service root"
                   }
                 },
                 "required": [
@@ -567,7 +598,8 @@
                   "description",
                   "prerequisiteIds",
                   "prerequisiteServiceIds",
-                  "runCommand"
+                  "runCommand",
+                  "files"
                 ],
                 "additionalProperties": false
               }

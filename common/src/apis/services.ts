@@ -19,6 +19,12 @@ export type PatchServiceEndpoint = PatchEndpoint<ServiceWritableFields, 'id'>
 
 export type ServiceActionEndpoint = { url: { id: string }; result: { success: boolean; serviceId: string } }
 
+export type ApplyServiceFilesEndpoint = {
+  url: { id: string }
+  body: { relativePath?: string }
+  result: { success: boolean; serviceId: string; applied: string[] }
+}
+
 export type ServiceLogsEndpoint = {
   url: { id: string }
   query: { lines?: number; processUid?: string; search?: string }
@@ -53,6 +59,7 @@ export interface ServicesApi extends RestApi {
     '/services/:id/pull': ServiceActionEndpoint
     '/services/:id/setup': ServiceActionEndpoint
     '/services/:id/update': ServiceActionEndpoint
+    '/services/:id/apply-files': ApplyServiceFilesEndpoint
   }
   PATCH: {
     '/services/:id': PatchServiceEndpoint

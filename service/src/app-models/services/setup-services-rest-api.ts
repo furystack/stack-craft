@@ -10,6 +10,7 @@ import { randomUUID } from 'crypto'
 
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getPort } from '../../get-port.js'
+import { ProcessManager } from '../../services/process-manager.js'
 import { ClearServiceLogsAction } from './actions/clear-service-logs-action.js'
 import { ServiceHistoryAction } from './actions/service-history-action.js'
 import { ServiceLifecycleAction } from './actions/service-lifecycle-action.js'
@@ -102,6 +103,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
             installCommand: body.installCommand,
             buildCommand: body.buildCommand,
             runCommand: body.runCommand,
+            files: body.files ?? [],
             createdAt: now,
             updatedAt: now,
           }
@@ -139,6 +141,16 @@ export const setupServicesRestApi = async (injector: Injector) => {
         '/services/:id/pull': ServiceLifecycleAction('pull'),
         '/services/:id/setup': ServiceLifecycleAction('setup'),
         '/services/:id/update': ServiceLifecycleAction('update'),
+        '/services/:id/apply-files': async ({ injector: i, getUrlParams, getBody }) => {
+          const { id: serviceId } = getUrlParams()
+          const body = await getBody()
+          try {
+            const applied = await i.getInstance(ProcessManager).applyFiles(serviceId, body.relativePath)
+            return JsonResult({ success: true, serviceId, applied })
+          } catch (error) {
+            throw new RequestError(error instanceof Error ? error.message : 'Failed to apply files', 500)
+          }
+        },
       },
       PATCH: {
         '/services/:id': async ({ injector: i, getUrlParams, getBody }) => {
@@ -156,6 +168,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
           if (body.installCommand !== undefined) defFields.installCommand = body.installCommand
           if (body.buildCommand !== undefined) defFields.buildCommand = body.buildCommand
           if (body.runCommand !== undefined) defFields.runCommand = body.runCommand
+          if (body.files !== undefined) defFields.files = body.files
 
           const configFields: Partial<ServiceConfig> = {}
           if (body.autoFetchEnabled !== undefined) configFields.autoFetchEnabled = body.autoFetchEnabled
