@@ -6,6 +6,8 @@ import { Button, CollectionService, DataGrid, Icon, icons, Loader } from '@furys
 import { ObservableValue } from '@furystack/utils'
 import { GitHubRepository } from 'common'
 
+import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
+
 type RepositoryTableProps = {
   stackName: string
 }
@@ -36,15 +38,13 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
 
     const reposState = useCollectionSync(options, GitHubRepository, {
       filter: { stackName: { $eq: props.stackName } },
-      top: currentFindOptions.top,
-      skip: currentFindOptions.skip,
-      order: currentFindOptions.order,
     })
 
     const isLoading = reposState.status === 'connecting'
-    const entries = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
-    const count = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.count : 0
+    const allEntries =
+      reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
 
+    const { entries, count } = applyClientFindOptions(allEntries, currentFindOptions)
     collectionService.data.setValue({ entries, count })
 
     if (isLoading) {
