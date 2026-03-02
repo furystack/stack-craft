@@ -48,7 +48,7 @@ export const StackForm = Shade<StackFormProps>({
           variant="outlined"
           required
           value={props.initial?.name ?? ''}
-          disabled={props.mode === 'edit'}
+          readOnly={props.mode === 'edit'}
           getHelperText={() => 'Unique kebab-case identifier'}
         />
         <Input

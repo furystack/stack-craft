@@ -8,20 +8,16 @@ import {
   useRestService,
   Validate,
 } from '@furystack/rest-service'
-import type { IdentityApi } from 'common'
 import { User } from 'common'
+import type { IdentityApi } from 'common'
 import identityApiSchema from 'common/schemas/identity-api.json' with { type: 'json' }
-import { DefaultSession } from '@furystack/rest-service'
 
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getPort } from '../../get-port.js'
 import { PasswordResetAction } from './actions/password-reset-action.js'
 
 export const setupIdentityRestApi = async (injector: Injector) => {
-  useHttpAuthentication(injector, {
-    getUserStore: (sm) => sm.getStoreFor(User, 'username'),
-    getSessionStore: (sm) => sm.getStoreFor(DefaultSession, 'sessionId'),
-  })
+  useHttpAuthentication(injector, { model: User })
 
   await useRestService<IdentityApi>({
     injector,

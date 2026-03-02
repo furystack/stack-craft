@@ -2,7 +2,7 @@ import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/co
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { PasswordAuthenticator, PasswordCredential, usePasswordPolicy } from '@furystack/security'
+import { PasswordAuthenticator, PasswordCredential, PasswordResetToken, usePasswordPolicy } from '@furystack/security'
 import { User } from 'common'
 import { describe, expect, it } from 'vitest'
 
@@ -12,9 +12,11 @@ const setupInjector = () => {
   const injector = new Injector()
   useLogging(injector, VerboseConsoleLogger)
   addStore(injector, new InMemoryStore({ model: User, primaryKey: 'username' }))
-  addStore(injector, new InMemoryStore({ model: PasswordCredential, primaryKey: 'userName' }))
+    .addStore(new InMemoryStore({ model: PasswordCredential, primaryKey: 'userName' }))
+    .addStore(new InMemoryStore({ model: PasswordResetToken, primaryKey: 'token' }))
   getRepository(injector).createDataSet(User, 'username', {})
   getRepository(injector).createDataSet(PasswordCredential, 'userName', {})
+  getRepository(injector).createDataSet(PasswordResetToken, 'token')
   usePasswordPolicy(injector)
   return injector
 }

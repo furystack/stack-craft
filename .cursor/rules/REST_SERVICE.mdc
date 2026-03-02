@@ -21,11 +21,8 @@ import StackCraftApiSchemas from 'common/schemas/stack-craft-api.json' with { ty
 import { useHttpAuthentication, useRestService, useStaticFiles } from '@furystack/rest-service'
 import { injector } from './config.js'
 
-// Set up authentication
-useHttpAuthentication(injector, {
-  getUserStore: (sm) => sm.getStoreFor(User, 'username'),
-  getSessionStore: (sm) => sm.getStoreFor(DefaultSession, 'sessionId'),
-})
+// Set up authentication (requires DataSets for User and DefaultSession to be pre-registered)
+useHttpAuthentication(injector)
 
 // Set up REST API
 useRestService<StackCraftApi>({
@@ -185,8 +182,8 @@ import { FileSystemStore } from '@furystack/filesystem-store'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { usePasswordPolicy } from '@furystack/security'
 import { DefaultSession } from '@furystack/rest-service'
+import { PasswordResetToken, usePasswordPolicy } from '@furystack/security'
 import { User } from 'common'
 
 export const injector = new Injector()
@@ -204,13 +201,12 @@ addStore(
   }),
 )
 
-addStore(
-  injector,
-  new InMemoryStore({
-    model: DefaultSession,
-    primaryKey: 'sessionId',
-  }),
-)
+addStore(injector, new InMemoryStore({ model: DefaultSession, primaryKey: 'sessionId' }))
+  .addStore(new InMemoryStore({ model: PasswordResetToken, primaryKey: 'token' }))
+
+// Create DataSets (required before useHttpAuthentication and usePasswordPolicy)
+getRepository(injector).createDataSet(DefaultSession, 'sessionId')
+getRepository(injector).createDataSet(PasswordResetToken, 'token')
 
 // Set up password policy
 usePasswordPolicy(injector)
@@ -452,8 +448,8 @@ useRestService<StackCraftApi>({
 - [ ] API types defined in `common` package
 - [ ] JSON schemas generated for validation
 - [ ] Stores configured for all models
-- [ ] DataSets created for all models via `getRepository().createDataSet()`
-- [ ] Authentication set up with `useHttpAuthentication`
+- [ ] DataSets created for all models via `getRepository().createDataSet()` (including `DefaultSession` and `PasswordResetToken`)
+- [ ] Authentication set up with `useHttpAuthentication` (no options needed — uses DataSets by default)
 - [ ] Authorization functions defined
 - [ ] No `getStoreManager()` or `StoreManager` usage — all data access via Repository
 - [ ] Background services use `useSystemIdentityContext()` for data access

@@ -4,7 +4,7 @@ import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import type { AuthorizationResult } from '@furystack/repository'
 import { getRepository } from '@furystack/repository'
 import { DefaultSession } from '@furystack/rest-service'
-import { usePasswordPolicy } from '@furystack/security'
+import { PasswordResetToken, usePasswordPolicy } from '@furystack/security'
 import { PrerequisiteCheckResult, PublicApiToken } from 'common'
 import { mkdirSync } from 'fs'
 import { join } from 'path'
@@ -39,7 +39,10 @@ useLogging(injector, VerboseConsoleLogger)
 addStore(injector, new InMemoryStore({ model: DefaultSession, primaryKey: 'sessionId' }))
   .addStore(new InMemoryStore({ model: PublicApiToken, primaryKey: 'id' }))
   .addStore(new InMemoryStore({ model: PrerequisiteCheckResult, primaryKey: 'prerequisiteId' }))
+  .addStore(new InMemoryStore({ model: PasswordResetToken, primaryKey: 'token' }))
 
+getRepository(injector).createDataSet(DefaultSession, 'sessionId')
 getRepository(injector).createDataSet(PublicApiToken, 'id', { ...authorizedDataSet })
+getRepository(injector).createDataSet(PasswordResetToken, 'token')
 
 usePasswordPolicy(injector)
