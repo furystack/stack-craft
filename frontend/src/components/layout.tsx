@@ -1,9 +1,10 @@
 import { EntitySyncService } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
-import { cssVariableTheme, NotyList, PageLayout } from '@furystack/shades-common-components'
+import { cssVariableTheme, NotyList, PageLayout, ThemeProviderService } from '@furystack/shades-common-components'
 import { environmentOptions } from '../environment-options.js'
 import { InstallService } from '../services/install-service.js'
 import { SessionService } from '../services/session.js'
+import { applyTheme, DEFAULT_THEME_KEY, THEME_STORAGE_KEY } from '../services/theme-registry.js'
 import { Body } from './body.js'
 import { Header } from './header.js'
 import { Sidebar } from './sidebar.js'
@@ -22,7 +23,11 @@ export const Layout = Shade({
     margin: '0',
     background: cssVariableTheme.background.default,
   },
-  render: ({ injector, useState, useObservable }) => {
+  render: ({ injector, useState, useObservable, useStoredState }) => {
+    const [themeKey] = useStoredState<string>(THEME_STORAGE_KEY, DEFAULT_THEME_KEY)
+    const themeProvider = injector.getInstance(ThemeProviderService)
+    void applyTheme(themeKey, themeProvider)
+
     const [installState, setInstallState] = useState<'loading' | 'installed' | 'needsInstall' | 'error'>(
       'installState',
       'loading',

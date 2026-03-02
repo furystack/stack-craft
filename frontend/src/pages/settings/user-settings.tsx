@@ -3,6 +3,7 @@ import { PageContainer, PageHeader } from '@furystack/shades-common-components'
 
 import { PasswordChangeForm } from './password-change-form.js'
 import { ApiTokensSection } from './api-tokens-section.js'
+import { ThemeSelector } from './theme-selector.js'
 
 export const UserSettings = Shade({
   shadowDomName: 'shade-user-settings',
@@ -10,6 +11,7 @@ export const UserSettings = Shade({
     return (
       <PageContainer maxWidth="700px" padding="16px">
         <PageHeader icon="⚙️" title="User Settings" />
+        <ThemeSelector />
         <PasswordChangeForm />
         <ApiTokensSection />
       </PageContainer>

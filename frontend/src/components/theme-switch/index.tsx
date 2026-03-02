@@ -1,25 +1,23 @@
 import { createComponent, Shade } from '@furystack/shades'
 import type { ButtonProps } from '@furystack/shades-common-components'
-import {
-  Button,
-  defaultDarkTheme,
-  defaultLightTheme,
-  getCssVariable,
-  ThemeProviderService,
-} from '@furystack/shades-common-components'
+import { Button, ThemeProviderService } from '@furystack/shades-common-components'
+
+import { applyTheme, DEFAULT_THEME_KEY, THEME_STORAGE_KEY } from '../../services/theme-registry.js'
 
 export const ThemeSwitch = Shade<Omit<ButtonProps, 'onclick'>>({
   shadowDomName: 'theme-switch',
-  render: ({ props, injector, useState, useDisposable }) => {
+  render: ({ props, injector, useStoredState, useDisposable }) => {
     const themeProvider = injector.getInstance(ThemeProviderService)
-    const [theme, setTheme] = useState<'light' | 'dark'>(
-      'theme',
-      getCssVariable(themeProvider.theme.background.default) === defaultDarkTheme.background.default ? 'dark' : 'light',
-    )
+    const [themeKey, setThemeKey] = useStoredState<string>(THEME_STORAGE_KEY, DEFAULT_THEME_KEY)
+
+    const isDark = themeKey !== 'light'
 
     useDisposable('traceThemeChange', () =>
       themeProvider.subscribe('themeChanged', (newTheme) => {
-        setTheme(newTheme.name === 'dark' ? 'dark' : 'light')
+        const newKey = newTheme.name === 'default-light-theme' ? 'light' : themeKey
+        if (newKey !== themeKey) {
+          setThemeKey(newKey)
+        }
       }),
     )
 
@@ -27,10 +25,12 @@ export const ThemeSwitch = Shade<Omit<ButtonProps, 'onclick'>>({
       <Button
         {...props}
         onclick={() => {
-          themeProvider.setAssignedTheme(theme === 'dark' ? defaultLightTheme : defaultDarkTheme)
+          const newKey = isDark ? 'light' : 'dark'
+          setThemeKey(newKey)
+          void applyTheme(newKey, themeProvider)
         }}
       >
-        {theme === 'dark' ? '☀️' : '🌜'}
+        {isDark ? '☀️' : '🌜'}
       </Button>
     )
   },
