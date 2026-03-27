@@ -25,8 +25,8 @@
     "@furystack/inject": "^12.0.35",
     "@furystack/logging": "^8.1.4",
     "@furystack/rest-client-fetch": "^8.1.6",
-    "@furystack/shades": "^13.2.0",
-    "@furystack/shades-common-components": "^15.0.3",
+    "@furystack/shades": "^13.2.1",
+    "@furystack/shades-common-components": "^15.0.4",
     "@furystack/utils": "^8.2.4",
     "common": "workspace:^"
   }

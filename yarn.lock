@@ -546,29 +546,29 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@furystack/shades-common-components@npm:^15.0.3":
-  version: 15.0.3
-  resolution: "@furystack/shades-common-components@npm:15.0.3"
+"@furystack/shades-common-components@npm:^15.0.4":
+  version: 15.0.4
+  resolution: "@furystack/shades-common-components@npm:15.0.4"
   dependencies:
     "@furystack/cache": "npm:^6.1.4"
     "@furystack/core": "npm:^16.0.3"
     "@furystack/inject": "npm:^12.0.35"
-    "@furystack/shades": "npm:^13.2.0"
+    "@furystack/shades": "npm:^13.2.1"
     "@furystack/utils": "npm:^8.2.4"
     path-to-regexp: "npm:^8.4.0"
-  checksum: 10c0/764297334a2d8f6f5bee85ea84abefa389a7f269efd6a27b8104b03fe111411e66c2c55486c3f564d7f7eaef9572265b40c713abc92d4fb569bbb8613ba6f339
+  checksum: 10c0/f790266ef0c475b41ac605755d0badb042181b567e45ad3e7d3235fcf7342194c5017f8e948dbbfa7ff3efe64e6451423ec1b2a1d569d88f70af473e7d946e7d
   languageName: node
   linkType: hard
 
-"@furystack/shades@npm:^13.2.0":
-  version: 13.2.0
-  resolution: "@furystack/shades@npm:13.2.0"
+"@furystack/shades@npm:^13.2.1":
+  version: 13.2.1
+  resolution: "@furystack/shades@npm:13.2.1"
   dependencies:
     "@furystack/inject": "npm:^12.0.35"
     "@furystack/rest": "npm:^8.1.4"
     "@furystack/utils": "npm:^8.2.4"
     path-to-regexp: "npm:^8.4.0"
-  checksum: 10c0/dfd0974e2c27f6044230450f03f38bb6d5dac3f567cdf8982739322e8570d8b47258fdd4fec3df1e5c0cd0a3bede41028f6b934d5347e8c0d0389bc0b468b202
+  checksum: 10c0/b19e167a12590bbe1eb2471d460dac6d94797ec31d99611648ea3f5e0cd63202f9bca75b7d7bdee58a4f417164f72728d7e8bceab17102e35dba6edce7079d6b
   languageName: node
   linkType: hard
 
@@ -2828,8 +2828,8 @@ __metadata:
     "@furystack/inject": "npm:^12.0.35"
     "@furystack/logging": "npm:^8.1.4"
     "@furystack/rest-client-fetch": "npm:^8.1.6"
-    "@furystack/shades": "npm:^13.2.0"
-    "@furystack/shades-common-components": "npm:^15.0.3"
+    "@furystack/shades": "npm:^13.2.1"
+    "@furystack/shades-common-components": "npm:^15.0.4"
     "@furystack/utils": "npm:^8.2.4"
     "@types/node": "npm:^25.5.0"
     common: "workspace:^"
