@@ -267,7 +267,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           body: `"${service.displayName}" was deleted.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/')
+        stackCraftNavigate(injector, '/stacks/:name', { name: service.stackName })
       } catch (error) {
         noty.emit('onNotyAdded', {
           title: 'Error',

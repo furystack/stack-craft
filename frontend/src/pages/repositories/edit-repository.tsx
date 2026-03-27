@@ -96,7 +96,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           body: `"${data.displayName ?? repo.displayName}" was updated successfully.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/')
+        stackCraftNavigate(injector, '/stacks/:name', { name: repo.stackName })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -119,7 +119,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           body: `"${repo.displayName}" was deleted.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/')
+        stackCraftNavigate(injector, '/stacks/:name', { name: repo.stackName })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',

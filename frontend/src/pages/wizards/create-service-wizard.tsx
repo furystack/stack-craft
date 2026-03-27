@@ -99,7 +99,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
             body: `"${data.displayName}" was created successfully.`,
             type: 'success',
           })
-          stackCraftNavigate(injector, '/')
+          stackCraftNavigate(injector, '/stacks/:name', { name: props.stackName })
         }
       } catch (error) {
         noty.emit('onNotyAdded', {
@@ -233,7 +233,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               </Button>
               <Button
                 variant="outlined"
-                onclick={() => stackCraftNavigate(injector, '/')}
+                onclick={() => stackCraftNavigate(injector, '/stacks/:name', { name: props.stackName })}
                 endIcon={<Icon icon={icons.chevronRight} size="small" />}
               >
                 Skip
@@ -260,7 +260,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               <Button
                 variant="contained"
                 color="success"
-                onclick={() => stackCraftNavigate(injector, '/')}
+                onclick={() => stackCraftNavigate(injector, '/stacks/:name', { name: props.stackName })}
                 startIcon={<Icon icon={icons.home} size="small" />}
               >
                 Go to Dashboard
@@ -296,7 +296,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               ) : null}
               <Button
                 variant="outlined"
-                onclick={() => stackCraftNavigate(injector, '/')}
+                onclick={() => stackCraftNavigate(injector, '/stacks/:name', { name: props.stackName })}
                 startIcon={<Icon icon={icons.home} size="small" />}
               >
                 Go to Dashboard
