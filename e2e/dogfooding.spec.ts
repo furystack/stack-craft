@@ -16,7 +16,7 @@ test('DOG FOODING TIME - Create a service that uses the StackCraft GitHub reposi
   await login(page)
 
   // Create stack
-  await page.locator('button', { hasText: 'Create Stack' }).first().click()
+  await page.locator('button, a', { hasText: 'Create Stack' }).first().click()
   await expect(page.locator('shade-create-stack')).toBeVisible()
 
   await page.locator('input[name="name"]').fill(stackName)

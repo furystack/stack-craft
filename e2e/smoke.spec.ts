@@ -44,7 +44,7 @@ test.describe.serial('App Flow', () => {
     await page.locator('button', { hasText: 'Create' }).click()
 
     await expect(page.locator('shade-dashboard')).toBeVisible()
-    await expect(page.locator(`text=${displayName}`)).toBeVisible()
+    await expect(page.getByTestId('page-header-title')).toContainText(displayName)
 
     // Create a repository - FuryStack (https://github.com/furystack/furystack)
     await page.locator('button', { hasText: 'Add Repository' }).first().click()
@@ -55,7 +55,7 @@ test.describe.serial('App Flow', () => {
     await page.locator('button', { hasText: 'Add' }).click()
 
     await expect(page.locator('shade-dashboard')).toBeVisible()
-    await expect(page.locator(`text=${displayName}`)).toBeVisible()
+    await expect(page.getByTestId('page-header-title')).toContainText(displayName)
 
     await page.locator('button', { hasText: 'Create Service' }).first().click()
     await expect(page.locator('shade-create-service-wizard')).toBeVisible()
