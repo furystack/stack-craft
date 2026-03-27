@@ -2,7 +2,7 @@ import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/co
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { Prerequisite, StackConfig } from 'common'
+import { Prerequisite, PrerequisiteCheckResult, StackConfig } from 'common'
 import type { PrerequisiteConfig, PrerequisiteType } from 'common'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -45,6 +45,9 @@ describe('CheckPrerequisiteAction', () => {
     stackConfigStore = new InMemoryStore({ model: StackConfig, primaryKey: 'stackName' })
     addStore(injector, stackConfigStore)
     getRepository(injector).createDataSet(StackConfig, 'stackName', {})
+
+    addStore(injector, new InMemoryStore({ model: PrerequisiteCheckResult, primaryKey: 'prerequisiteId' }))
+    getRepository(injector).createDataSet(PrerequisiteCheckResult, 'prerequisiteId', {})
 
     vi.clearAllMocks()
   })
