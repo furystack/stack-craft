@@ -1,6 +1,6 @@
 import type { FindOptions } from '@furystack/core'
 import { useCollectionSync, useEntitySync } from '@furystack/entity-sync-client'
-import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, LocationService, Shade } from '@furystack/shades'
 import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {
   Button,
@@ -30,6 +30,7 @@ import {
   StackConfig,
   StackDefinition,
 } from 'common'
+import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
 import { PrerequisiteList } from '../../components/prerequisite-list.js'
 import { ServiceEnvOverrides } from '../../components/service-env-overrides.js'
@@ -266,7 +267,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           body: `"${service.displayName}" was deleted.`,
           type: 'success',
         })
-        locationService.navigate('/')
+        stackCraftNavigate(injector, '/')
       } catch (error) {
         noty.emit('onNotyAdded', {
           title: 'Error',
@@ -372,11 +373,11 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                     : `${prereqSatisfiedCount}/${servicePrereqs.length} prereqs`}
                 </Chip>
               ) : null}
-              <NestedRouteLink href={`/services/${service.id}/logs`}>
+              <StackCraftNestedRouteLink href="/services/:id/logs" params={{ id: service.id }}>
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.file} size="small" />}>
                   Logs
                 </Button>
-              </NestedRouteLink>
+              </StackCraftNestedRouteLink>
               <Button
                 variant="outlined"
                 size="small"
@@ -416,9 +417,13 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
               <div style={{ display: 'contents' }}>
                 <strong>Repository</strong>
                 <span>
-                  <NestedRouteLink href="/repositories/:id" params={{ id: linkedRepo.id }} style={{ color: 'inherit' }}>
+                  <StackCraftNestedRouteLink
+                    href="/repositories/:id"
+                    params={{ id: linkedRepo.id }}
+                    style={{ color: 'inherit' }}
+                  >
                     {linkedRepo.displayName}
-                  </NestedRouteLink>
+                  </StackCraftNestedRouteLink>
                 </span>
                 <span>
                   {linkedRepo.url ? (
@@ -765,21 +770,23 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
                   {entry.metadata ?? ''}
                 </span>
               ),
-              processUid: (entry) =>
-                entry.processUid ? (
+              processUid: (entry) => {
+                const { processUid } = entry
+                if (!processUid) return <span />
+                return (
                   <Button
                     size="small"
                     onclick={() =>
-                      injector
-                        .getInstance(LocationService)
-                        .navigate(`/services/${props.serviceId}/logs/${entry.processUid}`)
+                      stackCraftNavigate(injector, '/services/:id/logs/:processUid', {
+                        id: props.serviceId,
+                        processUid,
+                      })
                     }
                   >
                     Show Logs
                   </Button>
-                ) : (
-                  <span />
-                ),
+                )
+              },
             }}
           />
         )}

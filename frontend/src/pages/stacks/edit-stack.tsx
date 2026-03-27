@@ -1,5 +1,5 @@
 import { useEntitySync } from '@furystack/entity-sync-client'
-import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
 
 import {
   Button,
@@ -14,6 +14,7 @@ import {
 } from '@furystack/shades-common-components'
 import type { EnvironmentVariableValue, StackView } from 'common'
 import { StackConfig, StackDefinition } from 'common'
+import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
 import { StackForm } from '../../components/entity-forms/stack-form.js'
 import { EnvironmentVariablesManager } from '../../components/environment-variables-manager.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
@@ -48,11 +49,11 @@ export const EditStack = Shade<EditStackProps>({
             title="Error loading stack"
             description={stackState.error}
             actions={
-              <NestedRouteLink href="/">
+              <StackCraftNestedRouteLink href="/">
                 <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
                   Back
                 </Button>
-              </NestedRouteLink>
+              </StackCraftNestedRouteLink>
             }
           />
         </PageContainer>
@@ -70,11 +71,11 @@ export const EditStack = Shade<EditStackProps>({
           <PageHeader
             title="Stack not found"
             actions={
-              <NestedRouteLink href="/">
+              <StackCraftNestedRouteLink href="/">
                 <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
                   Back
                 </Button>
-              </NestedRouteLink>
+              </StackCraftNestedRouteLink>
             }
           />
         </PageContainer>
@@ -101,7 +102,7 @@ export const EditStack = Shade<EditStackProps>({
           body: `"${data.displayName ?? stack.displayName}" was updated successfully.`,
           type: 'success',
         })
-        injector.getInstance(LocationService).navigate('/')
+        stackCraftNavigate(injector, '/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -124,7 +125,7 @@ export const EditStack = Shade<EditStackProps>({
           body: `"${stack.displayName}" was deleted.`,
           type: 'success',
         })
-        injector.getInstance(LocationService).navigate('/')
+        stackCraftNavigate(injector, '/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -141,11 +142,11 @@ export const EditStack = Shade<EditStackProps>({
           title={`Edit: ${stack.displayName}`}
           actions={
             <div style={{ display: 'flex', gap: '8px' }}>
-              <NestedRouteLink href="/">
+              <StackCraftNestedRouteLink href="/">
                 <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
                   Back
                 </Button>
-              </NestedRouteLink>
+              </StackCraftNestedRouteLink>
               <Button
                 variant="outlined"
                 color="error"

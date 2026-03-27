@@ -1,7 +1,9 @@
-import { createComponent, LocationService, Shade } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
 
 import { NotyService, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
 import type { StackView } from 'common'
+
+import { stackCraftNavigate } from '../../components/app-routes.js'
 import { StackForm } from '../../components/entity-forms/stack-form.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
@@ -28,7 +30,7 @@ export const CreateStack = Shade({
           type: 'success',
         })
 
-        injector.getInstance(LocationService).navigate('/')
+        stackCraftNavigate(injector, '/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',

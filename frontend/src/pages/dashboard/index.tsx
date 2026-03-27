@@ -1,5 +1,5 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
-import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
 
 import {
   Button,
@@ -14,6 +14,7 @@ import {
 } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
 import { ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
+import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
 import { PrerequisiteTable } from '../../components/prerequisite-table.js'
@@ -47,7 +48,7 @@ export const Dashboard = Shade<DashboardProps>({
     // When no stackName is provided (route `/`), redirect to the first stack or show empty state
     if (!props.stackName) {
       if (stacks.length > 0) {
-        queueMicrotask(() => injector.getInstance(LocationService).navigate(`/stacks/${stacks[0].name}`))
+        queueMicrotask(() => stackCraftNavigate(injector, '/stacks/:name', { name: stacks[0].name }))
         return null
       }
 
@@ -59,16 +60,16 @@ export const Dashboard = Shade<DashboardProps>({
             description="No stacks yet. Create a stack to start managing your services."
             actions={
               <div style={{ display: 'flex', gap: '8px' }}>
-                <NestedRouteLink href="/stacks/create">
+                <StackCraftNestedRouteLink href="/stacks/create">
                   <Button variant="contained" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
                     Create Stack
                   </Button>
-                </NestedRouteLink>
-                <NestedRouteLink href="/stacks/import">
+                </StackCraftNestedRouteLink>
+                <StackCraftNestedRouteLink href="/stacks/import">
                   <Button variant="outlined" size="small" startIcon={<Icon icon={icons.upload} size="small" />}>
                     Import Stack
                   </Button>
-                </NestedRouteLink>
+                </StackCraftNestedRouteLink>
               </div>
             }
           />
@@ -142,16 +143,16 @@ export const Dashboard = Shade<DashboardProps>({
           title={currentStack?.displayName ?? props.stackName}
           actions={
             <div style={{ display: 'flex', gap: '8px' }}>
-              <NestedRouteLink href="/stacks/:stackName/export" params={{ stackName: props.stackName }}>
+              <StackCraftNestedRouteLink href="/stacks/:name/export" params={{ name: props.stackName }}>
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.download} size="small" />}>
                   Export
                 </Button>
-              </NestedRouteLink>
-              <NestedRouteLink href="/stacks/:stackName/edit" params={{ stackName: props.stackName }}>
+              </StackCraftNestedRouteLink>
+              <StackCraftNestedRouteLink href="/stacks/:name/edit" params={{ name: props.stackName }}>
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.edit} size="small" />}>
                   Edit Stack
                 </Button>
-              </NestedRouteLink>
+              </StackCraftNestedRouteLink>
             </div>
           }
         />
@@ -240,11 +241,11 @@ export const Dashboard = Shade<DashboardProps>({
               </ButtonGroup>
             ) : null}
             <div style={{ flex: '1' }} />
-            <NestedRouteLink href="/services/wizard/:stackName" params={{ stackName: props.stackName }}>
+            <StackCraftNestedRouteLink href="/services/wizard/:stackName" params={{ stackName: props.stackName }}>
               <Button variant="contained" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
                 Create Service
               </Button>
-            </NestedRouteLink>
+            </StackCraftNestedRouteLink>
           </div>
           {services.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px' }}>
@@ -275,11 +276,11 @@ export const Dashboard = Shade<DashboardProps>({
             }}
           >
             <h3 style={{ margin: '0', fontSize: '16px' }}>Repositories</h3>
-            <NestedRouteLink href="/repositories/create/:stackName" params={{ stackName: props.stackName }}>
+            <StackCraftNestedRouteLink href="/repositories/create/:stackName" params={{ stackName: props.stackName }}>
               <Button variant="outlined" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
                 Add Repository
               </Button>
-            </NestedRouteLink>
+            </StackCraftNestedRouteLink>
           </div>
           <RepositoryTable stackName={props.stackName} />
         </Paper>

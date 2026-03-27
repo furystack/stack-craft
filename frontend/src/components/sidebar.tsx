@@ -1,14 +1,15 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import type { Injector } from '@furystack/inject'
-import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, LocationService, Shade } from '@furystack/shades'
 import { cssVariableTheme, Divider, Icon, icons } from '@furystack/shades-common-components'
 import type { StackView } from 'common'
 import { StackDefinition } from 'common'
 import { match } from 'path-to-regexp'
 
+import { StackCraftNestedRouteLink } from './app-routes.js'
+
 type SidebarStackLinkProps = {
   stackName: string
-  href: string
   label: string
   currentUrl: string
 }
@@ -39,11 +40,16 @@ const SidebarStackLink = Shade<SidebarStackLinkProps>({
     },
   },
   render: ({ props }) => {
-    const isActive = !!match(props.href, { end: true })(props.currentUrl)
+    const compiledHref = `/stacks/${props.stackName}`
+    const isActive = !!match(compiledHref, { end: true })(props.currentUrl)
     return (
-      <NestedRouteLink href={props.href} {...(isActive ? { 'data-active': '' } : {})}>
+      <StackCraftNestedRouteLink
+        href="/stacks/:name"
+        params={{ name: props.stackName }}
+        {...(isActive ? { 'data-active': '' } : {})}
+      >
         {props.label}
-      </NestedRouteLink>
+      </StackCraftNestedRouteLink>
     )
   },
 })
@@ -118,12 +124,7 @@ const SidebarStackCategory = Shade<SidebarStackCategoryProps>({
         </div>
         {isExpanded ? (
           <div className="category-children">
-            <SidebarStackLink
-              stackName={props.stack.name}
-              href={`/stacks/${props.stack.name}`}
-              label="Overview"
-              currentUrl={props.currentUrl}
-            />
+            <SidebarStackLink stackName={props.stack.name} label="Overview" currentUrl={props.currentUrl} />
           </div>
         ) : null}
       </div>
@@ -175,10 +176,10 @@ const SidebarItem = Shade<SidebarItemProps>({
     }
 
     return (
-      <NestedRouteLink href={props.href}>
+      <StackCraftNestedRouteLink href={props.href as '/'}>
         <Icon icon={props.icon} size="small" />
         {props.label}
-      </NestedRouteLink>
+      </StackCraftNestedRouteLink>
     )
   },
 })

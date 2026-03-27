@@ -1,9 +1,10 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
-import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
 import { Button, cssVariableTheme, Icon, icons, NotyService, Paper } from '@furystack/shades-common-components'
 import type { GitHubRepository, Prerequisite, ServiceView } from 'common'
 import { GitHubRepository as GitHubRepositoryModel, Prerequisite as PrerequisiteModel, ServiceDefinition } from 'common'
 
+import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
 import { GitHubReposApiClient } from '../../services/api-clients/github-repos-api-client.js'
 import { PrerequisitesApiClient } from '../../services/api-clients/prerequisites-api-client.js'
@@ -98,7 +99,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
             body: `"${data.displayName}" was created successfully.`,
             type: 'success',
           })
-          injector.getInstance(LocationService).navigate('/')
+          stackCraftNavigate(injector, '/')
         }
       } catch (error) {
         noty.emit('onNotyAdded', {
@@ -232,7 +233,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               </Button>
               <Button
                 variant="outlined"
-                onclick={() => injector.getInstance(LocationService).navigate('/')}
+                onclick={() => stackCraftNavigate(injector, '/')}
                 endIcon={<Icon icon={icons.chevronRight} size="small" />}
               >
                 Skip
@@ -259,17 +260,17 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               <Button
                 variant="contained"
                 color="success"
-                onclick={() => injector.getInstance(LocationService).navigate('/')}
+                onclick={() => stackCraftNavigate(injector, '/')}
                 startIcon={<Icon icon={icons.home} size="small" />}
               >
                 Go to Dashboard
               </Button>
               {state.createdServiceId ? (
-                <NestedRouteLink href={`/services/${state.createdServiceId}`}>
+                <StackCraftNestedRouteLink href="/services/:id" params={{ id: state.createdServiceId }}>
                   <Button variant="outlined" startIcon={<Icon icon={icons.eye} size="small" />}>
                     View Service
                   </Button>
-                </NestedRouteLink>
+                </StackCraftNestedRouteLink>
               ) : null}
             </div>
           </div>
@@ -287,15 +288,15 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
                 Retry
               </Button>
               {state.createdServiceId ? (
-                <NestedRouteLink href={`/services/${state.createdServiceId}/logs`}>
+                <StackCraftNestedRouteLink href="/services/:id/logs" params={{ id: state.createdServiceId }}>
                   <Button variant="outlined" startIcon={<Icon icon={icons.fileText} size="small" />}>
                     View Logs
                   </Button>
-                </NestedRouteLink>
+                </StackCraftNestedRouteLink>
               ) : null}
               <Button
                 variant="outlined"
-                onclick={() => injector.getInstance(LocationService).navigate('/')}
+                onclick={() => stackCraftNavigate(injector, '/')}
                 startIcon={<Icon icon={icons.home} size="small" />}
               >
                 Go to Dashboard

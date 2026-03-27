@@ -1,4 +1,4 @@
-import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
 
 import {
   Button,
@@ -16,6 +16,7 @@ import {
 } from '@furystack/shades-common-components'
 import type { EnvironmentVariableValue, ExportStackEndpoint } from 'common'
 
+import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
 import { prerequisiteTypeLabels } from '../../components/status-chips.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 import { SystemApiClient } from '../../services/api-clients/system-api-client.js'
@@ -133,9 +134,9 @@ export const ImportStack = Shade({
         })
         const hasAutoSetup = formData.autoSetup === 'on'
         if (hasAutoSetup && (parsed.services?.length ?? 0) > 0) {
-          injector.getInstance(LocationService).navigate(`/stacks/${parsed.stack.name}/setup`)
+          stackCraftNavigate(injector, '/stacks/:name/setup', { name: parsed.stack.name })
         } else {
-          injector.getInstance(LocationService).navigate('/')
+          stackCraftNavigate(injector, '/')
         }
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
@@ -177,11 +178,11 @@ export const ImportStack = Shade({
                 <div style={{ color: cssVariableTheme.palette.error.main, marginTop: '8px' }}>{parseError}</div>
               )}
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
-                <NestedRouteLink href="/">
+                <StackCraftNestedRouteLink href="/">
                   <Button variant="outlined" startIcon={<Icon icon={icons.close} size="small" />}>
                     Cancel
                   </Button>
-                </NestedRouteLink>
+                </StackCraftNestedRouteLink>
                 <Button
                   variant="contained"
                   disabled={!jsonInput}

@@ -1,5 +1,5 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
-import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
 
 import {
   Button,
@@ -15,6 +15,7 @@ import {
 import type { ServiceView } from 'common'
 import { ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
 
+import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { BuildStatusChip, CloneStatusChip, InstallStatusChip } from '../../components/status-chips.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
@@ -177,11 +178,11 @@ export const StackSetup = Shade<StackSetupProps>({
                   Set Up All Services
                 </Button>
               )}
-              <NestedRouteLink href={`/stacks/${props.stackName}`}>
+              <StackCraftNestedRouteLink href="/stacks/:name" params={{ name: props.stackName }}>
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.home} size="small" />}>
                   Go to Dashboard
                 </Button>
-              </NestedRouteLink>
+              </StackCraftNestedRouteLink>
             </div>
           }
         />
@@ -235,7 +236,7 @@ export const StackSetup = Shade<StackSetupProps>({
                     <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                         {ready ? (
-                          <NestedRouteLink href={`/services/${svc.id}`}>
+                          <StackCraftNestedRouteLink href="/services/:id" params={{ id: svc.id }}>
                             <Button
                               variant="outlined"
                               size="small"
@@ -244,7 +245,7 @@ export const StackSetup = Shade<StackSetupProps>({
                             >
                               Ready
                             </Button>
-                          </NestedRouteLink>
+                          </StackCraftNestedRouteLink>
                         ) : (
                           <Button
                             variant="outlined"
@@ -256,7 +257,7 @@ export const StackSetup = Shade<StackSetupProps>({
                             Set Up
                           </Button>
                         )}
-                        <NestedRouteLink href={`/services/${svc.id}/logs`}>
+                        <StackCraftNestedRouteLink href="/services/:id/logs" params={{ id: svc.id }}>
                           <Button
                             variant="outlined"
                             size="small"
@@ -264,7 +265,7 @@ export const StackSetup = Shade<StackSetupProps>({
                           >
                             Logs
                           </Button>
-                        </NestedRouteLink>
+                        </StackCraftNestedRouteLink>
                       </div>
                     </td>
                   </tr>

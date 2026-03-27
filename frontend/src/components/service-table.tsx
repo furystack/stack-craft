@@ -1,7 +1,7 @@
 import type { FindOptions } from '@furystack/core'
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import { serializeToQueryString } from '@furystack/rest'
-import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, LocationService, Shade } from '@furystack/shades'
 import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {
   Button,
@@ -17,6 +17,7 @@ import { PrerequisiteCheckResult } from 'common'
 
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
 import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
+import { StackCraftNestedRouteLink } from './app-routes.js'
 import { RunStatusChip } from './status-chips.js'
 
 type ServiceTableProps = {
@@ -181,30 +182,33 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     startIcon={<Icon icon={icons.stopCircle} size="small" />}
                   />
                 )}
-                <NestedRouteLink href={`/services/${entry.id}/logs`}>
+                <StackCraftNestedRouteLink href="/services/:id/logs" params={{ id: entry.id }}>
                   <Button
                     variant="text"
                     size="small"
                     title="Logs"
                     startIcon={<Icon icon={icons.fileText} size="small" />}
                   />
-                </NestedRouteLink>
-                <NestedRouteLink href={`/services/${entry.id}`}>
+                </StackCraftNestedRouteLink>
+                <StackCraftNestedRouteLink href="/services/:id" params={{ id: entry.id }}>
                   <Button
                     variant="text"
                     size="small"
                     title="Details"
                     startIcon={<Icon icon={icons.eye} size="small" />}
                   />
-                </NestedRouteLink>
-                <NestedRouteLink href={`/services/${entry.id}?${serializeToQueryString({ edit: true })}`}>
-                  <Button
-                    variant="text"
-                    size="small"
-                    title="Edit"
-                    startIcon={<Icon icon={icons.edit} size="small" />}
-                  />
-                </NestedRouteLink>
+                </StackCraftNestedRouteLink>
+                <Button
+                  variant="text"
+                  size="small"
+                  title="Edit"
+                  onclick={() =>
+                    injector
+                      .getInstance(LocationService)
+                      .navigate(`/services/${entry.id}?${serializeToQueryString({ edit: true })}`)
+                  }
+                  startIcon={<Icon icon={icons.edit} size="small" />}
+                />
               </div>
             )
           },

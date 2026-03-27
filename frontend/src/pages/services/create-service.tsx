@@ -1,9 +1,10 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
-import { createComponent, LocationService, Shade } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
 import { NotyService, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
 import { GitHubRepository, Prerequisite, ServiceDefinition } from 'common'
 
+import { stackCraftNavigate } from '../../components/app-routes.js'
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
 import { GitHubReposApiClient } from '../../services/api-clients/github-repos-api-client.js'
 import { PrerequisitesApiClient } from '../../services/api-clients/prerequisites-api-client.js'
@@ -69,7 +70,7 @@ export const CreateService = Shade<CreateServiceProps>({
           body: `Service "${data.displayName}" was created successfully.`,
           type: 'success',
         })
-        injector.getInstance(LocationService).navigate('/')
+        stackCraftNavigate(injector, '/')
       } catch (error) {
         noty.emit('onNotyAdded', {
           title: 'Error',

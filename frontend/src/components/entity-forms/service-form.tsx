@@ -1,4 +1,4 @@
-import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
 import {
   Button,
   Checkbox,
@@ -13,6 +13,7 @@ import {
 } from '@furystack/shades-common-components'
 import type { GitHubRepository, Prerequisite, ServiceFile, ServiceView } from 'common'
 
+import { StackCraftNestedRouteLink } from '../app-routes.js'
 import { prerequisiteTypeLabels } from '../status-chips.js'
 import { GitHubRepoForm } from './github-repo-form.js'
 import { PrerequisiteForm } from './prerequisite-form.js'
@@ -384,11 +385,11 @@ export const ServiceForm = Shade<ServiceFormProps>({
           </div>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
             {props.cancelHref ? (
-              <NestedRouteLink href={props.cancelHref}>
+              <StackCraftNestedRouteLink href={props.cancelHref as '/'}>
                 <Button variant="outlined" startIcon={<Icon icon={icons.close} size="small" />}>
                   Cancel
                 </Button>
-              </NestedRouteLink>
+              </StackCraftNestedRouteLink>
             ) : (
               <Button variant="outlined" onclick={props.onCancel} startIcon={<Icon icon={icons.close} size="small" />}>
                 Cancel

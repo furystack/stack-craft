@@ -1,5 +1,5 @@
 import { useEntitySync } from '@furystack/entity-sync-client'
-import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
 
 import {
   Button,
@@ -14,6 +14,7 @@ import {
 } from '@furystack/shades-common-components'
 import type { GitHubRepository } from 'common'
 import { GitHubRepository as GitHubRepositoryModel } from 'common'
+import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
 import { GitHubRepoForm } from '../../components/entity-forms/github-repo-form.js'
 import { GitHubReposApiClient } from '../../services/api-clients/github-repos-api-client.js'
 
@@ -46,11 +47,11 @@ export const EditRepository = Shade<EditRepositoryProps>({
             title="Error loading repository"
             description={repoState.error}
             actions={
-              <NestedRouteLink href="/">
+              <StackCraftNestedRouteLink href="/">
                 <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
                   Back
                 </Button>
-              </NestedRouteLink>
+              </StackCraftNestedRouteLink>
             }
           />
         </PageContainer>
@@ -64,11 +65,11 @@ export const EditRepository = Shade<EditRepositoryProps>({
           <PageHeader
             title="Repository not found"
             actions={
-              <NestedRouteLink href="/">
+              <StackCraftNestedRouteLink href="/">
                 <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
                   Back
                 </Button>
-              </NestedRouteLink>
+              </StackCraftNestedRouteLink>
             }
           />
         </PageContainer>
@@ -95,7 +96,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           body: `"${data.displayName ?? repo.displayName}" was updated successfully.`,
           type: 'success',
         })
-        injector.getInstance(LocationService).navigate('/')
+        stackCraftNavigate(injector, '/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -118,7 +119,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           body: `"${repo.displayName}" was deleted.`,
           type: 'success',
         })
-        injector.getInstance(LocationService).navigate('/')
+        stackCraftNavigate(injector, '/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -135,11 +136,11 @@ export const EditRepository = Shade<EditRepositoryProps>({
           title={`Edit: ${repo.displayName}`}
           actions={
             <div style={{ display: 'flex', gap: '8px' }}>
-              <NestedRouteLink href="/">
+              <StackCraftNestedRouteLink href="/">
                 <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
                   Back
                 </Button>
-              </NestedRouteLink>
+              </StackCraftNestedRouteLink>
               <Button
                 variant="outlined"
                 color="error"

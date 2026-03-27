@@ -1,6 +1,8 @@
-import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
 import { Button, Form, Icon, icons, Input, MarkdownInput } from '@furystack/shades-common-components'
 import type { GitHubRepository } from 'common'
+
+import { StackCraftNestedRouteLink } from '../app-routes.js'
 
 type GitHubRepoFormPayload = {
   url: string
@@ -58,11 +60,11 @@ export const GitHubRepoForm = Shade<GitHubRepoFormProps>({
         <MarkdownInput name="description" labelTitle="Description" value={props.initial?.description ?? ''} rows={4} />
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           {props.cancelHref ? (
-            <NestedRouteLink href={props.cancelHref}>
+            <StackCraftNestedRouteLink href={props.cancelHref as '/'}>
               <Button variant="outlined" startIcon={<Icon icon={icons.close} size="small" />}>
                 Cancel
               </Button>
-            </NestedRouteLink>
+            </StackCraftNestedRouteLink>
           ) : (
             <Button variant="outlined" onclick={props.onCancel} startIcon={<Icon icon={icons.close} size="small" />}>
               Cancel
