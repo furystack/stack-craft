@@ -23,7 +23,7 @@ type GitHubRepoFormProps = {
 }
 
 export const GitHubRepoForm = Shade<GitHubRepoFormProps>({
-  shadowDomName: 'shade-github-repo-form',
+  customElementName: 'shade-github-repo-form',
   render: ({ props }) => {
     return (
       <Form<GitHubRepoFormPayload>

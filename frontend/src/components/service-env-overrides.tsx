@@ -1,10 +1,10 @@
 import { createComponent, Shade } from '@furystack/shades'
 
-import { Button, Icon, icons, cssVariableTheme, Paper } from '@furystack/shades-common-components'
+import { Button, cssVariableTheme, Icon, icons, Paper } from '@furystack/shades-common-components'
 import type { EnvironmentVariableValue, Prerequisite, ServiceView } from 'common'
 
-import { SystemApiClient } from '../services/api-clients/system-api-client.js'
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
+import { SystemApiClient } from '../services/api-clients/system-api-client.js'
 
 type ServiceEnvOverridesProps = {
   service: ServiceView
@@ -13,7 +13,7 @@ type ServiceEnvOverridesProps = {
 }
 
 export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
-  shadowDomName: 'shade-service-env-overrides',
+  customElementName: 'shade-service-env-overrides',
   render: ({ props, injector, useState }) => {
     const { service, envPrereqs, stackEnvVars } = props
 

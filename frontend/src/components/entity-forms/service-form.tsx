@@ -50,7 +50,7 @@ type ServiceFormProps = {
 }
 
 export const ServiceForm = Shade<ServiceFormProps>({
-  shadowDomName: 'shade-service-form',
+  customElementName: 'shade-service-form',
   render: ({ props, useState }) => {
     const [selectedPrereqIds, setSelectedPrereqIds] = useState<string[]>(
       'selectedPrereqIds',

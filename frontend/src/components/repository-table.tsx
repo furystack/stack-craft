@@ -3,7 +3,6 @@ import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
 import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import { Button, CollectionService, DataGrid, Icon, icons, Loader } from '@furystack/shades-common-components'
-import { ObservableValue } from '@furystack/utils'
 import { GitHubRepository } from 'common'
 
 import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
@@ -20,21 +19,19 @@ const columnFilters: { [K in RepositoryColumn]?: ColumnFilterConfig } = {
 }
 
 export const RepositoryTable = Shade<RepositoryTableProps>({
-  shadowDomName: 'shade-repository-table',
+  customElementName: 'shade-repository-table',
   render: (options) => {
-    const { props, useDisposable, useObservable } = options
+    const { props, useDisposable, useState } = options
 
     const collectionService = useDisposable(
       'collectionService',
       () => new CollectionService<GitHubRepository>({ searchField: 'displayName' }),
     )
 
-    const findOptions = useDisposable(
+    const [findOptions, setFindOptions] = useState<FindOptions<GitHubRepository, Array<keyof GitHubRepository>>>(
       'findOptionsObservable',
-      () => new ObservableValue<FindOptions<GitHubRepository, Array<keyof GitHubRepository>>>({ top: 25 }),
+      { top: 25 },
     )
-
-    const [currentFindOptions] = useObservable('currentFindOptions', findOptions)
 
     const reposState = useCollectionSync(options, GitHubRepository, {
       filter: { stackName: { $eq: props.stackName } },
@@ -43,7 +40,7 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
     const isLoading = reposState.status === 'connecting'
     const allEntries = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
 
-    const { entries, count } = applyClientFindOptions(allEntries, currentFindOptions)
+    const { entries, count } = applyClientFindOptions(allEntries, findOptions)
     collectionService.data.setValue({ entries, count })
 
     if (isLoading) {
@@ -58,6 +55,7 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
       <DataGrid<GitHubRepository, RepositoryColumn>
         columns={['displayName', 'url', 'actions']}
         findOptions={findOptions}
+        onFindOptionsChange={setFindOptions}
         styles={undefined}
         collectionService={collectionService}
         columnFilters={columnFilters}

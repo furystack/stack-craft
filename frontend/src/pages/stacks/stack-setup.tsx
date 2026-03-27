@@ -35,7 +35,7 @@ const isServiceInProgress = (svc: ServiceView): boolean => {
 }
 
 export const StackSetup = Shade<StackSetupProps>({
-  shadowDomName: 'shade-stack-setup',
+  customElementName: 'shade-stack-setup',
   render: (options) => {
     const { props, injector, useState } = options
 

@@ -12,7 +12,6 @@ import {
   icons,
   SelectionCell,
 } from '@furystack/shades-common-components'
-import { ObservableValue } from '@furystack/utils'
 import type { PrerequisiteCheckStatus, ServiceView } from 'common'
 import { PrerequisiteCheckResult } from 'common'
 
@@ -42,9 +41,9 @@ const columnFilters: { [K in ServiceColumn]?: ColumnFilterConfig } = {
 }
 
 export const ServiceTable = Shade<ServiceTableProps>({
-  shadowDomName: 'shade-service-table',
+  customElementName: 'shade-service-table',
   render: (options) => {
-    const { props, injector, useDisposable, useObservable } = options
+    const { props, injector, useDisposable, useObservable, useState } = options
     const api = injector.getInstance(ServicesApiClient)
 
     const collectionService = useDisposable(
@@ -52,13 +51,12 @@ export const ServiceTable = Shade<ServiceTableProps>({
       () => new CollectionService<ServiceView>({ searchField: 'displayName' }),
     )
 
-    const findOptions = useDisposable(
+    const [findOptions, setFindOptions] = useState<FindOptions<ServiceView, Array<keyof ServiceView>>>(
       'findOptionsObservable',
-      () => new ObservableValue<FindOptions<ServiceView, Array<keyof ServiceView>>>({ top: 25 }),
+      { top: 25 },
     )
 
-    const [currentFindOptions] = useObservable('currentFindOptions', findOptions)
-    const { entries, count } = applyClientFindOptions(props.services, currentFindOptions)
+    const { entries, count } = applyClientFindOptions(props.services, findOptions)
     collectionService.data.setValue({ entries, count })
 
     const checkResultsState = useCollectionSync(options, PrerequisiteCheckResult, {})
@@ -95,6 +93,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
       <DataGrid<ServiceView, ServiceColumn>
         columns={['selection', 'displayName', 'runStatus', 'actions']}
         findOptions={findOptions}
+        onFindOptionsChange={setFindOptions}
         styles={undefined}
         collectionService={collectionService}
         columnFilters={columnFilters}

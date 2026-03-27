@@ -8,7 +8,7 @@ export type HeaderProps = {
 }
 
 export const Header = Shade<HeaderProps>({
-  shadowDomName: 'shade-app-header',
+  customElementName: 'shade-app-header',
   css: {
     '& h3': {
       margin: '0 1em 0 0',

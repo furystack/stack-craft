@@ -3,7 +3,7 @@ import { ThemeProviderService } from '@furystack/shades-common-components'
 import { SessionService } from '../services/session.js'
 
 export const HelloWorld = Shade({
-  shadowDomName: 'hello-world',
+  customElementName: 'hello-world',
   css: {
     overflow: 'auto',
     paddingTop: '64px',

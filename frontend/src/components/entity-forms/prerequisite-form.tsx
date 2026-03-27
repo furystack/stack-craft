@@ -83,7 +83,7 @@ type PrerequisiteFormProps = {
 }
 
 export const PrerequisiteForm = Shade<PrerequisiteFormProps>({
-  shadowDomName: 'shade-prerequisite-form',
+  customElementName: 'shade-prerequisite-form',
   render: ({ props, useState }) => {
     const [selectedType, setSelectedType] = useState<PrerequisiteType | ''>('selectedType', props.initial?.type ?? '')
 

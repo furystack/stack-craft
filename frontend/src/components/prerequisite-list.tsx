@@ -12,7 +12,7 @@ type PrerequisiteListProps = {
 }
 
 export const PrerequisiteList = Shade<PrerequisiteListProps>({
-  shadowDomName: 'shade-prerequisite-list',
+  customElementName: 'shade-prerequisite-list',
   render: (options) => {
     const { props, injector, useState } = options
     const api = injector.getInstance(PrerequisitesApiClient)

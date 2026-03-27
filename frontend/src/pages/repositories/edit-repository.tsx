@@ -22,7 +22,7 @@ type EditRepositoryProps = {
 }
 
 export const EditRepository = Shade<EditRepositoryProps>({
-  shadowDomName: 'shade-edit-repository',
+  customElementName: 'shade-edit-repository',
   render: (options) => {
     const { props, injector, useState } = options
     const [isConfirmingDelete, setIsConfirmingDelete] = useState('isConfirmingDelete', false)

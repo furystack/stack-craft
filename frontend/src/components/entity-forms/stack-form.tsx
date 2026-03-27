@@ -23,7 +23,7 @@ type StackFormProps = {
 }
 
 export const StackForm = Shade<StackFormProps>({
-  shadowDomName: 'shade-stack-form',
+  customElementName: 'shade-stack-form',
   render: ({ props }) => {
     return (
       <Form<StackFormPayload>

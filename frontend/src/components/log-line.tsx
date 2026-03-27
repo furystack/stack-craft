@@ -52,7 +52,7 @@ type LogLineProps = {
 }
 
 export const LogLine = Shade<LogLineProps>({
-  shadowDomName: 'shade-log-line',
+  customElementName: 'shade-log-line',
   render: ({ props }) => {
     const segments = parseAnsi(props.line)
 

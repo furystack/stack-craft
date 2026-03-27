@@ -17,7 +17,7 @@ type ExportStackProps = {
 }
 
 export const ExportStack = Shade<ExportStackProps>({
-  shadowDomName: 'shade-export-stack',
+  customElementName: 'shade-export-stack',
   render: ({ props, injector, useState }) => {
     const [jsonOutput, setJsonOutput] = useState('json', '')
     const [isLoading, setIsLoading] = useState('isLoading', true)

@@ -12,8 +12,8 @@ import {
   PageHeader,
   Paper,
 } from '@furystack/shades-common-components'
-import { ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
 import type { ServiceView } from 'common'
+import { ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
 import { PrerequisiteTable } from '../../components/prerequisite-table.js'
@@ -25,7 +25,7 @@ type DashboardProps = {
 }
 
 export const Dashboard = Shade<DashboardProps>({
-  shadowDomName: 'shade-dashboard',
+  customElementName: 'shade-dashboard',
   render: (options) => {
     const { props, injector } = options
 

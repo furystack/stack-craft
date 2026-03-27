@@ -3,7 +3,7 @@ import type { WizardStepProps } from '@furystack/shades-common-components'
 import { Button, Icon, icons } from '@furystack/shades-common-components'
 
 export const WizardStep = Shade<{ title: string } & WizardStepProps>({
-  shadowDomName: 'shade-wizard-step',
+  customElementName: 'shade-wizard-step',
   render: ({ props, children }) => {
     const isLastPage = props.currentPage === props.maxPages - 1
 

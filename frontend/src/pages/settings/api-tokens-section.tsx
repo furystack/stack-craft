@@ -15,7 +15,6 @@ import {
   NotyService,
   Paper,
 } from '@furystack/shades-common-components'
-import { ObservableValue } from '@furystack/utils'
 import { PublicApiToken } from 'common'
 
 import { TokensApiClient } from '../../services/api-clients/tokens-api-client.js'
@@ -38,7 +37,7 @@ const tokenColumnFilters: { [K in TokenColumn]?: ColumnFilterConfig } = {
 }
 
 export const ApiTokensSection = Shade({
-  shadowDomName: 'shade-api-tokens-section',
+  customElementName: 'shade-api-tokens-section',
   render: (options) => {
     const { injector, useState, useObservable, useDisposable } = options
 
@@ -54,20 +53,16 @@ export const ApiTokensSection = Shade({
       () => new CollectionService<PublicApiToken>({ searchField: 'name' }),
     )
 
-    const findOptions = useDisposable(
+    const [findOptions, setFindOptions] = useState<FindOptions<PublicApiToken, Array<keyof PublicApiToken>>>(
       'findOptionsObservable',
-      () => new ObservableValue<FindOptions<PublicApiToken, Array<keyof PublicApiToken>>>({ top: 25 }),
+      { top: 25 },
     )
 
-    const [currentFindOptions] = useObservable('currentFindOptions', findOptions)
-
     const tokensState = useCollectionSync(options, PublicApiToken, {
-      filter: currentUser
-        ? { username: { $eq: currentUser.username }, ...currentFindOptions.filter }
-        : currentFindOptions.filter,
-      top: currentFindOptions.top,
-      skip: currentFindOptions.skip,
-      order: currentFindOptions.order,
+      filter: currentUser ? { username: { $eq: currentUser.username }, ...findOptions.filter } : findOptions.filter,
+      top: findOptions.top,
+      skip: findOptions.skip,
+      order: findOptions.order,
     })
 
     const [revokingTokenId, setRevokingTokenId] = useState<string | null>('revokingTokenId', null)
@@ -160,6 +155,7 @@ export const ApiTokensSection = Shade({
           <DataGrid<PublicApiToken, TokenColumn>
             columns={['name', 'createdAt', 'actions']}
             findOptions={findOptions}
+            onFindOptionsChange={setFindOptions}
             styles={undefined}
             collectionService={collectionService}
             columnFilters={tokenColumnFilters}

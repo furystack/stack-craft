@@ -3,7 +3,7 @@ import type { WizardStepProps } from '@furystack/shades-common-components'
 import { WizardStep } from '../../components/wizard-step.js'
 
 export const CheckPrerequisitesStep = Shade<WizardStepProps>({
-  shadowDomName: 'shade-check-prerequisites-step',
+  customElementName: 'shade-check-prerequisites-step',
   render: ({ props }) => {
     return (
       <WizardStep title="Prerequisites" {...props}>

@@ -22,7 +22,7 @@ type WizardState = {
 }
 
 export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
-  shadowDomName: 'shade-create-service-wizard',
+  customElementName: 'shade-create-service-wizard',
   render: (options) => {
     const { props, injector, useState } = options
 
@@ -315,7 +315,7 @@ type StepDotProps = {
 }
 
 const StepDot = Shade<StepDotProps>({
-  shadowDomName: 'shade-step-dot',
+  customElementName: 'shade-step-dot',
   render: ({ props }) => {
     const bg = props.active
       ? cssVariableTheme.palette.primary.main

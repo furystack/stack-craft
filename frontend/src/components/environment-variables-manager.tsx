@@ -1,7 +1,7 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 
-import { Button, Icon, icons, cssVariableTheme, Paper } from '@furystack/shades-common-components'
+import { Button, cssVariableTheme, Icon, icons, Paper } from '@furystack/shades-common-components'
 import type { EnvironmentVariableValue, Prerequisite } from 'common'
 import { Prerequisite as PrerequisiteModel } from 'common'
 
@@ -14,7 +14,7 @@ type EnvironmentVariablesManagerProps = {
 }
 
 export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProps>({
-  shadowDomName: 'shade-env-vars-manager',
+  customElementName: 'shade-env-vars-manager',
   render: (options) => {
     const { props, injector, useState } = options
 

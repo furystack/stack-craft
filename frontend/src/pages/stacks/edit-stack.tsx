@@ -14,8 +14,8 @@ import {
 } from '@furystack/shades-common-components'
 import type { EnvironmentVariableValue, StackView } from 'common'
 import { StackConfig, StackDefinition } from 'common'
-import { EnvironmentVariablesManager } from '../../components/environment-variables-manager.js'
 import { StackForm } from '../../components/entity-forms/stack-form.js'
+import { EnvironmentVariablesManager } from '../../components/environment-variables-manager.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
 type EditStackProps = {
@@ -23,7 +23,7 @@ type EditStackProps = {
 }
 
 export const EditStack = Shade<EditStackProps>({
-  shadowDomName: 'shade-edit-stack',
+  customElementName: 'shade-edit-stack',
   render: (options) => {
     const { props, injector, useState } = options
     const [isConfirmingDelete, setIsConfirmingDelete] = useState('isConfirmingDelete', false)

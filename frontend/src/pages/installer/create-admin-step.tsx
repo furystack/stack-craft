@@ -14,7 +14,7 @@ const isAdminPayload = (data: unknown): data is AdminPayload => {
 }
 
 export const CreateAdminStep = Shade<WizardStepProps>({
-  shadowDomName: 'shade-create-admin-step',
+  customElementName: 'shade-create-admin-step',
   render: ({ props, injector }) => {
     const handleSubmit = async (data: AdminPayload) => {
       await injector.getInstance(InstallApiClient).call({

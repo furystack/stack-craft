@@ -12,9 +12,8 @@ import {
   Loader,
   NotyService,
 } from '@furystack/shades-common-components'
-import { ObservableValue } from '@furystack/utils'
 import type { Prerequisite, PrerequisiteCheckStatus } from 'common'
-import { Prerequisite as PrerequisiteModel, PrerequisiteCheckResult } from 'common'
+import { PrerequisiteCheckResult, Prerequisite as PrerequisiteModel } from 'common'
 
 import { PrerequisitesApiClient } from '../services/api-clients/prerequisites-api-client.js'
 import { PrerequisiteForm } from './entity-forms/prerequisite-form.js'
@@ -27,9 +26,9 @@ type PrerequisiteTableProps = {
 type PrerequisiteColumn = 'name' | 'type' | 'status' | 'actions'
 
 export const PrerequisiteTable = Shade<PrerequisiteTableProps>({
-  shadowDomName: 'shade-prerequisite-table',
+  customElementName: 'shade-prerequisite-table',
   render: (options) => {
-    const { props, injector, useDisposable, useObservable, useState } = options
+    const { props, injector, useDisposable, useState } = options
 
     const api = injector.getInstance(PrerequisitesApiClient)
     const noty = injector.getInstance(NotyService)
@@ -44,18 +43,16 @@ export const PrerequisiteTable = Shade<PrerequisiteTableProps>({
       () => new CollectionService<Prerequisite>({ searchField: 'name' }),
     )
 
-    const findOptions = useDisposable(
+    const [findOptions, setFindOptions] = useState<FindOptions<Prerequisite, Array<keyof Prerequisite>>>(
       'findOptionsObservable',
-      () => new ObservableValue<FindOptions<Prerequisite, Array<keyof Prerequisite>>>({ top: 25 }),
+      { top: 25 },
     )
-
-    const [currentFindOptions] = useObservable('currentFindOptions', findOptions)
 
     const prereqsState = useCollectionSync(options, PrerequisiteModel, {
       filter: { stackName: { $eq: props.stackName } },
-      top: currentFindOptions.top,
-      skip: currentFindOptions.skip,
-      order: currentFindOptions.order,
+      top: findOptions.top,
+      skip: findOptions.skip,
+      order: findOptions.order,
     })
 
     const isLoading = prereqsState.status === 'connecting'
@@ -228,6 +225,7 @@ export const PrerequisiteTable = Shade<PrerequisiteTableProps>({
         <DataGrid<Prerequisite, PrerequisiteColumn>
           columns={['name', 'type', 'status', 'actions']}
           findOptions={findOptions}
+          onFindOptionsChange={setFindOptions}
           styles={undefined}
           collectionService={collectionService}
           headerComponents={{

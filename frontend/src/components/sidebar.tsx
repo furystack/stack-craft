@@ -2,8 +2,8 @@ import { useCollectionSync } from '@furystack/entity-sync-client'
 import type { Injector } from '@furystack/inject'
 import { createComponent, LocationService, NestedRouteLink, Shade } from '@furystack/shades'
 import { cssVariableTheme, Divider, Icon, icons } from '@furystack/shades-common-components'
-import { StackDefinition } from 'common'
 import type { StackView } from 'common'
+import { StackDefinition } from 'common'
 import { match } from 'path-to-regexp'
 
 type SidebarStackLinkProps = {
@@ -14,7 +14,7 @@ type SidebarStackLinkProps = {
 }
 
 const SidebarStackLink = Shade<SidebarStackLinkProps>({
-  shadowDomName: 'shade-sidebar-stack-link',
+  customElementName: 'shade-sidebar-stack-link',
   css: {
     display: 'block',
     '& a': {
@@ -54,7 +54,7 @@ type SidebarStackCategoryProps = {
 }
 
 const SidebarStackCategory = Shade<SidebarStackCategoryProps>({
-  shadowDomName: 'shade-sidebar-stack-category',
+  customElementName: 'shade-sidebar-stack-category',
   css: {
     display: 'block',
     marginBottom: '2px',
@@ -139,7 +139,7 @@ type SidebarItemProps = {
 }
 
 const SidebarItem = Shade<SidebarItemProps>({
-  shadowDomName: 'shade-sidebar-item',
+  customElementName: 'shade-sidebar-item',
   css: {
     display: 'block',
 
@@ -184,7 +184,7 @@ const SidebarItem = Shade<SidebarItemProps>({
 })
 
 export const Sidebar = Shade<{ injector?: Injector }>({
-  shadowDomName: 'shade-sidebar',
+  customElementName: 'shade-sidebar',
   css: {
     display: 'block',
     height: '100%',

@@ -1,12 +1,12 @@
-import { Shade, createComponent } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
 import { Button, cssVariableTheme, Form, Icon, icons, Input, Paper } from '@furystack/shades-common-components'
-import { SessionService } from '../services/session.js'
 import { ThemeSwitch } from '../components/theme-switch/index.js'
+import { SessionService } from '../services/session.js'
 
 type LoginPayload = { userName: string; password: string }
 
 export const Login = Shade({
-  shadowDomName: 'shade-login',
+  customElementName: 'shade-login',
   css: {
     display: 'flex',
     alignItems: 'center',

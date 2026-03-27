@@ -17,7 +17,6 @@ import {
   PageHeader,
   Paper,
 } from '@furystack/shades-common-components'
-import { ObservableValue } from '@furystack/utils'
 import type { PrerequisiteCheckStatus, ServiceView, StackView } from 'common'
 import {
   getServiceCwd,
@@ -69,7 +68,7 @@ type ServiceDetailProps = {
 }
 
 export const ServiceDetail = Shade<ServiceDetailProps>({
-  shadowDomName: 'shade-service-detail',
+  customElementName: 'shade-service-detail',
   render: (options) => {
     const { props, injector, useState } = options
     const locationService = injector.getInstance(LocationService)
@@ -699,31 +698,29 @@ const historyColumnFilters: { [K in HistoryColumn]?: ColumnFilterConfig } = {
 }
 
 const ServiceHistory = Shade<ServiceHistoryProps>({
-  shadowDomName: 'shade-service-history',
+  customElementName: 'shade-service-history',
   render: (options) => {
-    const { props, injector, useDisposable, useObservable } = options
+    const { props, injector, useDisposable, useState } = options
 
     const collectionService = useDisposable(
       'collectionService',
       () => new CollectionService<ServiceStateHistory>({ searchField: 'event' }),
     )
 
-    const findOptions = useDisposable(
+    const [findOptions, setFindOptions] = useState<FindOptions<ServiceStateHistory, Array<keyof ServiceStateHistory>>>(
       'findOptionsObservable',
-      () =>
-        new ObservableValue<FindOptions<ServiceStateHistory, Array<keyof ServiceStateHistory>>>({
-          top: 25,
-          order: { id: 'DESC' },
-        }),
+
+      {
+        top: 25,
+        order: { id: 'DESC' },
+      },
     )
 
-    const [currentFindOptions] = useObservable('currentFindOptions', findOptions)
-
     const historyState = useCollectionSync(options, ServiceStateHistory, {
-      filter: { serviceId: { $eq: props.serviceId }, ...currentFindOptions.filter },
-      order: currentFindOptions.order ?? { id: 'DESC' },
-      top: currentFindOptions.top,
-      skip: currentFindOptions.skip,
+      filter: { serviceId: { $eq: props.serviceId }, ...findOptions.filter },
+      order: findOptions.order ?? { id: 'DESC' },
+      top: findOptions.top,
+      skip: findOptions.skip,
     })
 
     const isLoading = historyState.status === 'connecting'
@@ -746,6 +743,7 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
           <DataGrid<ServiceStateHistory, HistoryColumn>
             columns={['createdAt', 'event', 'triggeredBy', 'triggerSource', 'metadata', 'processUid']}
             findOptions={findOptions}
+            onFindOptionsChange={setFindOptions}
             styles={undefined}
             collectionService={collectionService}
             columnFilters={historyColumnFilters}

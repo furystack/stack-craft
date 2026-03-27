@@ -2,17 +2,17 @@ import { EntitySyncService } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 import { cssVariableTheme, NotyList, PageLayout, ThemeProviderService } from '@furystack/shades-common-components'
 import { environmentOptions } from '../environment-options.js'
+import { Init } from '../pages/init.js'
+import { Login } from '../pages/login.js'
 import { InstallService } from '../services/install-service.js'
 import { SessionService } from '../services/session.js'
 import { applyTheme, DEFAULT_THEME_KEY, THEME_STORAGE_KEY } from '../services/theme-registry.js'
 import { Body } from './body.js'
 import { Header } from './header.js'
 import { Sidebar } from './sidebar.js'
-import { Init } from '../pages/init.js'
-import { Login } from '../pages/login.js'
 
 export const Layout = Shade({
-  shadowDomName: 'shade-app-layout',
+  customElementName: 'shade-app-layout',
   css: {
     width: '100%',
     height: '100%',
@@ -74,7 +74,7 @@ export const Layout = Shade({
 })
 
 const AuthenticatedLayout = Shade({
-  shadowDomName: 'shade-authenticated-layout',
+  customElementName: 'shade-authenticated-layout',
   render: ({ injector, useDisposable }) => {
     const serviceUrl = new URL(environmentOptions.serviceUrl)
     const syncProtocol = serviceUrl.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -108,7 +108,12 @@ const AuthenticatedLayout = Shade({
 })
 
 const LazyInstallerPage = Shade({
-  shadowDomName: 'shade-lazy-installer',
+  customElementName: 'shade-lazy-installer',
+  css: {
+    display: 'block',
+    width: '100%',
+    height: '100%',
+  },
   render: ({ useState }) => {
     const [loaded, setLoaded] = useState('loaded', false)
     const [Component, setComponent] = useState<JSX.Element | null>('component', null)

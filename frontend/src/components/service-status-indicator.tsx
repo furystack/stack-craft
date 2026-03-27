@@ -1,6 +1,6 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Chip } from '@furystack/shades-common-components'
 import type { Palette } from '@furystack/shades-common-components'
+import { Chip } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
 
 type ServiceStatusIndicatorProps = {
@@ -22,7 +22,7 @@ const getAggregateStatus = (svc: ServiceView): { label: string; color: keyof Pal
 }
 
 export const ServiceStatusIndicator = Shade<ServiceStatusIndicatorProps>({
-  shadowDomName: 'shade-service-status-indicator',
+  customElementName: 'shade-service-status-indicator',
   render: ({ props }) => {
     const { label, color } = getAggregateStatus(props.service)
     return (

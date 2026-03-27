@@ -12,22 +12,22 @@
   "license": "ISC",
   "devDependencies": {
     "@codecov/vite-plugin": "^1.9.1",
-    "@types/node": "^25.3.5",
+    "@types/node": "^25.5.0",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1",
-    "vitest": "^4.0.18"
+    "vite": "^8.0.3",
+    "vitest": "^4.1.2"
   },
   "dependencies": {
-    "@furystack/cache": "^6.1.1",
-    "@furystack/core": "^15.2.4",
-    "@furystack/entity-sync": "^1.0.5",
-    "@furystack/entity-sync-client": "^1.1.1",
-    "@furystack/inject": "^12.0.32",
-    "@furystack/logging": "^8.1.1",
-    "@furystack/rest-client-fetch": "^8.1.1",
-    "@furystack/shades": "^12.5.0",
-    "@furystack/shades-common-components": "^13.5.0",
-    "@furystack/utils": "^8.2.1",
+    "@furystack/cache": "^6.1.3",
+    "@furystack/core": "^16.0.2",
+    "@furystack/entity-sync": "^1.0.9",
+    "@furystack/entity-sync-client": "^2.0.3",
+    "@furystack/inject": "^12.0.34",
+    "@furystack/logging": "^8.1.3",
+    "@furystack/rest-client-fetch": "^8.1.5",
+    "@furystack/shades": "^13.1.2",
+    "@furystack/shades-common-components": "^15.0.2",
+    "@furystack/utils": "^8.2.3",
     "common": "workspace:^"
   }
 }

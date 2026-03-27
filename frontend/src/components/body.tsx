@@ -1,5 +1,6 @@
 import type { Injector } from '@furystack/inject'
-import { createComponent, NestedRouter, Shade } from '@furystack/shades'
+import { createComponent, NestedRouter, Shade, type NestedRoute } from '@furystack/shades'
+import type { MatchResult } from 'path-to-regexp'
 import { Dashboard } from '../pages/dashboard/index.js'
 import { ExportStack } from '../pages/import-export/export-stack.js'
 import { ImportStack } from '../pages/import-export/import-stack.js'
@@ -21,25 +22,33 @@ const appRoutes = {
     component: () => <Dashboard />,
   },
   '/services/create/:stackName': {
-    component: ({ match }) => <CreateService stackName={match.params.stackName} />,
+    component: ({ match }: { match: MatchResult<{ stackName: string }> }) => (
+      <CreateService stackName={match.params.stackName} />
+    ),
   },
   '/services/wizard/:stackName': {
-    component: ({ match }) => <CreateServiceWizard stackName={match.params.stackName} />,
+    component: ({ match }: { match: MatchResult<{ stackName: string }> }) => (
+      <CreateServiceWizard stackName={match.params.stackName} />
+    ),
   },
   '/services/:id/logs/:processUid': {
-    component: ({ match }) => <ServiceLogs serviceId={match.params.id} processUid={match.params.processUid} />,
+    component: ({ match }: { match: MatchResult<{ id: string; processUid: string }> }) => (
+      <ServiceLogs serviceId={match.params.id} processUid={match.params.processUid} />
+    ),
   },
   '/services/:id/logs': {
-    component: ({ match }) => <ServiceLogs serviceId={match.params.id} />,
+    component: ({ match }: { match: MatchResult<{ id: string }> }) => <ServiceLogs serviceId={match.params.id} />,
   },
   '/services/:id': {
-    component: ({ match }) => <ServiceDetail serviceId={match.params.id} />,
+    component: ({ match }: { match: MatchResult<{ id: string }> }) => <ServiceDetail serviceId={match.params.id} />,
   },
   '/repositories/create/:stackName': {
-    component: ({ match }) => <CreateRepository stackName={match.params.stackName} />,
+    component: ({ match }: { match: MatchResult<{ stackName: string }> }) => (
+      <CreateRepository stackName={match.params.stackName} />
+    ),
   },
   '/repositories/:id': {
-    component: ({ match }) => <EditRepository repositoryId={match.params.id} />,
+    component: ({ match }: { match: MatchResult<{ id: string }> }) => <EditRepository repositoryId={match.params.id} />,
   },
   '/settings': {
     component: () => <UserSettings />,
@@ -51,21 +60,21 @@ const appRoutes = {
     component: () => <ImportStack />,
   },
   '/stacks/:name/setup': {
-    component: ({ match }) => <StackSetup stackName={match.params.name} />,
+    component: ({ match }: { match: MatchResult<{ name: string }> }) => <StackSetup stackName={match.params.name} />,
   },
   '/stacks/:name/edit': {
-    component: ({ match }) => <EditStack stackName={match.params.name} />,
+    component: ({ match }: { match: MatchResult<{ name: string }> }) => <EditStack stackName={match.params.name} />,
   },
   '/stacks/:name': {
-    component: ({ match }) => <Dashboard stackName={match.params.name} />,
+    component: ({ match }: { match: MatchResult<{ name: string }> }) => <Dashboard stackName={match.params.name} />,
   },
   '/stacks/:name/export': {
-    component: ({ match }) => <ExportStack stackName={match.params.name} />,
+    component: ({ match }: { match: MatchResult<{ name: string }> }) => <ExportStack stackName={match.params.name} />,
   },
-} satisfies Record<string, { component: (options: { match: { params: Record<string, string> } }) => JSX.Element }>
+} satisfies Record<string, NestedRoute<any>>
 
 export const Body = Shade<{ style?: Partial<CSSStyleDeclaration>; injector?: Injector }>({
-  shadowDomName: 'shade-app-body',
+  customElementName: 'shade-app-body',
   render: ({ injector, useObservable }) => {
     const session = injector.getInstance(SessionService)
     const [sessionState] = useObservable('sessionState', session.state)

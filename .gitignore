@@ -81,6 +81,7 @@ vitest.config.mjs.map
 service/data.sqlite
 service/data/
 testresults
+test-results
 
 .pnp.*
 .yarn/*

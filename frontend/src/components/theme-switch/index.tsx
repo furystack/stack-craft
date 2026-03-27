@@ -5,7 +5,7 @@ import { Button, ThemeProviderService } from '@furystack/shades-common-component
 import { applyTheme, DEFAULT_THEME_KEY, THEME_STORAGE_KEY } from '../../services/theme-registry.js'
 
 export const ThemeSwitch = Shade<Omit<ButtonProps, 'onclick'>>({
-  shadowDomName: 'theme-switch',
+  customElementName: 'theme-switch',
   render: ({ props, injector, useStoredState, useDisposable }) => {
     const themeProvider = injector.getInstance(ThemeProviderService)
     const [themeKey, setThemeKey] = useStoredState<string>(THEME_STORAGE_KEY, DEFAULT_THEME_KEY)

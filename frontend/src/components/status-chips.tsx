@@ -1,13 +1,13 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Chip } from '@furystack/shades-common-components'
 import type { Palette } from '@furystack/shades-common-components'
+import { Chip } from '@furystack/shades-common-components'
 import type {
+  BuildStatus,
   CloneStatus,
   InstallStatus,
-  BuildStatus,
-  RunStatus,
-  PrerequisiteType,
   PrerequisiteCheckStatus,
+  PrerequisiteType,
+  RunStatus,
 } from 'common'
 
 type StatusMapping<T extends string> = Record<T, { label: string; color: keyof Palette; icon: string }>
@@ -42,7 +42,7 @@ const runStatusMap: StatusMapping<RunStatus> = {
 }
 
 export const CloneStatusChip = Shade<{ status: CloneStatus }>({
-  shadowDomName: 'shade-clone-status-chip',
+  customElementName: 'shade-clone-status-chip',
   render: ({ props }) => {
     const { label, color, icon } = cloneStatusMap[props.status]
     return (
@@ -54,7 +54,7 @@ export const CloneStatusChip = Shade<{ status: CloneStatus }>({
 })
 
 export const InstallStatusChip = Shade<{ status: InstallStatus }>({
-  shadowDomName: 'shade-install-status-chip',
+  customElementName: 'shade-install-status-chip',
   render: ({ props }) => {
     const { label, color, icon } = installStatusMap[props.status]
     return (
@@ -66,7 +66,7 @@ export const InstallStatusChip = Shade<{ status: InstallStatus }>({
 })
 
 export const BuildStatusChip = Shade<{ status: BuildStatus }>({
-  shadowDomName: 'shade-build-status-chip',
+  customElementName: 'shade-build-status-chip',
   render: ({ props }) => {
     const { label, color, icon } = buildStatusMap[props.status]
     return (
@@ -78,7 +78,7 @@ export const BuildStatusChip = Shade<{ status: BuildStatus }>({
 })
 
 export const RunStatusChip = Shade<{ status: RunStatus }>({
-  shadowDomName: 'shade-run-status-chip',
+  customElementName: 'shade-run-status-chip',
   render: ({ props }) => {
     const { label, color, icon } = runStatusMap[props.status]
     return (
@@ -97,7 +97,7 @@ const prereqCheckStatusMap: StatusMapping<PrerequisiteCheckStatus> = {
 }
 
 export const PrerequisiteCheckChip = Shade<{ status: PrerequisiteCheckStatus }>({
-  shadowDomName: 'shade-prereq-check-chip',
+  customElementName: 'shade-prereq-check-chip',
   render: ({ props }) => {
     const { label, color, icon } = prereqCheckStatusMap[props.status]
     return (
@@ -121,7 +121,7 @@ export const prerequisiteTypeLabels: Record<PrerequisiteType, string> = {
 }
 
 export const PrerequisiteTypeChip = Shade<{ type: PrerequisiteType }>({
-  shadowDomName: 'shade-prereq-type-chip',
+  customElementName: 'shade-prereq-type-chip',
   render: ({ props }) => {
     return (
       <Chip variant="outlined" color="secondary" size="small">

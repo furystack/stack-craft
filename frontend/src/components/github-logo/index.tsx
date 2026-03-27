@@ -11,7 +11,7 @@ type GithubLogoProps = Omit<Partial<HTMLImageElement>, 'style' | 'src' | 'alt'> 
 }
 
 export const GithubLogo = Shade<GithubLogoProps>({
-  shadowDomName: 'github-logo',
+  customElementName: 'github-logo',
   css: {
     display: 'inline-block',
     '& img': {

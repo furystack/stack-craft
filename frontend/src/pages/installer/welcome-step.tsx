@@ -3,7 +3,7 @@ import type { WizardStepProps } from '@furystack/shades-common-components'
 import { WizardStep } from '../../components/wizard-step.js'
 
 export const WelcomeStep = Shade<WizardStepProps>({
-  shadowDomName: 'shade-welcome-step',
+  customElementName: 'shade-welcome-step',
   render: ({ props }) => {
     return (
       <WizardStep title="Welcome to StackCraft" {...props}>

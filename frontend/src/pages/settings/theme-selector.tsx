@@ -1,10 +1,10 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { NotyService, Paper, Select, ThemeProviderService } from '@furystack/shades-common-components'
 
-import { applyTheme, DEFAULT_THEME_KEY, themeEntries, THEME_STORAGE_KEY } from '../../services/theme-registry.js'
+import { applyTheme, DEFAULT_THEME_KEY, THEME_STORAGE_KEY, themeEntries } from '../../services/theme-registry.js'
 
 export const ThemeSelector = Shade({
-  shadowDomName: 'shade-theme-selector',
+  customElementName: 'shade-theme-selector',
   render: ({ injector, useStoredState }) => {
     const [themeKey, setThemeKey] = useStoredState<string>(THEME_STORAGE_KEY, DEFAULT_THEME_KEY)
     const themeProvider = injector.getInstance(ThemeProviderService)

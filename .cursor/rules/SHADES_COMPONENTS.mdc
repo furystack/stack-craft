@@ -24,7 +24,7 @@ type MyComponentProps = {
 };
 
 export const MyComponent = Shade<MyComponentProps>({
-  shadowDomName: 'my-component',
+  customElementName: 'my-component',
   render: ({ props, injector }) => {
     return (
       <div>
@@ -42,15 +42,15 @@ Always provide a unique `shadowDomName` in kebab-case:
 
 ```typescript
 // ✅ Good - unique, descriptive kebab-case names
-shadowDomName: 'shade-app-layout'
-shadowDomName: 'shade-login'
-shadowDomName: 'theme-switch'
-shadowDomName: 'github-logo'
+customElementName: 'shade-app-layout'
+customElementName: 'shade-login'
+customElementName: 'theme-switch'
+customElementName: 'github-logo'
 
 // ❌ Avoid - generic or poorly named
-shadowDomName: 'my-component'
-shadowDomName: 'div'
-shadowDomName: 'Component1'
+customElementName: 'my-component'
+customElementName: 'div'
+customElementName: 'Component1'
 ```
 
 ## Render Function Parameters
@@ -79,11 +79,11 @@ Get service instances using the injector:
 
 ```typescript
 export const MyComponent = Shade({
-  shadowDomName: 'my-component',
+  customElementName: 'my-component',
   render: ({ injector }) => {
     const themeProvider = injector.getInstance(ThemeProviderService);
     const sessionService = injector.getInstance(SessionService);
-    
+
     return (
       <div style={{ backgroundColor: themeProvider.theme.background.default }}>
         {/* Component content */}
@@ -101,10 +101,10 @@ Use `useState` for component-local state:
 
 ```typescript
 export const Counter = Shade({
-  shadowDomName: 'app-counter',
+  customElementName: 'app-counter',
   render: ({ useState }) => {
     const [count, setCount] = useState<number>('count', 0);
-    
+
     return (
       <div>
         <span>Count: {count}</span>
@@ -121,10 +121,10 @@ Subscribe to `ObservableValue` from services:
 
 ```typescript
 export const UserStatus = Shade({
-  shadowDomName: 'user-status',
+  customElementName: 'user-status',
   render: ({ injector, useObservable }) => {
     const sessionService = injector.getInstance(SessionService);
-    
+
     // Subscribe to observable values
     const [isOperationInProgress] = useObservable(
       'isOperationInProgress',
@@ -132,11 +132,11 @@ export const UserStatus = Shade({
     );
     const [currentUser] = useObservable('currentUser', sessionService.currentUser);
     const [state] = useObservable('state', sessionService.state);
-    
+
     if (isOperationInProgress) {
       return <div>Loading...</div>;
     }
-    
+
     return (
       <div>
         {currentUser ? `Welcome, ${currentUser.username}` : 'Not logged in'}
@@ -154,18 +154,18 @@ Properly manage subscriptions and resources:
 
 ```typescript
 export const ThemeSwitch = Shade({
-  shadowDomName: 'theme-switch',
+  customElementName: 'theme-switch',
   render: ({ injector, useState, useDisposable }) => {
     const themeProvider = injector.getInstance(ThemeProviderService);
     const [theme, setTheme] = useState<'light' | 'dark'>('theme', 'dark');
-    
+
     // Subscribe to theme changes with automatic cleanup
     useDisposable('traceThemeChange', () =>
       themeProvider.subscribe('themeChanged', (newTheme) => {
         setTheme(newTheme.name === 'dark' ? 'dark' : 'light');
       }),
     );
-    
+
     return <button>{theme === 'dark' ? '☀️' : '🌜'}</button>;
   },
 });
@@ -188,10 +188,10 @@ import {
 } from '@furystack/shades-common-components';
 
 export const LoginForm = Shade({
-  shadowDomName: 'login-form',
+  customElementName: 'login-form',
   render: ({ injector }) => {
     const sessionService = injector.getInstance(SessionService);
-    
+
     return (
       <Paper elevation={3}>
         <Form<{ username: string; password: string }>
@@ -312,10 +312,10 @@ Use `ThemeProviderService` for consistent theming:
 
 ```typescript
 export const ThemedComponent = Shade({
-  shadowDomName: 'themed-component',
+  customElementName: 'themed-component',
   render: ({ injector }) => {
     const theme = injector.getInstance(ThemeProviderService).theme;
-    
+
     return (
       <div
         style={{
@@ -336,13 +336,11 @@ export const ThemedComponent = Shade({
 Allow users to switch between themes:
 
 ```typescript
-import { defaultDarkTheme, defaultLightTheme } from '@furystack/shades-common-components';
+import { defaultDarkTheme, defaultLightTheme } from '@furystack/shades-common-components'
 
 const toggleTheme = (themeProvider: ThemeProviderService, currentTheme: 'light' | 'dark') => {
-  themeProvider.setAssignedTheme(
-    currentTheme === 'dark' ? defaultLightTheme : defaultDarkTheme
-  );
-};
+  themeProvider.setAssignedTheme(currentTheme === 'dark' ? defaultLightTheme : defaultDarkTheme)
+}
 ```
 
 ## Page Components
@@ -356,7 +354,7 @@ Place page components in `frontend/src/pages/`:
 import { createComponent, Shade } from '@furystack/shades';
 
 export const Dashboard = Shade({
-  shadowDomName: 'page-dashboard',
+  customElementName: 'page-dashboard',
   render: ({ injector }) => {
     return (
       <div>
@@ -374,9 +372,9 @@ Export pages from an index file:
 
 ```typescript
 // frontend/src/pages/index.ts
-export * from './dashboard.js';
-export * from './login.js';
-export * from './hello-world.js';
+export * from './dashboard.js'
+export * from './login.js'
+export * from './hello-world.js'
 ```
 
 ## Application Entry Point

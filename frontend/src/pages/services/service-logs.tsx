@@ -10,7 +10,7 @@ type ServiceLogsProps = {
 }
 
 export const ServiceLogs = Shade<ServiceLogsProps>({
-  shadowDomName: 'shade-service-logs',
+  customElementName: 'shade-service-logs',
   render: ({ props, injector }) => {
     const api = injector.getInstance(ServicesApiClient)
     const notyService = injector.getInstance(NotyService)

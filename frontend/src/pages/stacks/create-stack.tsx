@@ -6,10 +6,11 @@ import { StackForm } from '../../components/entity-forms/stack-form.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
 export const CreateStack = Shade({
-  shadowDomName: 'shade-create-stack',
+  customElementName: 'shade-create-stack',
   render: ({ injector }) => {
     const handleSubmit = async (data: Partial<StackView>) => {
       try {
+        // TODO: Redirect after creation to the new stack's route
         await injector.getInstance(StacksApiClient).call({
           method: 'POST',
           action: '/stacks',
@@ -26,6 +27,7 @@ export const CreateStack = Shade({
           body: `Stack "${data.displayName}" was created successfully.`,
           type: 'success',
         })
+
         injector.getInstance(LocationService).navigate('/')
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {

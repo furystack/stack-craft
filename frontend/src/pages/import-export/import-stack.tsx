@@ -3,11 +3,11 @@ import { createComponent, LocationService, NestedRouteLink, Shade } from '@furys
 import {
   Button,
   Checkbox,
+  cssVariableTheme,
   Form,
   Icon,
   icons,
   Input,
-  cssVariableTheme,
   NotyService,
   PageContainer,
   PageHeader,
@@ -41,7 +41,7 @@ type EnvVarEntry = {
 }
 
 export const ImportStack = Shade({
-  shadowDomName: 'shade-import-stack',
+  customElementName: 'shade-import-stack',
   render: ({ injector, useState }) => {
     const [jsonInput, setJsonInput] = useState('json', '')
     const [parsed, setParsed] = useState<ParsedExport | null>('parsed', null)
@@ -281,7 +281,7 @@ type EnvVarConfigRowProps = {
 }
 
 const EnvVarConfigRow = Shade<EnvVarConfigRowProps>({
-  shadowDomName: 'shade-env-var-config-row',
+  customElementName: 'shade-env-var-config-row',
   render: ({ props, useState }) => {
     const { entry } = props
     const defaultSource = entry.availableGlobally ? 'inherit' : 'custom'

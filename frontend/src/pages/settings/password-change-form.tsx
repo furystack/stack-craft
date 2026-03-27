@@ -15,7 +15,7 @@ const isPasswordChangePayload = (data: unknown): data is PasswordChangePayload =
 }
 
 export const PasswordChangeForm = Shade({
-  shadowDomName: 'shade-password-change-form',
+  customElementName: 'shade-password-change-form',
   render: ({ injector, useState }) => {
     const identityApi = injector.getInstance(IdentityApiClient)
     const notys = injector.getInstance(NotyService)

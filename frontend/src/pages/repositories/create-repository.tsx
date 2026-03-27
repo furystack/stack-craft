@@ -11,7 +11,7 @@ type CreateRepositoryProps = {
 }
 
 export const CreateRepository = Shade<CreateRepositoryProps>({
-  shadowDomName: 'shade-create-repository',
+  customElementName: 'shade-create-repository',
   render: ({ props, injector }) => {
     const handleSubmit = async (data: Partial<GitHubRepository>) => {
       try {

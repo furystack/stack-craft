@@ -1,12 +1,12 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Wizard, cssVariableTheme } from '@furystack/shades-common-components'
-import { WelcomeStep } from './welcome-step.js'
+import { cssVariableTheme, Wizard } from '@furystack/shades-common-components'
 import { CheckPrerequisitesStep } from './check-prerequisites-step.js'
 import { CreateAdminStep } from './create-admin-step.js'
 import { SuccessStep } from './success-step.js'
+import { WelcomeStep } from './welcome-step.js'
 
 export const InstallerPage = Shade({
-  shadowDomName: 'shade-installer-page',
+  customElementName: 'shade-installer-page',
   render: () => {
     return (
       <div

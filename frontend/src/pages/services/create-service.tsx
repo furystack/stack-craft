@@ -14,7 +14,7 @@ type CreateServiceProps = {
 }
 
 export const CreateService = Shade<CreateServiceProps>({
-  shadowDomName: 'shade-create-service',
+  customElementName: 'shade-create-service',
   render: (options) => {
     const { props, injector } = options
 

@@ -3,7 +3,7 @@ import type { WizardStepProps } from '@furystack/shades-common-components'
 import { WizardStep } from '../../components/wizard-step.js'
 
 export const SuccessStep = Shade<WizardStepProps>({
-  shadowDomName: 'shade-success-step',
+  customElementName: 'shade-success-step',
   render: ({ props }) => {
     return (
       <WizardStep title="All Done!" {...props}>

@@ -11,7 +11,7 @@ type LogViewerProps = {
 }
 
 export const LogViewer = Shade<LogViewerProps>({
-  shadowDomName: 'shade-log-viewer',
+  customElementName: 'shade-log-viewer',
   render: (options) => {
     const { props, useState, useRef } = options
     const [filter, setFilter] = useState('filter', '')

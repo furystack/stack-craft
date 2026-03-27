@@ -12,6 +12,10 @@ export default defineConfig(async () => {
         uploadToken: process.env.CODECOV_TOKEN,
       }),
     ],
+    esbuild: {
+      minifyIdentifiers: false,
+      keepNames: true,
+    },
     build: {
       rollupOptions: {
         external: ['vitest'],
