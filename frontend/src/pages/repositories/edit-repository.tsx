@@ -19,6 +19,7 @@ import { GitHubRepoForm } from '../../components/entity-forms/github-repo-form.j
 import { GitHubReposApiClient } from '../../services/api-clients/github-repos-api-client.js'
 
 type EditRepositoryProps = {
+  stackName: string
   repositoryId: string
 }
 
@@ -47,7 +48,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
             title="Error loading repository"
             description={repoState.error}
             actions={
-              <StackCraftNestedRouteLink href="/">
+              <StackCraftNestedRouteLink href="/stacks/:stackName/repositories" params={{ stackName: props.stackName }}>
                 <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
                   Back
                 </Button>
@@ -65,7 +66,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           <PageHeader
             title="Repository not found"
             actions={
-              <StackCraftNestedRouteLink href="/">
+              <StackCraftNestedRouteLink href="/stacks/:stackName/repositories" params={{ stackName: props.stackName }}>
                 <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
                   Back
                 </Button>
@@ -96,7 +97,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           body: `"${data.displayName ?? repo.displayName}" was updated successfully.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/stacks/:name', { name: repo.stackName })
+        stackCraftNavigate(injector, '/stacks/:stackName/repositories', { stackName: repo.stackName })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -119,7 +120,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           body: `"${repo.displayName}" was deleted.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/stacks/:name', { name: repo.stackName })
+        stackCraftNavigate(injector, '/stacks/:stackName/repositories', { stackName: repo.stackName })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -136,7 +137,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           title={`Edit: ${repo.displayName}`}
           actions={
             <div style={{ display: 'flex', gap: '8px' }}>
-              <StackCraftNestedRouteLink href="/">
+              <StackCraftNestedRouteLink href="/stacks/:stackName/repositories" params={{ stackName: repo.stackName }}>
                 <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
                   Back
                 </Button>
@@ -159,7 +160,9 @@ export const EditRepository = Shade<EditRepositoryProps>({
             stackName={repo.stackName}
             initial={repo}
             onSubmit={(data) => void handleSave(data)}
-            cancelHref="/"
+            onCancel={() =>
+              stackCraftNavigate(injector, '/stacks/:stackName/repositories', { stackName: repo.stackName })
+            }
           />
         </Paper>
         {ConfirmDialog(isConfirmingDelete, {

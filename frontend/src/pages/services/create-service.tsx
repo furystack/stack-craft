@@ -70,7 +70,10 @@ export const CreateService = Shade<CreateServiceProps>({
           body: `Service "${data.displayName}" was created successfully.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/services/:id', { id: createdService.result.id })
+        stackCraftNavigate(injector, '/stacks/:stackName/services/:serviceId', {
+          stackName: props.stackName,
+          serviceId: createdService.result.id,
+        })
       } catch (error) {
         noty.emit('onNotyAdded', {
           title: 'Error',
@@ -136,7 +139,7 @@ export const CreateService = Shade<CreateServiceProps>({
             onSubmit={(data: Partial<ServiceView>) => void handleSubmit(data)}
             onCreatePrerequisite={(data: Partial<Prerequisite>) => handleCreatePrerequisite(data)}
             onCreateRepository={(data: Partial<GitHubRepository>) => handleCreateRepository(data)}
-            cancelHref="/"
+            onCancel={() => stackCraftNavigate(injector, '/stacks/:stackName/services', { stackName: props.stackName })}
           />
         </Paper>
       </PageContainer>

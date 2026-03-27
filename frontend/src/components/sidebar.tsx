@@ -10,6 +10,7 @@ import { StackCraftNestedRouteLink } from './app-routes.js'
 
 type SidebarStackLinkProps = {
   stackName: string
+  subPath?: string
   label: string
   currentUrl: string
 }
@@ -40,12 +41,19 @@ const SidebarStackLink = Shade<SidebarStackLinkProps>({
     },
   },
   render: ({ props }) => {
-    const compiledHref = `/stacks/${props.stackName}`
-    const isActive = !!match(compiledHref, { end: true })(props.currentUrl)
+    const compiledHref = `/stacks/${props.stackName}${props.subPath ? `/${props.subPath}` : ''}`
+    const isActive = props.subPath
+      ? props.currentUrl.startsWith(compiledHref)
+      : !!match(compiledHref, { end: true })(props.currentUrl)
+
+    const href = props.subPath
+      ? (`/stacks/:stackName/${props.subPath}` as '/stacks/:stackName/services')
+      : '/stacks/:stackName'
+
     return (
       <StackCraftNestedRouteLink
-        href="/stacks/:name"
-        params={{ name: props.stackName }}
+        href={href}
+        params={{ stackName: props.stackName }}
         {...(isActive ? { 'data-active': '' } : {})}
       >
         {props.label}
@@ -125,6 +133,30 @@ const SidebarStackCategory = Shade<SidebarStackCategoryProps>({
         {isExpanded ? (
           <div className="category-children">
             <SidebarStackLink stackName={props.stack.name} label="Overview" currentUrl={props.currentUrl} />
+            <SidebarStackLink
+              stackName={props.stack.name}
+              subPath="services"
+              label="Services"
+              currentUrl={props.currentUrl}
+            />
+            <SidebarStackLink
+              stackName={props.stack.name}
+              subPath="repositories"
+              label="Repositories"
+              currentUrl={props.currentUrl}
+            />
+            <SidebarStackLink
+              stackName={props.stack.name}
+              subPath="prerequisites"
+              label="Prerequisites"
+              currentUrl={props.currentUrl}
+            />
+            <SidebarStackLink
+              stackName={props.stack.name}
+              subPath="setup"
+              label="Setup"
+              currentUrl={props.currentUrl}
+            />
           </div>
         ) : null}
       </div>

@@ -3,7 +3,7 @@ import { createComponent, Shade } from '@furystack/shades'
 
 import {
   Button,
-  ButtonGroup,
+  Chip,
   Icon,
   icons,
   Loader,
@@ -13,13 +13,16 @@ import {
   Paper,
 } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
-import { ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
+import {
+  GitHubRepository,
+  Prerequisite,
+  ServiceConfig,
+  ServiceDefinition,
+  ServiceStatus,
+  StackDefinition,
+} from 'common'
 import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
-import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
-
-import { PrerequisiteTable } from '../../components/prerequisite-table.js'
-import { RepositoryTable } from '../../components/repository-table.js'
-import { ServiceTable } from '../../components/service-table.js'
+import { RunStatusChip } from '../../components/status-chips.js'
 
 type DashboardProps = {
   stackName?: string
@@ -45,10 +48,9 @@ export const Dashboard = Shade<DashboardProps>({
       )
     }
 
-    // When no stackName is provided (route `/`), redirect to the first stack or show empty state
     if (!props.stackName) {
       if (stacks.length > 0) {
-        queueMicrotask(() => stackCraftNavigate(injector, '/stacks/:name', { name: stacks[0].name }))
+        queueMicrotask(() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: stacks[0].name }))
         return null
       }
 
@@ -111,30 +113,19 @@ export const Dashboard = Shade<DashboardProps>({
       ...(statusMap.get(def.id) ?? {}),
     }))
 
-    const api = injector.getInstance(ServicesApiClient)
-    const [selectedServiceIds, setSelectedServiceIds] = options.useState<string[]>('selectedServiceIds', [])
-    const [isBulkLoading, setIsBulkLoading] = options.useState('isBulkLoading', false)
+    const reposState = useCollectionSync(options, GitHubRepository, {
+      filter: { stackName: { $eq: props.stackName } },
+    })
+    const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
 
-    const selectedServices = services.filter((s) => selectedServiceIds.includes(s.id))
-    const hasRunning = selectedServices.some((s) => s.runStatus === 'running')
-    const hasStopped = selectedServices.some((s) => s.runStatus !== 'running')
-    const hasSelection = selectedServices.length > 0
+    const prereqsState = useCollectionSync(options, Prerequisite, {
+      filter: { stackName: { $eq: props.stackName } },
+    })
+    const prereqs =
+      prereqsState.status === 'synced' || prereqsState.status === 'cached' ? prereqsState.data.entries : []
 
-    const bulkAction = async (action: string) => {
-      setIsBulkLoading(true)
-      for (const svc of selectedServices) {
-        try {
-          await api.call({
-            method: 'POST',
-            action: `/services/:id/${action}` as '/services/:id/start',
-            url: { id: svc.id },
-          })
-        } catch {
-          // Individual failures are handled by entity-sync status updates
-        }
-      }
-      setIsBulkLoading(false)
-    }
+    const runningCount = services.filter((s) => s.runStatus === 'running').length
+    const stoppedCount = services.filter((s) => s.runStatus === 'stopped').length
 
     return (
       <PageContainer>
@@ -143,12 +134,12 @@ export const Dashboard = Shade<DashboardProps>({
           title={currentStack?.displayName ?? props.stackName}
           actions={
             <div style={{ display: 'flex', gap: '8px' }}>
-              <StackCraftNestedRouteLink href="/stacks/:name/export" params={{ name: props.stackName }}>
+              <StackCraftNestedRouteLink href="/stacks/:stackName/export" params={{ stackName: props.stackName }}>
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.download} size="small" />}>
                   Export
                 </Button>
               </StackCraftNestedRouteLink>
-              <StackCraftNestedRouteLink href="/stacks/:name/edit" params={{ name: props.stackName }}>
+              <StackCraftNestedRouteLink href="/stacks/:stackName/edit" params={{ stackName: props.stackName }}>
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.edit} size="small" />}>
                   Edit Stack
                 </Button>
@@ -162,142 +153,131 @@ export const Dashboard = Shade<DashboardProps>({
           </Paper>
         ) : null}
 
-        <Paper>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginBottom: '12px',
-              gap: '8px',
-            }}
-          >
-            <h3 style={{ margin: '0', fontSize: '16px' }}>Services ({services.length})</h3>
-            {hasSelection ? (
-              <span style={{ fontSize: '13px', opacity: '0.7' }}>{selectedServices.length} selected</span>
-            ) : null}
-            {hasSelection ? (
-              <ButtonGroup variant="outlined">
-                {hasStopped ? (
-                  <Button
-                    size="small"
-                    color="success"
-                    loading={isBulkLoading}
-                    onclick={() => void bulkAction('start')}
-                    startIcon={<Icon icon={icons.play} size="small" />}
-                  >
-                    Start
-                  </Button>
-                ) : null}
-                {hasRunning ? (
-                  <Button
-                    size="small"
-                    loading={isBulkLoading}
-                    onclick={() => void bulkAction('stop')}
-                    startIcon={<Icon icon={icons.stopCircle} size="small" />}
-                  >
-                    Stop
-                  </Button>
-                ) : null}
-                <Button
-                  size="small"
-                  loading={isBulkLoading}
-                  onclick={() => void bulkAction('pull')}
-                  startIcon={<Icon icon={icons.download} size="small" />}
-                >
-                  Pull
-                </Button>
-                <Button
-                  size="small"
-                  loading={isBulkLoading}
-                  onclick={() => void bulkAction('install')}
-                  startIcon={<Icon icon={icons.packageIcon} size="small" />}
-                >
-                  Install
-                </Button>
-                <Button
-                  size="small"
-                  loading={isBulkLoading}
-                  onclick={() => void bulkAction('build')}
-                  startIcon={<Icon icon={icons.wrench} size="small" />}
-                >
-                  Build
-                </Button>
-                <Button
-                  size="small"
-                  loading={isBulkLoading}
-                  onclick={() => void bulkAction('setup')}
-                  startIcon={<Icon icon={icons.settings} size="small" />}
-                >
-                  Set Up
-                </Button>
-                <Button
-                  size="small"
-                  loading={isBulkLoading}
-                  onclick={() => void bulkAction('update')}
-                  startIcon={<Icon icon={icons.refresh} size="small" />}
-                >
-                  Update
-                </Button>
-              </ButtonGroup>
-            ) : null}
-            <div style={{ flex: '1' }} />
-            <StackCraftNestedRouteLink href="/services/wizard/:stackName" params={{ stackName: props.stackName }}>
-              <Button variant="contained" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
-                Create Service
-              </Button>
-            </StackCraftNestedRouteLink>
-          </div>
-          {services.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px' }}>
-              <p style={{ opacity: '0.5' }}>No services in this stack yet.</p>
+        <StackCraftNestedRouteLink
+          href="/stacks/:stackName/services"
+          params={{ stackName: props.stackName }}
+          style={{ textDecoration: 'none', color: 'inherit' }}
+        >
+          <Paper style={{ cursor: 'pointer' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Icon icon={icons.code} />
+                <h3 style={{ margin: '0', fontSize: '16px' }}>Services</h3>
+                <Chip variant="outlined" size="small">
+                  {services.length}
+                </Chip>
+              </div>
+              <Icon icon={icons.chevronRight} size="small" />
             </div>
-          ) : (
-            <ServiceTable
-              services={services}
-              onSelectionChange={(selected: ServiceView[]) => {
-                const newIds = selected.map((s) => s.id)
-                const changed =
-                  newIds.length !== selectedServiceIds.length || newIds.some((id) => !selectedServiceIds.includes(id))
-                if (changed) {
-                  setSelectedServiceIds(newIds)
-                }
-              }}
-            />
-          )}
-        </Paper>
+            {services.length > 0 ? (
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                {runningCount > 0 ? (
+                  <Chip variant="outlined" size="small" color="success">
+                    {runningCount} running
+                  </Chip>
+                ) : null}
+                {stoppedCount > 0 ? (
+                  <Chip variant="outlined" size="small" color="secondary">
+                    {stoppedCount} stopped
+                  </Chip>
+                ) : null}
+                {services.slice(0, 5).map((svc) => (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '13px',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                    }}
+                  >
+                    <RunStatusChip status={svc.runStatus} />
+                    <span>{svc.displayName}</span>
+                  </div>
+                ))}
+                {services.length > 5 ? (
+                  <span style={{ fontSize: '13px', opacity: '0.6', alignSelf: 'center' }}>
+                    +{services.length - 5} more
+                  </span>
+                ) : null}
+              </div>
+            ) : (
+              <p style={{ margin: '8px 0 0', opacity: '0.5', fontSize: '14px' }}>No services yet.</p>
+            )}
+          </Paper>
+        </StackCraftNestedRouteLink>
 
-        <Paper style={{ marginTop: '16px' }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '12px',
-            }}
-          >
-            <h3 style={{ margin: '0', fontSize: '16px' }}>Repositories</h3>
-            <StackCraftNestedRouteLink href="/repositories/create/:stackName" params={{ stackName: props.stackName }}>
-              <Button variant="outlined" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
-                Add Repository
-              </Button>
-            </StackCraftNestedRouteLink>
-          </div>
-          <RepositoryTable stackName={props.stackName} />
-        </Paper>
+        <StackCraftNestedRouteLink
+          href="/stacks/:stackName/repositories"
+          params={{ stackName: props.stackName }}
+          style={{ textDecoration: 'none', color: 'inherit' }}
+        >
+          <Paper style={{ cursor: 'pointer' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Icon icon={icons.link} />
+                <h3 style={{ margin: '0', fontSize: '16px' }}>Repositories</h3>
+                <Chip variant="outlined" size="small">
+                  {repos.length}
+                </Chip>
+              </div>
+              <Icon icon={icons.chevronRight} size="small" />
+            </div>
+            {repos.length > 0 ? (
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                {repos.slice(0, 5).map((repo) => (
+                  <Chip variant="outlined" size="small">
+                    {repo.displayName}
+                  </Chip>
+                ))}
+                {repos.length > 5 ? (
+                  <span style={{ fontSize: '13px', opacity: '0.6', alignSelf: 'center' }}>
+                    +{repos.length - 5} more
+                  </span>
+                ) : null}
+              </div>
+            ) : (
+              <p style={{ margin: '8px 0 0', opacity: '0.5', fontSize: '14px' }}>No repositories yet.</p>
+            )}
+          </Paper>
+        </StackCraftNestedRouteLink>
 
-        <Paper style={{ marginTop: '16px' }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '12px',
-            }}
-          >
-            <h3 style={{ margin: '0', fontSize: '16px' }}>Prerequisites</h3>
-          </div>
-          <PrerequisiteTable stackName={props.stackName} />
-        </Paper>
+        <StackCraftNestedRouteLink
+          href="/stacks/:stackName/prerequisites"
+          params={{ stackName: props.stackName }}
+          style={{ textDecoration: 'none', color: 'inherit' }}
+        >
+          <Paper style={{ cursor: 'pointer' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Icon icon={icons.check} />
+                <h3 style={{ margin: '0', fontSize: '16px' }}>Prerequisites</h3>
+                <Chip variant="outlined" size="small">
+                  {prereqs.length}
+                </Chip>
+              </div>
+              <Icon icon={icons.chevronRight} size="small" />
+            </div>
+            {prereqs.length > 0 ? (
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                {prereqs.slice(0, 5).map((prereq) => (
+                  <Chip variant="outlined" size="small">
+                    {prereq.name}
+                  </Chip>
+                ))}
+                {prereqs.length > 5 ? (
+                  <span style={{ fontSize: '13px', opacity: '0.6', alignSelf: 'center' }}>
+                    +{prereqs.length - 5} more
+                  </span>
+                ) : null}
+              </div>
+            ) : (
+              <p style={{ margin: '8px 0 0', opacity: '0.5', fontSize: '14px' }}>No prerequisites yet.</p>
+            )}
+          </Paper>
+        </StackCraftNestedRouteLink>
       </PageContainer>
     )
   },

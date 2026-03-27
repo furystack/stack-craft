@@ -182,7 +182,10 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     startIcon={<Icon icon={icons.stopCircle} size="small" />}
                   />
                 )}
-                <StackCraftNestedRouteLink href="/services/:id/logs" params={{ id: entry.id }}>
+                <StackCraftNestedRouteLink
+                  href="/stacks/:stackName/services/:serviceId/logs"
+                  params={{ stackName: entry.stackName, serviceId: entry.id }}
+                >
                   <Button
                     variant="text"
                     size="small"
@@ -190,7 +193,10 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     startIcon={<Icon icon={icons.fileText} size="small" />}
                   />
                 </StackCraftNestedRouteLink>
-                <StackCraftNestedRouteLink href="/services/:id" params={{ id: entry.id }}>
+                <StackCraftNestedRouteLink
+                  href="/stacks/:stackName/services/:serviceId"
+                  params={{ stackName: entry.stackName, serviceId: entry.id }}
+                >
                   <Button
                     variant="text"
                     size="small"
@@ -205,7 +211,9 @@ export const ServiceTable = Shade<ServiceTableProps>({
                   onclick={() =>
                     injector
                       .getInstance(LocationService)
-                      .navigate(`/services/${entry.id}?${serializeToQueryString({ edit: true })}`)
+                      .navigate(
+                        `/stacks/${entry.stackName}/services/${entry.id}?${serializeToQueryString({ edit: true })}`,
+                      )
                   }
                   startIcon={<Icon icon={icons.edit} size="small" />}
                 />

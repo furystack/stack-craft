@@ -134,9 +134,9 @@ export const ImportStack = Shade({
         })
         const hasAutoSetup = formData.autoSetup === 'on'
         if (hasAutoSetup && (parsed.services?.length ?? 0) > 0) {
-          stackCraftNavigate(injector, '/stacks/:name/setup', { name: parsed.stack.name })
+          stackCraftNavigate(injector, '/stacks/:stackName/setup', { stackName: parsed.stack.name })
         } else {
-          stackCraftNavigate(injector, '/stacks/:name', { name: parsed.stack.name })
+          stackCraftNavigate(injector, '/stacks/:stackName', { stackName: parsed.stack.name })
         }
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {

@@ -5,6 +5,7 @@ import { LogViewer } from '../../components/log-viewer.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
 type ServiceLogsProps = {
+  stackName: string
   serviceId: string
   processUid?: string
 }

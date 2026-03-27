@@ -31,7 +31,9 @@ test('DOG FOODING TIME - Create a service that uses the StackCraft GitHub reposi
 
   await expect(page.getByTestId('page-header-title')).toContainText(displayName)
 
-  // Create the service with the StackCraft GitHub repository
+  // Navigate to services list via the dashboard card
+  await page.locator('shade-dashboard a', { hasText: 'Services' }).click()
+  await expect(page.locator('shade-services-list')).toBeVisible()
   await page.locator('button', { hasText: 'Create Service' }).first().click()
   await expect(page.locator('shade-create-service-wizard')).toBeVisible()
 

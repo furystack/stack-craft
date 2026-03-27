@@ -65,6 +65,7 @@ const eventLabels: Record<string, string> = {
 }
 
 type ServiceDetailProps = {
+  stackName: string
   serviceId: string
 }
 
@@ -267,7 +268,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           body: `"${service.displayName}" was deleted.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/stacks/:name', { name: service.stackName })
+        stackCraftNavigate(injector, '/stacks/:stackName/services', { stackName: service.stackName })
       } catch (error) {
         noty.emit('onNotyAdded', {
           title: 'Error',
@@ -373,7 +374,10 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                     : `${prereqSatisfiedCount}/${servicePrereqs.length} prereqs`}
                 </Chip>
               ) : null}
-              <StackCraftNestedRouteLink href="/services/:id/logs" params={{ id: service.id }}>
+              <StackCraftNestedRouteLink
+                href="/stacks/:stackName/services/:serviceId/logs"
+                params={{ stackName: service.stackName, serviceId: service.id }}
+              >
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.file} size="small" />}>
                   Logs
                 </Button>
@@ -418,8 +422,8 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                 <strong>Repository</strong>
                 <span>
                   <StackCraftNestedRouteLink
-                    href="/repositories/:id"
-                    params={{ id: linkedRepo.id }}
+                    href="/stacks/:stackName/repositories/:repositoryId"
+                    params={{ stackName: service.stackName, repositoryId: linkedRepo.id }}
                     style={{ color: 'inherit' }}
                   >
                     {linkedRepo.displayName}
@@ -665,7 +669,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             stackEnvVars={stackConfig?.environmentVariables ?? {}}
           />
         ) : null}
-        <ServiceHistory serviceId={service.id} />
+        <ServiceHistory serviceId={service.id} stackName={service.stackName} />
         {ConfirmDialog(isConfirmingDelete, {
           title: 'Delete Service',
           message: `Are you sure you want to delete "${service.displayName}"? This action cannot be undone.`,
@@ -680,6 +684,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
 
 type ServiceHistoryProps = {
   serviceId: string
+  stackName: string
 }
 
 type HistoryColumn = 'createdAt' | 'event' | 'triggeredBy' | 'triggerSource' | 'metadata' | 'processUid'
@@ -777,8 +782,9 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
                   <Button
                     size="small"
                     onclick={() =>
-                      stackCraftNavigate(injector, '/services/:id/logs/:processUid', {
-                        id: props.serviceId,
+                      stackCraftNavigate(injector, '/stacks/:stackName/services/:serviceId/logs/:processUid', {
+                        stackName: props.stackName,
+                        serviceId: props.serviceId,
                         processUid,
                       })
                     }

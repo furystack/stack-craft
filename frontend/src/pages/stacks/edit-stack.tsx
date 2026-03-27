@@ -49,7 +49,7 @@ export const EditStack = Shade<EditStackProps>({
             title="Error loading stack"
             description={stackState.error}
             actions={
-              <StackCraftNestedRouteLink href="/">
+              <StackCraftNestedRouteLink href="/stacks/:stackName" params={{ stackName: props.stackName }}>
                 <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
                   Back
                 </Button>
@@ -102,7 +102,7 @@ export const EditStack = Shade<EditStackProps>({
           body: `"${data.displayName ?? stack.displayName}" was updated successfully.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/stacks/:name', { name: stack.name })
+        stackCraftNavigate(injector, '/stacks/:stackName', { stackName: stack.name })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -142,7 +142,7 @@ export const EditStack = Shade<EditStackProps>({
           title={`Edit: ${stack.displayName}`}
           actions={
             <div style={{ display: 'flex', gap: '8px' }}>
-              <StackCraftNestedRouteLink href="/">
+              <StackCraftNestedRouteLink href="/stacks/:stackName" params={{ stackName: stack.name }}>
                 <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
                   Back
                 </Button>
@@ -160,7 +160,12 @@ export const EditStack = Shade<EditStackProps>({
           }
         />
         <Paper>
-          <StackForm mode="edit" initial={stack} onSubmit={(data) => void handleSave(data)} cancelHref="/" />
+          <StackForm
+            mode="edit"
+            initial={stack}
+            onSubmit={(data) => void handleSave(data)}
+            onCancel={() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: stack.name })}
+          />
         </Paper>
         <EnvironmentVariablesManager
           stackName={stack.name}

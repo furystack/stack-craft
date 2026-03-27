@@ -99,7 +99,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
             body: `"${data.displayName}" was created successfully.`,
             type: 'success',
           })
-          stackCraftNavigate(injector, '/stacks/:name', { name: props.stackName })
+          stackCraftNavigate(injector, '/stacks/:stackName/services', { stackName: props.stackName })
         }
       } catch (error) {
         noty.emit('onNotyAdded', {
@@ -204,7 +204,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
             onSubmit={(data: Partial<ServiceView>) => void handleCreateService(data)}
             onCreatePrerequisite={(data: Partial<Prerequisite>) => handleCreatePrerequisite(data)}
             onCreateRepository={(data: Partial<GitHubRepository>) => handleCreateRepository(data)}
-            cancelHref="/"
+            onCancel={() => stackCraftNavigate(injector, '/stacks/:stackName/services', { stackName: props.stackName })}
           />
         </Paper>
       )
@@ -233,7 +233,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               </Button>
               <Button
                 variant="outlined"
-                onclick={() => stackCraftNavigate(injector, '/stacks/:name', { name: props.stackName })}
+                onclick={() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: props.stackName })}
                 endIcon={<Icon icon={icons.chevronRight} size="small" />}
               >
                 Skip
@@ -260,13 +260,16 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               <Button
                 variant="contained"
                 color="success"
-                onclick={() => stackCraftNavigate(injector, '/stacks/:name', { name: props.stackName })}
+                onclick={() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: props.stackName })}
                 startIcon={<Icon icon={icons.home} size="small" />}
               >
                 Go to Dashboard
               </Button>
               {state.createdServiceId ? (
-                <StackCraftNestedRouteLink href="/services/:id" params={{ id: state.createdServiceId }}>
+                <StackCraftNestedRouteLink
+                  href="/stacks/:stackName/services/:serviceId"
+                  params={{ stackName: props.stackName, serviceId: state.createdServiceId }}
+                >
                   <Button variant="outlined" startIcon={<Icon icon={icons.eye} size="small" />}>
                     View Service
                   </Button>
@@ -288,7 +291,10 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
                 Retry
               </Button>
               {state.createdServiceId ? (
-                <StackCraftNestedRouteLink href="/services/:id/logs" params={{ id: state.createdServiceId }}>
+                <StackCraftNestedRouteLink
+                  href="/stacks/:stackName/services/:serviceId/logs"
+                  params={{ stackName: props.stackName, serviceId: state.createdServiceId }}
+                >
                   <Button variant="outlined" startIcon={<Icon icon={icons.fileText} size="small" />}>
                     View Logs
                   </Button>
@@ -296,7 +302,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
               ) : null}
               <Button
                 variant="outlined"
-                onclick={() => stackCraftNavigate(injector, '/stacks/:name', { name: props.stackName })}
+                onclick={() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: props.stackName })}
                 startIcon={<Icon icon={icons.home} size="small" />}
               >
                 Go to Dashboard
