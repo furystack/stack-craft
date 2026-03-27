@@ -19,4 +19,8 @@ export class InstallService {
 
   public getServiceStatus = this.cache.get.bind(this.cache)
   public getServiceStatusAsObservable = this.cache.getObservable.bind(this.cache)
+
+  public [Symbol.dispose]() {
+    this.cache[Symbol.dispose]()
+  }
 }

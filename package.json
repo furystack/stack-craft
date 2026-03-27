@@ -17,6 +17,7 @@
   "type": "module",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@furystack/eslint-plugin": "^1.0.0",
     "@playwright/test": "^1.58.2",
     "@types/node": "^25.3.5",
     "@vitest/coverage-v8": "^4.0.18",

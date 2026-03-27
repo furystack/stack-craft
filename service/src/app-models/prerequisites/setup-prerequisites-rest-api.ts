@@ -50,7 +50,10 @@ export const setupPrerequisitesRestApi = async (injector: Injector) => {
         })(createPatchEndpoint({ model: Prerequisite, primaryKey: 'id' })),
       },
       DELETE: {
-        '/prerequisites/:id': DeletePrerequisiteAction,
+        '/prerequisites/:id': Validate({
+          schema: prerequisitesApiSchema,
+          schemaName: 'DeleteEndpoint<Prerequisite,"id">',
+        })(DeletePrerequisiteAction),
       },
     },
   })

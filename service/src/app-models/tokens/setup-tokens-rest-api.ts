@@ -116,13 +116,17 @@ export const setupTokensRestApi = async (injector: Injector) => {
     cors: getCorsOptions(),
     api: {
       GET: {
-        '/tokens': GetTokensAction,
+        '/tokens': Validate({ schema: tokensApiSchema, schemaName: 'GetCollectionEndpoint<PublicApiToken>' })(
+          GetTokensAction,
+        ),
       },
       POST: {
         '/tokens': Validate({ schema: tokensApiSchema, schemaName: 'CreateTokenEndpoint' })(CreateTokenAction),
       },
       DELETE: {
-        '/tokens/:id': DeleteTokenAction,
+        '/tokens/:id': Validate({ schema: tokensApiSchema, schemaName: 'DeleteEndpoint<ApiToken,"id">' })(
+          DeleteTokenAction,
+        ),
       },
     },
   })

@@ -112,4 +112,11 @@ export class SessionService implements IdentityContext {
 
   @Injected(NotyService)
   declare private readonly notys: NotyService
+
+  public [Symbol.dispose]() {
+    this.state[Symbol.dispose]()
+    this.currentUser[Symbol.dispose]()
+    this.isOperationInProgress[Symbol.dispose]()
+    this.loginError[Symbol.dispose]()
+  }
 }

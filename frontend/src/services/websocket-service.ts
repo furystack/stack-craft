@@ -77,5 +77,6 @@ export class WebSocketService {
 
   public [Symbol.dispose]() {
     this.disconnect()
+    this.connectionState[Symbol.dispose]()
   }
 }

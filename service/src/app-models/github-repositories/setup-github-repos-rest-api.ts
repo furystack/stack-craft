@@ -51,7 +51,10 @@ export const setupGitHubReposRestApi = async (injector: Injector) => {
         })(createPatchEndpoint({ model: GitHubRepository, primaryKey: 'id' })),
       },
       DELETE: {
-        '/github-repositories/:id': createDeleteEndpoint({ model: GitHubRepository, primaryKey: 'id' }),
+        '/github-repositories/:id': Validate({
+          schema: githubReposApiSchema,
+          schemaName: 'DeleteEndpoint<GitHubRepository,"id">',
+        })(createDeleteEndpoint({ model: GitHubRepository, primaryKey: 'id' })),
       },
     },
   })

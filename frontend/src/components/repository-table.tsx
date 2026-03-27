@@ -30,19 +30,18 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
     )
 
     const findOptions = useDisposable(
-      'findOptions',
+      'findOptionsObservable',
       () => new ObservableValue<FindOptions<GitHubRepository, Array<keyof GitHubRepository>>>({ top: 25 }),
     )
 
-    const [currentFindOptions] = useObservable('findOptions', findOptions)
+    const [currentFindOptions] = useObservable('currentFindOptions', findOptions)
 
     const reposState = useCollectionSync(options, GitHubRepository, {
       filter: { stackName: { $eq: props.stackName } },
     })
 
     const isLoading = reposState.status === 'connecting'
-    const allEntries =
-      reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
+    const allEntries = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
 
     const { entries, count } = applyClientFindOptions(allEntries, currentFindOptions)
     collectionService.data.setValue({ entries, count })

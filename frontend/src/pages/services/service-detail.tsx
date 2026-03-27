@@ -709,7 +709,7 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
     )
 
     const findOptions = useDisposable(
-      'findOptions',
+      'findOptionsObservable',
       () =>
         new ObservableValue<FindOptions<ServiceStateHistory, Array<keyof ServiceStateHistory>>>({
           top: 25,
@@ -717,7 +717,7 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
         }),
     )
 
-    const [currentFindOptions] = useObservable('findOptions', findOptions)
+    const [currentFindOptions] = useObservable('currentFindOptions', findOptions)
 
     const historyState = useCollectionSync(options, ServiceStateHistory, {
       filter: { serviceId: { $eq: props.serviceId }, ...currentFindOptions.filter },

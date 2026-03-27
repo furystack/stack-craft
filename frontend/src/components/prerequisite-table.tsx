@@ -45,11 +45,11 @@ export const PrerequisiteTable = Shade<PrerequisiteTableProps>({
     )
 
     const findOptions = useDisposable(
-      'findOptions',
+      'findOptionsObservable',
       () => new ObservableValue<FindOptions<Prerequisite, Array<keyof Prerequisite>>>({ top: 25 }),
     )
 
-    const [currentFindOptions] = useObservable('findOptions', findOptions)
+    const [currentFindOptions] = useObservable('currentFindOptions', findOptions)
 
     const prereqsState = useCollectionSync(options, PrerequisiteModel, {
       filter: { stackName: { $eq: props.stackName } },

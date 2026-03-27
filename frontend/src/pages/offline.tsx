@@ -1,4 +1,4 @@
-import { Shade, createComponent } from '@furystack/shades'
+import { Shade, createComponent, NestedRouteLink } from '@furystack/shades'
 import { environmentOptions } from '../environment-options.js'
 
 export const Offline = Shade({
@@ -43,7 +43,7 @@ export const Offline = Shade({
           </li>
           <li>You have started the service :)</li>
         </ul>
-        <a href="/">Reload page</a>
+        <NestedRouteLink href="/">Reload page</NestedRouteLink>
       </div>
     )
   },

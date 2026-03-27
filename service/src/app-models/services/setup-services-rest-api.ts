@@ -43,105 +43,132 @@ export const setupServicesRestApi = async (injector: Injector) => {
     cors: getCorsOptions(),
     api: {
       GET: {
-        '/services': async ({ injector: i, getQuery }) => {
-          const query = getQuery()
-          const repo = getRepository(i)
-          const defs = await repo.getDataSetFor(ServiceDefinition, 'id').find(i, {
-            top: query.findOptions?.top,
-            skip: query.findOptions?.skip,
-            order: query.findOptions?.order,
-            filter: query.findOptions?.filter,
-          })
-          const configs = await repo.getDataSetFor(ServiceConfig, 'serviceId').find(i, {})
-          const statuses = await repo.getDataSetFor(ServiceStatus, 'serviceId').find(i, {})
-          const configMap = new Map(configs.map((c) => [c.serviceId, c]))
-          const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
+        '/services': Validate({ schema: servicesApiSchema, schemaName: 'GetCollectionEndpoint<ServiceView>' })(
+          async ({ injector: i, getQuery }) => {
+            const query = getQuery()
+            const repo = getRepository(i)
+            const defs = await repo.getDataSetFor(ServiceDefinition, 'id').find(i, {
+              top: query.findOptions?.top,
+              skip: query.findOptions?.skip,
+              order: query.findOptions?.order,
+              filter: query.findOptions?.filter,
+            })
+            const configs = await repo.getDataSetFor(ServiceConfig, 'serviceId').find(i, {})
+            const statuses = await repo.getDataSetFor(ServiceStatus, 'serviceId').find(i, {})
+            const configMap = new Map(configs.map((c) => [c.serviceId, c]))
+            const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
 
-          const entries = defs.map((def) => mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id)))
-          const count = await repo.getDataSetFor(ServiceDefinition, 'id').count(i, query.findOptions?.filter)
-          return JsonResult({ count, entries })
-        },
-        '/services/:id': async ({ injector: i, getUrlParams }) => {
-          const { id } = getUrlParams()
-          const repo = getRepository(i)
-          const defs = await repo
-            .getDataSetFor(ServiceDefinition, 'id')
-            .find(i, { filter: { id: { $eq: id } }, top: 1 })
-          const def = defs[0]
-          if (!def) throw new RequestError('Service not found', 404)
+            const entries = defs.map((def) => mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id)))
+            const count = await repo.getDataSetFor(ServiceDefinition, 'id').count(i, query.findOptions?.filter)
+            return JsonResult({ count, entries })
+          },
+        ),
+        '/services/:id': Validate({ schema: servicesApiSchema, schemaName: 'GetEntityEndpoint<ServiceView,"id">' })(
+          async ({ injector: i, getUrlParams }) => {
+            const { id } = getUrlParams()
+            const repo = getRepository(i)
+            const defs = await repo
+              .getDataSetFor(ServiceDefinition, 'id')
+              .find(i, { filter: { id: { $eq: id } }, top: 1 })
+            const def = defs[0]
+            if (!def) throw new RequestError('Service not found', 404)
 
-          const configs = await repo
-            .getDataSetFor(ServiceConfig, 'serviceId')
-            .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
-          const statuses = await repo
-            .getDataSetFor(ServiceStatus, 'serviceId')
-            .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
+            const configs = await repo
+              .getDataSetFor(ServiceConfig, 'serviceId')
+              .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
+            const statuses = await repo
+              .getDataSetFor(ServiceStatus, 'serviceId')
+              .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
 
-          return JsonResult(mergeServiceView(def, configs[0], statuses[0]))
-        },
+            return JsonResult(mergeServiceView(def, configs[0], statuses[0]))
+          },
+        ),
         '/services/:id/logs': Validate({ schema: servicesApiSchema, schemaName: 'ServiceLogsEndpoint' })(
           ServiceLogsAction,
         ),
-        '/services/:id/history': ServiceHistoryAction,
+        '/services/:id/history': Validate({ schema: servicesApiSchema, schemaName: 'ServiceHistoryEndpoint' })(
+          ServiceHistoryAction,
+        ),
       },
       POST: {
-        '/services': async ({ injector: i, getBody }) => {
-          const body = await getBody()
-          const repo = getRepository(i)
-          const now = new Date().toISOString()
-          const id = body.id ?? randomUUID()
+        '/services': Validate({ schema: servicesApiSchema, schemaName: 'PostServiceEndpoint' })(
+          async ({ injector: i, getBody }) => {
+            const body = await getBody()
+            const repo = getRepository(i)
+            const now = new Date().toISOString()
+            const id = body.id ?? randomUUID()
 
-          const def = {
-            id,
-            stackName: body.stackName,
-            displayName: body.displayName,
-            description: body.description ?? '',
-            workingDirectory: body.workingDirectory,
-            repositoryId: body.repositoryId,
-            prerequisiteIds: body.prerequisiteIds ?? [],
-            prerequisiteServiceIds: body.prerequisiteServiceIds ?? [],
-            installCommand: body.installCommand,
-            buildCommand: body.buildCommand,
-            runCommand: body.runCommand,
-            files: body.files ?? [],
-            createdAt: now,
-            updatedAt: now,
-          }
+            const def = {
+              id,
+              stackName: body.stackName,
+              displayName: body.displayName,
+              description: body.description ?? '',
+              workingDirectory: body.workingDirectory,
+              repositoryId: body.repositoryId,
+              prerequisiteIds: body.prerequisiteIds ?? [],
+              prerequisiteServiceIds: body.prerequisiteServiceIds ?? [],
+              installCommand: body.installCommand,
+              buildCommand: body.buildCommand,
+              runCommand: body.runCommand,
+              files: body.files ?? [],
+              createdAt: now,
+              updatedAt: now,
+            }
 
-          const config = {
-            serviceId: id,
-            autoFetchEnabled: body.autoFetchEnabled ?? false,
-            autoFetchIntervalMinutes: body.autoFetchIntervalMinutes ?? 60,
-            autoRestartOnFetch: body.autoRestartOnFetch ?? false,
-            environmentVariableOverrides: body.environmentVariableOverrides ?? {},
-            createdAt: now,
-            updatedAt: now,
-          }
+            const config = {
+              serviceId: id,
+              autoFetchEnabled: body.autoFetchEnabled ?? false,
+              autoFetchIntervalMinutes: body.autoFetchIntervalMinutes ?? 60,
+              autoRestartOnFetch: body.autoRestartOnFetch ?? false,
+              environmentVariableOverrides: body.environmentVariableOverrides ?? {},
+              createdAt: now,
+              updatedAt: now,
+            }
 
-          const status = {
-            serviceId: id,
-            cloneStatus: 'not-cloned' as const,
-            installStatus: 'not-installed' as const,
-            buildStatus: 'not-built' as const,
-            runStatus: 'stopped' as const,
-            updatedAt: now,
-          }
+            const status = {
+              serviceId: id,
+              cloneStatus: 'not-cloned' as const,
+              installStatus: 'not-installed' as const,
+              buildStatus: 'not-built' as const,
+              runStatus: 'stopped' as const,
+              updatedAt: now,
+            }
 
-          await repo.getDataSetFor(ServiceDefinition, 'id').add(i, def)
-          await repo.getDataSetFor(ServiceConfig, 'serviceId').add(i, config)
-          await repo.getDataSetFor(ServiceStatus, 'serviceId').add(i, status)
+            await repo.getDataSetFor(ServiceDefinition, 'id').add(i, def)
+            await repo.getDataSetFor(ServiceConfig, 'serviceId').add(i, config)
+            await repo.getDataSetFor(ServiceStatus, 'serviceId').add(i, status)
 
-          return JsonResult(mergeServiceView(def, config, status))
-        },
-        '/services/:id/start': ServiceLifecycleAction('start'),
-        '/services/:id/stop': ServiceLifecycleAction('stop'),
-        '/services/:id/restart': ServiceLifecycleAction('restart'),
-        '/services/:id/install': ServiceLifecycleAction('install'),
-        '/services/:id/build': ServiceLifecycleAction('build'),
-        '/services/:id/pull': ServiceLifecycleAction('pull'),
-        '/services/:id/setup': ServiceLifecycleAction('setup'),
-        '/services/:id/update': ServiceLifecycleAction('update'),
-        '/services/:id/apply-files': async ({ injector: i, getUrlParams, getBody }) => {
+            return JsonResult(mergeServiceView(def, config, status))
+          },
+        ),
+        '/services/:id/start': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(
+          ServiceLifecycleAction('start'),
+        ),
+        '/services/:id/stop': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(
+          ServiceLifecycleAction('stop'),
+        ),
+        '/services/:id/restart': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(
+          ServiceLifecycleAction('restart'),
+        ),
+        '/services/:id/install': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(
+          ServiceLifecycleAction('install'),
+        ),
+        '/services/:id/build': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(
+          ServiceLifecycleAction('build'),
+        ),
+        '/services/:id/pull': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(
+          ServiceLifecycleAction('pull'),
+        ),
+        '/services/:id/setup': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(
+          ServiceLifecycleAction('setup'),
+        ),
+        '/services/:id/update': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(
+          ServiceLifecycleAction('update'),
+        ),
+        '/services/:id/apply-files': Validate({
+          schema: servicesApiSchema,
+          schemaName: 'ApplyServiceFilesEndpoint',
+        })(async ({ injector: i, getUrlParams, getBody }) => {
           const { id: serviceId } = getUrlParams()
           const body = await getBody()
           try {
@@ -150,64 +177,71 @@ export const setupServicesRestApi = async (injector: Injector) => {
           } catch (error) {
             throw new RequestError(error instanceof Error ? error.message : 'Failed to apply files', 500)
           }
-        },
+        }),
       },
       PATCH: {
-        '/services/:id': async ({ injector: i, getUrlParams, getBody }) => {
-          const { id } = getUrlParams()
-          const body = await getBody()
-          const repo = getRepository(i)
+        '/services/:id': Validate({ schema: servicesApiSchema, schemaName: 'PatchServiceEndpoint' })(
+          async ({ injector: i, getUrlParams, getBody }) => {
+            const { id } = getUrlParams()
+            const body = await getBody()
+            const repo = getRepository(i)
 
-          const defFields: Partial<ServiceDefinition> = {}
-          if (body.displayName !== undefined) defFields.displayName = body.displayName
-          if (body.description !== undefined) defFields.description = body.description
-          if (body.workingDirectory !== undefined) defFields.workingDirectory = body.workingDirectory
-          if (body.repositoryId !== undefined) defFields.repositoryId = body.repositoryId
-          if (body.prerequisiteIds !== undefined) defFields.prerequisiteIds = body.prerequisiteIds
-          if (body.prerequisiteServiceIds !== undefined) defFields.prerequisiteServiceIds = body.prerequisiteServiceIds
-          if (body.installCommand !== undefined) defFields.installCommand = body.installCommand
-          if (body.buildCommand !== undefined) defFields.buildCommand = body.buildCommand
-          if (body.runCommand !== undefined) defFields.runCommand = body.runCommand
-          if (body.files !== undefined) defFields.files = body.files
+            const defFields: Partial<ServiceDefinition> = {}
+            if (body.displayName !== undefined) defFields.displayName = body.displayName
+            if (body.description !== undefined) defFields.description = body.description
+            if (body.workingDirectory !== undefined) defFields.workingDirectory = body.workingDirectory
+            if (body.repositoryId !== undefined) defFields.repositoryId = body.repositoryId
+            if (body.prerequisiteIds !== undefined) defFields.prerequisiteIds = body.prerequisiteIds
+            if (body.prerequisiteServiceIds !== undefined)
+              defFields.prerequisiteServiceIds = body.prerequisiteServiceIds
+            if (body.installCommand !== undefined) defFields.installCommand = body.installCommand
+            if (body.buildCommand !== undefined) defFields.buildCommand = body.buildCommand
+            if (body.runCommand !== undefined) defFields.runCommand = body.runCommand
+            if (body.files !== undefined) defFields.files = body.files
 
-          const configFields: Partial<ServiceConfig> = {}
-          if (body.autoFetchEnabled !== undefined) configFields.autoFetchEnabled = body.autoFetchEnabled
-          if (body.autoFetchIntervalMinutes !== undefined)
-            configFields.autoFetchIntervalMinutes = body.autoFetchIntervalMinutes
-          if (body.autoRestartOnFetch !== undefined) configFields.autoRestartOnFetch = body.autoRestartOnFetch
-          if (body.environmentVariableOverrides !== undefined)
-            configFields.environmentVariableOverrides = body.environmentVariableOverrides
+            const configFields: Partial<ServiceConfig> = {}
+            if (body.autoFetchEnabled !== undefined) configFields.autoFetchEnabled = body.autoFetchEnabled
+            if (body.autoFetchIntervalMinutes !== undefined)
+              configFields.autoFetchIntervalMinutes = body.autoFetchIntervalMinutes
+            if (body.autoRestartOnFetch !== undefined) configFields.autoRestartOnFetch = body.autoRestartOnFetch
+            if (body.environmentVariableOverrides !== undefined)
+              configFields.environmentVariableOverrides = body.environmentVariableOverrides
 
-          if (Object.keys(defFields).length > 0) {
-            await repo.getDataSetFor(ServiceDefinition, 'id').update(i, id, defFields)
-          }
-          if (Object.keys(configFields).length > 0) {
-            await repo.getDataSetFor(ServiceConfig, 'serviceId').update(i, id, configFields)
-          }
+            if (Object.keys(defFields).length > 0) {
+              await repo.getDataSetFor(ServiceDefinition, 'id').update(i, id, defFields)
+            }
+            if (Object.keys(configFields).length > 0) {
+              await repo.getDataSetFor(ServiceConfig, 'serviceId').update(i, id, configFields)
+            }
 
-          return JsonResult({})
-        },
+            return JsonResult({})
+          },
+        ),
       },
       DELETE: {
-        '/services/:id': async ({ injector: i, getUrlParams }) => {
-          const { id } = getUrlParams()
-          const repo = getRepository(i)
-          await repo
-            .getDataSetFor(ServiceStatus, 'serviceId')
-            .remove(i, id)
-            .catch(() => {
-              /* Status row may not exist */
-            })
-          await repo
-            .getDataSetFor(ServiceConfig, 'serviceId')
-            .remove(i, id)
-            .catch(() => {
-              /* Config row may not exist */
-            })
-          await repo.getDataSetFor(ServiceDefinition, 'id').remove(i, id)
-          return JsonResult({})
-        },
-        '/services/:id/logs': ClearServiceLogsAction,
+        '/services/:id': Validate({ schema: servicesApiSchema, schemaName: 'DeleteEndpoint<ServiceDefinition,"id">' })(
+          async ({ injector: i, getUrlParams }) => {
+            const { id } = getUrlParams()
+            const repo = getRepository(i)
+            await repo
+              .getDataSetFor(ServiceStatus, 'serviceId')
+              .remove(i, id)
+              .catch(() => {
+                /* Status row may not exist */
+              })
+            await repo
+              .getDataSetFor(ServiceConfig, 'serviceId')
+              .remove(i, id)
+              .catch(() => {
+                /* Config row may not exist */
+              })
+            await repo.getDataSetFor(ServiceDefinition, 'id').remove(i, id)
+            return JsonResult({})
+          },
+        ),
+        '/services/:id/logs': Validate({ schema: servicesApiSchema, schemaName: 'ClearServiceLogsEndpoint' })(
+          ClearServiceLogsAction,
+        ),
       },
     },
   })

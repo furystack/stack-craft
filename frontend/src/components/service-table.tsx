@@ -53,11 +53,11 @@ export const ServiceTable = Shade<ServiceTableProps>({
     )
 
     const findOptions = useDisposable(
-      'findOptions',
+      'findOptionsObservable',
       () => new ObservableValue<FindOptions<ServiceView, Array<keyof ServiceView>>>({ top: 25 }),
     )
 
-    const [currentFindOptions] = useObservable('findOptions', findOptions)
+    const [currentFindOptions] = useObservable('currentFindOptions', findOptions)
     const { entries, count } = applyClientFindOptions(props.services, currentFindOptions)
     collectionService.data.setValue({ entries, count })
 

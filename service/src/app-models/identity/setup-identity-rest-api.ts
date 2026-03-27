@@ -29,12 +29,14 @@ export const setupIdentityRestApi = async (injector: Injector) => {
     cors: getCorsOptions(),
     api: {
       GET: {
-        '/currentUser': GetCurrentUser,
-        '/isAuthenticated': IsAuthenticated,
+        '/currentUser': Validate({ schema: identityApiSchema, schemaName: 'GetCurrentUserAction' })(GetCurrentUser),
+        '/isAuthenticated': Validate({ schema: identityApiSchema, schemaName: 'IsAuthenticatedAction' })(
+          IsAuthenticated,
+        ),
       },
       POST: {
-        '/login': LoginAction,
-        '/logout': LogoutAction,
+        '/login': Validate({ schema: identityApiSchema, schemaName: 'LoginAction' })(LoginAction),
+        '/logout': Validate({ schema: identityApiSchema, schemaName: 'LogoutAction' })(LogoutAction),
         '/password-reset': Validate({ schema: identityApiSchema, schemaName: 'PasswordResetAction' })(
           PasswordResetAction,
         ),

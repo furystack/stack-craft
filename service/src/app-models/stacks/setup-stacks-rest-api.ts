@@ -32,181 +32,193 @@ export const setupStacksRestApi = async (injector: Injector) => {
     cors: getCorsOptions(),
     api: {
       GET: {
-        '/stacks': async ({ injector: i, getQuery }) => {
-          const query = getQuery()
-          const repo = getRepository(i)
-          const defs = await repo.getDataSetFor(StackDefinition, 'name').find(i, {
-            top: query.findOptions?.top,
-            skip: query.findOptions?.skip,
-            order: query.findOptions?.order,
-            filter: query.findOptions?.filter,
-          })
-          const configs = await repo.getDataSetFor(StackConfig, 'stackName').find(i, {})
-          const configMap = new Map(configs.map((c) => [c.stackName, c]))
-          const entries = defs.map(
-            (def) =>
-              ({
-                ...def,
-                ...(configMap.get(def.name) ?? { stackName: def.name, mainDirectory: '' }),
-              }) as StackView,
-          )
-          return JsonResult({ count: entries.length, entries })
-        },
-        '/stacks/:id': async ({ injector: i, getUrlParams }) => {
-          const { id } = getUrlParams()
-          const repo = getRepository(i)
-          const defs = await repo
-            .getDataSetFor(StackDefinition, 'name')
-            .find(i, { filter: { name: { $eq: id } }, top: 1 })
-          const def = defs[0]
-          if (!def) throw new RequestError('Stack not found', 404)
-          const configs = await repo
-            .getDataSetFor(StackConfig, 'stackName')
-            .find(i, { filter: { stackName: { $eq: id } }, top: 1 })
-          const config = configs[0]
-          if (!config) throw new RequestError('Stack config not found', 404)
-          return JsonResult({ ...def, ...config })
-        },
+        '/stacks': Validate({ schema: stacksApiSchema, schemaName: 'GetCollectionEndpoint<StackView>' })(
+          async ({ injector: i, getQuery }) => {
+            const query = getQuery()
+            const repo = getRepository(i)
+            const defs = await repo.getDataSetFor(StackDefinition, 'name').find(i, {
+              top: query.findOptions?.top,
+              skip: query.findOptions?.skip,
+              order: query.findOptions?.order,
+              filter: query.findOptions?.filter,
+            })
+            const configs = await repo.getDataSetFor(StackConfig, 'stackName').find(i, {})
+            const configMap = new Map(configs.map((c) => [c.stackName, c]))
+            const entries = defs.map(
+              (def) =>
+                ({
+                  ...def,
+                  ...(configMap.get(def.name) ?? { stackName: def.name, mainDirectory: '' }),
+                }) as StackView,
+            )
+            return JsonResult({ count: entries.length, entries })
+          },
+        ),
+        '/stacks/:id': Validate({ schema: stacksApiSchema, schemaName: 'GetEntityEndpoint<StackView,"name">' })(
+          async ({ injector: i, getUrlParams }) => {
+            const { id } = getUrlParams()
+            const repo = getRepository(i)
+            const defs = await repo
+              .getDataSetFor(StackDefinition, 'name')
+              .find(i, { filter: { name: { $eq: id } }, top: 1 })
+            const def = defs[0]
+            if (!def) throw new RequestError('Stack not found', 404)
+            const configs = await repo
+              .getDataSetFor(StackConfig, 'stackName')
+              .find(i, { filter: { stackName: { $eq: id } }, top: 1 })
+            const config = configs[0]
+            if (!config) throw new RequestError('Stack config not found', 404)
+            return JsonResult({ ...def, ...config })
+          },
+        ),
         '/stacks/:id/export': Validate({ schema: stacksApiSchema, schemaName: 'ExportStackEndpoint' })(
           ExportStackAction,
         ),
       },
       POST: {
-        '/stacks': async ({ injector: i, getBody }) => {
-          const body = await getBody()
-          const repo = getRepository(i)
-          const now = new Date().toISOString()
-          const name = body.name ?? randomUUID()
-          const def = {
-            name,
-            displayName: body.displayName,
-            description: body.description ?? '',
-            createdAt: now,
-            updatedAt: now,
-          }
-          const config = {
-            stackName: name,
-            mainDirectory: body.mainDirectory,
-            environmentVariables: body.environmentVariables ?? {},
-            createdAt: now,
-            updatedAt: now,
-          }
-          await repo.getDataSetFor(StackDefinition, 'name').add(i, def)
-          await repo.getDataSetFor(StackConfig, 'stackName').add(i, config)
-          return JsonResult({ ...def, ...config })
-        },
+        '/stacks': Validate({ schema: stacksApiSchema, schemaName: 'PostStackEndpoint' })(
+          async ({ injector: i, getBody }) => {
+            const body = await getBody()
+            const repo = getRepository(i)
+            const now = new Date().toISOString()
+            const name = body.name ?? randomUUID()
+            const def = {
+              name,
+              displayName: body.displayName,
+              description: body.description ?? '',
+              createdAt: now,
+              updatedAt: now,
+            }
+            const config = {
+              stackName: name,
+              mainDirectory: body.mainDirectory,
+              environmentVariables: body.environmentVariables ?? {},
+              createdAt: now,
+              updatedAt: now,
+            }
+            await repo.getDataSetFor(StackDefinition, 'name').add(i, def)
+            await repo.getDataSetFor(StackConfig, 'stackName').add(i, config)
+            return JsonResult({ ...def, ...config })
+          },
+        ),
         '/stacks/import': Validate({ schema: stacksApiSchema, schemaName: 'ImportStackEndpoint' })(ImportStackAction),
-        '/stacks/:id/setup': async ({ injector: i, getUrlParams }) => {
-          const { id } = getUrlParams()
-          const repo = getRepository(i)
-          const svcDs = repo.getDataSetFor(ServiceDefinition, 'id')
-          const svcs = await svcDs.find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
-          if (svcs.length === 0) throw new RequestError('No services found in this stack', 404)
+        '/stacks/:id/setup': Validate({ schema: stacksApiSchema, schemaName: 'StackSetupEndpoint' })(
+          async ({ injector: i, getUrlParams }) => {
+            const { id } = getUrlParams()
+            const repo = getRepository(i)
+            const svcDs = repo.getDataSetFor(ServiceDefinition, 'id')
+            const svcs = await svcDs.find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
+            if (svcs.length === 0) throw new RequestError('No services found in this stack', 404)
 
-          let username = 'unknown'
-          try {
-            const { username: resolvedUsername } = (await getCurrentUser(i)) ?? {}
-            if (resolvedUsername) username = resolvedUsername
-          } catch {
-            // Identity context may not be available
-          }
-          const trigger = { triggeredBy: username, triggerSource: 'api' as const }
+            let username = 'unknown'
+            try {
+              const { username: resolvedUsername } = (await getCurrentUser(i)) ?? {}
+              if (resolvedUsername) username = resolvedUsername
+            } catch {
+              // Identity context may not be available
+            }
+            const trigger = { triggeredBy: username, triggerSource: 'api' as const }
 
-          const pm = i.getInstance(ProcessManager)
-          await pm.setupServices(
-            svcs.map((s) => s.id),
-            trigger,
-          )
-          return JsonResult({ success: true })
-        },
+            const pm = i.getInstance(ProcessManager)
+            await pm.setupServices(
+              svcs.map((s) => s.id),
+              trigger,
+            )
+            return JsonResult({ success: true })
+          },
+        ),
       },
       PATCH: {
-        '/stacks/:id': async ({ injector: i, getUrlParams, getBody }) => {
-          const { id } = getUrlParams()
-          const body = await getBody()
-          const repo = getRepository(i)
+        '/stacks/:id': Validate({ schema: stacksApiSchema, schemaName: 'PatchStackEndpoint' })(
+          async ({ injector: i, getUrlParams, getBody }) => {
+            const { id } = getUrlParams()
+            const body = await getBody()
+            const repo = getRepository(i)
 
-          const defFields: Partial<StackDefinition> = {}
-          if (body.displayName !== undefined) defFields.displayName = body.displayName
-          if (body.description !== undefined) defFields.description = body.description
+            const defFields: Partial<StackDefinition> = {}
+            if (body.displayName !== undefined) defFields.displayName = body.displayName
+            if (body.description !== undefined) defFields.description = body.description
 
-          const configFields: Partial<StackConfig> = {}
-          if (body.mainDirectory !== undefined) configFields.mainDirectory = body.mainDirectory
-          if (body.environmentVariables !== undefined) configFields.environmentVariables = body.environmentVariables
+            const configFields: Partial<StackConfig> = {}
+            if (body.mainDirectory !== undefined) configFields.mainDirectory = body.mainDirectory
+            if (body.environmentVariables !== undefined) configFields.environmentVariables = body.environmentVariables
 
-          if (Object.keys(defFields).length > 0) {
-            await repo.getDataSetFor(StackDefinition, 'name').update(i, id, defFields)
-          }
-          if (Object.keys(configFields).length > 0) {
-            await repo.getDataSetFor(StackConfig, 'stackName').update(i, id, configFields)
-          }
+            if (Object.keys(defFields).length > 0) {
+              await repo.getDataSetFor(StackDefinition, 'name').update(i, id, defFields)
+            }
+            if (Object.keys(configFields).length > 0) {
+              await repo.getDataSetFor(StackConfig, 'stackName').update(i, id, configFields)
+            }
 
-          return JsonResult({})
-        },
+            return JsonResult({})
+          },
+        ),
       },
       DELETE: {
-        '/stacks/:id': async ({ injector: i, getUrlParams }) => {
-          const { id } = getUrlParams()
-          const repo = getRepository(i)
+        '/stacks/:id': Validate({ schema: stacksApiSchema, schemaName: 'DeleteEndpoint<StackDefinition,"name">' })(
+          async ({ injector: i, getUrlParams }) => {
+            const { id } = getUrlParams()
+            const repo = getRepository(i)
 
-          const svcDs = repo.getDataSetFor(ServiceDefinition, 'id')
-          const svcs = await svcDs.find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
-          const svcIds = svcs.map((svc) => svc.id)
-          if (svcIds.length > 0) {
-            // Cascade-delete child records; some may not exist
-            await repo
-              .getDataSetFor(ServiceStatus, 'serviceId')
-              .remove(i, ...svcIds)
-              .catch(() => {
-                /* Child records may not exist */
+            const svcDs = repo.getDataSetFor(ServiceDefinition, 'id')
+            const svcs = await svcDs.find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
+            const svcIds = svcs.map((svc) => svc.id)
+            if (svcIds.length > 0) {
+              // Cascade-delete child records; some may not exist
+              await repo
+                .getDataSetFor(ServiceStatus, 'serviceId')
+                .remove(i, ...svcIds)
+                .catch(() => {
+                  /* Child records may not exist */
+                })
+              await repo
+                .getDataSetFor(ServiceConfig, 'serviceId')
+                .remove(i, ...svcIds)
+                .catch(() => {
+                  /* Child records may not exist */
+                })
+              await svcDs.remove(i, ...svcIds).catch(() => {
+                /* Already removed */
               })
-            await repo
-              .getDataSetFor(ServiceConfig, 'serviceId')
-              .remove(i, ...svcIds)
-              .catch(() => {
-                /* Child records may not exist */
-              })
-            await svcDs.remove(i, ...svcIds).catch(() => {
-              /* Already removed */
-            })
-          }
+            }
 
-          const repos = await repo
-            .getDataSetFor(GitHubRepository, 'id')
-            .find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
-          const repoIds = repos.map((r) => r.id)
-          if (repoIds.length > 0) {
-            await repo
+            const repos = await repo
               .getDataSetFor(GitHubRepository, 'id')
-              .remove(i, ...repoIds)
-              .catch(() => {
-                /* Already removed */
-              })
-          }
+              .find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
+            const repoIds = repos.map((r) => r.id)
+            if (repoIds.length > 0) {
+              await repo
+                .getDataSetFor(GitHubRepository, 'id')
+                .remove(i, ...repoIds)
+                .catch(() => {
+                  /* Already removed */
+                })
+            }
 
-          const prereqs = await repo
-            .getDataSetFor(Prerequisite, 'id')
-            .find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
-          const prereqIds = prereqs.map((p) => p.id)
-          if (prereqIds.length > 0) {
-            await repo
+            const prereqs = await repo
               .getDataSetFor(Prerequisite, 'id')
-              .remove(i, ...prereqIds)
+              .find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
+            const prereqIds = prereqs.map((p) => p.id)
+            if (prereqIds.length > 0) {
+              await repo
+                .getDataSetFor(Prerequisite, 'id')
+                .remove(i, ...prereqIds)
+                .catch(() => {
+                  /* Already removed */
+                })
+            }
+
+            await repo
+              .getDataSetFor(StackConfig, 'stackName')
+              .remove(i, id)
               .catch(() => {
-                /* Already removed */
+                /* Config may not exist */
               })
-          }
+            await repo.getDataSetFor(StackDefinition, 'name').remove(i, id)
 
-          await repo
-            .getDataSetFor(StackConfig, 'stackName')
-            .remove(i, id)
-            .catch(() => {
-              /* Config may not exist */
-            })
-          await repo.getDataSetFor(StackDefinition, 'name').remove(i, id)
-
-          return JsonResult({})
-        },
+            return JsonResult({})
+          },
+        ),
       },
     },
   })

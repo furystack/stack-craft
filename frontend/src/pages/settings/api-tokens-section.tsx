@@ -55,11 +55,11 @@ export const ApiTokensSection = Shade({
     )
 
     const findOptions = useDisposable(
-      'findOptions',
+      'findOptionsObservable',
       () => new ObservableValue<FindOptions<PublicApiToken, Array<keyof PublicApiToken>>>({ top: 25 }),
     )
 
-    const [currentFindOptions] = useObservable('findOptions', findOptions)
+    const [currentFindOptions] = useObservable('currentFindOptions', findOptions)
 
     const tokensState = useCollectionSync(options, PublicApiToken, {
       filter: currentUser
