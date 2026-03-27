@@ -12,8 +12,7 @@ export const CreateStack = Shade({
   render: ({ injector }) => {
     const handleSubmit = async (data: Partial<StackView>) => {
       try {
-        // TODO: Redirect after creation to the new stack's route
-        await injector.getInstance(StacksApiClient).call({
+        const createdStack = await injector.getInstance(StacksApiClient).call({
           method: 'POST',
           action: '/stacks',
           body: {
@@ -30,7 +29,7 @@ export const CreateStack = Shade({
           type: 'success',
         })
 
-        stackCraftNavigate(injector, '/')
+        stackCraftNavigate(injector, '/stacks/:name', { name: createdStack.result.name })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',

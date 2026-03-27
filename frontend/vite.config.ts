@@ -3,23 +3,18 @@ import { defineConfig } from 'vite'
 
 // https://vitejs.dev/config/
 
-export default defineConfig(async () => {
-  return {
-    plugins: [
-      codecovVitePlugin({
-        enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
-        bundleName: 'shades-showcase-app',
-        uploadToken: process.env.CODECOV_TOKEN,
-      }),
-    ],
-    esbuild: {
-      minifyIdentifiers: false,
-      keepNames: true,
+export default defineConfig({
+  plugins: [
+    codecovVitePlugin({
+      enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
+      bundleName: 'shades-showcase-app',
+      uploadToken: process.env.CODECOV_TOKEN,
+    }),
+  ],
+  build: {
+    minify: false,
+    rolldownOptions: {
+      external: ['vitest'],
     },
-    build: {
-      rollupOptions: {
-        external: ['vitest'],
-      },
-    },
-  }
+  },
 })

@@ -43,7 +43,7 @@ export const CreateService = Shade<CreateServiceProps>({
 
     const handleSubmit = async (data: Partial<ServiceView>) => {
       try {
-        await servicesApi.call({
+        const createdService = await servicesApi.call({
           method: 'POST',
           action: '/services',
           body: {
@@ -70,7 +70,7 @@ export const CreateService = Shade<CreateServiceProps>({
           body: `Service "${data.displayName}" was created successfully.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/')
+        stackCraftNavigate(injector, '/services/:id', { id: createdService.result.id })
       } catch (error) {
         noty.emit('onNotyAdded', {
           title: 'Error',

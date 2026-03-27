@@ -16,7 +16,7 @@ export const CreateRepository = Shade<CreateRepositoryProps>({
   render: ({ props, injector }) => {
     const handleSubmit = async (data: Partial<GitHubRepository>) => {
       try {
-        await injector.getInstance(GitHubReposApiClient).call({
+        const createdRepository = await injector.getInstance(GitHubReposApiClient).call({
           method: 'POST',
           action: '/github-repositories',
           body: {
@@ -32,7 +32,7 @@ export const CreateRepository = Shade<CreateRepositoryProps>({
           body: `"${data.displayName}" was added successfully.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/')
+        stackCraftNavigate(injector, '/repositories/:id', { id: createdRepository.result.id })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',

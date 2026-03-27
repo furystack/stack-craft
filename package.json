@@ -56,7 +56,7 @@
     "build": "tsc -b common service frontend && yarn workspace frontend build",
     "create-schemas": "yarn workspace common create-schemas",
     "test:e2e:install": "yarn playwright test installer.spec.ts --project chromium",
-    "test:e2e": "yarn playwright test smoke.spec.ts",
+    "test:e2e": "yarn playwright test smoke.spec.ts dogfooding.spec.ts",
     "test": "vitest",
     "start:service": "yarn workspace service start",
     "start:frontend": "yarn workspace frontend start",
