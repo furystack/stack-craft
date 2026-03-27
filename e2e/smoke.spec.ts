@@ -47,10 +47,11 @@ test.describe.serial('App Flow', () => {
 
     await expect(page.locator('shade-services-list')).toBeVisible()
 
-    // Navigate back to dashboard then to repositories list via dashboard card
-    await page.locator('shade-sidebar-stack-link a', { hasText: 'Overview' }).first().click()
-    await expect(page.locator('shade-dashboard')).toBeVisible()
-    await page.locator('shade-dashboard a', { hasText: 'Repositories' }).click()
+    // Scope all sidebar interactions to the correct stack
+    const stackSidebar = page.locator('shade-sidebar-stack-category').filter({ hasText: displayName })
+
+    // Navigate to repositories list
+    await stackSidebar.locator('shade-sidebar-stack-link a', { hasText: 'Repositories' }).click()
     await expect(page.locator('shade-repositories-list')).toBeVisible()
     await page.locator('button', { hasText: 'Add Repository' }).first().click()
     await expect(page.locator('shade-create-repository')).toBeVisible()
@@ -61,10 +62,8 @@ test.describe.serial('App Flow', () => {
 
     await expect(page.locator('shade-repositories-list')).toBeVisible()
 
-    // Navigate back to dashboard then to services list via dashboard card
-    await page.locator('shade-sidebar-stack-link a', { hasText: 'Overview' }).first().click()
-    await expect(page.locator('shade-dashboard')).toBeVisible()
-    await page.locator('shade-dashboard a', { hasText: 'Services' }).click()
+    // Navigate to services list
+    await stackSidebar.locator('shade-sidebar-stack-link a', { hasText: 'Services' }).click()
     await expect(page.locator('shade-services-list')).toBeVisible()
     await page.locator('button', { hasText: 'Create Service' }).first().click()
     await expect(page.locator('shade-create-service-wizard')).toBeVisible()
