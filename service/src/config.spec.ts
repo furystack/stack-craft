@@ -1,3 +1,4 @@
+import { IdentityContext } from '@furystack/core'
 import { Injector } from '@furystack/inject'
 import { getRepository } from '@furystack/repository'
 import { PublicApiToken } from 'common'
@@ -17,6 +18,7 @@ describe('Config', () => {
 
   it('authorizedOnly should reject unauthenticated requests', async () => {
     const testInjector = new Injector()
+    testInjector.setExplicitInstance(new IdentityContext())
     const result = await authorizedOnly({ injector: testInjector })
     expect(result.isAllowed).toBe(false)
   })
