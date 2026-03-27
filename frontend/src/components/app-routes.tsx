@@ -1,4 +1,4 @@
-import { createComponent, createNestedRouteLink, type NestedRoute } from '@furystack/shades'
+import { createComponent, createNestedNavigate, createNestedRouteLink, type NestedRoute } from '@furystack/shades'
 import type { MatchResult } from 'path-to-regexp'
 import { Dashboard } from '../pages/dashboard/index.js'
 import { ExportStack } from '../pages/import-export/export-stack.js'
@@ -71,3 +71,5 @@ export const appRoutes = {
 } as const satisfies Record<string, NestedRoute<any>>
 
 export const StackCraftNestedRouteLink = createNestedRouteLink<typeof appRoutes>()
+
+export const stackCraftNavigate = createNestedNavigate<typeof appRoutes>()
