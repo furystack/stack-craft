@@ -1,11 +1,12 @@
 import type { FindOptions } from '@furystack/core'
 import { useCollectionSync } from '@furystack/entity-sync-client'
-import { createComponent, NestedRouteLink, Shade } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
 import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import { Button, CollectionService, DataGrid, Icon, icons, Loader } from '@furystack/shades-common-components'
 import { GitHubRepository } from 'common'
 
 import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
+import { StackCraftNestedRouteLink } from './app-routes.js'
 
 type RepositoryTableProps = {
   stackName: string
@@ -73,11 +74,11 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
           ),
           url: (entry) => <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>{entry.url}</span>,
           actions: (entry) => (
-            <NestedRouteLink href={`/repositories/${entry.id}`}>
+            <StackCraftNestedRouteLink href={`/repositories/:id`} params={{ id: entry.id }}>
               <Button variant="outlined" size="small" startIcon={<Icon icon={icons.edit} size="small" />}>
                 Edit
               </Button>
-            </NestedRouteLink>
+            </StackCraftNestedRouteLink>
           ),
         }}
       />
