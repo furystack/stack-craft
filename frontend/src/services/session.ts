@@ -3,7 +3,7 @@ import { Injectable, Injected } from '@furystack/inject'
 import { NotyService } from '@furystack/shades-common-components'
 import { ObservableValue, usingAsync } from '@furystack/utils'
 import type { User } from 'common'
-import { StackCraftApiClient } from './stack-craft-api-client.js'
+import { IdentityApiClient } from './api-clients/identity-api-client.js'
 
 export type SessionState = 'initializing' | 'offline' | 'unauthenticated' | 'authenticated'
 
@@ -15,7 +15,7 @@ export class SessionService implements IdentityContext {
   }
 
   public state = new ObservableValue<SessionState>('initializing')
-  public currentUser = new ObservableValue<Omit<User, 'password'> | null>(null)
+  public currentUser = new ObservableValue<User | null>(null)
 
   public isOperationInProgress = new ObservableValue(true)
 
@@ -44,7 +44,11 @@ export class SessionService implements IdentityContext {
   public async login(username: string, password: string): Promise<void> {
     await usingAsync(this.operation(), async () => {
       try {
-        const { result: usr } = await this.api.call({ method: 'POST', action: '/login', body: { username, password } })
+        const { result: usr } = await this.api.call({
+          method: 'POST',
+          action: '/login',
+          body: { username, password },
+        })
         this.currentUser.setValue(usr)
         this.state.setValue('authenticated')
         this.notys.emit('onNotyAdded', {
@@ -79,6 +83,7 @@ export class SessionService implements IdentityContext {
   public async isAuthenticated(): Promise<boolean> {
     return this.state.getValue() === 'authenticated'
   }
+
   public async isAuthorized(...roles: string[]): Promise<boolean> {
     const currentUser = await this.getCurrentUser()
     for (const role of roles) {
@@ -88,6 +93,7 @@ export class SessionService implements IdentityContext {
     }
     return true
   }
+
   public async getCurrentUser<TUser extends User>(): Promise<TUser> {
     const currentUser = this.currentUser.getValue()
     if (!currentUser) {
@@ -101,9 +107,16 @@ export class SessionService implements IdentityContext {
     return currentUser as unknown as TUser
   }
 
-  @Injected(StackCraftApiClient)
-  declare private api: StackCraftApiClient
+  @Injected(IdentityApiClient)
+  declare private api: IdentityApiClient
 
   @Injected(NotyService)
   declare private readonly notys: NotyService
+
+  public [Symbol.dispose]() {
+    this.state[Symbol.dispose]()
+    this.currentUser[Symbol.dispose]()
+    this.isOperationInProgress[Symbol.dispose]()
+    this.loginError[Symbol.dispose]()
+  }
 }

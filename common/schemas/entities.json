@@ -1,7 +1,82 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$ref": "#/definitions/User",
   "definitions": {
+    "ApiToken": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "tokenHash": {
+          "type": "string"
+        },
+        "lastUsedAt": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "username", "name", "tokenHash", "createdAt"],
+      "additionalProperties": false
+    },
+    "EnvironmentVariableValue": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["inherit", "custom"],
+          "description": "Whether to inherit the value from the host system or use a custom value"
+        },
+        "customValue": {
+          "type": "string",
+          "description": "The custom value to use when source is 'custom'"
+        }
+      },
+      "required": ["source"],
+      "additionalProperties": false,
+      "description": "Describes how an environment variable's value is resolved. Used in  {@link  StackConfig  }  for stack-level defaults and in  {@link  ServiceConfig  }  for per-service overrides."
+    },
+    "GitHubRepository": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "UUID primary key"
+        },
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "url": {
+          "type": "string",
+          "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "stackName", "url", "displayName", "description", "createdAt", "updatedAt"],
+      "additionalProperties": false,
+      "description": "Shareable GitHub repository definition. Links a git repository to a stack for cloning and pulling. Included in stack exports and shared between installations."
+    },
     "User": {
       "type": "object",
       "properties": {
@@ -17,6 +92,850 @@
       },
       "required": ["username", "roles"],
       "additionalProperties": false
+    },
+    "StackDefinition": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique kebab-case identifier for the stack"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this stack does"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "displayName", "description", "createdAt", "updatedAt"],
+      "additionalProperties": false,
+      "description": "Shareable stack definition. Contains the immutable identity and description of a stack. Included in stack exports and shared between installations."
+    },
+    "StackConfig": {
+      "type": "object",
+      "properties": {
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "mainDirectory": {
+          "type": "string",
+          "description": "Absolute path to the root directory for all services in this stack"
+        },
+        "environmentVariables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Stack-level environment variable values, keyed by variable name"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["stackName", "mainDirectory", "environmentVariables", "createdAt", "updatedAt"],
+      "additionalProperties": false,
+      "description": "User-specific stack configuration. Contains settings unique to this installation/machine. Not included in exports - set by the user during import/installation."
+    },
+    "ServiceFile": {
+      "type": "object",
+      "properties": {
+        "relativePath": {
+          "type": "string",
+          "description": "Path relative to the service working directory"
+        },
+        "content": {
+          "type": "string",
+          "description": "File content (usually plain text)"
+        }
+      },
+      "required": ["relativePath", "content"],
+      "additionalProperties": false,
+      "description": "A file to be placed relative to the service root (e.g. .env, appConfig.local.json)"
+    },
+    "ServiceDefinition": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "UUID primary key"
+        },
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this service does"
+        },
+        "workingDirectory": {
+          "type": "string",
+          "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+        },
+        "repositoryId": {
+          "type": "string",
+          "description": "Optional FK to  {@link  GitHubRepository.id  }"
+        },
+        "prerequisiteIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+        },
+        "installCommand": {
+          "type": "string",
+          "description": "Shell command to install dependencies (e.g. \"npm install\")"
+        },
+        "buildCommand": {
+          "type": "string",
+          "description": "Shell command to build the service (e.g. \"npm run build\")"
+        },
+        "runCommand": {
+          "type": "string",
+          "description": "Shell command to run the service (e.g. \"npm start\")"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Shared files placed relative to the service root"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "stackName",
+        "displayName",
+        "description",
+        "prerequisiteIds",
+        "prerequisiteServiceIds",
+        "runCommand",
+        "files",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false,
+      "description": "Shareable service definition. Contains the immutable description of a service and its commands. Included in stack exports and shared between installations."
+    },
+    "ServiceConfig": {
+      "type": "object",
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "description": "FK to  {@link  ServiceDefinition.id  }"
+        },
+        "autoFetchEnabled": {
+          "type": "boolean",
+          "description": "Whether automatic git fetch is enabled"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number",
+          "description": "Interval in minutes between automatic git fetches"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean",
+          "description": "Whether to automatically restart the service when new commits are fetched"
+        },
+        "environmentVariableOverrides": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "serviceId",
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch",
+        "environmentVariableOverrides",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false,
+      "description": "User-specific service configuration. Contains settings that each installation can customize independently. Not included in exports - set by the user during import/installation."
+    },
+    "CloneStatus": {
+      "type": "string",
+      "enum": ["not-cloned", "cloning", "cloned", "failed"]
+    },
+    "InstallStatus": {
+      "type": "string",
+      "enum": ["not-installed", "installing", "installed", "failed"]
+    },
+    "BuildStatus": {
+      "type": "string",
+      "enum": ["not-built", "building", "built", "failed"]
+    },
+    "RunStatus": {
+      "type": "string",
+      "enum": ["stopped", "starting", "running", "stopping", "error"]
+    },
+    "ServiceStatus": {
+      "type": "object",
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "description": "FK to  {@link  ServiceDefinition.id  }"
+        },
+        "cloneStatus": {
+          "$ref": "#/definitions/CloneStatus"
+        },
+        "installStatus": {
+          "$ref": "#/definitions/InstallStatus"
+        },
+        "buildStatus": {
+          "$ref": "#/definitions/BuildStatus"
+        },
+        "runStatus": {
+          "$ref": "#/definitions/RunStatus"
+        },
+        "lastClonedAt": {
+          "type": "string"
+        },
+        "lastInstalledAt": {
+          "type": "string"
+        },
+        "lastBuiltAt": {
+          "type": "string"
+        },
+        "lastStartedAt": {
+          "type": "string"
+        },
+        "lastFetchedAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["serviceId", "cloneStatus", "installStatus", "buildStatus", "runStatus", "updatedAt"],
+      "additionalProperties": false,
+      "description": "Runtime status of a service. Managed by the system (ProcessManager, GitWatcher). Never exported. Reset to defaults on import."
+    },
+    "ServiceStateEvent": {
+      "type": "string",
+      "enum": [
+        "clone-started",
+        "clone-completed",
+        "clone-failed",
+        "run-started",
+        "run-stopped",
+        "run-crashed",
+        "run-restarted",
+        "install-started",
+        "install-completed",
+        "install-failed",
+        "build-started",
+        "build-completed",
+        "build-failed",
+        "setup-started",
+        "setup-completed",
+        "setup-failed",
+        "update-started",
+        "update-completed",
+        "update-failed",
+        "pull-completed",
+        "imported",
+        "state-reconciled"
+      ],
+      "description": "Event types for service state transitions. Each value represents a discrete lifecycle event that can occur."
+    },
+    "TriggerSource": {
+      "type": "string",
+      "enum": ["api", "mcp", "auto-fetch", "auto-restart", "system"],
+      "description": "How a state change was triggered. Used to distinguish user actions from automated system behavior."
+    },
+    "ServiceStateHistory": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number",
+          "description": "Auto-increment primary key"
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "FK to  {@link  ServiceDefinition.id  }"
+        },
+        "event": {
+          "$ref": "#/definitions/ServiceStateEvent",
+          "description": "The lifecycle event that occurred"
+        },
+        "previousState": {
+          "type": "string",
+          "description": "JSON snapshot of relevant status fields before the change"
+        },
+        "newState": {
+          "type": "string",
+          "description": "JSON snapshot of relevant status fields after the change"
+        },
+        "triggeredBy": {
+          "type": "string",
+          "description": "Username of the user who triggered the action, or 'system'"
+        },
+        "triggerSource": {
+          "$ref": "#/definitions/TriggerSource",
+          "description": "How the action was triggered"
+        },
+        "metadata": {
+          "type": "string",
+          "description": "Optional JSON with extra context (exit code, error message, etc.)"
+        },
+        "processUid": {
+          "type": "string",
+          "description": "UUID of the associated process, if this event produced log output"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "serviceId", "event", "triggeredBy", "triggerSource", "createdAt"],
+      "additionalProperties": false,
+      "description": "Audit log entry for service state transitions. Records every lifecycle event (start, stop, crash, install, build, pull) with full context: who triggered it, how, and any relevant metadata. Entries are never deleted and not included in exports."
+    },
+    "ServiceLogEntry": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number"
+        },
+        "serviceId": {
+          "type": "string"
+        },
+        "processUid": {
+          "type": "string"
+        },
+        "stream": {
+          "type": "string",
+          "enum": ["stdout", "stderr"]
+        },
+        "line": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "serviceId", "processUid", "stream", "line", "createdAt"],
+      "additionalProperties": false
+    },
+    "PrerequisiteType": {
+      "type": "string",
+      "enum": [
+        "node",
+        "yarn",
+        "dotnet-sdk",
+        "dotnet-runtime",
+        "nuget-feed",
+        "git",
+        "github-cli",
+        "env-variable",
+        "custom-script"
+      ],
+      "description": "The type of prerequisite that must be satisfied before a stack or service can run."
+    },
+    "PrerequisiteConfigMap": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        "yarn": {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        "dotnet-sdk": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        "dotnet-runtime": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        "nuget-feed": {
+          "type": "object",
+          "properties": {
+            "feedUrl": {
+              "type": "string"
+            },
+            "feedName": {
+              "type": "string"
+            }
+          },
+          "required": ["feedUrl"],
+          "additionalProperties": false
+        },
+        "git": {
+          "type": "object",
+          "additionalProperties": {
+            "not": {}
+          }
+        },
+        "github-cli": {
+          "type": "object",
+          "additionalProperties": {
+            "not": {}
+          }
+        },
+        "env-variable": {
+          "type": "object",
+          "properties": {
+            "variableName": {
+              "type": "string"
+            }
+          },
+          "required": ["variableName"],
+          "additionalProperties": false
+        },
+        "custom-script": {
+          "type": "object",
+          "properties": {
+            "script": {
+              "type": "string"
+            }
+          },
+          "required": ["script"],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "node",
+        "yarn",
+        "dotnet-sdk",
+        "dotnet-runtime",
+        "nuget-feed",
+        "git",
+        "github-cli",
+        "env-variable",
+        "custom-script"
+      ],
+      "additionalProperties": false,
+      "description": "Maps each prerequisite type to its type-specific configuration shape."
+    },
+    "PrerequisiteConfig": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "feedUrl": {
+              "type": "string"
+            },
+            "feedName": {
+              "type": "string"
+            }
+          },
+          "required": ["feedUrl"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "not": {}
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "variableName": {
+              "type": "string"
+            }
+          },
+          "required": ["variableName"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "script": {
+              "type": "string"
+            }
+          },
+          "required": ["script"],
+          "additionalProperties": false
+        }
+      ],
+      "description": "Union of all possible prerequisite config shapes."
+    },
+    "Prerequisite": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "UUID primary key"
+        },
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
+        },
+        "type": {
+          "$ref": "#/definitions/PrerequisiteType",
+          "description": "Discriminator that determines the check logic and config shape"
+        },
+        "config": {
+          "$ref": "#/definitions/PrerequisiteConfig",
+          "description": "Type-specific configuration (stored as JSON TEXT in the database)"
+        },
+        "installationHelp": {
+          "type": "string",
+          "description": "Help text shown when the prerequisite check fails"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"],
+      "additionalProperties": false,
+      "description": "Shareable prerequisite definition. Describes an external requirement (e.g. Node.js, Git, an env variable) that a stack or service may need to be satisfied before it can run. Included in stack exports and shared between installations."
+    },
+    "PrerequisiteCheckStatus": {
+      "type": "string",
+      "enum": ["unchecked", "checking", "satisfied", "failed"],
+      "description": "Possible statuses for a prerequisite check."
+    },
+    "PrerequisiteCheckResult": {
+      "type": "object",
+      "properties": {
+        "prerequisiteId": {
+          "type": "string",
+          "description": "PK – corresponds to  {@link  Prerequisite.id  }"
+        },
+        "status": {
+          "$ref": "#/definitions/PrerequisiteCheckStatus",
+          "description": "Current check status"
+        },
+        "output": {
+          "type": "string",
+          "description": "Human-readable output from the last check"
+        },
+        "checkedAt": {
+          "type": "string",
+          "description": "ISO-8601 timestamp of the last check"
+        }
+      },
+      "required": ["prerequisiteId", "status", "output", "checkedAt"],
+      "additionalProperties": false,
+      "description": "Represents the result of evaluating a  {@link  Prerequisite  } . Stored in an in-memory store on the service and synced to the frontend via entity sync so that every connected client sees real-time status."
+    },
+    "PublicApiToken": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "lastUsedAt": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "username", "name", "createdAt"],
+      "additionalProperties": false
+    },
+    "StackView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "mainDirectory": {
+          "type": "string",
+          "description": "Absolute path to the root directory for all services in this stack"
+        },
+        "environmentVariables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Stack-level environment variable values, keyed by variable name"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Unique kebab-case identifier for the stack"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this stack does"
+        }
+      },
+      "required": [
+        "createdAt",
+        "description",
+        "displayName",
+        "environmentVariables",
+        "mainDirectory",
+        "name",
+        "stackName",
+        "updatedAt"
+      ],
+      "description": "Full stack view combining definition and config for API responses"
+    },
+    "ServiceView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "description": "FK to  {@link  ServiceDefinition.id  }"
+        },
+        "cloneStatus": {
+          "$ref": "#/definitions/CloneStatus"
+        },
+        "installStatus": {
+          "$ref": "#/definitions/InstallStatus"
+        },
+        "buildStatus": {
+          "$ref": "#/definitions/BuildStatus"
+        },
+        "runStatus": {
+          "$ref": "#/definitions/RunStatus"
+        },
+        "lastClonedAt": {
+          "type": "string"
+        },
+        "lastInstalledAt": {
+          "type": "string"
+        },
+        "lastBuiltAt": {
+          "type": "string"
+        },
+        "lastStartedAt": {
+          "type": "string"
+        },
+        "lastFetchedAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "autoFetchEnabled": {
+          "type": "boolean",
+          "description": "Whether automatic git fetch is enabled"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number",
+          "description": "Interval in minutes between automatic git fetches"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean",
+          "description": "Whether to automatically restart the service when new commits are fetched"
+        },
+        "environmentVariableOverrides": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "description": "UUID primary key"
+        },
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this service does"
+        },
+        "workingDirectory": {
+          "type": "string",
+          "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+        },
+        "repositoryId": {
+          "type": "string",
+          "description": "Optional FK to  {@link  GitHubRepository.id  }"
+        },
+        "prerequisiteIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+        },
+        "installCommand": {
+          "type": "string",
+          "description": "Shell command to install dependencies (e.g. \"npm install\")"
+        },
+        "buildCommand": {
+          "type": "string",
+          "description": "Shell command to build the service (e.g. \"npm run build\")"
+        },
+        "runCommand": {
+          "type": "string",
+          "description": "Shell command to run the service (e.g. \"npm start\")"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Shared files placed relative to the service root"
+        }
+      },
+      "required": [
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch",
+        "buildStatus",
+        "cloneStatus",
+        "createdAt",
+        "description",
+        "displayName",
+        "environmentVariableOverrides",
+        "files",
+        "id",
+        "installStatus",
+        "prerequisiteIds",
+        "prerequisiteServiceIds",
+        "runCommand",
+        "runStatus",
+        "serviceId",
+        "stackName",
+        "updatedAt"
+      ],
+      "description": "Full service view combining definition, config, and status for API responses"
     }
   }
 }

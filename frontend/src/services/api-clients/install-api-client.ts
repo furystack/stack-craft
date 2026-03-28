@@ -1,0 +1,15 @@
+import { Injectable } from '@furystack/inject'
+import { createClient } from '@furystack/rest-client-fetch'
+import type { InstallApi } from 'common'
+import { environmentOptions } from '../../environment-options.js'
+
+@Injectable({ lifetime: 'singleton' })
+export class InstallApiClient {
+  public call = createClient<InstallApi>({
+    endpointUrl: `${environmentOptions.serviceUrl}/install`,
+    requestInit: {
+      credentials: 'include',
+      mode: 'cors',
+    },
+  })
+}

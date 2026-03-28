@@ -1,75 +1,64 @@
-import {
-  DefaultSession,
-  GetCurrentUser,
-  IsAuthenticated,
-  JsonResult,
-  LoginAction,
-  LogoutAction,
-  Validate,
-  useHttpAuthentication,
-  useRestService,
-  useStaticFiles,
-} from '@furystack/rest-service'
-import type { StackCraftApi } from 'common'
-import { User } from 'common'
-import StackCraftApiSchemas from 'common/schemas/stack-craft-api.json' with { type: 'json' }
+import { useStaticFiles } from '@furystack/rest-service'
 import { injector } from './config.js'
 import { attachShutdownHandler } from './shutdown-handler.js'
+import { getPort } from './get-port.js'
+import { setupDataStore } from './app-models/data-store/setup-data-store.js'
+import { setupInstallRestApi } from './app-models/install/setup-install-rest-api.js'
+import { setupIdentityRestApi } from './app-models/identity/setup-identity-rest-api.js'
+import { setupStacksRestApi } from './app-models/stacks/setup-stacks-rest-api.js'
+import { setupServicesRestApi } from './app-models/services/setup-services-rest-api.js'
+import { setupGitHubReposRestApi } from './app-models/github-repositories/setup-github-repos-rest-api.js'
+import { evaluatePrerequisites } from './app-models/prerequisites/evaluate-prerequisites.js'
+import { setupPrerequisitesRestApi } from './app-models/prerequisites/setup-prerequisites-rest-api.js'
+import { setupTokensRestApi } from './app-models/tokens/setup-tokens-rest-api.js'
+import { setupSystemRestApi } from './app-models/system/setup-system-rest-api.js'
+import { setupLogStore } from './app-models/logs/setup-log-store.js'
+import { ProcessManager } from './services/process-manager.js'
+import { WebsocketService } from './services/websocket-service.js'
+import { setupEntitySync } from './setup-entity-sync.js'
+import { setupMcp } from './mcp/setup-mcp.js'
 
-const port = parseInt(process.env.APP_SERVICE_PORT as string, 10) || 9090
+const port = getPort()
 
-useHttpAuthentication(injector, {
-  getUserStore: (sm) => sm.getStoreFor(User, 'username'),
-  getSessionStore: (sm) => sm.getStoreFor(DefaultSession, 'sessionId'),
-})
-useRestService<StackCraftApi>({
-  injector,
-  root: 'api',
-  port,
-  name: 'Stack Craft Service',
-  version: '1.0.0',
-  description: 'API for Stack Craft application containing simple authentication and example endpoints',
-  cors: {
-    credentials: true,
-    origins: ['http://localhost:8080'],
-    headers: ['cache', 'content-type'],
-  },
-  api: {
-    GET: {
-      '/currentUser': GetCurrentUser,
-      '/isAuthenticated': IsAuthenticated,
-      '/testQuery': Validate({ schema: StackCraftApiSchemas, schemaName: 'TestQueryEndpoint' })(async (options) =>
-        JsonResult({ param1Value: options.getQuery().param1 }),
-      ),
-      '/testUrlParams/:urlParam': Validate({ schema: StackCraftApiSchemas, schemaName: 'TestUrlParamsEndpoint' })(
-        async (options) => JsonResult({ urlParamValue: options.getUrlParams().urlParam }),
-      ),
-    },
-    POST: {
-      '/login': LoginAction,
-      '/logout': LogoutAction,
-      '/testPostBody': Validate({ schema: StackCraftApiSchemas, schemaName: 'TestPostBodyEndpoint' })(
-        async (options) => {
-          const body = await options.getBody()
-          return JsonResult({ bodyValue: body.value })
-        },
-      ),
-    },
-  },
-}).catch((err) => {
-  console.error(err)
-  process.exit(1)
-})
+const setupRestApis = async () => {
+  await setupDataStore(injector)
+  await setupLogStore(injector)
 
-useStaticFiles({
-  injector,
-  baseUrl: '/',
-  path: '../frontend/dist',
-  port,
-  fallback: 'index.html',
-}).catch((err) => {
-  console.error(err)
-  process.exit(1)
-})
+  const processManager = injector.getInstance(ProcessManager)
+  await processManager.reconcileStaleStates()
+
+  await setupInstallRestApi(injector)
+  await setupIdentityRestApi(injector)
+  await setupStacksRestApi(injector)
+  await setupServicesRestApi(injector)
+  await setupGitHubReposRestApi(injector)
+  await setupPrerequisitesRestApi(injector)
+  await setupTokensRestApi(injector)
+  await setupSystemRestApi(injector)
+
+  const wsService = injector.getInstance(WebsocketService)
+  await wsService.init(injector)
+
+  setupEntitySync(injector)
+
+  void evaluatePrerequisites(injector)
+
+  setupMcp(injector)
+}
+
+setupRestApis()
+  .then(() =>
+    useStaticFiles({
+      injector,
+      baseUrl: '/',
+      path: '../frontend/dist',
+      port,
+      fallback: 'index.html',
+    }),
+  )
+  .catch((err) => {
+    console.error(err)
+    process.exit(1)
+  })
 
 void attachShutdownHandler(injector)

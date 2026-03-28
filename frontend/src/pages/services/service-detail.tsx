@@ -1,0 +1,796 @@
+import type { FindOptions } from '@furystack/core'
+import { useCollectionSync, useEntitySync } from '@furystack/entity-sync-client'
+import { createComponent, LocationService, Shade } from '@furystack/shades'
+import type { ColumnFilterConfig } from '@furystack/shades-common-components'
+import {
+  Button,
+  Chip,
+  CollectionService,
+  ConfirmDialog,
+  DataGrid,
+  Icon,
+  icons,
+  Loader,
+  MarkdownDisplay,
+  NotyService,
+  PageContainer,
+  PageHeader,
+  Paper,
+} from '@furystack/shades-common-components'
+import type { PrerequisiteCheckStatus, ServiceView, StackView } from 'common'
+import {
+  getServiceCwd,
+  GitHubRepository,
+  Prerequisite,
+  PrerequisiteCheckResult,
+  ServiceConfig,
+  ServiceDefinition,
+  ServiceStateHistory,
+  ServiceStatus,
+  StackConfig,
+  StackDefinition,
+} from 'common'
+import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
+import { ServiceForm } from '../../components/entity-forms/service-form.js'
+import { PrerequisiteList } from '../../components/prerequisite-list.js'
+import { ServiceEnvOverrides } from '../../components/service-env-overrides.js'
+import { ServiceStatusIndicator } from '../../components/service-status-indicator.js'
+import { BuildStatusChip, CloneStatusChip, InstallStatusChip, RunStatusChip } from '../../components/status-chips.js'
+import { GitHubReposApiClient } from '../../services/api-clients/github-repos-api-client.js'
+import { PrerequisitesApiClient } from '../../services/api-clients/prerequisites-api-client.js'
+import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
+
+const eventLabels: Record<string, string> = {
+  'clone-started': 'Clone started',
+  'clone-completed': 'Clone completed',
+  'clone-failed': 'Clone failed',
+  'run-started': 'Started',
+  'run-stopped': 'Stopped',
+  'run-crashed': 'Crashed',
+  'run-restarted': 'Restarted',
+  'install-started': 'Install started',
+  'install-completed': 'Install completed',
+  'install-failed': 'Install failed',
+  'build-started': 'Build started',
+  'build-completed': 'Build completed',
+  'build-failed': 'Build failed',
+  'setup-started': 'Setup started',
+  'setup-completed': 'Setup completed',
+  'setup-failed': 'Setup failed',
+  'update-started': 'Update started',
+  'update-completed': 'Update completed',
+  'update-failed': 'Update failed',
+  'pull-completed': 'Pull completed',
+  imported: 'Imported',
+}
+
+type ServiceDetailProps = {
+  serviceId: string
+}
+
+export const ServiceDetail = Shade<ServiceDetailProps>({
+  customElementName: 'shade-service-detail',
+  render: (options) => {
+    const { props, injector, useState } = options
+    const locationService = injector.getInstance(LocationService)
+    const searchState = locationService.onDeserializedLocationSearchChanged.getValue()
+    const hasEditParam = searchState.edit === true
+    const [isEditing, setIsEditing] = useState('isEditing', hasEditParam)
+    const [isConfirmingDelete, setIsConfirmingDelete] = useState('isConfirmingDelete', false)
+
+    const serviceState = useEntitySync(options, ServiceDefinition, props.serviceId)
+    const statusState = useEntitySync(options, ServiceStatus, props.serviceId)
+    const configState = useEntitySync(options, ServiceConfig, props.serviceId)
+
+    if (serviceState.status === 'connecting') {
+      return (
+        <PageContainer>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
+            <Loader />
+          </div>
+        </PageContainer>
+      )
+    }
+
+    if (serviceState.status === 'error') {
+      return (
+        <PageContainer>
+          <PageHeader
+            title="Error loading service"
+            description={serviceState.error}
+            actions={
+              <Button
+                variant="outlined"
+                onclick={() => history.back()}
+                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
+              >
+                Back
+              </Button>
+            }
+          />
+        </PageContainer>
+      )
+    }
+
+    const serviceData = serviceState.data
+    if (!serviceData) {
+      return (
+        <PageContainer>
+          <PageHeader
+            title="Service not found"
+            actions={
+              <Button
+                variant="outlined"
+                onclick={() => history.back()}
+                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
+              >
+                Back
+              </Button>
+            }
+          />
+        </PageContainer>
+      )
+    }
+
+    const statusData = statusState.status === 'synced' ? statusState.data : undefined
+    const configData = configState.status === 'synced' ? configState.data : undefined
+
+    const service: ServiceView = {
+      serviceId: serviceData.id,
+      autoFetchEnabled: false,
+      autoFetchIntervalMinutes: 60,
+      autoRestartOnFetch: false,
+      environmentVariableOverrides: {},
+      cloneStatus: 'not-cloned',
+      installStatus: 'not-installed',
+      buildStatus: 'not-built',
+      runStatus: 'stopped',
+      ...serviceData,
+      ...(configData ?? {}),
+      ...(statusData ?? {}),
+    }
+
+    const stackState = useEntitySync(options, StackDefinition, service.stackName)
+    const stackConfigState = useEntitySync(options, StackConfig, service.stackName)
+    const reposState = useCollectionSync(options, GitHubRepository, {
+      filter: { stackName: { $eq: service.stackName } },
+    })
+    const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
+    const linkedRepo = service.repositoryId ? repos.find((r) => r.id === service.repositoryId) : undefined
+
+    const prereqsState = useCollectionSync(options, Prerequisite, {
+      filter: { stackName: { $eq: service.stackName } },
+    })
+    const allPrereqs =
+      prereqsState.status === 'synced' || prereqsState.status === 'cached' ? prereqsState.data.entries : []
+    const servicePrereqs = allPrereqs.filter((p) => service.prerequisiteIds.includes(p.id))
+
+    const checkResultsState = useCollectionSync(options, PrerequisiteCheckResult, {})
+    const checkResults =
+      checkResultsState.status === 'synced' || checkResultsState.status === 'cached'
+        ? checkResultsState.data.entries
+        : []
+    const checkResultMap = new Map(checkResults.map((r) => [r.prerequisiteId, r]))
+
+    const getPrereqStatus = (id: string): PrerequisiteCheckStatus => checkResultMap.get(id)?.status ?? 'unchecked'
+
+    const prereqSatisfiedCount = servicePrereqs.filter((p) => getPrereqStatus(p.id) === 'satisfied').length
+    const prereqFailedCount = servicePrereqs.filter((p) => getPrereqStatus(p.id) === 'failed').length
+
+    const otherServicesState = useCollectionSync(options, ServiceDefinition, {
+      filter: { stackName: { $eq: service.stackName } },
+    })
+    const otherServices = (
+      otherServicesState.status === 'synced' || otherServicesState.status === 'cached'
+        ? otherServicesState.data.entries
+        : []
+    ).filter((s) => s.id !== service.id)
+
+    const stackDef = stackState.status === 'synced' ? stackState.data : undefined
+    const stackConfig = stackConfigState.status === 'synced' ? stackConfigState.data : undefined
+    const stack = stackDef
+      ? ({
+          ...stackDef,
+          stackName: stackDef.name,
+          mainDirectory: stackConfig?.mainDirectory ?? '',
+        } as StackView)
+      : undefined
+    const fullCwd = stack ? getServiceCwd(stack, service, linkedRepo ?? null) : null
+
+    const api = injector.getInstance(ServicesApiClient)
+    const prereqsApi = injector.getInstance(PrerequisitesApiClient)
+    const reposApi = injector.getInstance(GitHubReposApiClient)
+    const noty = injector.getInstance(NotyService)
+    const [actionInProgress, setActionInProgress] = useState<string | null>('actionInProgress', null)
+
+    const runAction = async (action: string, apiAction: string) => {
+      setActionInProgress(action)
+      try {
+        await api.call({
+          method: 'POST',
+          action: apiAction as '/services/:id/start',
+          url: { id: service.id },
+        })
+      } catch {
+        // Failures surfaced via entity-sync
+      } finally {
+        setActionInProgress(null)
+      }
+    }
+
+    const handleSave = async (data: Partial<ServiceView>) => {
+      try {
+        await api.call({
+          method: 'PATCH',
+          action: '/services/:id',
+          url: { id: service.id },
+          body: {
+            displayName: data.displayName,
+            description: data.description,
+            workingDirectory: data.workingDirectory,
+            repositoryId: data.repositoryId,
+            runCommand: data.runCommand,
+            installCommand: data.installCommand,
+            buildCommand: data.buildCommand,
+            autoFetchEnabled: data.autoFetchEnabled,
+            autoFetchIntervalMinutes: data.autoFetchIntervalMinutes,
+            autoRestartOnFetch: data.autoRestartOnFetch,
+            prerequisiteIds: data.prerequisiteIds,
+            prerequisiteServiceIds: data.prerequisiteServiceIds,
+            files: data.files,
+          },
+        })
+        noty.emit('onNotyAdded', {
+          title: 'Service updated',
+          body: `"${data.displayName ?? service.displayName}" was updated successfully.`,
+          type: 'success',
+        })
+        setIsEditing(false)
+      } catch (error) {
+        noty.emit('onNotyAdded', {
+          title: 'Error',
+          body: error instanceof Error ? error.message : 'Failed to update service',
+          type: 'error',
+        })
+      }
+    }
+
+    const handleDelete = async () => {
+      try {
+        await api.call({
+          method: 'DELETE',
+          action: '/services/:id',
+          url: { id: service.id },
+        })
+        noty.emit('onNotyAdded', {
+          title: 'Service deleted',
+          body: `"${service.displayName}" was deleted.`,
+          type: 'success',
+        })
+        stackCraftNavigate(injector, '/stacks/:name', { name: service.stackName })
+      } catch (error) {
+        noty.emit('onNotyAdded', {
+          title: 'Error',
+          body: error instanceof Error ? error.message : 'Failed to delete service',
+          type: 'error',
+        })
+      }
+    }
+
+    const handleCreatePrerequisite = async (data: Partial<Prerequisite>): Promise<string> => {
+      const newId = crypto.randomUUID()
+      await prereqsApi.call({
+        method: 'POST',
+        action: '/prerequisites',
+        body: {
+          id: newId,
+          stackName: service.stackName,
+          name: data.name!,
+          type: data.type!,
+          config: data.config!,
+          installationHelp: data.installationHelp ?? '',
+        },
+      })
+      noty.emit('onNotyAdded', { title: 'Prerequisite added', body: `"${data.name}" was added.`, type: 'success' })
+      return newId
+    }
+
+    const handleCreateRepository = async (data: Partial<GitHubRepository>): Promise<string> => {
+      const newId = crypto.randomUUID()
+      await reposApi.call({
+        method: 'POST',
+        action: '/github-repositories',
+        body: {
+          id: newId,
+          stackName: service.stackName,
+          url: data.url!,
+          displayName: data.displayName!,
+          description: data.description ?? '',
+        },
+      })
+      noty.emit('onNotyAdded', {
+        title: 'Repository added',
+        body: `"${data.displayName}" was added.`,
+        type: 'success',
+      })
+      return newId
+    }
+
+    if (isEditing) {
+      return (
+        <PageContainer>
+          <PageHeader
+            title={`Edit: ${service.displayName}`}
+            actions={
+              <Button
+                variant="outlined"
+                onclick={() => setIsEditing(false)}
+                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
+              >
+                Cancel
+              </Button>
+            }
+          />
+          <Paper>
+            <ServiceForm
+              mode="edit"
+              stackName={service.stackName}
+              repositories={repos}
+              prerequisites={allPrereqs}
+              otherServices={otherServices}
+              initial={service}
+              onSubmit={(data: Partial<ServiceView>) => void handleSave(data)}
+              onCreatePrerequisite={(data: Partial<Prerequisite>) => handleCreatePrerequisite(data)}
+              onCreateRepository={(data: Partial<GitHubRepository>) => handleCreateRepository(data)}
+              onCancel={() => setIsEditing(false)}
+            />
+          </Paper>
+        </PageContainer>
+      )
+    }
+
+    return (
+      <PageContainer>
+        <PageHeader
+          title={service.displayName}
+          actions={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <ServiceStatusIndicator service={service} />
+              {servicePrereqs.length > 0 ? (
+                <Chip
+                  variant="outlined"
+                  size="small"
+                  color={
+                    prereqFailedCount > 0
+                      ? 'error'
+                      : prereqSatisfiedCount === servicePrereqs.length
+                        ? 'success'
+                        : 'secondary'
+                  }
+                >
+                  {prereqSatisfiedCount === servicePrereqs.length
+                    ? '✓ Prerequisites OK'
+                    : `${prereqSatisfiedCount}/${servicePrereqs.length} prereqs`}
+                </Chip>
+              ) : null}
+              <StackCraftNestedRouteLink href="/services/:id/logs" params={{ id: service.id }}>
+                <Button variant="outlined" size="small" startIcon={<Icon icon={icons.file} size="small" />}>
+                  Logs
+                </Button>
+              </StackCraftNestedRouteLink>
+              <Button
+                variant="outlined"
+                size="small"
+                onclick={() => setIsEditing(true)}
+                startIcon={<Icon icon={icons.edit} size="small" />}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                color="error"
+                onclick={() => setIsConfirmingDelete(true)}
+                startIcon={<Icon icon={icons.trash} size="small" />}
+              >
+                Delete
+              </Button>
+            </div>
+          }
+        />
+        {service.description ? (
+          <Paper>
+            <MarkdownDisplay content={service.description} />
+          </Paper>
+        ) : null}
+        <Paper>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '200px 1fr auto',
+              gap: '8px 16px',
+              fontSize: '14px',
+              alignItems: 'center',
+            }}
+          >
+            {linkedRepo ? (
+              <div style={{ display: 'contents' }}>
+                <strong>Repository</strong>
+                <span>
+                  <StackCraftNestedRouteLink
+                    href="/repositories/:id"
+                    params={{ id: linkedRepo.id }}
+                    style={{ color: 'inherit' }}
+                  >
+                    {linkedRepo.displayName}
+                  </StackCraftNestedRouteLink>
+                </span>
+                <span>
+                  {linkedRepo.url ? (
+                    <a href={linkedRepo.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<Icon icon={icons.externalLink} size="small" />}
+                      >
+                        Open
+                      </Button>
+                    </a>
+                  ) : null}
+                </span>
+              </div>
+            ) : null}
+            <strong>Working Directory</strong>
+            <span style={{ fontFamily: 'monospace' }}>{fullCwd ?? '(loading…)'}</span>
+            {fullCwd ? (
+              <span style={{ display: 'flex', gap: '4px' }}>
+                <a href={`cursor://file/${fullCwd}`} style={{ color: 'inherit' }}>
+                  <Button variant="outlined" size="small" title="Open in Cursor">
+                    Cursor
+                  </Button>
+                </a>
+                <a href={`vscode://file/${fullCwd}`} style={{ color: 'inherit' }}>
+                  <Button variant="outlined" size="small" title="Open in VS Code">
+                    VS Code
+                  </Button>
+                </a>
+              </span>
+            ) : (
+              <span />
+            )}
+            {service.repositoryId ? (
+              <div style={{ display: 'contents' }}>
+                <strong>Clone</strong>
+                <CloneStatusChip status={service.cloneStatus} />
+                <Button
+                  variant="outlined"
+                  size="small"
+                  loading={actionInProgress === 'pull'}
+                  disabled={!!actionInProgress}
+                  onclick={() => void runAction('pull', '/services/:id/pull')}
+                  startIcon={<Icon icon={icons.download} size="small" />}
+                >
+                  {service.cloneStatus === 'not-cloned' ? 'Clone' : 'Pull'}
+                </Button>
+              </div>
+            ) : null}
+            {service.installCommand ? (
+              <div style={{ display: 'contents' }}>
+                <strong>Install</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontFamily: 'monospace' }}>{service.installCommand}</span>
+                  <InstallStatusChip status={service.installStatus} />
+                </div>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  loading={actionInProgress === 'install'}
+                  disabled={!!actionInProgress}
+                  onclick={() => void runAction('install', '/services/:id/install')}
+                  startIcon={<Icon icon={icons.packageIcon} size="small" />}
+                >
+                  Install
+                </Button>
+              </div>
+            ) : null}
+            {service.buildCommand ? (
+              <div style={{ display: 'contents' }}>
+                <strong>Build</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontFamily: 'monospace' }}>{service.buildCommand}</span>
+                  <BuildStatusChip status={service.buildStatus} />
+                </div>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  loading={actionInProgress === 'build'}
+                  disabled={!!actionInProgress}
+                  onclick={() => void runAction('build', '/services/:id/build')}
+                  startIcon={<Icon icon={icons.wrench} size="small" />}
+                >
+                  Build
+                </Button>
+              </div>
+            ) : null}
+            <strong>Run</strong>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontFamily: 'monospace' }}>{service.runCommand}</span>
+              <RunStatusChip status={service.runStatus} />
+            </div>
+            {service.runStatus !== 'running' ? (
+              <Button
+                variant="outlined"
+                size="small"
+                color="success"
+                loading={actionInProgress === 'start'}
+                disabled={!!actionInProgress}
+                onclick={() => void runAction('start', '/services/:id/start')}
+                startIcon={<Icon icon={icons.play} size="small" />}
+              >
+                Start
+              </Button>
+            ) : (
+              <Button
+                variant="outlined"
+                size="small"
+                loading={actionInProgress === 'stop'}
+                disabled={!!actionInProgress}
+                onclick={() => void runAction('stop', '/services/:id/stop')}
+                startIcon={<Icon icon={icons.stopCircle} size="small" />}
+              >
+                Stop
+              </Button>
+            )}
+          </div>
+        </Paper>
+        {service.files && service.files.length > 0 ? (
+          <Paper>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <h3 style={{ margin: '0' }}>Shared Files</h3>
+              <Chip variant="outlined" size="small">
+                {service.files.length} file(s)
+              </Chip>
+              <Button
+                variant="outlined"
+                size="small"
+                loading={actionInProgress === 'apply-files-all'}
+                disabled={!!actionInProgress}
+                onclick={async () => {
+                  setActionInProgress('apply-files-all')
+                  try {
+                    await api.call({
+                      method: 'POST',
+                      action: '/services/:id/apply-files',
+                      url: { id: service.id },
+                      body: {},
+                    })
+                    noty.emit('onNotyAdded', {
+                      title: 'Files applied',
+                      body: `All shared files were written to disk.`,
+                      type: 'success',
+                    })
+                  } catch (error) {
+                    noty.emit('onNotyAdded', {
+                      title: 'Error',
+                      body: error instanceof Error ? error.message : 'Failed to apply files',
+                      type: 'error',
+                    })
+                  } finally {
+                    setActionInProgress(null)
+                  }
+                }}
+                startIcon={<Icon icon={icons.download} size="small" />}
+              >
+                Apply All
+              </Button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {service.files.map((file) => (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    fontFamily: 'monospace',
+                    fontSize: '13px',
+                  }}
+                >
+                  <span style={{ flex: '1', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.relativePath}</span>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    loading={actionInProgress === `apply-file-${file.relativePath}`}
+                    disabled={!!actionInProgress}
+                    onclick={async () => {
+                      setActionInProgress(`apply-file-${file.relativePath}`)
+                      try {
+                        await api.call({
+                          method: 'POST',
+                          action: '/services/:id/apply-files',
+                          url: { id: service.id },
+                          body: { relativePath: file.relativePath },
+                        })
+                        noty.emit('onNotyAdded', {
+                          title: 'File applied',
+                          body: `${file.relativePath} was written to disk.`,
+                          type: 'success',
+                        })
+                      } catch (error) {
+                        noty.emit('onNotyAdded', {
+                          title: 'Error',
+                          body: error instanceof Error ? error.message : 'Failed to apply file',
+                          type: 'error',
+                        })
+                      } finally {
+                        setActionInProgress(null)
+                      }
+                    }}
+                    startIcon={<Icon icon={icons.download} size="small" />}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </Paper>
+        ) : null}
+        {servicePrereqs.length > 0 ? (
+          <Paper>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <h3 style={{ margin: '0' }}>Prerequisites</h3>
+              {prereqSatisfiedCount === servicePrereqs.length ? (
+                <Chip variant="outlined" color="success" size="small">
+                  ✓ All satisfied
+                </Chip>
+              ) : prereqFailedCount > 0 ? (
+                <Chip variant="outlined" color="error" size="small">
+                  {prereqSatisfiedCount}/{servicePrereqs.length} satisfied
+                </Chip>
+              ) : (
+                <Chip variant="outlined" color="secondary" size="small">
+                  {prereqSatisfiedCount}/{servicePrereqs.length} satisfied
+                </Chip>
+              )}
+            </div>
+            <PrerequisiteList prerequisites={servicePrereqs} />
+          </Paper>
+        ) : null}
+        {servicePrereqs.some((p) => p.type === 'env-variable') ? (
+          <ServiceEnvOverrides
+            service={service}
+            envPrereqs={servicePrereqs.filter((p) => p.type === 'env-variable')}
+            stackEnvVars={stackConfig?.environmentVariables ?? {}}
+          />
+        ) : null}
+        <ServiceHistory serviceId={service.id} />
+        {ConfirmDialog(isConfirmingDelete, {
+          title: 'Delete Service',
+          message: `Are you sure you want to delete "${service.displayName}"? This action cannot be undone.`,
+          confirmText: 'Delete',
+          onConfirm: () => void handleDelete(),
+          onCancel: () => setIsConfirmingDelete(false),
+        })}
+      </PageContainer>
+    )
+  },
+})
+
+type ServiceHistoryProps = {
+  serviceId: string
+}
+
+type HistoryColumn = 'createdAt' | 'event' | 'triggeredBy' | 'triggerSource' | 'metadata' | 'processUid'
+
+const historyEventValues = Object.entries(eventLabels).map(([value, label]) => ({ value, label }))
+
+const historyColumnFilters: { [K in HistoryColumn]?: ColumnFilterConfig } = {
+  event: { type: 'enum', values: historyEventValues },
+  triggeredBy: { type: 'string' },
+  triggerSource: {
+    type: 'enum',
+    values: [
+      { label: 'API', value: 'api' },
+      { label: 'MCP', value: 'mcp' },
+      { label: 'Auto-fetch', value: 'auto-fetch' },
+      { label: 'Auto-restart', value: 'auto-restart' },
+      { label: 'System', value: 'system' },
+    ],
+  },
+  createdAt: { type: 'date' },
+}
+
+const ServiceHistory = Shade<ServiceHistoryProps>({
+  customElementName: 'shade-service-history',
+  render: (options) => {
+    const { props, injector, useDisposable, useState } = options
+
+    const collectionService = useDisposable(
+      'collectionService',
+      () => new CollectionService<ServiceStateHistory>({ searchField: 'event' }),
+    )
+
+    const [findOptions, setFindOptions] = useState<FindOptions<ServiceStateHistory, Array<keyof ServiceStateHistory>>>(
+      'findOptionsObservable',
+
+      {
+        top: 25,
+        order: { id: 'DESC' },
+      },
+    )
+
+    const historyState = useCollectionSync(options, ServiceStateHistory, {
+      filter: { serviceId: { $eq: props.serviceId }, ...findOptions.filter },
+      order: findOptions.order ?? { id: 'DESC' },
+      top: findOptions.top,
+      skip: findOptions.skip,
+    })
+
+    const isLoading = historyState.status === 'connecting'
+    const entries =
+      historyState.status === 'synced' || historyState.status === 'cached' ? historyState.data.entries : []
+    const count = historyState.status === 'synced' || historyState.status === 'cached' ? historyState.data.count : 0
+
+    collectionService.data.setValue({ entries, count })
+
+    return (
+      <Paper>
+        <h3 style={{ margin: '0 0 12px 0' }}>History</h3>
+        {isLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
+            <Loader />
+          </div>
+        ) : entries.length === 0 ? (
+          <div style={{ opacity: '0.6', padding: '12px 0' }}>No history entries yet.</div>
+        ) : (
+          <DataGrid<ServiceStateHistory, HistoryColumn>
+            columns={['createdAt', 'event', 'triggeredBy', 'triggerSource', 'metadata', 'processUid']}
+            findOptions={findOptions}
+            onFindOptionsChange={setFindOptions}
+            styles={undefined}
+            collectionService={collectionService}
+            columnFilters={historyColumnFilters}
+            headerComponents={{
+              createdAt: () => <span>Time</span>,
+              event: () => <span>Event</span>,
+              triggeredBy: () => <span>Triggered by</span>,
+              triggerSource: () => <span>Source</span>,
+              metadata: () => <span>Details</span>,
+              processUid: () => <span>Logs</span>,
+            }}
+            rowComponents={{
+              createdAt: (entry) => <span>{new Date(entry.createdAt).toLocaleString()}</span>,
+              event: (entry) => <span>{eventLabels[entry.event] ?? entry.event}</span>,
+              triggeredBy: (entry) => <span>{entry.triggeredBy}</span>,
+              triggerSource: (entry) => <span>{entry.triggerSource}</span>,
+              metadata: (entry) => (
+                <span style={{ fontFamily: 'monospace', fontSize: '12px', opacity: '0.8' }}>
+                  {entry.metadata ?? ''}
+                </span>
+              ),
+              processUid: (entry) => {
+                const { processUid } = entry
+                if (!processUid) return <span />
+                return (
+                  <Button
+                    size="small"
+                    onclick={() =>
+                      stackCraftNavigate(injector, '/services/:id/logs/:processUid', {
+                        id: props.serviceId,
+                        processUid,
+                      })
+                    }
+                  >
+                    Show Logs
+                  </Button>
+                )
+              },
+            }}
+          />
+        )}
+      </Paper>
+    )
+  },
+})

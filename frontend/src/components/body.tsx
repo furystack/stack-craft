@@ -1,9 +1,12 @@
-import { createComponent, Router, Shade } from '@furystack/shades'
-import { ButtonsDemo, HelloWorld, Init, Login, Offline } from '../pages/index.js'
+import type { Injector } from '@furystack/inject'
+import { createComponent, NestedRouter, Shade } from '@furystack/shades'
+import { Dashboard } from '../pages/dashboard/index.js'
+import { Init, Offline } from '../pages/index.js'
 import { SessionService } from '../services/session.js'
+import { appRoutes } from './app-routes.js'
 
-export const Body = Shade<{ style?: Partial<CSSStyleDeclaration> }>({
-  shadowDomName: 'shade-app-body',
+export const Body = Shade<{ style?: Partial<CSSStyleDeclaration>; injector?: Injector }>({
+  customElementName: 'shade-app-body',
   render: ({ injector, useObservable }) => {
     const session = injector.getInstance(SessionService)
     const [sessionState] = useObservable('sessionState', session.state)
@@ -12,18 +15,9 @@ export const Body = Shade<{ style?: Partial<CSSStyleDeclaration> }>({
         {(() => {
           switch (sessionState) {
             case 'authenticated':
-              return (
-                <Router
-                  routes={[
-                    { url: '/buttons', routingOptions: { end: false }, component: () => <ButtonsDemo /> },
-                    { url: '/', routingOptions: { end: false }, component: () => <HelloWorld /> },
-                  ]}
-                ></Router>
-              )
+              return <NestedRouter routes={appRoutes} notFound={<Dashboard />} />
             case 'offline':
               return <Offline />
-            case 'unauthenticated':
-              return <Login />
             default:
               return <Init />
           }

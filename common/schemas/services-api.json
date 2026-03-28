@@ -1,0 +1,2866 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ServiceDefinitionWritableFields": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "UUID primary key"
+        },
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this service does"
+        },
+        "workingDirectory": {
+          "type": "string",
+          "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+        },
+        "repositoryId": {
+          "type": "string",
+          "description": "Optional FK to  {@link  GitHubRepository.id  }"
+        },
+        "prerequisiteIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+        },
+        "installCommand": {
+          "type": "string",
+          "description": "Shell command to install dependencies (e.g. \"npm install\")"
+        },
+        "buildCommand": {
+          "type": "string",
+          "description": "Shell command to build the service (e.g. \"npm run build\")"
+        },
+        "runCommand": {
+          "type": "string",
+          "description": "Shell command to run the service (e.g. \"npm start\")"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Shared files placed relative to the service root"
+        }
+      },
+      "required": [
+        "id",
+        "stackName",
+        "displayName",
+        "description",
+        "prerequisiteIds",
+        "prerequisiteServiceIds",
+        "runCommand",
+        "files"
+      ],
+      "additionalProperties": false
+    },
+    "ServiceFile": {
+      "type": "object",
+      "properties": {
+        "relativePath": {
+          "type": "string",
+          "description": "Path relative to the service working directory"
+        },
+        "content": {
+          "type": "string",
+          "description": "File content (usually plain text)"
+        }
+      },
+      "required": ["relativePath", "content"],
+      "additionalProperties": false,
+      "description": "A file to be placed relative to the service root (e.g. .env, appConfig.local.json)"
+    },
+    "ServiceConfigWritableFields": {
+      "type": "object",
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "description": "FK to  {@link  ServiceDefinition.id  }"
+        },
+        "autoFetchEnabled": {
+          "type": "boolean",
+          "description": "Whether automatic git fetch is enabled"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number",
+          "description": "Interval in minutes between automatic git fetches"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean",
+          "description": "Whether to automatically restart the service when new commits are fetched"
+        },
+        "environmentVariableOverrides": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+        }
+      },
+      "required": [
+        "serviceId",
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch",
+        "environmentVariableOverrides"
+      ],
+      "additionalProperties": false
+    },
+    "EnvironmentVariableValue": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["inherit", "custom"],
+          "description": "Whether to inherit the value from the host system or use a custom value"
+        },
+        "customValue": {
+          "type": "string",
+          "description": "The custom value to use when source is 'custom'"
+        }
+      },
+      "required": ["source"],
+      "additionalProperties": false,
+      "description": "Describes how an environment variable's value is resolved. Used in  {@link  StackConfig  }  for stack-level defaults and in  {@link  ServiceConfig  }  for per-service overrides."
+    },
+    "ServiceWritableFields": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "autoFetchEnabled": {
+          "type": "boolean",
+          "description": "Whether automatic git fetch is enabled"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number",
+          "description": "Interval in minutes between automatic git fetches"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean",
+          "description": "Whether to automatically restart the service when new commits are fetched"
+        },
+        "environmentVariableOverrides": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+        },
+        "id": {
+          "type": "string",
+          "description": "UUID primary key"
+        },
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this service does"
+        },
+        "workingDirectory": {
+          "type": "string",
+          "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+        },
+        "repositoryId": {
+          "type": "string",
+          "description": "Optional FK to  {@link  GitHubRepository.id  }"
+        },
+        "prerequisiteIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+        },
+        "installCommand": {
+          "type": "string",
+          "description": "Shell command to install dependencies (e.g. \"npm install\")"
+        },
+        "buildCommand": {
+          "type": "string",
+          "description": "Shell command to build the service (e.g. \"npm run build\")"
+        },
+        "runCommand": {
+          "type": "string",
+          "description": "Shell command to run the service (e.g. \"npm start\")"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Shared files placed relative to the service root"
+        }
+      },
+      "required": [
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch",
+        "description",
+        "displayName",
+        "environmentVariableOverrides",
+        "files",
+        "id",
+        "prerequisiteIds",
+        "prerequisiteServiceIds",
+        "runCommand",
+        "stackName"
+      ]
+    },
+    "PostServiceEndpoint": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/ServiceView"
+        },
+        "body": {
+          "$ref": "#/definitions/WithOptionalId%3CServiceWritableFields%2C%22id%22%3E"
+        }
+      },
+      "required": ["result", "body"],
+      "additionalProperties": false
+    },
+    "ServiceView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "description": "FK to  {@link  ServiceDefinition.id  }"
+        },
+        "cloneStatus": {
+          "$ref": "#/definitions/CloneStatus"
+        },
+        "installStatus": {
+          "$ref": "#/definitions/InstallStatus"
+        },
+        "buildStatus": {
+          "$ref": "#/definitions/BuildStatus"
+        },
+        "runStatus": {
+          "$ref": "#/definitions/RunStatus"
+        },
+        "lastClonedAt": {
+          "type": "string"
+        },
+        "lastInstalledAt": {
+          "type": "string"
+        },
+        "lastBuiltAt": {
+          "type": "string"
+        },
+        "lastStartedAt": {
+          "type": "string"
+        },
+        "lastFetchedAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "autoFetchEnabled": {
+          "type": "boolean",
+          "description": "Whether automatic git fetch is enabled"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number",
+          "description": "Interval in minutes between automatic git fetches"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean",
+          "description": "Whether to automatically restart the service when new commits are fetched"
+        },
+        "environmentVariableOverrides": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "description": "UUID primary key"
+        },
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this service does"
+        },
+        "workingDirectory": {
+          "type": "string",
+          "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+        },
+        "repositoryId": {
+          "type": "string",
+          "description": "Optional FK to  {@link  GitHubRepository.id  }"
+        },
+        "prerequisiteIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+        },
+        "installCommand": {
+          "type": "string",
+          "description": "Shell command to install dependencies (e.g. \"npm install\")"
+        },
+        "buildCommand": {
+          "type": "string",
+          "description": "Shell command to build the service (e.g. \"npm run build\")"
+        },
+        "runCommand": {
+          "type": "string",
+          "description": "Shell command to run the service (e.g. \"npm start\")"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Shared files placed relative to the service root"
+        }
+      },
+      "required": [
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch",
+        "buildStatus",
+        "cloneStatus",
+        "createdAt",
+        "description",
+        "displayName",
+        "environmentVariableOverrides",
+        "files",
+        "id",
+        "installStatus",
+        "prerequisiteIds",
+        "prerequisiteServiceIds",
+        "runCommand",
+        "runStatus",
+        "serviceId",
+        "stackName",
+        "updatedAt"
+      ],
+      "description": "Full service view combining definition, config, and status for API responses"
+    },
+    "CloneStatus": {
+      "type": "string",
+      "enum": ["not-cloned", "cloning", "cloned", "failed"]
+    },
+    "InstallStatus": {
+      "type": "string",
+      "enum": ["not-installed", "installing", "installed", "failed"]
+    },
+    "BuildStatus": {
+      "type": "string",
+      "enum": ["not-built", "building", "built", "failed"]
+    },
+    "RunStatus": {
+      "type": "string",
+      "enum": ["stopped", "starting", "running", "stopping", "error"]
+    },
+    "WithOptionalId<ServiceWritableFields,\"id\">": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "UUID primary key"
+        },
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this service does"
+        },
+        "workingDirectory": {
+          "type": "string",
+          "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+        },
+        "repositoryId": {
+          "type": "string",
+          "description": "Optional FK to  {@link  GitHubRepository.id  }"
+        },
+        "prerequisiteIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+        },
+        "installCommand": {
+          "type": "string",
+          "description": "Shell command to install dependencies (e.g. \"npm install\")"
+        },
+        "buildCommand": {
+          "type": "string",
+          "description": "Shell command to build the service (e.g. \"npm run build\")"
+        },
+        "runCommand": {
+          "type": "string",
+          "description": "Shell command to run the service (e.g. \"npm start\")"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Shared files placed relative to the service root"
+        },
+        "autoFetchEnabled": {
+          "type": "boolean",
+          "description": "Whether automatic git fetch is enabled"
+        },
+        "autoFetchIntervalMinutes": {
+          "type": "number",
+          "description": "Interval in minutes between automatic git fetches"
+        },
+        "autoRestartOnFetch": {
+          "type": "boolean",
+          "description": "Whether to automatically restart the service when new commits are fetched"
+        },
+        "environmentVariableOverrides": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+        }
+      },
+      "required": [
+        "autoFetchEnabled",
+        "autoFetchIntervalMinutes",
+        "autoRestartOnFetch",
+        "description",
+        "displayName",
+        "environmentVariableOverrides",
+        "files",
+        "prerequisiteIds",
+        "prerequisiteServiceIds",
+        "runCommand",
+        "stackName"
+      ]
+    },
+    "PatchServiceEndpoint": {
+      "$ref": "#/definitions/PatchEndpoint%3CServiceWritableFields%2C%22id%22%3E"
+    },
+    "PatchEndpoint<ServiceWritableFields,\"id\">": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "UUID primary key"
+            },
+            "stackName": {
+              "type": "string",
+              "description": "FK to  {@link  StackDefinition.name  }"
+            },
+            "displayName": {
+              "type": "string",
+              "description": "Human-readable name shown in the UI"
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional description of what this service does"
+            },
+            "workingDirectory": {
+              "type": "string",
+              "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+            },
+            "repositoryId": {
+              "type": "string",
+              "description": "Optional FK to  {@link  GitHubRepository.id  }"
+            },
+            "prerequisiteIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
+            },
+            "prerequisiteServiceIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+            },
+            "installCommand": {
+              "type": "string",
+              "description": "Shell command to install dependencies (e.g. \"npm install\")"
+            },
+            "buildCommand": {
+              "type": "string",
+              "description": "Shell command to build the service (e.g. \"npm run build\")"
+            },
+            "runCommand": {
+              "type": "string",
+              "description": "Shell command to run the service (e.g. \"npm start\")"
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ServiceFile"
+              },
+              "description": "Shared files placed relative to the service root"
+            },
+            "autoFetchEnabled": {
+              "type": "boolean",
+              "description": "Whether automatic git fetch is enabled"
+            },
+            "autoFetchIntervalMinutes": {
+              "type": "number",
+              "description": "Interval in minutes between automatic git fetches"
+            },
+            "autoRestartOnFetch": {
+              "type": "boolean",
+              "description": "Whether to automatically restart the service when new commits are fetched"
+            },
+            "environmentVariableOverrides": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/EnvironmentVariableValue"
+              },
+              "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+            }
+          },
+          "additionalProperties": false
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "UUID primary key"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object"
+        }
+      },
+      "required": ["body", "url", "result"],
+      "additionalProperties": false,
+      "description": "Endpoint model for updating entities"
+    },
+    "ServiceActionEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "serviceId": {
+              "type": "string"
+            }
+          },
+          "required": ["success", "serviceId"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["url", "result"],
+      "additionalProperties": false
+    },
+    "ApplyServiceFilesEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "body": {
+          "type": "object",
+          "properties": {
+            "relativePath": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "serviceId": {
+              "type": "string"
+            },
+            "applied": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["success", "serviceId", "applied"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["url", "body", "result"],
+      "additionalProperties": false
+    },
+    "ServiceLogsEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "query": {
+          "type": "object",
+          "properties": {
+            "lines": {
+              "type": "number"
+            },
+            "processUid": {
+              "type": "string"
+            },
+            "search": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "entries": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ServiceLogEntry"
+              }
+            }
+          },
+          "required": ["entries"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["url", "query", "result"],
+      "additionalProperties": false
+    },
+    "ServiceLogEntry": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number"
+        },
+        "serviceId": {
+          "type": "string"
+        },
+        "processUid": {
+          "type": "string"
+        },
+        "stream": {
+          "type": "string",
+          "enum": ["stdout", "stderr"]
+        },
+        "line": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "serviceId", "processUid", "stream", "line", "createdAt"],
+      "additionalProperties": false
+    },
+    "ClearServiceLogsEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            }
+          },
+          "required": ["success"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["url", "result"],
+      "additionalProperties": false
+    },
+    "ServiceHistoryEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "query": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "entries": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ServiceStateHistory"
+              }
+            }
+          },
+          "required": ["entries"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["url", "query", "result"],
+      "additionalProperties": false
+    },
+    "ServiceStateHistory": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number",
+          "description": "Auto-increment primary key"
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "FK to  {@link  ServiceDefinition.id  }"
+        },
+        "event": {
+          "$ref": "#/definitions/ServiceStateEvent",
+          "description": "The lifecycle event that occurred"
+        },
+        "previousState": {
+          "type": "string",
+          "description": "JSON snapshot of relevant status fields before the change"
+        },
+        "newState": {
+          "type": "string",
+          "description": "JSON snapshot of relevant status fields after the change"
+        },
+        "triggeredBy": {
+          "type": "string",
+          "description": "Username of the user who triggered the action, or 'system'"
+        },
+        "triggerSource": {
+          "$ref": "#/definitions/TriggerSource",
+          "description": "How the action was triggered"
+        },
+        "metadata": {
+          "type": "string",
+          "description": "Optional JSON with extra context (exit code, error message, etc.)"
+        },
+        "processUid": {
+          "type": "string",
+          "description": "UUID of the associated process, if this event produced log output"
+        },
+        "createdAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "serviceId", "event", "triggeredBy", "triggerSource", "createdAt"],
+      "additionalProperties": false,
+      "description": "Audit log entry for service state transitions. Records every lifecycle event (start, stop, crash, install, build, pull) with full context: who triggered it, how, and any relevant metadata. Entries are never deleted and not included in exports."
+    },
+    "ServiceStateEvent": {
+      "type": "string",
+      "enum": [
+        "clone-started",
+        "clone-completed",
+        "clone-failed",
+        "run-started",
+        "run-stopped",
+        "run-crashed",
+        "run-restarted",
+        "install-started",
+        "install-completed",
+        "install-failed",
+        "build-started",
+        "build-completed",
+        "build-failed",
+        "setup-started",
+        "setup-completed",
+        "setup-failed",
+        "update-started",
+        "update-completed",
+        "update-failed",
+        "pull-completed",
+        "imported",
+        "state-reconciled"
+      ],
+      "description": "Event types for service state transitions. Each value represents a discrete lifecycle event that can occur."
+    },
+    "TriggerSource": {
+      "type": "string",
+      "enum": ["api", "mcp", "auto-fetch", "auto-restart", "system"],
+      "description": "How a state change was triggered. Used to distinguish user actions from automated system behavior."
+    },
+    "ServicesApi": {
+      "type": "object",
+      "properties": {
+        "GET": {
+          "type": "object",
+          "properties": {
+            "/services": {
+              "$ref": "#/definitions/GetCollectionEndpoint%3CServiceView%3E"
+            },
+            "/services/:id": {
+              "$ref": "#/definitions/GetEntityEndpoint%3CServiceView%2C%22id%22%3E"
+            },
+            "/services/:id/logs": {
+              "$ref": "#/definitions/ServiceLogsEndpoint"
+            },
+            "/services/:id/history": {
+              "$ref": "#/definitions/ServiceHistoryEndpoint"
+            }
+          },
+          "required": ["/services", "/services/:id", "/services/:id/logs", "/services/:id/history"],
+          "additionalProperties": false
+        },
+        "POST": {
+          "type": "object",
+          "properties": {
+            "/services": {
+              "$ref": "#/definitions/PostServiceEndpoint"
+            },
+            "/services/:id/start": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/stop": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/restart": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/install": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/build": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/pull": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/setup": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/update": {
+              "$ref": "#/definitions/ServiceActionEndpoint"
+            },
+            "/services/:id/apply-files": {
+              "$ref": "#/definitions/ApplyServiceFilesEndpoint"
+            }
+          },
+          "required": [
+            "/services",
+            "/services/:id/start",
+            "/services/:id/stop",
+            "/services/:id/restart",
+            "/services/:id/install",
+            "/services/:id/build",
+            "/services/:id/pull",
+            "/services/:id/setup",
+            "/services/:id/update",
+            "/services/:id/apply-files"
+          ],
+          "additionalProperties": false
+        },
+        "PATCH": {
+          "type": "object",
+          "properties": {
+            "/services/:id": {
+              "$ref": "#/definitions/PatchServiceEndpoint"
+            }
+          },
+          "required": ["/services/:id"],
+          "additionalProperties": false
+        },
+        "PUT": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": ["result"],
+            "additionalProperties": false
+          }
+        },
+        "DELETE": {
+          "type": "object",
+          "properties": {
+            "/services/:id": {
+              "$ref": "#/definitions/DeleteEndpoint%3CServiceDefinition%2C%22id%22%3E"
+            },
+            "/services/:id/logs": {
+              "$ref": "#/definitions/ClearServiceLogsEndpoint"
+            }
+          },
+          "required": ["/services/:id", "/services/:id/logs"],
+          "additionalProperties": false
+        },
+        "HEAD": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": ["result"],
+            "additionalProperties": false
+          }
+        },
+        "CONNECT": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": ["result"],
+            "additionalProperties": false
+          }
+        },
+        "TRACE": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": ["result"],
+            "additionalProperties": false
+          }
+        },
+        "OPTIONS": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": ["result"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["GET", "POST", "PATCH", "DELETE"],
+      "additionalProperties": false
+    },
+    "GetCollectionEndpoint<ServiceView>": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "object",
+          "properties": {
+            "findOptions": {
+              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22files%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22environmentVariableOverrides%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22)%5B%5D%3E"
+            }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "$ref": "#/definitions/GetCollectionResult%3CServiceView%3E"
+        }
+      },
+      "required": ["query", "result"],
+      "additionalProperties": false,
+      "description": "Rest endpoint model for getting / querying collections"
+    },
+    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"files\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"environmentVariableOverrides\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\")[]>": {
+      "type": "object",
+      "properties": {
+        "top": {
+          "type": "number",
+          "description": "Limits the hits"
+        },
+        "skip": {
+          "type": "number",
+          "description": "Skips the first N hit"
+        },
+        "order": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "stackName": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "displayName": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "description": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "workingDirectory": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "repositoryId": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "prerequisiteIds": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "prerequisiteServiceIds": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "installCommand": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "buildCommand": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "runCommand": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "files": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "createdAt": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "updatedAt": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "serviceId": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "autoFetchEnabled": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "autoFetchIntervalMinutes": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "autoRestartOnFetch": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "environmentVariableOverrides": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "cloneStatus": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "installStatus": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "buildStatus": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "runStatus": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "lastClonedAt": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "lastInstalledAt": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "lastBuiltAt": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "lastStartedAt": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "lastFetchedAt": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            }
+          },
+          "additionalProperties": false,
+          "description": "Sets up an order by a field and a direction"
+        },
+        "select": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "id",
+              "stackName",
+              "displayName",
+              "description",
+              "workingDirectory",
+              "repositoryId",
+              "prerequisiteIds",
+              "prerequisiteServiceIds",
+              "installCommand",
+              "buildCommand",
+              "runCommand",
+              "files",
+              "createdAt",
+              "updatedAt",
+              "serviceId",
+              "autoFetchEnabled",
+              "autoFetchIntervalMinutes",
+              "autoRestartOnFetch",
+              "environmentVariableOverrides",
+              "cloneStatus",
+              "installStatus",
+              "buildStatus",
+              "runStatus",
+              "lastClonedAt",
+              "lastInstalledAt",
+              "lastBuiltAt",
+              "lastStartedAt",
+              "lastFetchedAt"
+            ]
+          },
+          "description": "The result set will be limited to these fields"
+        },
+        "filter": {
+          "$ref": "#/definitions/FilterType%3CServiceView%3E",
+          "description": "The fields should match this filter"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Type for default filtering model"
+    },
+    "FilterType<ServiceView>": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$and": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CServiceView%3E"
+          }
+        },
+        "$not": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CServiceView%3E"
+          }
+        },
+        "$nor": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CServiceView%3E"
+          }
+        },
+        "$or": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CServiceView%3E"
+          }
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string",
+                  "description": "UUID primary key"
+                },
+                "$endsWith": {
+                  "type": "string",
+                  "description": "UUID primary key"
+                },
+                "$like": {
+                  "type": "string",
+                  "description": "UUID primary key"
+                },
+                "$regex": {
+                  "type": "string",
+                  "description": "UUID primary key"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "UUID primary key"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "UUID primary key"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "UUID primary key"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "UUID primary key"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "stackName": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
+                },
+                "$endsWith": {
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
+                },
+                "$like": {
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
+                },
+                "$regex": {
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "displayName": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                },
+                "$endsWith": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                },
+                "$like": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                },
+                "$regex": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Human-readable name shown in the UI"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Human-readable name shown in the UI"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string",
+                  "description": "Optional description of what this service does"
+                },
+                "$endsWith": {
+                  "type": "string",
+                  "description": "Optional description of what this service does"
+                },
+                "$like": {
+                  "type": "string",
+                  "description": "Optional description of what this service does"
+                },
+                "$regex": {
+                  "type": "string",
+                  "description": "Optional description of what this service does"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "Optional description of what this service does"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "Optional description of what this service does"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Optional description of what this service does"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Optional description of what this service does"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "workingDirectory": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "repositoryId": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "Optional FK to  {@link  GitHubRepository.id  }"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "Optional FK to  {@link  GitHubRepository.id  }"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Optional FK to  {@link  GitHubRepository.id  }"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Optional FK to  {@link  GitHubRepository.id  }"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "prerequisiteIds": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
+                },
+                "$ne": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "prerequisiteServiceIds": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+                },
+                "$ne": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "installCommand": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "Shell command to install dependencies (e.g. \"npm install\")"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "Shell command to install dependencies (e.g. \"npm install\")"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Shell command to install dependencies (e.g. \"npm install\")"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Shell command to install dependencies (e.g. \"npm install\")"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "buildCommand": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "Shell command to build the service (e.g. \"npm run build\")"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "Shell command to build the service (e.g. \"npm run build\")"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Shell command to build the service (e.g. \"npm run build\")"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Shell command to build the service (e.g. \"npm run build\")"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "runCommand": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string",
+                  "description": "Shell command to run the service (e.g. \"npm start\")"
+                },
+                "$endsWith": {
+                  "type": "string",
+                  "description": "Shell command to run the service (e.g. \"npm start\")"
+                },
+                "$like": {
+                  "type": "string",
+                  "description": "Shell command to run the service (e.g. \"npm start\")"
+                },
+                "$regex": {
+                  "type": "string",
+                  "description": "Shell command to run the service (e.g. \"npm start\")"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "Shell command to run the service (e.g. \"npm start\")"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "Shell command to run the service (e.g. \"npm start\")"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Shell command to run the service (e.g. \"npm start\")"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Shell command to run the service (e.g. \"npm start\")"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "files": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/ServiceFile"
+                  },
+                  "description": "Shared files placed relative to the service root"
+                },
+                "$ne": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/ServiceFile"
+                  },
+                  "description": "Shared files placed relative to the service root"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/ServiceFile"
+                    },
+                    "description": "Shared files placed relative to the service root"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/ServiceFile"
+                    },
+                    "description": "Shared files placed relative to the service root"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "createdAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "updatedAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "serviceId": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string",
+                  "description": "FK to  {@link  ServiceDefinition.id  }"
+                },
+                "$endsWith": {
+                  "type": "string",
+                  "description": "FK to  {@link  ServiceDefinition.id  }"
+                },
+                "$like": {
+                  "type": "string",
+                  "description": "FK to  {@link  ServiceDefinition.id  }"
+                },
+                "$regex": {
+                  "type": "string",
+                  "description": "FK to  {@link  ServiceDefinition.id  }"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "FK to  {@link  ServiceDefinition.id  }"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "FK to  {@link  ServiceDefinition.id  }"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "FK to  {@link  ServiceDefinition.id  }"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "FK to  {@link  ServiceDefinition.id  }"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "autoFetchEnabled": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "boolean",
+                  "description": "Whether automatic git fetch is enabled"
+                },
+                "$ne": {
+                  "type": "boolean",
+                  "description": "Whether automatic git fetch is enabled"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "boolean",
+                    "description": "Whether automatic git fetch is enabled"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "boolean",
+                    "description": "Whether automatic git fetch is enabled"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "autoFetchIntervalMinutes": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$gt": {
+                  "type": "number",
+                  "description": "Interval in minutes between automatic git fetches"
+                },
+                "$gte": {
+                  "type": "number",
+                  "description": "Interval in minutes between automatic git fetches"
+                },
+                "$lt": {
+                  "type": "number",
+                  "description": "Interval in minutes between automatic git fetches"
+                },
+                "$lte": {
+                  "type": "number",
+                  "description": "Interval in minutes between automatic git fetches"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "number",
+                  "description": "Interval in minutes between automatic git fetches"
+                },
+                "$ne": {
+                  "type": "number",
+                  "description": "Interval in minutes between automatic git fetches"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "description": "Interval in minutes between automatic git fetches"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "description": "Interval in minutes between automatic git fetches"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "autoRestartOnFetch": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "boolean",
+                  "description": "Whether to automatically restart the service when new commits are fetched"
+                },
+                "$ne": {
+                  "type": "boolean",
+                  "description": "Whether to automatically restart the service when new commits are fetched"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "boolean",
+                    "description": "Whether to automatically restart the service when new commits are fetched"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "boolean",
+                    "description": "Whether to automatically restart the service when new commits are fetched"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "environmentVariableOverrides": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/definitions/EnvironmentVariableValue"
+                  },
+                  "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+                },
+                "$ne": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/definitions/EnvironmentVariableValue"
+                  },
+                  "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/definitions/EnvironmentVariableValue"
+                    },
+                    "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/definitions/EnvironmentVariableValue"
+                    },
+                    "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "cloneStatus": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "$ref": "#/definitions/CloneStatus"
+                },
+                "$endsWith": {
+                  "$ref": "#/definitions/CloneStatus"
+                },
+                "$like": {
+                  "$ref": "#/definitions/CloneStatus"
+                },
+                "$regex": {
+                  "$ref": "#/definitions/CloneStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "$ref": "#/definitions/CloneStatus"
+                },
+                "$ne": {
+                  "$ref": "#/definitions/CloneStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/CloneStatus"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/CloneStatus"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "installStatus": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "$ref": "#/definitions/InstallStatus"
+                },
+                "$endsWith": {
+                  "$ref": "#/definitions/InstallStatus"
+                },
+                "$like": {
+                  "$ref": "#/definitions/InstallStatus"
+                },
+                "$regex": {
+                  "$ref": "#/definitions/InstallStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "$ref": "#/definitions/InstallStatus"
+                },
+                "$ne": {
+                  "$ref": "#/definitions/InstallStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/InstallStatus"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/InstallStatus"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "buildStatus": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "$ref": "#/definitions/BuildStatus"
+                },
+                "$endsWith": {
+                  "$ref": "#/definitions/BuildStatus"
+                },
+                "$like": {
+                  "$ref": "#/definitions/BuildStatus"
+                },
+                "$regex": {
+                  "$ref": "#/definitions/BuildStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "$ref": "#/definitions/BuildStatus"
+                },
+                "$ne": {
+                  "$ref": "#/definitions/BuildStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BuildStatus"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/BuildStatus"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "runStatus": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "$ref": "#/definitions/RunStatus"
+                },
+                "$endsWith": {
+                  "$ref": "#/definitions/RunStatus"
+                },
+                "$like": {
+                  "$ref": "#/definitions/RunStatus"
+                },
+                "$regex": {
+                  "$ref": "#/definitions/RunStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "$ref": "#/definitions/RunStatus"
+                },
+                "$ne": {
+                  "$ref": "#/definitions/RunStatus"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/RunStatus"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/RunStatus"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "lastClonedAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "lastInstalledAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "lastBuiltAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "lastStartedAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "lastFetchedAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "GetCollectionResult<ServiceView>": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "number",
+          "description": "The Total count of entities"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceView"
+          },
+          "description": "List of the selected entities"
+        }
+      },
+      "required": ["count", "entries"],
+      "additionalProperties": false,
+      "description": "Response Model for GetCollection"
+    },
+    "GetEntityEndpoint<ServiceView,\"id\">": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "object",
+          "properties": {
+            "select": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "id",
+                  "stackName",
+                  "displayName",
+                  "description",
+                  "workingDirectory",
+                  "repositoryId",
+                  "prerequisiteIds",
+                  "prerequisiteServiceIds",
+                  "installCommand",
+                  "buildCommand",
+                  "runCommand",
+                  "files",
+                  "createdAt",
+                  "updatedAt",
+                  "serviceId",
+                  "autoFetchEnabled",
+                  "autoFetchIntervalMinutes",
+                  "autoRestartOnFetch",
+                  "environmentVariableOverrides",
+                  "cloneStatus",
+                  "installStatus",
+                  "buildStatus",
+                  "runStatus",
+                  "lastClonedAt",
+                  "lastInstalledAt",
+                  "lastBuiltAt",
+                  "lastStartedAt",
+                  "lastFetchedAt"
+                ]
+              },
+              "description": "The list of fields to select"
+            }
+          },
+          "additionalProperties": false
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The entity's unique identifier"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "result": {
+          "$ref": "#/definitions/ServiceView"
+        }
+      },
+      "required": ["query", "url", "result"],
+      "additionalProperties": false,
+      "description": "Endpoint model for getting a single entity"
+    },
+    "DeleteEndpoint<ServiceDefinition,\"id\">": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "UUID primary key"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object"
+        }
+      },
+      "required": ["url", "result"],
+      "additionalProperties": false,
+      "description": "Endpoint model for deleting entities"
+    }
+  }
+}

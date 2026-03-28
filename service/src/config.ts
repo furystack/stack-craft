@@ -1,13 +1,19 @@
 import { addStore, InMemoryStore, isAuthenticated } from '@furystack/core'
-import { FileSystemStore } from '@furystack/filesystem-store'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import type { AuthorizationResult, DataSetSettings } from '@furystack/repository'
+import type { AuthorizationResult } from '@furystack/repository'
 import { getRepository } from '@furystack/repository'
 import { DefaultSession } from '@furystack/rest-service'
-import { PasswordCredential, usePasswordPolicy } from '@furystack/security'
-import { User } from 'common'
+import { PasswordResetToken, usePasswordPolicy } from '@furystack/security'
+import { PrerequisiteCheckResult, PublicApiToken } from 'common'
+import { mkdirSync } from 'fs'
 import { join } from 'path'
+
+export const dataDir = process.env.STACK_CRAFT_DATA_DIR || join(process.cwd(), 'data')
+
+export const ensureDataDir = () => {
+  mkdirSync(dataDir, { recursive: true })
+}
 
 export const authorizedOnly = async (options: { injector: Injector }): Promise<AuthorizationResult> => {
   const isAllowed = await isAuthenticated(options.injector)
@@ -15,11 +21,11 @@ export const authorizedOnly = async (options: { injector: Injector }): Promise<A
     ? { isAllowed }
     : {
         isAllowed,
-        message: 'You are not authorized :(',
+        message: 'You are not authorized',
       }
 }
 
-export const authorizedDataSet: Partial<DataSetSettings<any, any>> = {
+export const authorizedDataSet = {
   authorizeAdd: authorizedOnly,
   authorizeGet: authorizedOnly,
   authorizeRemove: authorizedOnly,
@@ -29,26 +35,14 @@ export const authorizedDataSet: Partial<DataSetSettings<any, any>> = {
 
 export const injector = new Injector()
 useLogging(injector, VerboseConsoleLogger)
-addStore(
-  injector,
-  new FileSystemStore({
-    model: User,
-    primaryKey: 'username',
-    tickMs: 30 * 1000,
-    fileName: join(process.cwd(), 'users.json'),
-  }),
-)
-  .addStore(new InMemoryStore({ model: DefaultSession, primaryKey: 'sessionId' }))
-  .addStore(
-    new FileSystemStore({
-      model: PasswordCredential,
-      primaryKey: 'userName',
-      fileName: join(process.cwd(), '..', '..', 'pwc.json'),
-    }),
-  )
 
-getRepository(injector).createDataSet(User, 'username', {
-  ...authorizedDataSet,
-})
+addStore(injector, new InMemoryStore({ model: DefaultSession, primaryKey: 'sessionId' }))
+  .addStore(new InMemoryStore({ model: PublicApiToken, primaryKey: 'id' }))
+  .addStore(new InMemoryStore({ model: PrerequisiteCheckResult, primaryKey: 'prerequisiteId' }))
+  .addStore(new InMemoryStore({ model: PasswordResetToken, primaryKey: 'token' }))
+
+getRepository(injector).createDataSet(DefaultSession, 'sessionId')
+getRepository(injector).createDataSet(PublicApiToken, 'id', { ...authorizedDataSet })
+getRepository(injector).createDataSet(PasswordResetToken, 'token')
 
 usePasswordPolicy(injector)

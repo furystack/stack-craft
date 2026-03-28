@@ -7,23 +7,28 @@
   "type": "module",
   "scripts": {
     "start": "yarn node ./dist/service.js",
-    "seed": "yarn node ./dist/seed.js",
     "clean": "rimraf dist && rimraf tsconfig.tsbuildinfo",
     "build": "tsc -b"
   },
   "devDependencies": {
-    "@types/node": "^25.2.3",
+    "@types/node": "^25.5.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.2"
   },
   "dependencies": {
-    "@furystack/core": "^15.0.36",
-    "@furystack/filesystem-store": "^7.0.36",
-    "@furystack/inject": "^12.0.30",
-    "@furystack/logging": "^8.0.30",
-    "@furystack/repository": "^10.0.36",
-    "@furystack/rest-service": "^11.0.4",
-    "@furystack/security": "^6.0.36",
-    "common": "workspace:^"
+    "@furystack/core": "^16.0.3",
+    "@furystack/entity-sync-service": "^1.0.11",
+    "@furystack/filesystem-store": "^7.1.6",
+    "@furystack/inject": "^12.0.35",
+    "@furystack/logging": "^8.1.4",
+    "@furystack/repository": "^10.1.10",
+    "@furystack/rest-service": "^12.3.4",
+    "@furystack/security": "^7.0.8",
+    "@furystack/sequelize-store": "^6.0.48",
+    "@furystack/websocket-api": "^13.2.6",
+    "@modelcontextprotocol/sdk": "1.28.0",
+    "common": "workspace:^",
+    "sequelize": "^6.37.8",
+    "sqlite3": "^6.0.1"
   }
 }

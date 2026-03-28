@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { createComponent, Shade } from '@furystack/shades'
-import { ThemeProviderService } from '@furystack/shades-common-components'
+import { getTextColor, ThemeProviderService } from '@furystack/shades-common-components'
 // @ts-ignore
 import ghLight from './gh-light.png'
 // @ts-ignore
@@ -11,7 +11,7 @@ type GithubLogoProps = Omit<Partial<HTMLImageElement>, 'style' | 'src' | 'alt'> 
 }
 
 export const GithubLogo = Shade<GithubLogoProps>({
-  shadowDomName: 'github-logo',
+  customElementName: 'github-logo',
   css: {
     display: 'inline-block',
     '& img': {
@@ -23,13 +23,10 @@ export const GithubLogo = Shade<GithubLogoProps>({
   },
   render: ({ props, useDisposable, useState, injector }) => {
     const themeProvider = injector.getInstance(ThemeProviderService)
-    const [theme, setTheme] = useState(
-      'themeName',
-      themeProvider.getTextColor(themeProvider.theme.background.paper, 'light', 'dark'),
-    )
+    const [theme, setTheme] = useState('themeName', getTextColor(themeProvider.theme.background.paper, 'light', 'dark'))
     useDisposable('themeChange', () =>
       themeProvider.subscribe('themeChanged', () => {
-        const value = themeProvider.getTextColor(themeProvider.theme.background.paper, 'light', 'dark')
+        const value = getTextColor(themeProvider.theme.background.paper, 'light', 'dark')
         setTheme(value)
       }),
     )

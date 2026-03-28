@@ -1,6 +1,7 @@
 // @ts-check
 
 import eslint from '@eslint/js'
+import furystack from '@furystack/eslint-plugin'
 import prettierConfig from 'eslint-config-prettier'
 import jsdoc from 'eslint-plugin-jsdoc'
 import tseslint from 'typescript-eslint'
@@ -21,6 +22,7 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   prettierConfig,
+
   {
     linterOptions: {
       reportUnusedDisableDirectives: true,
@@ -33,6 +35,7 @@ export default tseslint.config(
     },
     plugins: {
       jsdoc,
+      furystack,
     },
     rules: {
       '@typescript-eslint/no-unused-vars': 'off', // Use Typescript own check for this
@@ -75,6 +78,11 @@ export default tseslint.config(
       'prefer-destructuring': ['error', { array: false, object: true }],
       'default-case': 'error',
     },
+  },
+  furystack.configs.recommendedStrict,
+  {
+    files: ['frontend/src/**/*.ts', 'frontend/src/**/*.tsx'],
+    ...furystack.configs.shadesStrict,
   },
   {
     files: ['**/*.spec.ts', '**/*.spec.tsx'],

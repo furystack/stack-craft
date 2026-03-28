@@ -1,0 +1,1549 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "StackWritableFields": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mainDirectory": {
+          "type": "string",
+          "description": "Absolute path to the root directory for all services in this stack"
+        },
+        "environmentVariables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Stack-level environment variable values, keyed by variable name"
+        },
+        "name": {
+          "type": "string",
+          "description": "Unique kebab-case identifier for the stack"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this stack does"
+        }
+      },
+      "required": ["description", "displayName", "environmentVariables", "mainDirectory", "name"]
+    },
+    "EnvironmentVariableValue": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["inherit", "custom"],
+          "description": "Whether to inherit the value from the host system or use a custom value"
+        },
+        "customValue": {
+          "type": "string",
+          "description": "The custom value to use when source is 'custom'"
+        }
+      },
+      "required": ["source"],
+      "additionalProperties": false,
+      "description": "Describes how an environment variable's value is resolved. Used in  {@link  StackConfig  }  for stack-level defaults and in  {@link  ServiceConfig  }  for per-service overrides."
+    },
+    "PostStackEndpoint": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/StackView"
+        },
+        "body": {
+          "$ref": "#/definitions/WithOptionalId%3CStackWritableFields%2C%22name%22%3E"
+        }
+      },
+      "required": ["result", "body"],
+      "additionalProperties": false
+    },
+    "StackView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "mainDirectory": {
+          "type": "string",
+          "description": "Absolute path to the root directory for all services in this stack"
+        },
+        "environmentVariables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Stack-level environment variable values, keyed by variable name"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "Unique kebab-case identifier for the stack"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this stack does"
+        }
+      },
+      "required": [
+        "createdAt",
+        "description",
+        "displayName",
+        "environmentVariables",
+        "mainDirectory",
+        "name",
+        "stackName",
+        "updatedAt"
+      ],
+      "description": "Full stack view combining definition and config for API responses"
+    },
+    "WithOptionalId<StackWritableFields,\"name\">": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique kebab-case identifier for the stack"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this stack does"
+        },
+        "mainDirectory": {
+          "type": "string",
+          "description": "Absolute path to the root directory for all services in this stack"
+        },
+        "environmentVariables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Stack-level environment variable values, keyed by variable name"
+        }
+      },
+      "required": ["description", "displayName", "environmentVariables", "mainDirectory"]
+    },
+    "PatchStackEndpoint": {
+      "$ref": "#/definitions/PatchEndpoint%3CStackWritableFields%2C%22name%22%3E"
+    },
+    "PatchEndpoint<StackWritableFields,\"name\">": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Unique kebab-case identifier for the stack"
+            },
+            "displayName": {
+              "type": "string",
+              "description": "Human-readable name shown in the UI"
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional description of what this stack does"
+            },
+            "mainDirectory": {
+              "type": "string",
+              "description": "Absolute path to the root directory for all services in this stack"
+            },
+            "environmentVariables": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/EnvironmentVariableValue"
+              },
+              "description": "Stack-level environment variable values, keyed by variable name"
+            }
+          },
+          "additionalProperties": false
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique kebab-case identifier for the stack"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object"
+        }
+      },
+      "required": ["body", "url", "result"],
+      "additionalProperties": false,
+      "description": "Endpoint model for updating entities"
+    },
+    "ExportStackEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "stack": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Unique kebab-case identifier for the stack"
+                },
+                "displayName": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Optional description of what this stack does"
+                }
+              },
+              "required": ["name", "displayName", "description"],
+              "additionalProperties": false
+            },
+            "services": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "UUID primary key"
+                  },
+                  "stackName": {
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "description": "Human-readable name shown in the UI"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Optional description of what this service does"
+                  },
+                  "workingDirectory": {
+                    "type": "string",
+                    "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+                  },
+                  "repositoryId": {
+                    "type": "string",
+                    "description": "Optional FK to  {@link  GitHubRepository.id  }"
+                  },
+                  "prerequisiteIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
+                  },
+                  "prerequisiteServiceIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+                  },
+                  "installCommand": {
+                    "type": "string",
+                    "description": "Shell command to install dependencies (e.g. \"npm install\")"
+                  },
+                  "buildCommand": {
+                    "type": "string",
+                    "description": "Shell command to build the service (e.g. \"npm run build\")"
+                  },
+                  "runCommand": {
+                    "type": "string",
+                    "description": "Shell command to run the service (e.g. \"npm start\")"
+                  },
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/ServiceFile"
+                    },
+                    "description": "Shared files placed relative to the service root"
+                  }
+                },
+                "required": [
+                  "id",
+                  "stackName",
+                  "displayName",
+                  "description",
+                  "prerequisiteIds",
+                  "prerequisiteServiceIds",
+                  "runCommand",
+                  "files"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "repositories": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "UUID primary key"
+                  },
+                  "stackName": {
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "description": "Human-readable name shown in the UI"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Optional description"
+                  }
+                },
+                "required": ["id", "stackName", "url", "displayName", "description"],
+                "additionalProperties": false
+              }
+            },
+            "prerequisites": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "UUID primary key"
+                  },
+                  "stackName": {
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
+                  },
+                  "type": {
+                    "$ref": "#/definitions/PrerequisiteType",
+                    "description": "Discriminator that determines the check logic and config shape"
+                  },
+                  "config": {
+                    "$ref": "#/definitions/PrerequisiteConfig",
+                    "description": "Type-specific configuration (stored as JSON TEXT in the database)"
+                  },
+                  "installationHelp": {
+                    "type": "string",
+                    "description": "Help text shown when the prerequisite check fails"
+                  }
+                },
+                "required": ["id", "stackName", "name", "type", "config", "installationHelp"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["stack", "services", "repositories", "prerequisites"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["url", "result"],
+      "additionalProperties": false
+    },
+    "ServiceFile": {
+      "type": "object",
+      "properties": {
+        "relativePath": {
+          "type": "string",
+          "description": "Path relative to the service working directory"
+        },
+        "content": {
+          "type": "string",
+          "description": "File content (usually plain text)"
+        }
+      },
+      "required": ["relativePath", "content"],
+      "additionalProperties": false,
+      "description": "A file to be placed relative to the service root (e.g. .env, appConfig.local.json)"
+    },
+    "PrerequisiteType": {
+      "type": "string",
+      "enum": [
+        "node",
+        "yarn",
+        "dotnet-sdk",
+        "dotnet-runtime",
+        "nuget-feed",
+        "git",
+        "github-cli",
+        "env-variable",
+        "custom-script"
+      ],
+      "description": "The type of prerequisite that must be satisfied before a stack or service can run."
+    },
+    "PrerequisiteConfig": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "minimumVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["minimumVersion"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": ["version"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "feedUrl": {
+              "type": "string"
+            },
+            "feedName": {
+              "type": "string"
+            }
+          },
+          "required": ["feedUrl"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "not": {}
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "variableName": {
+              "type": "string"
+            }
+          },
+          "required": ["variableName"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "script": {
+              "type": "string"
+            }
+          },
+          "required": ["script"],
+          "additionalProperties": false
+        }
+      ],
+      "description": "Union of all possible prerequisite config shapes."
+    },
+    "ImportStackEndpoint": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            }
+          },
+          "required": ["success"],
+          "additionalProperties": false
+        },
+        "body": {
+          "type": "object",
+          "properties": {
+            "stack": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Unique kebab-case identifier for the stack"
+                },
+                "displayName": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Optional description of what this stack does"
+                }
+              },
+              "required": ["name", "displayName", "description"],
+              "additionalProperties": false
+            },
+            "services": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "UUID primary key"
+                  },
+                  "stackName": {
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "description": "Human-readable name shown in the UI"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Optional description of what this service does"
+                  },
+                  "workingDirectory": {
+                    "type": "string",
+                    "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+                  },
+                  "repositoryId": {
+                    "type": "string",
+                    "description": "Optional FK to  {@link  GitHubRepository.id  }"
+                  },
+                  "prerequisiteIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
+                  },
+                  "prerequisiteServiceIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
+                  },
+                  "installCommand": {
+                    "type": "string",
+                    "description": "Shell command to install dependencies (e.g. \"npm install\")"
+                  },
+                  "buildCommand": {
+                    "type": "string",
+                    "description": "Shell command to build the service (e.g. \"npm run build\")"
+                  },
+                  "runCommand": {
+                    "type": "string",
+                    "description": "Shell command to run the service (e.g. \"npm start\")"
+                  },
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/ServiceFile"
+                    },
+                    "description": "Shared files placed relative to the service root"
+                  }
+                },
+                "required": [
+                  "id",
+                  "stackName",
+                  "displayName",
+                  "description",
+                  "prerequisiteIds",
+                  "prerequisiteServiceIds",
+                  "runCommand",
+                  "files"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "repositories": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "UUID primary key"
+                  },
+                  "stackName": {
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "description": "Human-readable name shown in the UI"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Optional description"
+                  }
+                },
+                "required": ["id", "stackName", "url", "displayName", "description"],
+                "additionalProperties": false
+              }
+            },
+            "prerequisites": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "UUID primary key"
+                  },
+                  "stackName": {
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
+                  },
+                  "type": {
+                    "$ref": "#/definitions/PrerequisiteType",
+                    "description": "Discriminator that determines the check logic and config shape"
+                  },
+                  "config": {
+                    "$ref": "#/definitions/PrerequisiteConfig",
+                    "description": "Type-specific configuration (stored as JSON TEXT in the database)"
+                  },
+                  "installationHelp": {
+                    "type": "string",
+                    "description": "Help text shown when the prerequisite check fails"
+                  }
+                },
+                "required": ["id", "stackName", "name", "type", "config", "installationHelp"],
+                "additionalProperties": false
+              }
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "mainDirectory": {
+                  "type": "string"
+                },
+                "environmentVariables": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/definitions/EnvironmentVariableValue"
+                  }
+                },
+                "services": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "environmentVariableOverrides": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "$ref": "#/definitions/EnvironmentVariableValue"
+                        }
+                      },
+                      "autoFetchEnabled": {
+                        "type": "boolean",
+                        "description": "Whether automatic git fetch is enabled"
+                      },
+                      "autoFetchIntervalMinutes": {
+                        "type": "number",
+                        "description": "Interval in minutes between automatic git fetches"
+                      },
+                      "autoRestartOnFetch": {
+                        "type": "boolean",
+                        "description": "Whether to automatically restart the service when new commits are fetched"
+                      }
+                    }
+                  }
+                }
+              },
+              "required": ["mainDirectory"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["stack", "services", "repositories", "prerequisites", "config"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["result", "body"],
+      "additionalProperties": false
+    },
+    "StackSetupEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            }
+          },
+          "required": ["success"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["url", "result"],
+      "additionalProperties": false
+    },
+    "StacksApi": {
+      "type": "object",
+      "properties": {
+        "GET": {
+          "type": "object",
+          "properties": {
+            "/stacks": {
+              "$ref": "#/definitions/GetCollectionEndpoint%3CStackView%3E"
+            },
+            "/stacks/:id": {
+              "$ref": "#/definitions/GetEntityEndpoint%3CStackView%2C%22name%22%3E"
+            },
+            "/stacks/:id/export": {
+              "$ref": "#/definitions/ExportStackEndpoint"
+            }
+          },
+          "required": ["/stacks", "/stacks/:id", "/stacks/:id/export"],
+          "additionalProperties": false
+        },
+        "POST": {
+          "type": "object",
+          "properties": {
+            "/stacks": {
+              "$ref": "#/definitions/PostStackEndpoint"
+            },
+            "/stacks/import": {
+              "$ref": "#/definitions/ImportStackEndpoint"
+            },
+            "/stacks/:id/setup": {
+              "$ref": "#/definitions/StackSetupEndpoint"
+            }
+          },
+          "required": ["/stacks", "/stacks/import", "/stacks/:id/setup"],
+          "additionalProperties": false
+        },
+        "PATCH": {
+          "type": "object",
+          "properties": {
+            "/stacks/:id": {
+              "$ref": "#/definitions/PatchStackEndpoint"
+            }
+          },
+          "required": ["/stacks/:id"],
+          "additionalProperties": false
+        },
+        "PUT": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": ["result"],
+            "additionalProperties": false
+          }
+        },
+        "DELETE": {
+          "type": "object",
+          "properties": {
+            "/stacks/:id": {
+              "$ref": "#/definitions/DeleteEndpoint%3CStackDefinition%2C%22name%22%3E"
+            }
+          },
+          "required": ["/stacks/:id"],
+          "additionalProperties": false
+        },
+        "HEAD": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": ["result"],
+            "additionalProperties": false
+          }
+        },
+        "CONNECT": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": ["result"],
+            "additionalProperties": false
+          }
+        },
+        "TRACE": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": ["result"],
+            "additionalProperties": false
+          }
+        },
+        "OPTIONS": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "result": {},
+              "url": {},
+              "query": {},
+              "body": {},
+              "headers": {}
+            },
+            "required": ["result"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["GET", "POST", "PATCH", "DELETE"],
+      "additionalProperties": false
+    },
+    "GetCollectionEndpoint<StackView>": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "object",
+          "properties": {
+            "findOptions": {
+              "$ref": "#/definitions/FindOptions%3CStackView%2C(%22name%22%7C%22displayName%22%7C%22description%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22stackName%22%7C%22mainDirectory%22%7C%22environmentVariables%22)%5B%5D%3E"
+            }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "$ref": "#/definitions/GetCollectionResult%3CStackView%3E"
+        }
+      },
+      "required": ["query", "result"],
+      "additionalProperties": false,
+      "description": "Rest endpoint model for getting / querying collections"
+    },
+    "FindOptions<StackView,(\"name\"|\"displayName\"|\"description\"|\"createdAt\"|\"updatedAt\"|\"stackName\"|\"mainDirectory\"|\"environmentVariables\")[]>": {
+      "type": "object",
+      "properties": {
+        "top": {
+          "type": "number",
+          "description": "Limits the hits"
+        },
+        "skip": {
+          "type": "number",
+          "description": "Skips the first N hit"
+        },
+        "order": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "displayName": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "description": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "createdAt": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "updatedAt": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "stackName": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "mainDirectory": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "environmentVariables": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            }
+          },
+          "additionalProperties": false,
+          "description": "Sets up an order by a field and a direction"
+        },
+        "select": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "name",
+              "displayName",
+              "description",
+              "createdAt",
+              "updatedAt",
+              "stackName",
+              "mainDirectory",
+              "environmentVariables"
+            ]
+          },
+          "description": "The result set will be limited to these fields"
+        },
+        "filter": {
+          "$ref": "#/definitions/FilterType%3CStackView%3E",
+          "description": "The fields should match this filter"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Type for default filtering model"
+    },
+    "FilterType<StackView>": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$and": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CStackView%3E"
+          }
+        },
+        "$not": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CStackView%3E"
+          }
+        },
+        "$nor": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CStackView%3E"
+          }
+        },
+        "$or": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilterType%3CStackView%3E"
+          }
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string",
+                  "description": "Unique kebab-case identifier for the stack"
+                },
+                "$endsWith": {
+                  "type": "string",
+                  "description": "Unique kebab-case identifier for the stack"
+                },
+                "$like": {
+                  "type": "string",
+                  "description": "Unique kebab-case identifier for the stack"
+                },
+                "$regex": {
+                  "type": "string",
+                  "description": "Unique kebab-case identifier for the stack"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "Unique kebab-case identifier for the stack"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "Unique kebab-case identifier for the stack"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Unique kebab-case identifier for the stack"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Unique kebab-case identifier for the stack"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "displayName": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                },
+                "$endsWith": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                },
+                "$like": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                },
+                "$regex": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "Human-readable name shown in the UI"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Human-readable name shown in the UI"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Human-readable name shown in the UI"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string",
+                  "description": "Optional description of what this stack does"
+                },
+                "$endsWith": {
+                  "type": "string",
+                  "description": "Optional description of what this stack does"
+                },
+                "$like": {
+                  "type": "string",
+                  "description": "Optional description of what this stack does"
+                },
+                "$regex": {
+                  "type": "string",
+                  "description": "Optional description of what this stack does"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "Optional description of what this stack does"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "Optional description of what this stack does"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Optional description of what this stack does"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Optional description of what this stack does"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "createdAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "updatedAt": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string"
+                },
+                "$endsWith": {
+                  "type": "string"
+                },
+                "$like": {
+                  "type": "string"
+                },
+                "$regex": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "stackName": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
+                },
+                "$endsWith": {
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
+                },
+                "$like": {
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
+                },
+                "$regex": {
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "FK to  {@link  StackDefinition.name  }"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "FK to  {@link  StackDefinition.name  }"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "mainDirectory": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$startsWith": {
+                  "type": "string",
+                  "description": "Absolute path to the root directory for all services in this stack"
+                },
+                "$endsWith": {
+                  "type": "string",
+                  "description": "Absolute path to the root directory for all services in this stack"
+                },
+                "$like": {
+                  "type": "string",
+                  "description": "Absolute path to the root directory for all services in this stack"
+                },
+                "$regex": {
+                  "type": "string",
+                  "description": "Absolute path to the root directory for all services in this stack"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "Absolute path to the root directory for all services in this stack"
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "Absolute path to the root directory for all services in this stack"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Absolute path to the root directory for all services in this stack"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "description": "Absolute path to the root directory for all services in this stack"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "environmentVariables": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/definitions/EnvironmentVariableValue"
+                  },
+                  "description": "Stack-level environment variable values, keyed by variable name"
+                },
+                "$ne": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/definitions/EnvironmentVariableValue"
+                  },
+                  "description": "Stack-level environment variable values, keyed by variable name"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/definitions/EnvironmentVariableValue"
+                    },
+                    "description": "Stack-level environment variable values, keyed by variable name"
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/definitions/EnvironmentVariableValue"
+                    },
+                    "description": "Stack-level environment variable values, keyed by variable name"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "GetCollectionResult<StackView>": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "number",
+          "description": "The Total count of entities"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StackView"
+          },
+          "description": "List of the selected entities"
+        }
+      },
+      "required": ["count", "entries"],
+      "additionalProperties": false,
+      "description": "Response Model for GetCollection"
+    },
+    "GetEntityEndpoint<StackView,\"name\">": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "object",
+          "properties": {
+            "select": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "name",
+                  "displayName",
+                  "description",
+                  "createdAt",
+                  "updatedAt",
+                  "stackName",
+                  "mainDirectory",
+                  "environmentVariables"
+                ]
+              },
+              "description": "The list of fields to select"
+            }
+          },
+          "additionalProperties": false
+        },
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The entity's unique identifier"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "result": {
+          "$ref": "#/definitions/StackView"
+        }
+      },
+      "required": ["query", "url", "result"],
+      "additionalProperties": false,
+      "description": "Endpoint model for getting a single entity"
+    },
+    "DeleteEndpoint<StackDefinition,\"name\">": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique kebab-case identifier for the stack"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object"
+        }
+      },
+      "required": ["url", "result"],
+      "additionalProperties": false,
+      "description": "Endpoint model for deleting entities"
+    }
+  }
+}

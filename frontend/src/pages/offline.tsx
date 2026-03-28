@@ -1,8 +1,9 @@
-import { Shade, createComponent } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
+import { StackCraftNestedRouteLink } from '../components/app-routes.js'
 import { environmentOptions } from '../environment-options.js'
 
 export const Offline = Shade({
-  shadowDomName: 'shade-offline',
+  customElementName: 'shade-offline',
   css: {
     display: 'flex',
     flexDirection: 'column',
@@ -43,7 +44,7 @@ export const Offline = Shade({
           </li>
           <li>You have started the service :)</li>
         </ul>
-        <a href="/">Reload page</a>
+        <StackCraftNestedRouteLink href="/">Reload page</StackCraftNestedRouteLink>
       </div>
     )
   },
