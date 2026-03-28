@@ -10,6 +10,24 @@ jobs:
       matrix:
         node-version: [22.x, 24.x]
 
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: stackcraft
+          POSTGRES_PASSWORD: stackcraft
+          POSTGRES_DB: stackcraft
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://stackcraft:stackcraft@localhost:5432/stackcraft
+
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}

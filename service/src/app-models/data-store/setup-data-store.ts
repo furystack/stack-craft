@@ -19,10 +19,8 @@ import {
 import type { EnvironmentVariableValue, PrerequisiteConfig, PrerequisiteType, ServiceFile } from 'common'
 import { DataTypes, Model } from 'sequelize'
 import type { Options, Sequelize } from 'sequelize'
-import sqlite from 'sqlite3'
-import { join } from 'path'
 
-import { authorizedDataSet, dataDir, ensureDataDir } from '../../config.js'
+import { authorizedDataSet } from '../../config.js'
 
 // --- Sequelize Model classes ---
 
@@ -139,33 +137,34 @@ class ApiTokenModel extends Model<ApiToken, ApiToken> implements ApiToken {
   declare createdAt: string
 }
 
-const getDbOptions = (): Options => ({
-  dialect: 'sqlite',
-  dialectModule: sqlite,
-  storage: join(dataDir, 'stack-craft.sqlite'),
-  logging: false,
-})
+const getDbOptions = (): Options => {
+  const databaseUrl = process.env.DATABASE_URL
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL environment variable is required')
+  }
+  const parsed = new URL(databaseUrl)
+  return {
+    dialect: 'postgres',
+    host: parsed.hostname,
+    port: parseInt(parsed.port, 10) || 5432,
+    database: parsed.pathname.replace(/^\//, ''),
+    username: decodeURIComponent(parsed.username),
+    password: decodeURIComponent(parsed.password),
+    logging: false,
+  }
+}
 
 /**
  * Initializes ALL Sequelize models and their associations on the shared connection.
  * Called once via the first useSequelize's initModel callback.
  */
 async function initAllModels(sequelize: Sequelize): Promise<void> {
-  await sequelize.query('PRAGMA foreign_keys = ON')
-
   UserModel.init(
     {
       username: { type: DataTypes.STRING, primaryKey: true },
       roles: {
-        type: DataTypes.TEXT,
-        defaultValue: '[]',
-        get() {
-          const raw = this.getDataValue('roles')
-          return typeof raw === 'string' ? (JSON.parse(raw) as string[]) : raw
-        },
-        set(val: string[]) {
-          this.setDataValue('roles', JSON.stringify(val) as unknown as string[])
-        },
+        type: DataTypes.JSONB,
+        defaultValue: [],
       },
     },
     { sequelize, timestamps: false },
@@ -205,18 +204,8 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
       },
       mainDirectory: { type: DataTypes.STRING, allowNull: false },
       environmentVariables: {
-        type: DataTypes.TEXT,
-        defaultValue: '{}',
-        get() {
-          const raw = this.getDataValue('environmentVariables')
-          return typeof raw === 'string' ? (JSON.parse(raw) as Record<string, EnvironmentVariableValue>) : (raw ?? {})
-        },
-        set(val: Record<string, EnvironmentVariableValue>) {
-          this.setDataValue(
-            'environmentVariables',
-            JSON.stringify(val) as unknown as Record<string, EnvironmentVariableValue>,
-          )
-        },
+        type: DataTypes.JSONB,
+        defaultValue: {},
       },
       createdAt: { type: DataTypes.DATE },
       updatedAt: { type: DataTypes.DATE },
@@ -252,15 +241,8 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
       name: { type: DataTypes.STRING, allowNull: false },
       type: { type: DataTypes.STRING, allowNull: false },
       config: {
-        type: DataTypes.TEXT,
-        defaultValue: '{}',
-        get() {
-          const raw = this.getDataValue('config')
-          return typeof raw === 'string' ? (JSON.parse(raw) as PrerequisiteConfig) : raw
-        },
-        set(val: PrerequisiteConfig) {
-          this.setDataValue('config', JSON.stringify(val) as unknown as PrerequisiteConfig)
-        },
+        type: DataTypes.JSONB,
+        defaultValue: {},
       },
       installationHelp: { type: DataTypes.TEXT, defaultValue: '' },
       createdAt: { type: DataTypes.DATE },
@@ -286,40 +268,19 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
         references: { model: GitHubRepositoryModel, key: 'id' },
       },
       prerequisiteIds: {
-        type: DataTypes.TEXT,
-        defaultValue: '[]',
-        get() {
-          const raw = this.getDataValue('prerequisiteIds')
-          return typeof raw === 'string' ? (JSON.parse(raw) as string[]) : raw
-        },
-        set(val: string[]) {
-          this.setDataValue('prerequisiteIds', JSON.stringify(val) as unknown as string[])
-        },
+        type: DataTypes.JSONB,
+        defaultValue: [],
       },
       prerequisiteServiceIds: {
-        type: DataTypes.TEXT,
-        defaultValue: '[]',
-        get() {
-          const raw = this.getDataValue('prerequisiteServiceIds')
-          return typeof raw === 'string' ? (JSON.parse(raw) as string[]) : raw
-        },
-        set(val: string[]) {
-          this.setDataValue('prerequisiteServiceIds', JSON.stringify(val) as unknown as string[])
-        },
+        type: DataTypes.JSONB,
+        defaultValue: [],
       },
       installCommand: { type: DataTypes.STRING, allowNull: true },
       buildCommand: { type: DataTypes.STRING, allowNull: true },
       runCommand: { type: DataTypes.STRING, allowNull: false },
       files: {
-        type: DataTypes.TEXT,
-        defaultValue: '[]',
-        get() {
-          const raw = this.getDataValue('files')
-          return typeof raw === 'string' ? (JSON.parse(raw) as ServiceFile[]) : raw
-        },
-        set(val: ServiceFile[]) {
-          this.setDataValue('files', JSON.stringify(val) as unknown as ServiceFile[])
-        },
+        type: DataTypes.JSONB,
+        defaultValue: [],
       },
       createdAt: { type: DataTypes.DATE },
       updatedAt: { type: DataTypes.DATE },
@@ -338,18 +299,8 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
       autoFetchIntervalMinutes: { type: DataTypes.INTEGER, defaultValue: 60 },
       autoRestartOnFetch: { type: DataTypes.BOOLEAN, defaultValue: false },
       environmentVariableOverrides: {
-        type: DataTypes.TEXT,
-        defaultValue: '{}',
-        get() {
-          const raw = this.getDataValue('environmentVariableOverrides')
-          return typeof raw === 'string' ? (JSON.parse(raw) as Record<string, EnvironmentVariableValue>) : (raw ?? {})
-        },
-        set(val: Record<string, EnvironmentVariableValue>) {
-          this.setDataValue(
-            'environmentVariableOverrides',
-            JSON.stringify(val) as unknown as Record<string, EnvironmentVariableValue>,
-          )
-        },
+        type: DataTypes.JSONB,
+        defaultValue: {},
       },
       createdAt: { type: DataTypes.DATE },
       updatedAt: { type: DataTypes.DATE },
@@ -453,7 +404,6 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
 }
 
 export const setupDataStore = async (injector: Injector) => {
-  ensureDataDir()
   const logger = getLogger(injector).withScope('DataStore')
   const dbOptions = getDbOptions()
 

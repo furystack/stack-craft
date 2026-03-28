@@ -6,7 +6,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "yarn node ./dist/service.js",
+    "start": "yarn node --env-file-if-exists=.env ./dist/service.js",
     "clean": "rimraf dist && rimraf tsconfig.tsbuildinfo",
     "build": "tsc -b"
   },
@@ -18,7 +18,6 @@
   "dependencies": {
     "@furystack/core": "^16.0.3",
     "@furystack/entity-sync-service": "^1.0.11",
-    "@furystack/filesystem-store": "^7.1.6",
     "@furystack/inject": "^12.0.35",
     "@furystack/logging": "^8.1.4",
     "@furystack/repository": "^10.1.10",
@@ -28,7 +27,8 @@
     "@furystack/websocket-api": "^13.2.6",
     "@modelcontextprotocol/sdk": "1.28.0",
     "common": "workspace:^",
-    "sequelize": "^6.37.8",
-    "sqlite3": "^6.0.1"
+    "pg": "^8.16.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.8"
   }
 }
