@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, Timeline, TimelineItem } from '@furystack/shades-common-components'
+import { Button, cssVariableTheme, Timeline, TimelineItem } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
 
 import type { PipelineStageStatus } from '../utils/service-pipeline.js'
@@ -46,7 +46,9 @@ export const ServicePipelineStepper = Shade<ServicePipelineStepperProps>({
         {visibleStages.map((stage) => {
           const color = getStageColor(stage.status)
           const actionLabel = stageActionLabels[stage.id]?.[stage.status] ?? null
-          const dot = <span style={{ fontSize: '14px' }}>{statusDots[stage.status]}</span>
+          const dot = (
+            <span style={{ fontSize: cssVariableTheme.typography.fontSize.md }}>{statusDots[stage.status]}</span>
+          )
 
           const getActionTarget = () => {
             if (stage.id === 'run' && stage.status === 'done') return '/services/:id/stop'
@@ -60,7 +62,7 @@ export const ServicePipelineStepper = Shade<ServicePipelineStepperProps>({
                   <span
                     style={{
                       fontFamily: 'monospace',
-                      fontSize: '12px',
+                      fontSize: cssVariableTheme.typography.fontSize.sm,
                       opacity: '0.6',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',

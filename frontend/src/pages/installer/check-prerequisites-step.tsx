@@ -1,5 +1,6 @@
 import { createComponent, Shade } from '@furystack/shades'
 import type { WizardStepProps } from '@furystack/shades-common-components'
+import { cssVariableTheme } from '@furystack/shades-common-components'
 import { WizardStep } from '../../components/wizard-step.js'
 
 export const CheckPrerequisitesStep = Shade<WizardStepProps>({
@@ -21,13 +22,15 @@ export const CheckPrerequisitesStep = Shade<WizardStepProps>({
                 padding: '12px 16px',
                 marginBottom: '8px',
                 borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                background: 'rgba(255, 255, 255, 0.03)',
+                border: `1px solid ${cssVariableTheme.divider}`,
+                background: cssVariableTheme.button.hover,
               }}
             >
               <strong>{prereq.name}</strong>
               <br />
-              <span style={{ opacity: '0.7', fontSize: '14px' }}>{prereq.description}</span>
+              <span style={{ opacity: '0.7', fontSize: cssVariableTheme.typography.fontSize.md }}>
+                {prereq.description}
+              </span>
             </li>
           ))}
         </ul>

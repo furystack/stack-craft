@@ -6,10 +6,7 @@ import { ServiceDefinition, ServiceStatus } from 'common'
 import { GitService } from '../../../services/git-service.js'
 import { resolveServiceCwd } from '../../../utils/resolve-service-cwd.js'
 
-export const ServiceBranchesAction: RequestAction<ServiceBranchesEndpoint> = async ({
-  injector,
-  getUrlParams,
-}) => {
+export const ServiceBranchesAction: RequestAction<ServiceBranchesEndpoint> = async ({ injector, getUrlParams }) => {
   const { id: serviceId } = getUrlParams()
   const repo = getRepository(injector)
 
@@ -30,10 +27,7 @@ export const ServiceBranchesAction: RequestAction<ServiceBranchesEndpoint> = asy
   const cwd = await resolveServiceCwd(injector, svc)
   const git = injector.getInstance(GitService)
 
-  const [currentBranch, branches] = await Promise.all([
-    git.getCurrentBranch(cwd),
-    git.getBranches(cwd),
-  ])
+  const [currentBranch, branches] = await Promise.all([git.getCurrentBranch(cwd), git.getBranches(cwd)])
 
   return JsonResult({
     currentBranch,

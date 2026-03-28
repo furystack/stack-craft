@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, Chip, Icon, icons, NotyService, ThemeProviderService } from '@furystack/shades-common-components'
+import { Button, Chip, cssVariableTheme, Icon, icons, NotyService } from '@furystack/shades-common-components'
 
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
 
@@ -22,7 +22,6 @@ export const BranchSelector = Shade<BranchSelectorProps>({
 
     const api = injector.getInstance(ServicesApiClient)
     const noty = injector.getInstance(NotyService)
-    const { theme } = injector.getInstance(ThemeProviderService)
 
     if (!isCloned) {
       return (
@@ -92,9 +91,7 @@ export const BranchSelector = Shade<BranchSelectorProps>({
     const allBranches = branches
       ? [
           ...branches.local.map((b) => ({ name: b, type: 'local' as const })),
-          ...branches.remote
-            .filter((b) => !b.endsWith('/HEAD'))
-            .map((b) => ({ name: b, type: 'remote' as const })),
+          ...branches.remote.filter((b) => !b.endsWith('/HEAD')).map((b) => ({ name: b, type: 'remote' as const })),
         ]
       : []
 
@@ -114,7 +111,9 @@ export const BranchSelector = Shade<BranchSelectorProps>({
           startIcon={<Icon icon={icons.code} size="small" />}
         >
           <span style={{ fontFamily: 'monospace' }}>{branchLabel}</span>
-          <span style={{ marginLeft: '4px', fontSize: '10px' }}>{isOpen ? '▲' : '▼'}</span>
+          <span style={{ marginLeft: '4px', fontSize: cssVariableTheme.typography.fontSize.xs }}>
+            {isOpen ? '▲' : '▼'}
+          </span>
         </Button>
 
         {isOpen ? (
@@ -125,16 +124,17 @@ export const BranchSelector = Shade<BranchSelectorProps>({
               left: '0',
               marginTop: '4px',
               minWidth: '280px',
+              maxWidth: 'calc(100vw - 32px)',
               maxHeight: '320px',
               overflow: 'auto',
-              backgroundColor: theme.background.paper,
-              border: `1px solid ${theme.divider}`,
-              borderRadius: '8px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+              backgroundColor: cssVariableTheme.background.paper,
+              border: `1px solid ${cssVariableTheme.divider}`,
+              borderRadius: cssVariableTheme.shape.borderRadius.md,
+              boxShadow: cssVariableTheme.shadows.md,
               zIndex: '100',
             }}
           >
-            <div style={{ padding: '8px', borderBottom: `1px solid ${theme.divider}` }}>
+            <div style={{ padding: '8px', borderBottom: `1px solid ${cssVariableTheme.divider}` }}>
               <input
                 type="text"
                 placeholder="Filter branches..."
@@ -143,11 +143,11 @@ export const BranchSelector = Shade<BranchSelectorProps>({
                 style={{
                   width: '100%',
                   padding: '6px 10px',
-                  border: `1px solid ${theme.divider}`,
-                  borderRadius: '4px',
-                  backgroundColor: theme.background.default,
-                  color: theme.text.primary,
-                  fontSize: '13px',
+                  border: `1px solid ${cssVariableTheme.divider}`,
+                  borderRadius: cssVariableTheme.shape.borderRadius.sm,
+                  backgroundColor: cssVariableTheme.background.default,
+                  color: cssVariableTheme.text.primary,
+                  fontSize: cssVariableTheme.typography.fontSize.sm,
                   outline: 'none',
                   boxSizing: 'border-box',
                   fontFamily: 'inherit',
@@ -156,9 +156,11 @@ export const BranchSelector = Shade<BranchSelectorProps>({
             </div>
 
             {isLoading ? (
-              <div style={{ padding: '16px', textAlign: 'center', color: theme.text.secondary }}>Loading...</div>
+              <div style={{ padding: '16px', textAlign: 'center', color: cssVariableTheme.text.secondary }}>
+                Loading...
+              </div>
             ) : filteredBranches.length === 0 ? (
-              <div style={{ padding: '16px', textAlign: 'center', color: theme.text.secondary }}>
+              <div style={{ padding: '16px', textAlign: 'center', color: cssVariableTheme.text.secondary }}>
                 {filter ? 'No matching branches' : 'No branches found'}
               </div>
             ) : (
@@ -177,10 +179,10 @@ export const BranchSelector = Shade<BranchSelectorProps>({
                         width: '100%',
                         padding: '8px 12px',
                         border: 'none',
-                        background: isCurrent ? `${theme.palette.primary.main}22` : 'transparent',
-                        color: isCurrent ? theme.palette.primary.main : theme.text.primary,
+                        background: isCurrent ? cssVariableTheme.button.hover : 'transparent',
+                        color: isCurrent ? cssVariableTheme.palette.primary.main : cssVariableTheme.text.primary,
                         cursor: isCurrent ? 'default' : 'pointer',
-                        fontSize: '13px',
+                        fontSize: cssVariableTheme.typography.fontSize.sm,
                         fontFamily: 'monospace',
                         textAlign: 'left',
                       }}
@@ -189,9 +191,17 @@ export const BranchSelector = Shade<BranchSelectorProps>({
                         {branch.name}
                       </span>
                       {branch.type === 'remote' ? (
-                        <span style={{ fontSize: '10px', opacity: '0.5', fontFamily: 'sans-serif' }}>remote</span>
+                        <span
+                          style={{
+                            fontSize: cssVariableTheme.typography.fontSize.xs,
+                            opacity: '0.5',
+                            fontFamily: 'sans-serif',
+                          }}
+                        >
+                          remote
+                        </span>
                       ) : null}
-                      {isCurrent ? <span style={{ fontSize: '12px' }}>✓</span> : null}
+                      {isCurrent ? <span style={{ fontSize: cssVariableTheme.typography.fontSize.sm }}>✓</span> : null}
                     </button>
                   )
                 })}

@@ -156,7 +156,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
           style={{
             width: '32px',
             height: '2px',
-            background: state.step > 0 ? cssVariableTheme.palette.primary.main : 'rgba(255,255,255,0.15)',
+            background: state.step > 0 ? cssVariableTheme.palette.primary.main : cssVariableTheme.divider,
           }}
         />
         <StepDot active={state.step === 1} completed={false} label="2. Setup" />
@@ -328,7 +328,7 @@ const StepDot = Shade<StepDotProps>({
       ? cssVariableTheme.palette.primary.main
       : props.completed
         ? cssVariableTheme.palette.success.main
-        : 'rgba(255,255,255,0.15)'
+        : cssVariableTheme.divider
 
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

@@ -1,4 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
+import { cssVariableTheme } from '@furystack/shades-common-components'
 
 import type { AnsiStyle } from '../utils/parse-ansi.js'
 import { parseAnsi } from '../utils/parse-ansi.js'
@@ -26,7 +27,7 @@ const renderTextWithLinks = (text: string, style: AnsiStyle) => {
         rel="noopener noreferrer"
         style={{
           ...style,
-          color: style.color ?? '#58a6ff',
+          color: style.color ?? cssVariableTheme.palette.primary.main,
           textDecoration: 'underline',
           cursor: 'pointer',
         }}

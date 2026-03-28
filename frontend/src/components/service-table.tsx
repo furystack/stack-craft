@@ -7,6 +7,7 @@ import {
   Button,
   Chip,
   CollectionService,
+  cssVariableTheme,
   DataGrid,
   Icon,
   icons,
@@ -103,7 +104,9 @@ export const ServiceTable = Shade<ServiceTableProps>({
               <span>
                 <strong>{entry.displayName}</strong>
                 {entry.description ? (
-                  <div style={{ fontSize: '12px', opacity: '0.6', marginTop: '2px' }}>{entry.description}</div>
+                  <div style={{ fontSize: cssVariableTheme.typography.fontSize.sm, opacity: '0.6', marginTop: '2px' }}>
+                    {entry.description}
+                  </div>
                 ) : null}
                 {summary ? (
                   <div style={{ marginTop: '4px' }}>
@@ -130,7 +133,13 @@ export const ServiceTable = Shade<ServiceTableProps>({
           },
           pipeline: (entry) => <MiniPipelineDots service={entry} />,
           branch: (entry) => (
-            <span style={{ fontFamily: 'monospace', fontSize: '12px', opacity: entry.currentBranch ? '0.8' : '0.3' }}>
+            <span
+              style={{
+                fontFamily: 'monospace',
+                fontSize: cssVariableTheme.typography.fontSize.sm,
+                opacity: entry.currentBranch ? '0.8' : '0.3',
+              }}
+            >
               {entry.currentBranch ?? '—'}
             </span>
           ),

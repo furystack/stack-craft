@@ -185,7 +185,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
 
           <div>
             <h4 style={{ margin: '0 0 8px 0', opacity: '0.7' }}>Shared Files</h4>
-            <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: '13px' }}>
+            <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
               Files placed relative to the service root (e.g. .env, appConfig.local.json).
             </p>
             {sharedFiles.length > 0 ? (
@@ -193,7 +193,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
                 {sharedFiles.map((file, index) => (
                   <div
                     style={{
-                      border: '2px solid rgba(255,255,255,0.1)',
+                      border: `2px solid ${cssVariableTheme.divider}`,
                       borderRadius: '8px',
                       padding: '12px',
                     }}
@@ -212,11 +212,11 @@ export const ServiceForm = Shade<ServiceFormProps>({
                           flex: '1',
                           padding: '6px 10px',
                           borderRadius: '4px',
-                          border: '1px solid rgba(255,255,255,0.2)',
+                          border: `1px solid ${cssVariableTheme.divider}`,
                           background: 'transparent',
                           color: 'inherit',
                           fontFamily: 'monospace',
-                          fontSize: '13px',
+                          fontSize: cssVariableTheme.typography.fontSize.sm,
                         }}
                       />
                       <Button
@@ -243,11 +243,11 @@ export const ServiceForm = Shade<ServiceFormProps>({
                         width: '100%',
                         padding: '8px 10px',
                         borderRadius: '4px',
-                        border: '1px solid rgba(255,255,255,0.2)',
+                        border: `1px solid ${cssVariableTheme.divider}`,
                         background: 'transparent',
                         color: 'inherit',
                         fontFamily: 'monospace',
-                        fontSize: '13px',
+                        fontSize: cssVariableTheme.typography.fontSize.sm,
                         resize: 'vertical',
                         boxSizing: 'border-box',
                       }}
@@ -285,8 +285,8 @@ export const ServiceForm = Shade<ServiceFormProps>({
                           cursor: 'pointer',
                           border: isSelected
                             ? `2px solid ${cssVariableTheme.palette.primary.main}`
-                            : '2px solid rgba(255,255,255,0.1)',
-                          background: isSelected ? 'rgba(255,255,255,0.03)' : 'transparent',
+                            : `2px solid ${cssVariableTheme.divider}`,
+                          background: isSelected ? cssVariableTheme.button.hover : 'transparent',
                           transition: 'all 0.15s',
                         }}
                       >
@@ -296,8 +296,8 @@ export const ServiceForm = Shade<ServiceFormProps>({
                           onchange={() => togglePrereqId(prereq.id)}
                           style={{ margin: '0' }}
                         />
-                        <span style={{ fontWeight: '500' }}>{prereq.name}</span>
-                        <span style={{ opacity: '0.6', fontSize: '13px' }}>
+                        <span style={{ fontWeight: cssVariableTheme.typography.fontWeight.medium }}>{prereq.name}</span>
+                        <span style={{ opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
                           {prerequisiteTypeLabels[prereq.type] ?? prereq.type}
                         </span>
                       </label>
@@ -305,7 +305,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
                   })}
                 </div>
               ) : (
-                <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: '14px' }}>
+                <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.md }}>
                   No prerequisites defined for this stack yet.
                 </p>
               )}
@@ -326,7 +326,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
           {props.otherServices && props.otherServices.length > 0 ? (
             <div>
               <h4 style={{ margin: '0 0 8px 0', opacity: '0.7' }}>Prerequisite Services</h4>
-              <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: '13px' }}>
+              <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
                 Services that must be running before this one starts.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -343,8 +343,8 @@ export const ServiceForm = Shade<ServiceFormProps>({
                         cursor: 'pointer',
                         border: isSelected
                           ? `2px solid ${cssVariableTheme.palette.primary.main}`
-                          : '2px solid rgba(255,255,255,0.1)',
-                        background: isSelected ? 'rgba(255,255,255,0.03)' : 'transparent',
+                          : `2px solid ${cssVariableTheme.divider}`,
+                        background: isSelected ? cssVariableTheme.button.hover : 'transparent',
                         transition: 'all 0.15s',
                       }}
                     >
@@ -354,7 +354,9 @@ export const ServiceForm = Shade<ServiceFormProps>({
                         onchange={() => togglePrereqServiceId(svc.id)}
                         style={{ margin: '0' }}
                       />
-                      <span style={{ fontWeight: '500' }}>{svc.displayName}</span>
+                      <span style={{ fontWeight: cssVariableTheme.typography.fontWeight.medium }}>
+                        {svc.displayName}
+                      </span>
                     </label>
                   )
                 })}
@@ -426,9 +428,9 @@ export const ServiceForm = Shade<ServiceFormProps>({
               elevation={3}
               style={{
                 padding: '24px',
-                minWidth: '480px',
+                width: 'min(480px, calc(100vw - 32px))',
                 maxWidth: '600px',
-                borderRadius: '12px',
+                borderRadius: cssVariableTheme.shape.borderRadius.lg,
                 background: cssVariableTheme.background.paper,
               }}
             >
@@ -467,9 +469,9 @@ export const ServiceForm = Shade<ServiceFormProps>({
               elevation={3}
               style={{
                 padding: '24px',
-                minWidth: '480px',
+                width: 'min(480px, calc(100vw - 32px))',
                 maxWidth: '600px',
-                borderRadius: '12px',
+                borderRadius: cssVariableTheme.shape.borderRadius.lg,
                 background: cssVariableTheme.background.paper,
               }}
             >

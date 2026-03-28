@@ -4,6 +4,7 @@ import { createComponent, Shade } from '@furystack/shades'
 import {
   Button,
   Chip,
+  cssVariableTheme,
   Icon,
   icons,
   Loader,
@@ -162,7 +163,7 @@ export const Dashboard = Shade<DashboardProps>({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <Icon icon={icons.code} />
-                <h3 style={{ margin: '0', fontSize: '16px' }}>Services</h3>
+                <h3 style={{ margin: '0', fontSize: cssVariableTheme.typography.fontSize.lg }}>Services</h3>
                 <Chip variant="outlined" size="small">
                   {services.length}
                 </Chip>
@@ -187,10 +188,10 @@ export const Dashboard = Shade<DashboardProps>({
                       display: 'flex',
                       alignItems: 'center',
                       gap: '6px',
-                      fontSize: '13px',
+                      fontSize: cssVariableTheme.typography.fontSize.sm,
                       padding: '2px 8px',
                       borderRadius: '4px',
-                      border: '1px solid rgba(255,255,255,0.1)',
+                      border: `1px solid ${cssVariableTheme.divider}`,
                     }}
                   >
                     <RunStatusChip status={svc.runStatus} />
@@ -198,13 +199,17 @@ export const Dashboard = Shade<DashboardProps>({
                   </div>
                 ))}
                 {services.length > 5 ? (
-                  <span style={{ fontSize: '13px', opacity: '0.6', alignSelf: 'center' }}>
+                  <span
+                    style={{ fontSize: cssVariableTheme.typography.fontSize.sm, opacity: '0.6', alignSelf: 'center' }}
+                  >
                     +{services.length - 5} more
                   </span>
                 ) : null}
               </div>
             ) : (
-              <p style={{ margin: '8px 0 0', opacity: '0.5', fontSize: '14px' }}>No services yet.</p>
+              <p style={{ margin: '8px 0 0', opacity: '0.5', fontSize: cssVariableTheme.typography.fontSize.md }}>
+                No services yet.
+              </p>
             )}
           </Paper>
         </StackCraftNestedRouteLink>
@@ -218,7 +223,7 @@ export const Dashboard = Shade<DashboardProps>({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <Icon icon={icons.link} />
-                <h3 style={{ margin: '0', fontSize: '16px' }}>Repositories</h3>
+                <h3 style={{ margin: '0', fontSize: cssVariableTheme.typography.fontSize.lg }}>Repositories</h3>
                 <Chip variant="outlined" size="small">
                   {repos.length}
                 </Chip>
@@ -233,13 +238,17 @@ export const Dashboard = Shade<DashboardProps>({
                   </Chip>
                 ))}
                 {repos.length > 5 ? (
-                  <span style={{ fontSize: '13px', opacity: '0.6', alignSelf: 'center' }}>
+                  <span
+                    style={{ fontSize: cssVariableTheme.typography.fontSize.sm, opacity: '0.6', alignSelf: 'center' }}
+                  >
                     +{repos.length - 5} more
                   </span>
                 ) : null}
               </div>
             ) : (
-              <p style={{ margin: '8px 0 0', opacity: '0.5', fontSize: '14px' }}>No repositories yet.</p>
+              <p style={{ margin: '8px 0 0', opacity: '0.5', fontSize: cssVariableTheme.typography.fontSize.md }}>
+                No repositories yet.
+              </p>
             )}
           </Paper>
         </StackCraftNestedRouteLink>
@@ -253,7 +262,7 @@ export const Dashboard = Shade<DashboardProps>({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <Icon icon={icons.check} />
-                <h3 style={{ margin: '0', fontSize: '16px' }}>Prerequisites</h3>
+                <h3 style={{ margin: '0', fontSize: cssVariableTheme.typography.fontSize.lg }}>Prerequisites</h3>
                 <Chip variant="outlined" size="small">
                   {prereqs.length}
                 </Chip>
@@ -268,13 +277,17 @@ export const Dashboard = Shade<DashboardProps>({
                   </Chip>
                 ))}
                 {prereqs.length > 5 ? (
-                  <span style={{ fontSize: '13px', opacity: '0.6', alignSelf: 'center' }}>
+                  <span
+                    style={{ fontSize: cssVariableTheme.typography.fontSize.sm, opacity: '0.6', alignSelf: 'center' }}
+                  >
                     +{prereqs.length - 5} more
                   </span>
                 ) : null}
               </div>
             ) : (
-              <p style={{ margin: '8px 0 0', opacity: '0.5', fontSize: '14px' }}>No prerequisites yet.</p>
+              <p style={{ margin: '8px 0 0', opacity: '0.5', fontSize: cssVariableTheme.typography.fontSize.md }}>
+                No prerequisites yet.
+              </p>
             )}
           </Paper>
         </StackCraftNestedRouteLink>

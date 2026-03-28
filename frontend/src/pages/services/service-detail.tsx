@@ -7,6 +7,7 @@ import {
   Chip,
   CollectionService,
   ConfirmDialog,
+  cssVariableTheme,
   DataGrid,
   Icon,
   icons,
@@ -16,7 +17,6 @@ import {
   PageContainer,
   PageHeader,
   Paper,
-  ThemeProviderService,
 } from '@furystack/shades-common-components'
 import type { PrerequisiteCheckStatus, ServiceView, StackView } from 'common'
 import {
@@ -209,7 +209,6 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     const prereqsApi = injector.getInstance(PrerequisitesApiClient)
     const reposApi = injector.getInstance(GitHubReposApiClient)
     const noty = injector.getInstance(NotyService)
-    const { theme } = injector.getInstance(ThemeProviderService)
     const [actionInProgress, setActionInProgress] = useState<string | null>('actionInProgress', null)
 
     const runAction = async (action: string, apiAction: string) => {
@@ -405,36 +404,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
         />
 
         {/* Tab bar */}
-        <div
-          data-testid="service-detail-tabs"
-          style={{
-            display: 'flex',
-            gap: '0',
-            borderBottom: `1px solid ${theme.divider}`,
-            marginBottom: '16px',
-          }}
-        >
-          {tabs.map((tab) => (
-            <button
-              type="button"
-              onclick={() => setActiveTab(tab.id)}
-              style={{
-                padding: '10px 20px',
-                cursor: 'pointer',
-                border: 'none',
-                borderBottom: activeTab === tab.id ? `2px solid ${theme.palette.primary.main}` : '2px solid transparent',
-                background: 'transparent',
-                color: activeTab === tab.id ? theme.palette.primary.main : theme.text.secondary,
-                fontWeight: activeTab === tab.id ? '600' : '400',
-                fontSize: '14px',
-                transition: 'all 0.2s ease',
-                fontFamily: 'inherit',
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <ServiceTabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
         {/* Tab content */}
         {activeTab === 'overview' ? (
@@ -456,13 +426,9 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           />
         ) : null}
 
-        {activeTab === 'logs' ? (
-          <LogsTab serviceId={service.id} stackName={service.stackName} />
-        ) : null}
+        {activeTab === 'logs' ? <LogsTab serviceId={service.id} stackName={service.stackName} /> : null}
 
-        {activeTab === 'history' ? (
-          <ServiceHistory serviceId={service.id} stackName={service.stackName} />
-        ) : null}
+        {activeTab === 'history' ? <ServiceHistory serviceId={service.id} stackName={service.stackName} /> : null}
 
         {activeTab === 'configuration' ? (
           <ConfigurationTab
@@ -520,6 +486,62 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
 })
 
 /* ============================================
+ * Tab Bar
+ * ============================================ */
+
+type ServiceTabBarProps = {
+  tabs: Array<{ id: TabId; label: string }>
+  activeTab: TabId
+  onTabChange: (tab: TabId) => void
+}
+
+const ServiceTabBar = Shade<ServiceTabBarProps>({
+  customElementName: 'shade-service-tab-bar',
+  css: {
+    display: 'flex',
+    gap: '0',
+    borderBottom: `1px solid ${cssVariableTheme.divider}`,
+    marginBottom: cssVariableTheme.spacing.md,
+
+    '& button': {
+      padding: `${cssVariableTheme.spacing.sm} ${cssVariableTheme.spacing.lg}`,
+      cursor: 'pointer',
+      border: 'none',
+      borderBottom: '2px solid transparent',
+      background: 'transparent',
+      color: cssVariableTheme.text.secondary,
+      fontWeight: cssVariableTheme.typography.fontWeight.normal,
+      fontSize: cssVariableTheme.typography.fontSize.md,
+      transition: `all ${cssVariableTheme.transitions.duration.normal} ${cssVariableTheme.transitions.easing.easeInOut}`,
+      fontFamily: 'inherit',
+    },
+    '& button:hover': {
+      color: cssVariableTheme.text.primary,
+    },
+    '& button[data-active]': {
+      borderBottomColor: cssVariableTheme.palette.primary.main,
+      color: cssVariableTheme.palette.primary.main,
+      fontWeight: cssVariableTheme.typography.fontWeight.semibold,
+    },
+  },
+  render: ({ props }) => {
+    return (
+      <div data-testid="service-detail-tabs">
+        {props.tabs.map((tab) => (
+          <button
+            type="button"
+            onclick={() => props.onTabChange(tab.id)}
+            {...(props.activeTab === tab.id ? { 'data-active': '' } : {})}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    )
+  },
+})
+
+/* ============================================
  * Overview Tab
  * ============================================ */
 
@@ -551,11 +573,7 @@ const OverviewTab = Shade<OverviewTabProps>({
         {/* Pipeline stepper */}
         <Paper>
           <h3 style={{ margin: '0 0 8px 0' }}>Pipeline</h3>
-          <ServicePipelineStepper
-            service={service}
-            onAction={props.onAction}
-            onViewLogs={props.onViewLogs}
-          />
+          <ServicePipelineStepper service={service} onAction={props.onAction} onViewLogs={props.onViewLogs} />
         </Paper>
 
         {/* Service info */}
@@ -564,9 +582,9 @@ const OverviewTab = Shade<OverviewTabProps>({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '160px 1fr auto',
-              gap: '8px 16px',
-              fontSize: '14px',
+              gridTemplateColumns: 'minmax(120px, auto) 1fr auto',
+              gap: `8px ${cssVariableTheme.spacing.md}`,
+              fontSize: cssVariableTheme.typography.fontSize.md,
               alignItems: 'center',
             }}
           >
@@ -611,7 +629,9 @@ const OverviewTab = Shade<OverviewTabProps>({
               </div>
             ) : null}
             <strong>Working Directory</strong>
-            <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>{fullCwd ?? '(loading…)'}</span>
+            <span style={{ fontFamily: 'monospace', fontSize: cssVariableTheme.typography.fontSize.sm }}>
+              {fullCwd ?? '(loading…)'}
+            </span>
             {fullCwd ? (
               <span style={{ display: 'flex', gap: '4px' }}>
                 <a href={`cursor://file/${fullCwd}`} style={{ color: 'inherit' }}>
@@ -712,17 +732,13 @@ const LogsTab = Shade<LogsTabProps>({
               href="/stacks/:stackName/services/:serviceId/logs"
               params={{ stackName: props.stackName, serviceId: props.serviceId }}
             >
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<Icon icon={icons.externalLink} size="small" />}
-              >
+              <Button variant="outlined" size="small" startIcon={<Icon icon={icons.externalLink} size="small" />}>
                 Full View
               </Button>
             </StackCraftNestedRouteLink>
           </div>
         </div>
-        <Paper style={{ height: '500px', overflow: 'hidden' }}>
+        <Paper style={{ height: 'clamp(300px, 50vh, 600px)', overflow: 'hidden' }}>
           <LogViewer serviceId={props.serviceId} />
         </Paper>
       </div>
@@ -822,7 +838,9 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
               triggeredBy: (entry) => <span>{entry.triggeredBy}</span>,
               triggerSource: (entry) => <span>{entry.triggerSource}</span>,
               metadata: (entry) => (
-                <span style={{ fontFamily: 'monospace', fontSize: '12px', opacity: '0.8' }}>
+                <span
+                  style={{ fontFamily: 'monospace', fontSize: cssVariableTheme.typography.fontSize.sm, opacity: '0.8' }}
+                >
                   {entry.metadata ?? ''}
                 </span>
               ),
@@ -874,15 +892,7 @@ type ConfigurationTabProps = {
 const ConfigurationTab = Shade<ConfigurationTabProps>({
   customElementName: 'shade-service-config-tab',
   render: ({ props }) => {
-    const {
-      service,
-      repos,
-      allPrereqs,
-      otherServices,
-      servicePrereqs,
-      stackConfig,
-      actionInProgress,
-    } = props
+    const { service, repos, allPrereqs, otherServices, servicePrereqs, stackConfig, actionInProgress } = props
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -931,9 +941,9 @@ const ConfigurationTab = Shade<ConfigurationTabProps>({
                     gap: '12px',
                     padding: '8px 12px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    border: `1px solid ${cssVariableTheme.divider}`,
                     fontFamily: 'monospace',
-                    fontSize: '13px',
+                    fontSize: cssVariableTheme.typography.fontSize.sm,
                   }}
                 >
                   <span style={{ flex: '1', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.relativePath}</span>

@@ -134,9 +134,7 @@ export const getSecondaryActions = (service: ServiceView): ServiceAction[] => {
   }
 
   const stages = getPipelineStages(service)
-  const hasPendingStages = stages.some(
-    (s) => s.status === 'pending' && s.id !== 'run',
-  )
+  const hasPendingStages = stages.some((s) => s.status === 'pending' && s.id !== 'run')
   if (hasPendingStages) {
     actions.push({ label: 'Set Up All', apiAction: '/services/:id/setup', color: 'primary', icon: 'settings' })
   }
