@@ -80,6 +80,7 @@ class ServiceStatusModel extends Model<ServiceStatus, ServiceStatus> implements 
   declare lastBuiltAt: string | undefined
   declare lastStartedAt: string | undefined
   declare lastFetchedAt: string | undefined
+  declare currentBranch: string | undefined
   declare updatedAt: string
 }
 
@@ -372,6 +373,7 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
       lastBuiltAt: { type: DataTypes.DATE, allowNull: true },
       lastStartedAt: { type: DataTypes.DATE, allowNull: true },
       lastFetchedAt: { type: DataTypes.DATE, allowNull: true },
+      currentBranch: { type: DataTypes.STRING, allowNull: true },
       updatedAt: { type: DataTypes.DATE },
     },
     { sequelize, createdAt: false },

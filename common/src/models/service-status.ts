@@ -18,14 +18,11 @@ export class ServiceStatus {
   installStatus: InstallStatus = 'not-installed'
   buildStatus: BuildStatus = 'not-built'
   runStatus: RunStatus = 'stopped'
-
   currentBranch?: string
-
   lastClonedAt?: string
   lastInstalledAt?: string
   lastBuiltAt?: string
   lastStartedAt?: string
   lastFetchedAt?: string
-
   updatedAt!: string
 }
