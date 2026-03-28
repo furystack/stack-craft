@@ -43,25 +43,17 @@ export const ServiceLogs = Shade<ServiceLogsProps>({
           icon="📋"
           title={props.processUid ? 'Process Logs' : 'Service Logs'}
           actions={
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {!props.processUid && (
-                <Button
-                  variant="outlined"
-                  color="error"
-                  onclick={() => void handleClearLogs()}
-                  startIcon={<Icon icon={icons.trash} size="small" />}
-                >
-                  Clear Logs
-                </Button>
-              )}
+            !props.processUid ? (
               <Button
                 variant="outlined"
-                onclick={() => history.back()}
-                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
+                size="small"
+                color="error"
+                onclick={() => void handleClearLogs()}
+                startIcon={<Icon icon={icons.trash} size="small" />}
               >
-                Back
+                Clear Logs
               </Button>
-            </div>
+            ) : undefined
           }
         />
         <Paper style={{ flex: '1', overflow: 'hidden' }}>

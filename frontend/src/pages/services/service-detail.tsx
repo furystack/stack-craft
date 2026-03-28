@@ -103,19 +103,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     if (serviceState.status === 'error') {
       return (
         <PageContainer>
-          <PageHeader
-            title="Error loading service"
-            description={serviceState.error}
-            actions={
-              <Button
-                variant="outlined"
-                onclick={() => history.back()}
-                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
-              >
-                Back
-              </Button>
-            }
-          />
+          <PageHeader title="Error loading service" description={serviceState.error} />
         </PageContainer>
       )
     }
@@ -124,18 +112,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     if (!serviceData) {
       return (
         <PageContainer>
-          <PageHeader
-            title="Service not found"
-            actions={
-              <Button
-                variant="outlined"
-                onclick={() => history.back()}
-                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
-              >
-                Back
-              </Button>
-            }
-          />
+          <PageHeader title="Service not found" />
         </PageContainer>
       )
     }

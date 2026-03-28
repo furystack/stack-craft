@@ -427,8 +427,10 @@ export class ProcessManager {
       await getRepository(elevated)
         .getDataSetFor(ServiceStatus, 'serviceId')
         .update(elevated, serviceId, { currentBranch: branch })
-    } catch {
-      // Best-effort; branch info is non-critical
+    } catch (error) {
+      void this.logger.verbose({
+        message: `Failed to refresh branch for ${serviceId}: ${(error as Error).message}`,
+      })
     }
   }
 
@@ -905,6 +907,23 @@ export class ProcessManager {
           message: `Reconciling stale state for service ${status.serviceId}: ${JSON.stringify(update)}`,
         })
         await this.updateServiceStatus(status.serviceId, update, 'state-reconciled', reconcileTrigger, staleMetadata)
+      }
+
+      if (status.cloneStatus === 'cloned' && !status.currentBranch) {
+        try {
+          const services = await getRepository(elevated)
+            .getDataSetFor(ServiceDefinition, 'id')
+            .find(elevated, { filter: { id: { $eq: status.serviceId } }, top: 1 })
+          const svc = services[0]
+          if (svc) {
+            const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
+            await this.refreshCurrentBranch(status.serviceId, cwd)
+          }
+        } catch (error) {
+          await this.logger.verbose({
+            message: `Could not refresh branch for service ${status.serviceId}: ${(error as Error).message}`,
+          })
+        }
       }
     }
   }

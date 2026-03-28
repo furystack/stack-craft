@@ -7,7 +7,7 @@ import {
   Icon,
   icons,
   Input,
-  MarkdownInput,
+  MarkdownEditor,
   Paper,
   Select,
 } from '@furystack/shades-common-components'
@@ -119,7 +119,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
             required
             value={props.initial?.displayName ?? ''}
           />
-          <MarkdownInput
+          <MarkdownEditor
             name="description"
             labelTitle="Description"
             value={props.initial?.description ?? ''}

@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, Form, Icon, icons, Input, MarkdownInput, Select } from '@furystack/shades-common-components'
+import { Button, Form, Icon, icons, Input, MarkdownEditor, Select } from '@furystack/shades-common-components'
 import type { Prerequisite, PrerequisiteConfig, PrerequisiteType } from 'common'
 
 type PrerequisiteFormPayload = {
@@ -186,7 +186,7 @@ export const PrerequisiteForm = Shade<PrerequisiteFormProps>({
           />
         )}
 
-        <MarkdownInput
+        <MarkdownEditor
           name="installationHelp"
           labelTitle="Installation Help"
           value={props.initial?.installationHelp ?? ''}

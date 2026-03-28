@@ -11,6 +11,7 @@ import {
   DataGrid,
   Icon,
   icons,
+  MarkdownDisplay,
   SelectionCell,
 } from '@furystack/shades-common-components'
 import type { PrerequisiteCheckStatus, ServiceView } from 'common'
@@ -105,7 +106,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                 <strong>{entry.displayName}</strong>
                 {entry.description ? (
                   <div style={{ fontSize: cssVariableTheme.typography.fontSize.sm, opacity: '0.6', marginTop: '2px' }}>
-                    {entry.description}
+                    <MarkdownDisplay content={entry.description} />
                   </div>
                 ) : null}
                 {summary ? (

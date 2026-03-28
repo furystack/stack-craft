@@ -92,15 +92,15 @@ export const Dashboard = Shade<DashboardProps>({
                   <Icon icon={icons.chevronRight} size="small" />
                 </div>
                 {stack.description ? (
-                  <p
+                  <div
                     style={{
-                      margin: '8px 0 0',
+                      marginTop: '8px',
                       fontSize: cssVariableTheme.typography.fontSize.md,
                       color: cssVariableTheme.text.secondary,
                     }}
                   >
-                    {stack.description}
-                  </p>
+                    <MarkdownDisplay content={stack.description} />
+                  </div>
                 ) : null}
               </Paper>
             </StackCraftNestedRouteLink>

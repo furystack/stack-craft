@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, Form, Icon, icons, Input, MarkdownInput } from '@furystack/shades-common-components'
+import { Button, Form, Icon, icons, Input, MarkdownEditor } from '@furystack/shades-common-components'
 import type { GitHubRepository } from 'common'
 
 import { StackCraftNestedRouteLink } from '../app-routes.js'
@@ -57,7 +57,7 @@ export const GitHubRepoForm = Shade<GitHubRepoFormProps>({
           required
           value={props.initial?.displayName ?? ''}
         />
-        <MarkdownInput name="description" labelTitle="Description" value={props.initial?.description ?? ''} rows={4} />
+        <MarkdownEditor name="description" labelTitle="Description" value={props.initial?.description ?? ''} rows={4} />
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           {props.cancelHref ? (
             <StackCraftNestedRouteLink href={props.cancelHref as '/'}>

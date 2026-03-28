@@ -14,7 +14,7 @@ import {
 } from '@furystack/shades-common-components'
 import type { GitHubRepository } from 'common'
 import { GitHubRepository as GitHubRepositoryModel } from 'common'
-import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
+import { stackCraftNavigate } from '../../components/app-routes.js'
 import { GitHubRepoForm } from '../../components/entity-forms/github-repo-form.js'
 import { GitHubReposApiClient } from '../../services/api-clients/github-repos-api-client.js'
 
@@ -44,17 +44,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
     if (repoState.status === 'error') {
       return (
         <PageContainer>
-          <PageHeader
-            title="Error loading repository"
-            description={repoState.error}
-            actions={
-              <StackCraftNestedRouteLink href="/stacks/:stackName/repositories" params={{ stackName: props.stackName }}>
-                <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
-                  Back
-                </Button>
-              </StackCraftNestedRouteLink>
-            }
-          />
+          <PageHeader title="Error loading repository" description={repoState.error} />
         </PageContainer>
       )
     }
@@ -63,16 +53,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
     if (!repo) {
       return (
         <PageContainer>
-          <PageHeader
-            title="Repository not found"
-            actions={
-              <StackCraftNestedRouteLink href="/stacks/:stackName/repositories" params={{ stackName: props.stackName }}>
-                <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
-                  Back
-                </Button>
-              </StackCraftNestedRouteLink>
-            }
-          />
+          <PageHeader title="Repository not found" />
         </PageContainer>
       )
     }
@@ -136,22 +117,16 @@ export const EditRepository = Shade<EditRepositoryProps>({
         <PageHeader
           title={`Edit: ${repo.displayName}`}
           actions={
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <StackCraftNestedRouteLink href="/stacks/:stackName/repositories" params={{ stackName: repo.stackName }}>
-                <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
-                  Back
-                </Button>
-              </StackCraftNestedRouteLink>
-              <Button
-                variant="outlined"
-                color="error"
-                loading={isDeleting}
-                onclick={() => setIsConfirmingDelete(true)}
-                startIcon={<Icon icon={icons.trash} size="small" />}
-              >
-                Delete
-              </Button>
-            </div>
+            <Button
+              variant="outlined"
+              size="small"
+              color="error"
+              loading={isDeleting}
+              onclick={() => setIsConfirmingDelete(true)}
+              startIcon={<Icon icon={icons.trash} size="small" />}
+            >
+              Delete
+            </Button>
           }
         />
         <Paper>

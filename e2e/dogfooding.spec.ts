@@ -10,14 +10,16 @@ test('DOG FOODING TIME - Create a service that uses the StackCraft GitHub reposi
   const stackName = `e2e-dog-fooding-time-${uuid}`
   const displayName = `E2E DOG FOODING Stack - ${browserName} - ${uuid}`
   const description = `
-  ### 🐶🦴 E2E - IT'S DOG FOODING TIME 🐶🦴
-  This stack is used to test the dogfooding of the StackCraft application.
-  It is used to test the following features:
+### 🐶🦴 E2E - IT'S DOG FOODING TIME 🐶🦴
+
+This stack is used to test the dogfooding of the StackCraft application.
+It is used to test the following features:
   - Creating a stack
   - Creating a service that uses the StackCraft GitHub repository
   - Cloning, installing, building and running the service
 
-  ### Test Steps
+### Test Steps
+
   1. Create a stack
   2. Create a service that uses the StackCraft GitHub repository
   3. Clone, install, build and run the service

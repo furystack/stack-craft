@@ -35,7 +35,14 @@ export const ServiceCheckoutAction: RequestAction<ServiceCheckoutEndpoint> = asy
   const git = injector.getInstance(GitService)
   const pm = injector.getInstance(ProcessManager)
 
-  await git.checkout(cwd, branch)
+  const localBranch = branch.replace(/^origin\//, '')
+
+  try {
+    await git.checkout(cwd, localBranch)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Checkout failed'
+    throw new RequestError(`Failed to checkout branch "${localBranch}": ${message}`, 409)
+  }
 
   const currentBranch = await git.getCurrentBranch(cwd)
 
