@@ -8,7 +8,29 @@ test('DOG FOODING TIME - Create a service that uses the StackCraft GitHub reposi
   const uuid = crypto.randomUUID()
 
   const stackName = `e2e-dog-fooding-time-${uuid}`
-  const displayName = `E2E DOG FOODING TIMETest Stack - ${browserName} - ${uuid}`
+  const displayName = `E2E DOG FOODING Stack - ${browserName} - ${uuid}`
+  const description = `
+  ### 🐶🦴 E2E - IT'S DOG FOODING TIME 🐶🦴
+  This stack is used to test the dogfooding of the StackCraft application.
+  It is used to test the following features:
+  - Creating a stack
+  - Creating a service that uses the StackCraft GitHub repository
+  - Cloning, installing, building and running the service
+
+  ### Test Steps
+  1. Create a stack
+  2. Create a service that uses the StackCraft GitHub repository
+  3. Clone, install, build and run the service
+  4. Verify that the service is running
+  5. Verify that the service is logging to the console
+  6. Verify that the service is accessible via the browser
+  7. Verify that the service is accessible via the API
+  8. Remove the service
+  9. Remove the stack
+  10. Verify that the stack and service are removed
+  11. The dog has eaten the food. Woof woof!
+
+  `
 
   const workingDirectory = `/tmp/e2e-dog-fooding-time-${uuid}`
 
@@ -21,7 +43,7 @@ test('DOG FOODING TIME - Create a service that uses the StackCraft GitHub reposi
 
   await page.locator('input[name="name"]').fill(stackName)
   await page.locator('input[name="displayName"]').fill(displayName)
-  await page.locator('textarea[name="description"]').fill('Created by E2E test')
+  await page.locator('textarea[name="description"]').fill(description)
   await page.locator('input[name="mainDirectory"]').fill('/tmp/e2e-test')
   await page.locator('button', { hasText: 'Create' }).click()
 

@@ -22,7 +22,7 @@ import {
   ServiceStatus,
   StackDefinition,
 } from 'common'
-import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
+import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { RunStatusChip } from '../../components/status-chips.js'
 
 type DashboardProps = {
@@ -32,7 +32,7 @@ type DashboardProps = {
 export const Dashboard = Shade<DashboardProps>({
   customElementName: 'shade-dashboard',
   render: (options) => {
-    const { props, injector } = options
+    const { props } = options
 
     const stacksState = useCollectionSync(options, StackDefinition, {})
     const stacks = stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data.entries : []
@@ -50,17 +50,16 @@ export const Dashboard = Shade<DashboardProps>({
     }
 
     if (!props.stackName) {
-      if (stacks.length > 0) {
-        queueMicrotask(() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: stacks[0].name }))
-        return null
-      }
-
       return (
         <PageContainer>
           <PageHeader
             icon="🏠"
             title="Dashboard"
-            description="No stacks yet. Create a stack to start managing your services."
+            description={
+              stacks.length > 0
+                ? `You have ${stacks.length} stack${stacks.length === 1 ? '' : 's'} configured.`
+                : 'No stacks yet. Create a stack to start managing your services.'
+            }
             actions={
               <div style={{ display: 'flex', gap: '8px' }}>
                 <StackCraftNestedRouteLink href="/stacks/create">
@@ -76,6 +75,36 @@ export const Dashboard = Shade<DashboardProps>({
               </div>
             }
           />
+          {stacks.map((stack) => (
+            <StackCraftNestedRouteLink
+              href="/stacks/:stackName"
+              params={{ stackName: stack.name }}
+              style={{ textDecoration: 'none', color: 'inherit' }}
+            >
+              <Paper style={{ cursor: 'pointer' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Icon icon={icons.layers} />
+                    <h3 style={{ margin: '0', fontSize: cssVariableTheme.typography.fontSize.lg }}>
+                      {stack.displayName}
+                    </h3>
+                  </div>
+                  <Icon icon={icons.chevronRight} size="small" />
+                </div>
+                {stack.description ? (
+                  <p
+                    style={{
+                      margin: '8px 0 0',
+                      fontSize: cssVariableTheme.typography.fontSize.md,
+                      color: cssVariableTheme.text.secondary,
+                    }}
+                  >
+                    {stack.description}
+                  </p>
+                ) : null}
+              </Paper>
+            </StackCraftNestedRouteLink>
+          ))}
         </PageContainer>
       )
     }

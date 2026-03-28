@@ -1,10 +1,13 @@
+import type { Injector } from '@furystack/inject'
 import { createComponent, Shade } from '@furystack/shades'
 import { AppBar, AppBarLink, Button, DrawerToggleButton, Icon, icons } from '@furystack/shades-common-components'
 import { SessionService } from '../services/session.js'
+import { Breadcrumbs } from './breadcrumbs.js'
 import { ThemeSwitch } from './theme-switch/index.js'
 
 export type HeaderProps = {
   title: string
+  injector?: Injector
 }
 
 export const Header = Shade<HeaderProps>({
@@ -36,12 +39,7 @@ export const Header = Shade<HeaderProps>({
             {props.title}
           </AppBarLink>
         </h3>
-        {sessionState === 'authenticated' ? (
-          <div style={{ display: 'contents' }}>
-            <AppBarLink href="/">Dashboard</AppBarLink>
-            <AppBarLink href="/settings">Settings</AppBarLink>
-          </div>
-        ) : null}
+        {sessionState === 'authenticated' ? <Breadcrumbs /> : null}
         <div className="spacer" />
         <div className="actions">
           <ThemeSwitch variant="outlined" />

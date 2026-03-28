@@ -4,7 +4,6 @@ import { Dashboard } from '../pages/dashboard/index.js'
 import { Init, Offline } from '../pages/index.js'
 import { SessionService } from '../services/session.js'
 import { appRoutes } from './app-routes.js'
-import { Breadcrumbs } from './breadcrumbs.js'
 
 export const Body = Shade<{ style?: Partial<CSSStyleDeclaration>; injector?: Injector }>({
   customElementName: 'shade-app-body',
@@ -16,14 +15,7 @@ export const Body = Shade<{ style?: Partial<CSSStyleDeclaration>; injector?: Inj
         {(() => {
           switch (sessionState) {
             case 'authenticated':
-              return (
-                <div>
-                  <div style={{ padding: '0 24px' }}>
-                    <Breadcrumbs />
-                  </div>
-                  <NestedRouter routes={appRoutes} notFound={<Dashboard />} />
-                </div>
-              )
+              return <NestedRouter routes={appRoutes} notFound={<Dashboard />} />
             case 'offline':
               return <Offline />
             default:

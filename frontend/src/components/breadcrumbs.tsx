@@ -108,7 +108,6 @@ const EntityNameResolver = Shade<EntityNameResolverProps>({
     gap: '6px',
     fontSize: '13px',
     color: cssVariableTheme.text.secondary,
-    padding: '8px 0',
     flexWrap: 'wrap',
     '& a': {
       color: cssVariableTheme.text.secondary,

@@ -90,7 +90,7 @@ const AuthenticatedLayout = Shade({
       <PageLayout
         appBar={{
           variant: 'permanent',
-          component: <Header title="StackCraft" />,
+          component: <Header title="StackCraft" injector={authenticatedInjector} />,
         }}
         drawer={{
           left: {
