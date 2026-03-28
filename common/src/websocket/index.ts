@@ -8,6 +8,7 @@ export type WebsocketMessage =
       installStatus: InstallStatus
       buildStatus: BuildStatus
       runStatus: RunStatus
+      currentBranch?: string
     }
   | {
       type: 'git-branches-changed'

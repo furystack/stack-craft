@@ -12,6 +12,8 @@ import { getCorsOptions } from '../../get-cors-options.js'
 import { getPort } from '../../get-port.js'
 import { ProcessManager } from '../../services/process-manager.js'
 import { ClearServiceLogsAction } from './actions/clear-service-logs-action.js'
+import { ServiceBranchesAction } from './actions/service-branches-action.js'
+import { ServiceCheckoutAction } from './actions/service-checkout-action.js'
 import { ServiceHistoryAction } from './actions/service-history-action.js'
 import { ServiceLifecycleAction } from './actions/service-lifecycle-action.js'
 import { ServiceLogsAction } from './actions/service-logs-action.js'
@@ -89,6 +91,9 @@ export const setupServicesRestApi = async (injector: Injector) => {
         '/services/:id/history': Validate({ schema: servicesApiSchema, schemaName: 'ServiceHistoryEndpoint' })(
           ServiceHistoryAction,
         ),
+        '/services/:id/branches': Validate({ schema: servicesApiSchema, schemaName: 'ServiceBranchesEndpoint' })(
+          ServiceBranchesAction,
+        ),
       },
       POST: {
         '/services': Validate({ schema: servicesApiSchema, schemaName: 'PostServiceEndpoint' })(
@@ -164,6 +169,9 @@ export const setupServicesRestApi = async (injector: Injector) => {
         ),
         '/services/:id/update': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(
           ServiceLifecycleAction('update'),
+        ),
+        '/services/:id/checkout': Validate({ schema: servicesApiSchema, schemaName: 'ServiceCheckoutEndpoint' })(
+          ServiceCheckoutAction,
         ),
         '/services/:id/apply-files': Validate({
           schema: servicesApiSchema,

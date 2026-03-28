@@ -71,17 +71,17 @@ test('DOG FOODING TIME - Create a service that uses the StackCraft GitHub reposi
   await page.locator('button', { hasText: 'View Service' }).click()
   await expect(page.locator('shade-service-detail')).toBeVisible()
 
-  // Start the service
-  await page.locator('shade-service-detail button', { hasText: 'Start' }).click()
+  // Start the service (click the primary action in the header, not the stepper)
+  await page.getByTestId('page-header-actions').getByRole('button', { name: 'Start' }).click()
 
   // Wait for the service to reach running state
   await expect(page.locator('shade-service-status-indicator')).toContainText('Running')
 
-  // Navigate to logs
-  await page.getByTestId('page-header-actions').getByRole('button', { name: 'Logs' }).click()
-  await expect(page.locator('shade-service-logs')).toBeVisible()
+  // Navigate to the Logs tab via the tab bar
+  await page.getByTestId('service-detail-tabs').getByRole('button', { name: 'Logs' }).click()
+  await expect(page.locator('shade-service-logs-tab')).toBeVisible()
 
-  // Verify that log entries appear
-  await expect(page.locator('shade-log-viewer')).toBeVisible()
-  await expect(page.locator('shade-log-viewer')).not.toContainText('No log output yet.')
+  // Verify that the log viewer is present with entries
+  await expect(page.locator('shade-service-logs-tab shade-log-viewer')).toBeVisible()
+  await expect(page.locator('shade-service-logs-tab shade-log-viewer')).not.toContainText('No log output yet.')
 })

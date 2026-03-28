@@ -3,7 +3,10 @@
   "definitions": {
     "InstallState": {
       "type": "string",
-      "enum": ["needsInstall", "installed"]
+      "enum": [
+        "needsInstall",
+        "installed"
+      ]
     },
     "InstallStateResponse": {
       "type": "object",
@@ -12,7 +15,9 @@
           "$ref": "#/definitions/InstallState"
         }
       },
-      "required": ["state"],
+      "required": [
+        "state"
+      ],
       "additionalProperties": false
     },
     "GetServiceStatusAction": {
@@ -22,7 +27,9 @@
           "$ref": "#/definitions/InstallStateResponse"
         }
       },
-      "required": ["result"],
+      "required": [
+        "result"
+      ],
       "additionalProperties": false
     },
     "InstallAction": {
@@ -35,7 +42,9 @@
               "type": "boolean"
             }
           },
-          "required": ["success"],
+          "required": [
+            "success"
+          ],
           "additionalProperties": false
         },
         "body": {
@@ -48,11 +57,17 @@
               "type": "string"
             }
           },
-          "required": ["username", "password"],
+          "required": [
+            "username",
+            "password"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["result", "body"],
+      "required": [
+        "result",
+        "body"
+      ],
       "additionalProperties": false
     },
     "InstallApi": {
@@ -65,7 +80,9 @@
               "$ref": "#/definitions/GetServiceStatusAction"
             }
           },
-          "required": ["/serviceStatus"],
+          "required": [
+            "/serviceStatus"
+          ],
           "additionalProperties": false
         },
         "POST": {
@@ -75,7 +92,9 @@
               "$ref": "#/definitions/InstallAction"
             }
           },
-          "required": ["/install"],
+          "required": [
+            "/install"
+          ],
           "additionalProperties": false
         },
         "PATCH": {
@@ -87,9 +106,26 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -102,9 +138,26 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -117,9 +170,26 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -132,9 +202,26 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -147,9 +234,26 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -162,9 +266,26 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -177,14 +298,34 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         }
       },
-      "required": ["GET", "POST"],
+      "required": [
+        "GET",
+        "POST"
+      ],
       "additionalProperties": false
     }
   }

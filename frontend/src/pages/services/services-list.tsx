@@ -131,6 +131,25 @@ export const ServicesList = Shade<ServicesListProps>({
                   >
                     Set Up
                   </Button>
+                  {hasRunning ? (
+                    <Button
+                      size="small"
+                      color="warning"
+                      loading={isBulkLoading}
+                      onclick={() => void bulkAction('restart')}
+                      startIcon={<Icon icon={icons.refresh} size="small" />}
+                    >
+                      Restart
+                    </Button>
+                  ) : null}
+                  <Button
+                    size="small"
+                    loading={isBulkLoading}
+                    onclick={() => void bulkAction('update')}
+                    startIcon={<Icon icon={icons.download} size="small" />}
+                  >
+                    Update
+                  </Button>
                 </ButtonGroup>
               ) : null}
               <StackCraftNestedRouteLink

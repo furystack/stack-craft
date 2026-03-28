@@ -19,6 +19,8 @@ export class ServiceStatus {
   buildStatus: BuildStatus = 'not-built'
   runStatus: RunStatus = 'stopped'
 
+  currentBranch?: string
+
   lastClonedAt?: string
   lastInstalledAt?: string
   lastBuiltAt?: string

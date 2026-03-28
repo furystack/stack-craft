@@ -29,7 +29,14 @@
           "description": "Help text shown when the prerequisite check fails"
         }
       },
-      "required": ["id", "stackName", "name", "type", "config", "installationHelp"],
+      "required": [
+        "id",
+        "stackName",
+        "name",
+        "type",
+        "config",
+        "installationHelp"
+      ],
       "additionalProperties": false
     },
     "PrerequisiteType": {
@@ -56,7 +63,9 @@
               "type": "string"
             }
           },
-          "required": ["minimumVersion"],
+          "required": [
+            "minimumVersion"
+          ],
           "additionalProperties": false
         },
         {
@@ -66,7 +75,9 @@
               "type": "string"
             }
           },
-          "required": ["minimumVersion"],
+          "required": [
+            "minimumVersion"
+          ],
           "additionalProperties": false
         },
         {
@@ -76,7 +87,9 @@
               "type": "string"
             }
           },
-          "required": ["version"],
+          "required": [
+            "version"
+          ],
           "additionalProperties": false
         },
         {
@@ -86,7 +99,9 @@
               "type": "string"
             }
           },
-          "required": ["version"],
+          "required": [
+            "version"
+          ],
           "additionalProperties": false
         },
         {
@@ -99,7 +114,9 @@
               "type": "string"
             }
           },
-          "required": ["feedUrl"],
+          "required": [
+            "feedUrl"
+          ],
           "additionalProperties": false
         },
         {
@@ -115,7 +132,9 @@
               "type": "string"
             }
           },
-          "required": ["variableName"],
+          "required": [
+            "variableName"
+          ],
           "additionalProperties": false
         },
         {
@@ -125,7 +144,9 @@
               "type": "string"
             }
           },
-          "required": ["script"],
+          "required": [
+            "script"
+          ],
           "additionalProperties": false
         }
       ],
@@ -141,7 +162,10 @@
           "$ref": "#/definitions/WithOptionalId%3CPrerequisiteWritableFields%2C%22id%22%3E"
         }
       },
-      "required": ["result", "body"],
+      "required": [
+        "result",
+        "body"
+      ],
       "additionalProperties": false
     },
     "Prerequisite": {
@@ -178,7 +202,16 @@
           "type": "string"
         }
       },
-      "required": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"],
+      "required": [
+        "id",
+        "stackName",
+        "name",
+        "type",
+        "config",
+        "installationHelp",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false,
       "description": "Shareable prerequisite definition. Describes an external requirement (e.g. Node.js, Git, an env variable) that a stack or service may need to be satisfied before it can run. Included in stack exports and shared between installations."
     },
@@ -211,7 +244,13 @@
           "description": "Help text shown when the prerequisite check fails"
         }
       },
-      "required": ["config", "installationHelp", "name", "stackName", "type"]
+      "required": [
+        "config",
+        "installationHelp",
+        "name",
+        "stackName",
+        "type"
+      ]
     },
     "PatchPrerequisiteEndpoint": {
       "$ref": "#/definitions/PatchEndpoint%3CPrerequisiteWritableFields%2C%22id%22%3E"
@@ -257,14 +296,20 @@
               "description": "UUID primary key"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": ["body", "url", "result"],
+      "required": [
+        "body",
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for updating entities"
     },
@@ -278,7 +323,9 @@
               "type": "string"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
@@ -291,11 +338,17 @@
               "type": "string"
             }
           },
-          "required": ["satisfied", "output"],
+          "required": [
+            "satisfied",
+            "output"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["url", "result"],
+      "required": [
+        "url",
+        "result"
+      ],
       "additionalProperties": false
     },
     "PrerequisitesApi": {
@@ -311,7 +364,10 @@
               "$ref": "#/definitions/GetEntityEndpoint%3CPrerequisite%2C%22id%22%3E"
             }
           },
-          "required": ["/prerequisites", "/prerequisites/:id"],
+          "required": [
+            "/prerequisites",
+            "/prerequisites/:id"
+          ],
           "additionalProperties": false
         },
         "POST": {
@@ -324,7 +380,10 @@
               "$ref": "#/definitions/CheckPrerequisiteEndpoint"
             }
           },
-          "required": ["/prerequisites", "/prerequisites/:id/check"],
+          "required": [
+            "/prerequisites",
+            "/prerequisites/:id/check"
+          ],
           "additionalProperties": false
         },
         "PATCH": {
@@ -334,7 +393,9 @@
               "$ref": "#/definitions/PatchPrerequisiteEndpoint"
             }
           },
-          "required": ["/prerequisites/:id"],
+          "required": [
+            "/prerequisites/:id"
+          ],
           "additionalProperties": false
         },
         "PUT": {
@@ -346,9 +407,26 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -359,7 +437,9 @@
               "$ref": "#/definitions/DeleteEndpoint%3CPrerequisite%2C%22id%22%3E"
             }
           },
-          "required": ["/prerequisites/:id"],
+          "required": [
+            "/prerequisites/:id"
+          ],
           "additionalProperties": false
         },
         "HEAD": {
@@ -371,9 +451,26 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -386,9 +483,26 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -401,9 +515,26 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -416,14 +547,36 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         }
       },
-      "required": ["GET", "POST", "PATCH", "DELETE"],
+      "required": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
       "additionalProperties": false
     },
     "GetCollectionEndpoint<Prerequisite>": {
@@ -442,7 +595,10 @@
           "$ref": "#/definitions/GetCollectionResult%3CPrerequisite%3E"
         }
       },
-      "required": ["query", "result"],
+      "required": [
+        "query",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
@@ -462,35 +618,59 @@
           "properties": {
             "id": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "stackName": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "name": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "type": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "config": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "installationHelp": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "createdAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "updatedAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             }
           },
           "additionalProperties": false,
@@ -500,7 +680,16 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"]
+            "enum": [
+              "id",
+              "stackName",
+              "name",
+              "type",
+              "config",
+              "installationHelp",
+              "createdAt",
+              "updatedAt"
+            ]
           },
           "description": "The result set will be limited to these fields"
         },
@@ -999,7 +1188,10 @@
           "description": "List of the selected entities"
         }
       },
-      "required": ["count", "entries"],
+      "required": [
+        "count",
+        "entries"
+      ],
       "additionalProperties": false,
       "description": "Response Model for GetCollection"
     },
@@ -1013,7 +1205,16 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"]
+                "enum": [
+                  "id",
+                  "stackName",
+                  "name",
+                  "type",
+                  "config",
+                  "installationHelp",
+                  "createdAt",
+                  "updatedAt"
+                ]
               },
               "description": "The list of fields to select"
             }
@@ -1028,14 +1229,20 @@
               "description": "The entity's unique identifier"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "$ref": "#/definitions/Prerequisite"
         }
       },
-      "required": ["query", "url", "result"],
+      "required": [
+        "query",
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for getting a single entity"
     },
@@ -1050,14 +1257,19 @@
               "description": "UUID primary key"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": ["url", "result"],
+      "required": [
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for deleting entities"
     }

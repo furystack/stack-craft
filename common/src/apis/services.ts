@@ -42,12 +42,24 @@ export type ServiceHistoryEndpoint = {
   result: { entries: ServiceStateHistory[] }
 }
 
+export type ServiceBranchesEndpoint = {
+  url: { id: string }
+  result: { currentBranch: string; local: string[]; remote: string[] }
+}
+
+export type ServiceCheckoutEndpoint = {
+  url: { id: string }
+  body: { branch: string }
+  result: { success: boolean; serviceId: string }
+}
+
 export interface ServicesApi extends RestApi {
   GET: {
     '/services': GetCollectionEndpoint<ServiceView>
     '/services/:id': GetEntityEndpoint<ServiceView, 'id'>
     '/services/:id/logs': ServiceLogsEndpoint
     '/services/:id/history': ServiceHistoryEndpoint
+    '/services/:id/branches': ServiceBranchesEndpoint
   }
   POST: {
     '/services': PostServiceEndpoint
@@ -60,6 +72,7 @@ export interface ServicesApi extends RestApi {
     '/services/:id/setup': ServiceActionEndpoint
     '/services/:id/update': ServiceActionEndpoint
     '/services/:id/apply-files': ApplyServiceFilesEndpoint
+    '/services/:id/checkout': ServiceCheckoutEndpoint
   }
   PATCH: {
     '/services/:id': PatchServiceEndpoint

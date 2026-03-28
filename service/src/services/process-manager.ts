@@ -157,6 +157,7 @@ export class ProcessManager {
         installStatus: update.installStatus ?? current.installStatus,
         buildStatus: update.buildStatus ?? current.buildStatus,
         runStatus: update.runStatus ?? current.runStatus,
+        currentBranch: current.currentBranch,
       })
     } catch {
       // May fire after disposal during shutdown — safe to ignore
@@ -376,12 +377,14 @@ export class ProcessManager {
         mkdirSync(dirname(cwd), { recursive: true })
         await git.clone(repo.url, cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        await this.refreshCurrentBranch(serviceId, cwd)
         this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       } else if (isGitRepo) {
         await this.logger.information({ message: `Pulling in ${cwd}` })
         const { updated } = await git.pull(cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        await this.refreshCurrentBranch(serviceId, cwd)
         this.applySharedFiles(svc, cwd)
         return { cloned: false, pulled: true, updated }
       } else {
@@ -395,6 +398,7 @@ export class ProcessManager {
         mkdirSync(dirname(cwd), { recursive: true })
         await git.clone(repo.url, cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        await this.refreshCurrentBranch(serviceId, cwd)
         this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       }
@@ -403,6 +407,28 @@ export class ProcessManager {
         error: error instanceof Error ? error.message : 'Unknown clone/pull error',
       })
       throw error
+    }
+  }
+
+  /**
+   * Updates the currentBranch field on ServiceStatus.
+   */
+  public async updateBranch(serviceId: string, branch: string, _trigger: TriggerContext): Promise<void> {
+    const elevated = this.getElevatedInjector()
+    const statusDs = getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId')
+    await statusDs.update(elevated, serviceId, { currentBranch: branch, updatedAt: new Date().toISOString() })
+  }
+
+  private async refreshCurrentBranch(serviceId: string, cwd: string): Promise<void> {
+    try {
+      const git = getInjectorReference(this).getInstance(GitService)
+      const branch = await git.getCurrentBranch(cwd)
+      const elevated = this.getElevatedInjector()
+      await getRepository(elevated)
+        .getDataSetFor(ServiceStatus, 'serviceId')
+        .update(elevated, serviceId, { currentBranch: branch })
+    } catch {
+      // Best-effort; branch info is non-critical
     }
   }
 
