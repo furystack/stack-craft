@@ -1,6 +1,6 @@
 import { createComponent, Shade } from '@furystack/shades'
 
-import { Button, cssVariableTheme, Icon, icons, Paper } from '@furystack/shades-common-components'
+import { Button, cssVariableTheme, Icon, icons, Input, Paper, Select } from '@furystack/shades-common-components'
 import type { EnvironmentVariableValue, Prerequisite, ServiceView } from 'common'
 
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
@@ -24,6 +24,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
       service.environmentVariableOverrides ?? {},
     )
     const [isSaving, setIsSaving] = useState('isSaving', false)
+    const [touchedSensitive, setTouchedSensitive] = useState<Set<string>>('touchedSensitive', new Set())
 
     if (envPrereqs.length === 0) return <div />
 
@@ -46,11 +47,19 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
     const handleSave = async () => {
       setIsSaving(true)
       try {
+        const toSave: Record<string, EnvironmentVariableValue> = {}
+        for (const [key, val] of Object.entries(editState)) {
+          if (val.isSensitive && val.source === 'custom' && !touchedSensitive.has(key)) {
+            toSave[key] = { ...val, customValue: '__UNCHANGED__' }
+          } else {
+            toSave[key] = val
+          }
+        }
         await injector.getInstance(ServicesApiClient).call({
           method: 'PATCH',
           action: '/services/:id',
           url: { id: service.id },
-          body: { environmentVariableOverrides: editState },
+          body: { environmentVariableOverrides: toSave },
         })
       } finally {
         setIsSaving(false)
@@ -60,13 +69,18 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
     return (
       <Paper elevation={1} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <h3 style={{ margin: '0' }}>Environment Variable Overrides</h3>
-        <p style={{ margin: '0', opacity: '0.7', fontSize: '13px' }}>
+        <p style={{ margin: '0', opacity: '0.7', fontSize: cssVariableTheme.typography.fontSize.sm }}>
           Override stack-level environment variable values for this service. Leave unset to use the stack default.
         </p>
         {envPrereqs.map((prereq) => {
           const varName = (prereq.config as { variableName: string }).variableName
           const stackValue = stackEnvVars[varName]
           const override = editState[varName]
+          const isSensitive =
+            override?.isSensitive ??
+            stackValue?.isSensitive ??
+            (prereq.config as { isSensitive?: boolean }).isSensitive ??
+            false
           const isGloballyAvailable = envAvailability[varName] ?? false
           const hasOverride = override !== undefined
 
@@ -87,11 +101,14 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <strong style={{ fontFamily: 'monospace' }}>{varName}</strong>
-                <span style={{ opacity: '0.6', fontSize: '12px' }}>({prereq.name})</span>
+                {isSensitive ? <Icon icon={icons.lock} size="small" title="Sensitive value" /> : null}
+                <span style={{ opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
+                  ({prereq.name})
+                </span>
                 {stackValue ? (
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: cssVariableTheme.typography.fontSize.xs,
                       padding: '2px 6px',
                       borderRadius: '4px',
                       background: cssVariableTheme.palette.info.main,
@@ -104,7 +121,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
                 {hasOverride ? (
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: cssVariableTheme.typography.fontSize.xs,
                       padding: '2px 6px',
                       borderRadius: '4px',
                       background: cssVariableTheme.palette.warning.main,
@@ -116,14 +133,15 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
                 ) : null}
               </div>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <select
-                  style={{
-                    padding: '8px',
-                    borderRadius: cssVariableTheme.shape.borderRadius.md,
-                    border: `1px solid ${cssVariableTheme.divider}`,
-                    background: cssVariableTheme.background.paper,
-                    color: cssVariableTheme.text.primary,
-                  }}
+                <Select
+                  variant="outlined"
+                  labelTitle="Source"
+                  value={!hasOverride ? '' : (effectiveSource ?? '')}
+                  options={[
+                    { value: '', label: 'Use stack default' },
+                    ...(isGloballyAvailable ? [{ value: 'inherit', label: 'Inherit from system' }] : []),
+                    { value: 'custom', label: 'Custom value' },
+                  ]}
                   onchange={(ev) => {
                     const val = (ev.target as HTMLSelectElement).value
                     if (val === '') {
@@ -133,41 +151,34 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
                     } else {
                       setEditState({
                         ...editState,
-                        [varName]: { source: val as 'inherit' | 'custom', customValue: override?.customValue },
+                        [varName]: {
+                          source: val as 'inherit' | 'custom',
+                          customValue: override?.customValue,
+                          isSensitive,
+                        },
                       })
                     }
                   }}
-                >
-                  <option value="" selected={!hasOverride}>
-                    Use stack default
-                  </option>
-                  {isGloballyAvailable ? (
-                    <option value="inherit" selected={hasOverride && effectiveSource === 'inherit'}>
-                      Inherit from system
-                    </option>
-                  ) : null}
-                  <option value="custom" selected={hasOverride && effectiveSource === 'custom'}>
-                    Custom value
-                  </option>
-                </select>
+                />
                 {hasOverride && override.source === 'custom' ? (
-                  <input
-                    type="text"
+                  <Input
+                    variant="outlined"
+                    labelTitle="Value"
+                    type={isSensitive ? 'password' : 'text'}
                     value={override.customValue ?? ''}
                     placeholder="Enter value..."
-                    style={{
-                      flex: '1',
-                      padding: '8px',
-                      borderRadius: cssVariableTheme.shape.borderRadius.md,
-                      border: `1px solid ${cssVariableTheme.divider}`,
-                      background: cssVariableTheme.background.paper,
-                      color: cssVariableTheme.text.primary,
-                      fontFamily: 'monospace',
-                    }}
+                    style={{ flex: '1', fontFamily: 'monospace' }}
                     oninput={(ev) => {
+                      if (isSensitive) {
+                        setTouchedSensitive(new Set([...touchedSensitive, varName]))
+                      }
                       setEditState({
                         ...editState,
-                        [varName]: { source: 'custom', customValue: (ev.target as HTMLInputElement).value },
+                        [varName]: {
+                          source: 'custom',
+                          customValue: (ev.target as HTMLInputElement).value,
+                          isSensitive,
+                        },
                       })
                     }}
                   />

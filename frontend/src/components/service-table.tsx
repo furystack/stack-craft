@@ -7,9 +7,11 @@ import {
   Button,
   Chip,
   CollectionService,
+  cssVariableTheme,
   DataGrid,
   Icon,
   icons,
+  MarkdownDisplay,
   SelectionCell,
 } from '@furystack/shades-common-components'
 import type { PrerequisiteCheckStatus, ServiceView } from 'common'
@@ -17,28 +19,20 @@ import { PrerequisiteCheckResult } from 'common'
 
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
 import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
+import { getPrimaryAction } from '../utils/service-pipeline.js'
 import { StackCraftNestedRouteLink } from './app-routes.js'
-import { RunStatusChip } from './status-chips.js'
+import { BranchSelector } from './branch-selector.js'
+import { MiniPipelineDots } from './mini-pipeline-dots.js'
 
 type ServiceTableProps = {
   services: ServiceView[]
   onSelectionChange?: (selected: ServiceView[]) => void
 }
 
-type ServiceColumn = 'selection' | 'displayName' | 'runStatus' | 'actions'
+type ServiceColumn = 'selection' | 'displayName' | 'pipeline' | 'branch' | 'actions'
 
 const columnFilters: { [K in ServiceColumn]?: ColumnFilterConfig } = {
   displayName: { type: 'string' },
-  runStatus: {
-    type: 'enum',
-    values: [
-      { label: 'Running', value: 'running' },
-      { label: 'Stopped', value: 'stopped' },
-      { label: 'Starting', value: 'starting' },
-      { label: 'Stopping', value: 'stopping' },
-      { label: 'Error', value: 'error' },
-    ],
-  },
 }
 
 export const ServiceTable = Shade<ServiceTableProps>({
@@ -75,7 +69,6 @@ export const ServiceTable = Shade<ServiceTableProps>({
       return { satisfiedCount, failedCount, total: prereqIds.length }
     }
 
-    // Reconcile selection: remap stale object references to current entries by id
     const currentSelection = collectionService.selection.getValue()
     if (currentSelection.length > 0) {
       const entryById = new Map(entries.map((e) => [e.id, e]))
@@ -92,7 +85,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
 
     return (
       <DataGrid<ServiceView, ServiceColumn>
-        columns={['selection', 'displayName', 'runStatus', 'actions']}
+        columns={['selection', 'displayName', 'pipeline', 'branch', 'actions']}
         findOptions={findOptions}
         onFindOptionsChange={setFindOptions}
         styles={undefined}
@@ -100,89 +93,137 @@ export const ServiceTable = Shade<ServiceTableProps>({
         columnFilters={columnFilters}
         headerComponents={{
           selection: () => <span />,
+          displayName: () => <span>Service</span>,
+          pipeline: () => <span>Status</span>,
+          branch: () => <span>Branch</span>,
           actions: () => <span style={{ paddingLeft: '1em' }}>Actions</span>,
         }}
         rowComponents={{
           selection: (entry) => <SelectionCell entry={entry} service={collectionService} />,
-          displayName: (entry) => (
-            <span>
-              <strong>{entry.displayName}</strong>
-              {entry.description ? (
-                <div style={{ fontSize: '12px', opacity: '0.6', marginTop: '2px' }}>{entry.description}</div>
-              ) : null}
-            </span>
-          ),
-          runStatus: (entry) => {
+          displayName: (entry) => {
             const summary = getPrereqSummary(entry.prerequisiteIds)
             return (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <RunStatusChip status={entry.runStatus} />
-                {summary ? (
-                  <Chip
-                    variant="outlined"
-                    size="small"
-                    color={
-                      summary.failedCount > 0
-                        ? 'error'
-                        : summary.satisfiedCount === summary.total
-                          ? 'success'
-                          : 'secondary'
-                    }
-                    title={`${summary.satisfiedCount}/${summary.total} prerequisite(s) satisfied`}
-                  >
-                    {summary.satisfiedCount === summary.total
-                      ? `✓ ${summary.total} prereq`
-                      : `${summary.satisfiedCount}/${summary.total} prereq`}
-                  </Chip>
+              <span>
+                <strong>{entry.displayName}</strong>
+                {entry.description ? (
+                  <div style={{ fontSize: cssVariableTheme.typography.fontSize.sm, opacity: '0.6', marginTop: '2px' }}>
+                    <MarkdownDisplay content={entry.description} />
+                  </div>
                 ) : null}
-              </div>
+                {summary ? (
+                  <div style={{ marginTop: '4px' }}>
+                    <Chip
+                      variant="outlined"
+                      size="small"
+                      color={
+                        summary.failedCount > 0
+                          ? 'error'
+                          : summary.satisfiedCount === summary.total
+                            ? 'success'
+                            : 'secondary'
+                      }
+                      title={`${summary.satisfiedCount}/${summary.total} prerequisite(s) satisfied`}
+                    >
+                      {summary.satisfiedCount === summary.total
+                        ? `✓ ${summary.total} prereq`
+                        : `${summary.satisfiedCount}/${summary.total} prereq`}
+                    </Chip>
+                  </div>
+                ) : null}
+              </span>
             )
           },
+          pipeline: (entry) => <MiniPipelineDots service={entry} />,
+          branch: (entry) => (
+            <div onclick={(e: MouseEvent) => e.stopPropagation()}>
+              <BranchSelector
+                serviceId={entry.id}
+                currentBranch={entry.currentBranch}
+                isCloned={entry.cloneStatus === 'cloned'}
+              />
+            </div>
+          ),
           actions: (entry) => {
-            const needsSetup =
-              (entry.repositoryId && entry.cloneStatus !== 'cloned') ||
-              (entry.installCommand && entry.installStatus !== 'installed') ||
-              (entry.buildCommand && entry.buildStatus !== 'built')
+            const primary = getPrimaryAction(entry)
 
             return (
               <div
                 style={{ display: 'flex', gap: '2px', alignItems: 'center' }}
                 onclick={(e: MouseEvent) => e.stopPropagation()}
               >
-                {needsSetup ? (
+                {/* Context-aware primary action */}
+                {primary.apiAction ? (
                   <Button
                     variant="text"
                     size="small"
-                    title="Set Up"
+                    color={primary.color === 'secondary' ? undefined : primary.color}
+                    title={primary.label}
                     onclick={() => {
-                      void api.call({ method: 'POST', action: '/services/:id/setup', url: { id: entry.id } })
+                      void api.call({
+                        method: 'POST',
+                        action: primary.apiAction as '/services/:id/start',
+                        url: { id: entry.id },
+                      })
                     }}
-                    startIcon={<Icon icon={icons.settings} size="small" />}
+                    startIcon={<Icon icon={icons[primary.icon as keyof typeof icons] ?? icons.play} size="small" />}
                   />
                 ) : null}
-                {entry.runStatus !== 'running' ? (
+                {/* Restart (when running) */}
+                {entry.runStatus === 'running' ? (
                   <Button
                     variant="text"
                     size="small"
-                    color="success"
-                    title="Start"
+                    color="warning"
+                    title="Restart"
                     onclick={() => {
-                      void api.call({ method: 'POST', action: '/services/:id/start', url: { id: entry.id } })
+                      void api.call({ method: 'POST', action: '/services/:id/restart', url: { id: entry.id } })
                     }}
-                    startIcon={<Icon icon={icons.play} size="small" />}
+                    startIcon={<Icon icon={icons.refresh} size="small" />}
                   />
-                ) : (
-                  <Button
-                    variant="text"
-                    size="small"
-                    title="Stop"
-                    onclick={() => {
-                      void api.call({ method: 'POST', action: '/services/:id/stop', url: { id: entry.id } })
-                    }}
-                    startIcon={<Icon icon={icons.stopCircle} size="small" />}
-                  />
-                )}
-                <StackCraftNestedRouteLink href="/services/:id/logs" params={{ id: entry.id }}>
+                ) : null}
+                {/* Update (pull + install + build + restart if running) */}
+                {entry.repositoryId && entry.cloneStatus === 'cloned' ? (
+                  <div style={{ position: 'relative', display: 'inline-flex' }}>
+                    <Button
+                      variant="text"
+                      size="small"
+                      title="Update: pull, install, build, and restart if running"
+                      onclick={() => {
+                        void api.call({ method: 'POST', action: '/services/:id/update', url: { id: entry.id } })
+                      }}
+                      startIcon={<Icon icon={icons.download} size="small" />}
+                    />
+                    {entry.commitsBehind ? (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: '-2px',
+                          right: '-2px',
+                          minWidth: '16px',
+                          height: '16px',
+                          borderRadius: '8px',
+                          backgroundColor: cssVariableTheme.palette.primary.main,
+                          color: cssVariableTheme.palette.primary.mainContrast,
+                          fontSize: '10px',
+                          fontWeight: 'bold',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0 4px',
+                          lineHeight: '1',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        {entry.commitsBehind}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+                {/* Logs */}
+                <StackCraftNestedRouteLink
+                  href="/stacks/:stackName/services/:serviceId/logs"
+                  params={{ stackName: entry.stackName, serviceId: entry.id }}
+                >
                   <Button
                     variant="text"
                     size="small"
@@ -190,7 +231,11 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     startIcon={<Icon icon={icons.fileText} size="small" />}
                   />
                 </StackCraftNestedRouteLink>
-                <StackCraftNestedRouteLink href="/services/:id" params={{ id: entry.id }}>
+                {/* Details */}
+                <StackCraftNestedRouteLink
+                  href="/stacks/:stackName/services/:serviceId"
+                  params={{ stackName: entry.stackName, serviceId: entry.id }}
+                >
                   <Button
                     variant="text"
                     size="small"
@@ -198,6 +243,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     startIcon={<Icon icon={icons.eye} size="small" />}
                   />
                 </StackCraftNestedRouteLink>
+                {/* Edit */}
                 <Button
                   variant="text"
                   size="small"
@@ -205,7 +251,9 @@ export const ServiceTable = Shade<ServiceTableProps>({
                   onclick={() =>
                     injector
                       .getInstance(LocationService)
-                      .navigate(`/services/${entry.id}?${serializeToQueryString({ edit: true })}`)
+                      .navigate(
+                        `/stacks/${entry.stackName}/services/${entry.id}?${serializeToQueryString({ edit: true })}`,
+                      )
                   }
                   startIcon={<Icon icon={icons.edit} size="small" />}
                 />

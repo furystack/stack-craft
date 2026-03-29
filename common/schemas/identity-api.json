@@ -146,7 +146,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -161,7 +176,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -176,7 +206,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -191,7 +236,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -206,7 +266,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -221,7 +296,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -236,7 +326,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false

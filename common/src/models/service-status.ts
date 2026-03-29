@@ -24,6 +24,5 @@ export class ServiceStatus {
   lastBuiltAt?: string
   lastStartedAt?: string
   lastFetchedAt?: string
-
   updatedAt!: string
 }

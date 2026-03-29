@@ -42,6 +42,10 @@
         "customValue": {
           "type": "string",
           "description": "The custom value to use when source is 'custom'"
+        },
+        "isSensitive": {
+          "type": "boolean",
+          "description": "Whether this value contains sensitive data (e.g. passwords, tokens). When true, the value is encrypted at rest and masked in API responses. Overrides the prerequisite-level default when set."
         }
       },
       "required": ["source"],
@@ -194,6 +198,28 @@
       "required": ["body", "url", "result"],
       "additionalProperties": false,
       "description": "Endpoint model for updating entities"
+    },
+    "SecretWarning": {
+      "type": "object",
+      "properties": {
+        "line": {
+          "type": "number"
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "snippet": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "suggestion": {
+          "type": "string"
+        }
+      },
+      "required": ["line", "pattern", "snippet", "source"],
+      "additionalProperties": false
     },
     "ExportStackEndpoint": {
       "type": "object",
@@ -369,6 +395,12 @@
                 "required": ["id", "stackName", "name", "type", "config", "installationHelp"],
                 "additionalProperties": false
               }
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SecretWarning"
+              }
             }
           },
           "required": ["stack", "services", "repositories", "prerequisites"],
@@ -475,6 +507,9 @@
           "properties": {
             "variableName": {
               "type": "string"
+            },
+            "isSensitive": {
+              "type": "boolean"
             }
           },
           "required": ["variableName"],
@@ -501,6 +536,12 @@
           "properties": {
             "success": {
               "type": "boolean"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SecretWarning"
+              }
             }
           },
           "required": ["success"],
@@ -692,6 +733,12 @@
                           "$ref": "#/definitions/EnvironmentVariableValue"
                         }
                       },
+                      "localFiles": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/definitions/ServiceFile"
+                        }
+                      },
                       "autoFetchEnabled": {
                         "type": "boolean",
                         "description": "Whether automatic git fetch is enabled"
@@ -800,7 +847,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -825,7 +887,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -840,7 +917,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -855,7 +947,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -870,7 +977,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false

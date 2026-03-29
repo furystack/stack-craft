@@ -36,20 +36,13 @@
     "vite": "^8.0.3",
     "vitest": "^4.1.2"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint --ext .tsx,.ts --cache --fix",
-      "prettier --write",
-      "git add"
+      "eslint --cache --fix",
+      "prettier --write"
     ],
     "*.{js,jsx}": [
-      "prettier --write",
-      "git add"
+      "prettier --write"
     ]
   },
   "scripts": {

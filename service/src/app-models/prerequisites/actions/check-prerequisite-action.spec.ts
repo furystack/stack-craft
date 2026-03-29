@@ -4,6 +4,7 @@ import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { Prerequisite, PrerequisiteCheckResult, StackConfig } from 'common'
 import type { PrerequisiteConfig, PrerequisiteType } from 'common'
+import { randomBytes } from 'crypto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { runCheck, CheckPrerequisiteAction } from './check-prerequisite-action.js'
@@ -35,6 +36,7 @@ describe('CheckPrerequisiteAction', () => {
   let stackConfigStore: InMemoryStore<StackConfig, 'stackName'>
 
   beforeEach(() => {
+    process.env.STACK_CRAFT_ENCRYPTION_KEY = randomBytes(32).toString('base64')
     injector = new Injector()
     useLogging(injector, VerboseConsoleLogger)
 

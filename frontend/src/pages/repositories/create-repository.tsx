@@ -32,7 +32,7 @@ export const CreateRepository = Shade<CreateRepositoryProps>({
           body: `"${data.displayName}" was added successfully.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/stacks/:name', { name: props.stackName })
+        stackCraftNavigate(injector, '/stacks/:stackName/repositories', { stackName: props.stackName })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -50,7 +50,9 @@ export const CreateRepository = Shade<CreateRepositoryProps>({
             mode="create"
             stackName={props.stackName}
             onSubmit={(data) => void handleSubmit(data)}
-            cancelHref="/"
+            onCancel={() =>
+              stackCraftNavigate(injector, '/stacks/:stackName/repositories', { stackName: props.stackName })
+            }
           />
         </Paper>
       </PageContainer>

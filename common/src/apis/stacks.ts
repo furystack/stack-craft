@@ -4,6 +4,7 @@ import type { EnvironmentVariableValue } from '../models/environment-variable-va
 import type { GitHubRepository } from '../models/github-repository.js'
 import type { Prerequisite } from '../models/prerequisite.js'
 import type { ServiceConfig } from '../models/service-config.js'
+import type { ServiceFile } from '../models/service-definition.js'
 import type { ServiceDefinition } from '../models/service-definition.js'
 import type { StackConfig } from '../models/stack-config.js'
 import type { StackDefinition } from '../models/stack-definition.js'
@@ -19,6 +20,14 @@ type ShareableServiceDefinition = Omit<ServiceDefinition, 'createdAt' | 'updated
 type ShareableGitHubRepository = Omit<GitHubRepository, 'createdAt' | 'updatedAt'>
 type ShareablePrerequisite = Omit<Prerequisite, 'createdAt' | 'updatedAt'>
 
+export type SecretWarning = {
+  line: number
+  pattern: string
+  snippet: string
+  source: string
+  suggestion?: string
+}
+
 export type ExportStackEndpoint = {
   url: { id: string }
   result: {
@@ -26,11 +35,12 @@ export type ExportStackEndpoint = {
     services: ShareableServiceDefinition[]
     repositories: ShareableGitHubRepository[]
     prerequisites: ShareablePrerequisite[]
+    warnings?: SecretWarning[]
   }
 }
 
 export type ImportStackEndpoint = {
-  result: { success: boolean }
+  result: { success: boolean; warnings?: SecretWarning[] }
   body: {
     stack: ShareableStackDefinition
     services: ShareableServiceDefinition[]
@@ -43,6 +53,7 @@ export type ImportStackEndpoint = {
         string,
         Partial<Pick<ServiceConfig, 'autoFetchEnabled' | 'autoFetchIntervalMinutes' | 'autoRestartOnFetch'>> & {
           environmentVariableOverrides?: Record<string, EnvironmentVariableValue>
+          localFiles?: ServiceFile[]
         }
       >
     }

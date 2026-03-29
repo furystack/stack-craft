@@ -14,6 +14,10 @@ import {
   StackDefinition,
 } from 'common'
 
+import { CryptoService } from '../../../utils/crypto-service.js'
+import { encryptEnvValues, encryptLocalFiles } from '../../../utils/env-encryption-helpers.js'
+import { detectSecretsInServiceDefinition } from '../../../utils/secret-detector.js'
+
 export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ injector, getBody }) => {
   const logger = getLogger(injector).withScope('ImportStack')
   const body = await getBody()
@@ -61,10 +65,11 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
       updatedAt: now,
     })
 
+    const crypto = injector.getInstance(CryptoService)
     await stackConfigDs.add(injector, {
       stackName,
       mainDirectory: body.config.mainDirectory,
-      environmentVariables: body.config.environmentVariables ?? {},
+      environmentVariables: encryptEnvValues(crypto, body.config.environmentVariables ?? {}),
       createdAt: now,
       updatedAt: now,
     })
@@ -86,7 +91,8 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
         autoFetchEnabled: userConfig?.autoFetchEnabled ?? false,
         autoFetchIntervalMinutes: userConfig?.autoFetchIntervalMinutes ?? 60,
         autoRestartOnFetch: userConfig?.autoRestartOnFetch ?? false,
-        environmentVariableOverrides: userConfig?.environmentVariableOverrides ?? {},
+        environmentVariableOverrides: encryptEnvValues(crypto, userConfig?.environmentVariableOverrides ?? {}),
+        localFiles: encryptLocalFiles(crypto, userConfig?.localFiles ?? []),
         createdAt: now,
         updatedAt: now,
       })
@@ -162,6 +168,15 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
     throw new RequestError(`Import failed: ${message}`, 500)
   }
 
+  const warnings = body.services.flatMap((svc) =>
+    detectSecretsInServiceDefinition({
+      files: svc.files,
+      runCommand: svc.runCommand,
+      installCommand: svc.installCommand,
+      buildCommand: svc.buildCommand,
+    }).map((w) => ({ ...w, source: `${svc.displayName} > ${w.source}` })),
+  )
+
   await logger.information({ message: `Stack imported successfully: ${stackName}` })
-  return JsonResult({ success: true })
+  return JsonResult({ success: true, ...(warnings.length > 0 ? { warnings } : {}) })
 }

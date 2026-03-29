@@ -7,6 +7,8 @@ import { z } from 'zod'
 
 import { LogStorageService } from '../../services/log-storage-service.js'
 import { ProcessManager } from '../../services/process-manager.js'
+import { CryptoService } from '../../utils/crypto-service.js'
+import { encryptEnvValues } from '../../utils/env-encryption-helpers.js'
 import {
   environmentVariableValueSchema,
   errorResult,
@@ -164,12 +166,14 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
           updatedAt: now,
         }
 
+        const crypto = elevated.getInstance(CryptoService)
         const config = {
           serviceId: id,
           autoFetchEnabled: autoFetchEnabled ?? false,
           autoFetchIntervalMinutes: autoFetchIntervalMinutes ?? 60,
           autoRestartOnFetch: autoRestartOnFetch ?? false,
-          environmentVariableOverrides: environmentVariableOverrides ?? {},
+          environmentVariableOverrides: encryptEnvValues(crypto, environmentVariableOverrides ?? {}),
+          localFiles: [],
           createdAt: now,
           updatedAt: now,
         }
@@ -253,8 +257,19 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
         if (autoFetchEnabled !== undefined) configFields.autoFetchEnabled = autoFetchEnabled
         if (autoFetchIntervalMinutes !== undefined) configFields.autoFetchIntervalMinutes = autoFetchIntervalMinutes
         if (autoRestartOnFetch !== undefined) configFields.autoRestartOnFetch = autoRestartOnFetch
-        if (environmentVariableOverrides !== undefined)
-          configFields.environmentVariableOverrides = environmentVariableOverrides
+        if (environmentVariableOverrides !== undefined) {
+          const crypto = elevated.getInstance(CryptoService)
+          const existing = (
+            await repository
+              .getDataSetFor(ServiceConfig, 'serviceId')
+              .find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+          )[0]
+          configFields.environmentVariableOverrides = encryptEnvValues(
+            crypto,
+            environmentVariableOverrides,
+            existing?.environmentVariableOverrides,
+          )
+        }
 
         if (Object.keys(defFields).length > 0) {
           await repository.getDataSetFor(ServiceDefinition, 'id').update(elevated, serviceId, defFields)

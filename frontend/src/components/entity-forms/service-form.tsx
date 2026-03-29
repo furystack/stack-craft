@@ -7,7 +7,7 @@ import {
   Icon,
   icons,
   Input,
-  MarkdownInput,
+  MarkdownEditor,
   Paper,
   Select,
 } from '@furystack/shades-common-components'
@@ -64,6 +64,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
     const [isCreatingPrereq, setIsCreatingPrereq] = useState('isCreatingPrereq', false)
     const [isCreatingRepo, setIsCreatingRepo] = useState('isCreatingRepo', false)
     const [sharedFiles, setSharedFiles] = useState<ServiceFile[]>('sharedFiles', props.initial?.files ?? [])
+    const [localFiles, setLocalFiles] = useState<ServiceFile[]>('localFiles', props.initial?.localFiles ?? [])
 
     const togglePrereqId = (id: string) => {
       const updated = selectedPrereqIds.includes(id)
@@ -104,6 +105,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
               prerequisiteIds: selectedPrereqIds,
               prerequisiteServiceIds: selectedPrereqServiceIds,
               files: sharedFiles.filter((f) => f.relativePath.trim().length > 0),
+              localFiles: localFiles.filter((f) => f.relativePath.trim().length > 0),
             })
           }
           disableOnSubmit
@@ -119,7 +121,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
             required
             value={props.initial?.displayName ?? ''}
           />
-          <MarkdownInput
+          <MarkdownEditor
             name="description"
             labelTitle="Description"
             value={props.initial?.description ?? ''}
@@ -185,7 +187,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
 
           <div>
             <h4 style={{ margin: '0 0 8px 0', opacity: '0.7' }}>Shared Files</h4>
-            <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: '13px' }}>
+            <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
               Files placed relative to the service root (e.g. .env, appConfig.local.json).
             </p>
             {sharedFiles.length > 0 ? (
@@ -193,7 +195,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
                 {sharedFiles.map((file, index) => (
                   <div
                     style={{
-                      border: '2px solid rgba(255,255,255,0.1)',
+                      border: `2px solid ${cssVariableTheme.divider}`,
                       borderRadius: '8px',
                       padding: '12px',
                     }}
@@ -212,11 +214,11 @@ export const ServiceForm = Shade<ServiceFormProps>({
                           flex: '1',
                           padding: '6px 10px',
                           borderRadius: '4px',
-                          border: '1px solid rgba(255,255,255,0.2)',
+                          border: `1px solid ${cssVariableTheme.divider}`,
                           background: 'transparent',
                           color: 'inherit',
                           fontFamily: 'monospace',
-                          fontSize: '13px',
+                          fontSize: cssVariableTheme.typography.fontSize.sm,
                         }}
                       />
                       <Button
@@ -243,11 +245,11 @@ export const ServiceForm = Shade<ServiceFormProps>({
                         width: '100%',
                         padding: '8px 10px',
                         borderRadius: '4px',
-                        border: '1px solid rgba(255,255,255,0.2)',
+                        border: `1px solid ${cssVariableTheme.divider}`,
                         background: 'transparent',
                         color: 'inherit',
                         fontFamily: 'monospace',
-                        fontSize: '13px',
+                        fontSize: cssVariableTheme.typography.fontSize.sm,
                         resize: 'vertical',
                         boxSizing: 'border-box',
                       }}
@@ -264,6 +266,110 @@ export const ServiceForm = Shade<ServiceFormProps>({
               startIcon={<Icon icon={icons.plus} size="small" />}
             >
               Add File
+            </Button>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px 0' }}>
+              <h4 style={{ margin: '0', opacity: '0.7' }}>Local Files</h4>
+              <Icon icon={icons.lock} size="small" title="Encrypted at rest, never exported" />
+            </div>
+            <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
+              Per-installation secret files. Encrypted at rest and never included in stack exports.
+            </p>
+            {localFiles.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '8px' }}>
+                {localFiles.map((file, index) => {
+                  const isOverridingShared = sharedFiles.some((sf) => sf.relativePath === file.relativePath)
+                  return (
+                    <div
+                      style={{
+                        border: `2px solid ${cssVariableTheme.palette.warning.main}`,
+                        borderRadius: '8px',
+                        padding: '12px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                        <input
+                          type="text"
+                          placeholder="Relative path (e.g. .env.local)"
+                          value={file.relativePath}
+                          oninput={(ev: Event) => {
+                            const updated = [...localFiles]
+                            updated[index] = { ...updated[index], relativePath: (ev.target as HTMLInputElement).value }
+                            setLocalFiles(updated)
+                          }}
+                          style={{
+                            flex: '1',
+                            padding: '6px 10px',
+                            borderRadius: '4px',
+                            border: `1px solid ${cssVariableTheme.divider}`,
+                            background: 'transparent',
+                            color: 'inherit',
+                            fontFamily: 'monospace',
+                            fontSize: cssVariableTheme.typography.fontSize.sm,
+                          }}
+                        />
+                        {isOverridingShared ? (
+                          <span
+                            style={{
+                              fontSize: cssVariableTheme.typography.fontSize.xs,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: cssVariableTheme.palette.warning.main,
+                              color: cssVariableTheme.palette.warning.mainContrast,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Overrides shared
+                          </span>
+                        ) : null}
+                        <Button
+                          type="button"
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onclick={() => setLocalFiles(localFiles.filter((_, i) => i !== index))}
+                          startIcon={<Icon icon={icons.close} size="small" />}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                      <textarea
+                        placeholder="File content (secret)"
+                        value={file.content}
+                        oninput={(ev: Event) => {
+                          const updated = [...localFiles]
+                          updated[index] = { ...updated[index], content: (ev.target as HTMLTextAreaElement).value }
+                          setLocalFiles(updated)
+                        }}
+                        rows={4}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '4px',
+                          border: `1px solid ${cssVariableTheme.divider}`,
+                          background: 'transparent',
+                          color: 'inherit',
+                          fontFamily: 'monospace',
+                          fontSize: cssVariableTheme.typography.fontSize.sm,
+                          resize: 'vertical',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            ) : null}
+            <Button
+              type="button"
+              variant="outlined"
+              size="small"
+              onclick={() => setLocalFiles([...localFiles, { relativePath: '', content: '' }])}
+              startIcon={<Icon icon={icons.plus} size="small" />}
+            >
+              Add Local File
             </Button>
           </div>
 
@@ -285,8 +391,8 @@ export const ServiceForm = Shade<ServiceFormProps>({
                           cursor: 'pointer',
                           border: isSelected
                             ? `2px solid ${cssVariableTheme.palette.primary.main}`
-                            : '2px solid rgba(255,255,255,0.1)',
-                          background: isSelected ? 'rgba(255,255,255,0.03)' : 'transparent',
+                            : `2px solid ${cssVariableTheme.divider}`,
+                          background: isSelected ? cssVariableTheme.button.hover : 'transparent',
                           transition: 'all 0.15s',
                         }}
                       >
@@ -296,8 +402,8 @@ export const ServiceForm = Shade<ServiceFormProps>({
                           onchange={() => togglePrereqId(prereq.id)}
                           style={{ margin: '0' }}
                         />
-                        <span style={{ fontWeight: '500' }}>{prereq.name}</span>
-                        <span style={{ opacity: '0.6', fontSize: '13px' }}>
+                        <span style={{ fontWeight: cssVariableTheme.typography.fontWeight.medium }}>{prereq.name}</span>
+                        <span style={{ opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
                           {prerequisiteTypeLabels[prereq.type] ?? prereq.type}
                         </span>
                       </label>
@@ -305,7 +411,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
                   })}
                 </div>
               ) : (
-                <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: '14px' }}>
+                <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.md }}>
                   No prerequisites defined for this stack yet.
                 </p>
               )}
@@ -326,7 +432,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
           {props.otherServices && props.otherServices.length > 0 ? (
             <div>
               <h4 style={{ margin: '0 0 8px 0', opacity: '0.7' }}>Prerequisite Services</h4>
-              <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: '13px' }}>
+              <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
                 Services that must be running before this one starts.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -343,8 +449,8 @@ export const ServiceForm = Shade<ServiceFormProps>({
                         cursor: 'pointer',
                         border: isSelected
                           ? `2px solid ${cssVariableTheme.palette.primary.main}`
-                          : '2px solid rgba(255,255,255,0.1)',
-                        background: isSelected ? 'rgba(255,255,255,0.03)' : 'transparent',
+                          : `2px solid ${cssVariableTheme.divider}`,
+                        background: isSelected ? cssVariableTheme.button.hover : 'transparent',
                         transition: 'all 0.15s',
                       }}
                     >
@@ -354,7 +460,9 @@ export const ServiceForm = Shade<ServiceFormProps>({
                         onchange={() => togglePrereqServiceId(svc.id)}
                         style={{ margin: '0' }}
                       />
-                      <span style={{ fontWeight: '500' }}>{svc.displayName}</span>
+                      <span style={{ fontWeight: cssVariableTheme.typography.fontWeight.medium }}>
+                        {svc.displayName}
+                      </span>
                     </label>
                   )
                 })}
@@ -426,9 +534,9 @@ export const ServiceForm = Shade<ServiceFormProps>({
               elevation={3}
               style={{
                 padding: '24px',
-                minWidth: '480px',
+                width: 'min(480px, calc(100vw - 32px))',
                 maxWidth: '600px',
-                borderRadius: '12px',
+                borderRadius: cssVariableTheme.shape.borderRadius.lg,
                 background: cssVariableTheme.background.paper,
               }}
             >
@@ -467,9 +575,9 @@ export const ServiceForm = Shade<ServiceFormProps>({
               elevation={3}
               style={{
                 padding: '24px',
-                minWidth: '480px',
+                width: 'min(480px, calc(100vw - 32px))',
                 maxWidth: '600px',
-                borderRadius: '12px',
+                borderRadius: cssVariableTheme.shape.borderRadius.lg,
                 background: cssVariableTheme.background.paper,
               }}
             >

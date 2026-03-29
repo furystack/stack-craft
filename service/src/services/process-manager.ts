@@ -1,7 +1,8 @@
 import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import type { CloneStatus, InstallStatus, BuildStatus, RunStatus, ServiceStateEvent, TriggerSource } from 'common'
+import { type ChildProcess, spawn, spawnSync } from 'child_process'
+import type { BuildStatus, CloneStatus, InstallStatus, RunStatus, ServiceStateEvent, TriggerSource } from 'common'
 import {
   GitHubRepository,
   Prerequisite,
@@ -10,20 +11,22 @@ import {
   ServiceStateHistory,
   ServiceStatus,
   StackConfig,
+  getServiceCwd,
 } from 'common'
-import { getServiceCwd } from 'common'
-import { type ChildProcess, spawn } from 'child_process'
-import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs'
 import { randomUUID } from 'crypto'
-import { dirname, join, resolve as resolvePosix } from 'path'
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs'
+import { dirname, join, resolve as resolvePosix, sep } from 'path'
 
 import { useSystemIdentityContext } from '@furystack/core'
-import { applyServiceFiles } from '../utils/apply-service-files.js'
+import { applyServiceFiles, mergeServiceFiles } from '../utils/apply-service-files.js'
+import { CryptoService } from '../utils/crypto-service.js'
+import { decryptLocalFiles } from '../utils/env-encryption-helpers.js'
 import { resolvePath } from '../utils/resolve-path.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
+import { GitHeadWatcher } from './git-head-watcher.js'
 import { GitService } from './git-service.js'
+import { GitWatcher } from './git-watcher.js'
 import { LogStorageService } from './log-storage-service.js'
-import { WebsocketService } from './websocket-service.js'
 
 const MAX_HISTORY_PER_SERVICE = 10_000
 const HISTORY_PRUNE_CHECK_INTERVAL = 100
@@ -60,8 +63,11 @@ export class ProcessManager {
   @Injected(LogStorageService)
   declare private logStorage: LogStorageService
 
-  @Injected(WebsocketService)
-  declare private ws: WebsocketService
+  @Injected(GitHeadWatcher)
+  declare private gitHeadWatcher: GitHeadWatcher
+
+  @Injected(GitWatcher)
+  declare private gitWatcher: GitWatcher
 
   private logBuffer: Array<{ serviceId: string; processUid: string; stream: 'stdout' | 'stderr'; line: string }> = []
   private flushTimer: ReturnType<typeof setTimeout> | null = null
@@ -149,15 +155,6 @@ export class ProcessManager {
           void this.pruneHistory(serviceId, elevated)
         }
       }
-
-      void this.ws.announce({
-        type: 'service-status-changed',
-        serviceId,
-        cloneStatus: update.cloneStatus ?? current.cloneStatus,
-        installStatus: update.installStatus ?? current.installStatus,
-        buildStatus: update.buildStatus ?? current.buildStatus,
-        runStatus: update.runStatus ?? current.runStatus,
-      })
     } catch {
       // May fire after disposal during shutdown — safe to ignore
     }
@@ -221,12 +218,12 @@ export class ProcessManager {
       this.processes.set(serviceId, managed)
 
       child.stdout?.on('data', (data: Buffer) => {
-        const lines = data.toString().split('\n').filter(Boolean)
+        const lines = data.toString().split(/\r?\n/).filter(Boolean)
         lines.forEach((line) => this.addLogLine(serviceId, 'stdout', line))
       })
 
       child.stderr?.on('data', (data: Buffer) => {
-        const lines = data.toString().split('\n').filter(Boolean)
+        const lines = data.toString().split(/\r?\n/).filter(Boolean)
         lines.forEach((line) => this.addLogLine(serviceId, 'stderr', line))
       })
 
@@ -361,7 +358,7 @@ export class ProcessManager {
 
     const cwd = resolvePath(getServiceCwd(stackConfig, svc, repo))
     const stackRoot = resolvePosix(resolvePath(stackConfig.mainDirectory))
-    if (!cwd.startsWith(stackRoot)) {
+    if (cwd !== stackRoot && !cwd.startsWith(`${stackRoot}${sep}`)) {
       throw new Error(`Resolved path "${cwd}" is outside the stack directory "${stackRoot}"`)
     }
 
@@ -376,13 +373,17 @@ export class ProcessManager {
         mkdirSync(dirname(cwd), { recursive: true })
         await git.clone(repo.url, cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
-        this.applySharedFiles(svc, cwd)
+        await this.gitHeadWatcher.watch(serviceId, cwd)
+        void this.gitWatcher.startWatching(serviceId)
+        await this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       } else if (isGitRepo) {
         await this.logger.information({ message: `Pulling in ${cwd}` })
         const { updated } = await git.pull(cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
-        this.applySharedFiles(svc, cwd)
+        await this.gitHeadWatcher.watch(serviceId, cwd)
+        void this.gitWatcher.startWatching(serviceId)
+        await this.applySharedFiles(svc, cwd)
         return { cloned: false, pulled: true, updated }
       } else {
         const dirContents = readdirSync(cwd)
@@ -395,7 +396,9 @@ export class ProcessManager {
         mkdirSync(dirname(cwd), { recursive: true })
         await git.clone(repo.url, cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
-        this.applySharedFiles(svc, cwd)
+        await this.gitHeadWatcher.watch(serviceId, cwd)
+        void this.gitWatcher.startWatching(serviceId)
+        await this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       }
     } catch (error) {
@@ -406,17 +409,28 @@ export class ProcessManager {
     }
   }
 
-  private applySharedFiles(svc: ServiceDefinition, cwd: string): void {
-    const files = svc.files ?? []
-    if (files.length === 0) return
+  private async applySharedFiles(svc: ServiceDefinition, cwd: string): Promise<void> {
+    const elevated = this.getElevatedInjector()
+    const crypto = elevated.getInstance(CryptoService)
+
+    const svcConfigs = await getRepository(elevated)
+      .getDataSetFor(ServiceConfig, 'serviceId')
+      .find(elevated, { filter: { serviceId: { $eq: svc.id } }, top: 1 })
+    const localFiles = decryptLocalFiles(crypto, svcConfigs[0]?.localFiles ?? [])
+    const sharedFiles = svc.files ?? []
+
+    const merged = mergeServiceFiles(sharedFiles, localFiles)
+    if (merged.length === 0) return
+
     try {
-      const applied = applyServiceFiles(cwd, files)
+      const variables = await this.resolveServiceEnvVars(svc.id)
+      const applied = applyServiceFiles(cwd, merged, undefined, variables)
       void this.logger.information({
-        message: `Applied ${applied.length} shared file(s) for ${svc.displayName}: ${applied.join(', ')}`,
+        message: `Applied ${applied.length} file(s) for ${svc.displayName}: ${applied.join(', ')}`,
       })
     } catch (error) {
       void this.logger.warning({
-        message: `Failed to apply shared files for ${svc.displayName}: ${(error as Error).message}`,
+        message: `Failed to apply files for ${svc.displayName}: ${(error as Error).message}`,
       })
     }
   }
@@ -428,21 +442,30 @@ export class ProcessManager {
    */
   public async applyFiles(serviceId: string, relativePath?: string): Promise<string[]> {
     const elevated = this.getElevatedInjector()
-    const services = await getRepository(elevated)
+    const crypto = elevated.getInstance(CryptoService)
+    const repository = getRepository(elevated)
+
+    const services = await repository
       .getDataSetFor(ServiceDefinition, 'id')
       .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc) throw new Error(`Service not found: ${serviceId}`)
 
+    const svcConfigs = await repository
+      .getDataSetFor(ServiceConfig, 'serviceId')
+      .find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+    const localFiles = decryptLocalFiles(crypto, svcConfigs[0]?.localFiles ?? [])
+    const merged = mergeServiceFiles(svc.files ?? [], localFiles)
+
     const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
-    const files = svc.files ?? []
 
     if (relativePath) {
-      const file = files.find((f) => f.relativePath === relativePath)
-      if (!file) throw new Error(`File not found in service definition: ${relativePath}`)
+      const file = merged.find((f) => f.relativePath === relativePath)
+      if (!file) throw new Error(`File not found in service definition or local files: ${relativePath}`)
     }
 
-    return applyServiceFiles(cwd, files, relativePath)
+    const variables = await this.resolveServiceEnvVars(serviceId)
+    return applyServiceFiles(cwd, merged, relativePath, variables)
   }
 
   /**
@@ -662,8 +685,14 @@ export class ProcessManager {
     const processUid = randomUUID()
     await this.updateServiceStatus(serviceId, progressStatus, progressEvent, trigger, undefined, { processUid })
 
-    const envVars = await this.resolveServiceEnvVars(serviceId)
-    const child = this.spawnCommand(command, cwd, envVars)
+    let child: ChildProcess
+    try {
+      const envVars = await this.resolveServiceEnvVars(serviceId)
+      child = this.spawnCommand(command, cwd, envVars)
+    } catch (error) {
+      this.pendingOperations.delete(serviceId)
+      throw error
+    }
 
     const managed: ManagedProcess = {
       serviceId,
@@ -677,7 +706,7 @@ export class ProcessManager {
     child.stdout?.on('data', (data: Buffer) => {
       data
         .toString()
-        .split('\n')
+        .split(/\r?\n/)
         .filter(Boolean)
         .forEach((line) => this.addLogLine(serviceId, 'stdout', line))
     })
@@ -685,7 +714,7 @@ export class ProcessManager {
     child.stderr?.on('data', (data: Buffer) => {
       data
         .toString()
-        .split('\n')
+        .split(/\r?\n/)
         .filter(Boolean)
         .forEach((line) => this.addLogLine(serviceId, 'stderr', line))
     })
@@ -726,13 +755,18 @@ export class ProcessManager {
 
   /**
    * Kills a managed process and all its children by targeting the process group.
-   * Falls back to killing just the shell process if the group kill fails
-   * (e.g. the process already exited).
+   * On Unix, sends a signal to the process group via negative PID.
+   * On Windows, uses `taskkill /T /F` to terminate the entire process tree.
+   * Falls back to killing just the shell process if the group kill fails.
    */
   private killProcessGroup(child: ChildProcess, signal: NodeJS.Signals): boolean {
     if (child.pid == null) return false
     try {
-      process.kill(-child.pid, signal)
+      if (process.platform === 'win32') {
+        spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
+      } else {
+        process.kill(-child.pid, signal)
+      }
       return true
     } catch {
       try {
@@ -761,12 +795,19 @@ export class ProcessManager {
     'TMPDIR',
     'TMP',
     'TEMP',
+    // Windows-specific
+    'USERPROFILE',
+    'APPDATA',
+    'LOCALAPPDATA',
+    'SYSTEMROOT',
+    'COMSPEC',
+    'PATHEXT',
   ])
 
   private static getSafeEnv(): NodeJS.ProcessEnv {
     const env: NodeJS.ProcessEnv = {}
     for (const key of Object.keys(process.env)) {
-      if (ProcessManager.SAFE_ENV_KEYS.has(key) || key.startsWith('STACK_CRAFT_')) {
+      if (ProcessManager.SAFE_ENV_KEYS.has(key.toUpperCase()) || key.startsWith('STACK_CRAFT_')) {
         env[key] = process.env[key]
       }
     }
@@ -812,7 +853,10 @@ export class ProcessManager {
       const config = override ?? stackDefault
 
       if (config?.source === 'custom' && config.customValue !== undefined) {
-        resolved[varName] = config.customValue
+        const crypto = this.getElevatedInjector().getInstance(CryptoService)
+        resolved[varName] = crypto.isEncrypted(config.customValue)
+          ? crypto.decrypt(config.customValue)
+          : config.customValue
       } else if (config?.source === 'inherit' || !config) {
         const globalValue = process.env[varName]
         if (globalValue !== undefined) {
@@ -879,6 +923,24 @@ export class ProcessManager {
           message: `Reconciling stale state for service ${status.serviceId}: ${JSON.stringify(update)}`,
         })
         await this.updateServiceStatus(status.serviceId, update, 'state-reconciled', reconcileTrigger, staleMetadata)
+      }
+
+      if (status.cloneStatus === 'cloned') {
+        try {
+          const services = await getRepository(elevated)
+            .getDataSetFor(ServiceDefinition, 'id')
+            .find(elevated, { filter: { id: { $eq: status.serviceId } }, top: 1 })
+          const svc = services[0]
+          if (svc) {
+            const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
+            await this.gitHeadWatcher.watch(status.serviceId, cwd)
+            void this.gitWatcher.startWatching(status.serviceId)
+          }
+        } catch (error) {
+          await this.logger.verbose({
+            message: `Could not start git watcher for service ${status.serviceId}: ${(error as Error).message}`,
+          })
+        }
       }
     }
   }

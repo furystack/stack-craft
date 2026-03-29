@@ -48,12 +48,16 @@ export const attachShutdownHandler = async (i: Injector) => {
 
   // catches ctrl+c event
   process.once('SIGINT', () => void onExit({ code: 0, reason: 'SIGINT' }))
-  process.once('SIGQUIT', () => void onExit({ code: 0, reason: 'SIGQUIT' }))
   process.once('SIGTERM', () => void onExit({ code: 0, reason: 'SIGTERM' }))
 
-  // catches "kill pid" (for example: nodemon restart)
-  process.once('SIGUSR1', () => void onExit({ code: 0, reason: 'SIGUSR1' }))
-  process.once('SIGUSR2', () => void onExit({ code: 0, reason: 'SIGUSR2' }))
+  if (process.platform !== 'win32') {
+    process.once('SIGQUIT', () => void onExit({ code: 0, reason: 'SIGQUIT' }))
+    // catches "kill pid" (for example: nodemon restart)
+    process.once('SIGUSR1', () => void onExit({ code: 0, reason: 'SIGUSR1' }))
+    process.once('SIGUSR2', () => void onExit({ code: 0, reason: 'SIGUSR2' }))
+  } else {
+    process.once('SIGBREAK', () => void onExit({ code: 0, reason: 'SIGBREAK' }))
+  }
 
   // catches uncaught exceptions
   process.once('uncaughtException', (error) => {

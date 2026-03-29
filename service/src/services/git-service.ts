@@ -57,6 +57,18 @@ export class GitService {
     return stdout.trim()
   }
 
+  public async getCommitsBehind(directory: string, branch: string): Promise<number> {
+    try {
+      const { stdout } = await execFileAsync('git', ['rev-list', '--count', `HEAD..origin/${branch}`], {
+        cwd: directory,
+        timeout: 10000,
+      })
+      return parseInt(stdout.trim(), 10) || 0
+    } catch {
+      return 0
+    }
+  }
+
   public async checkout(directory: string, branch: string): Promise<void> {
     await this.logger.information({ message: `Checking out ${branch} in ${directory}` })
     await execFileAsync('git', ['checkout', branch], { cwd: directory, timeout: 30000 })

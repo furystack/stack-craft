@@ -43,15 +43,6 @@ export const ExportStack = Shade<ExportStackProps>({
           icon="📤"
           title="Export Stack"
           description="Copy the JSON below and share it with other developers to quickly set up the same stack."
-          actions={
-            <Button
-              variant="outlined"
-              onclick={() => history.back()}
-              startIcon={<Icon icon={icons.chevronLeft} size="small" />}
-            >
-              Back
-            </Button>
-          }
         />
         <Paper>
           {isLoading ? (

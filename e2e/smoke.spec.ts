@@ -34,7 +34,9 @@ test.describe.serial('App Flow', () => {
 
     await expect(page.getByTestId('page-header-title')).toContainText(displayName)
 
-    // Create an example "Hello World" service
+    // Navigate to services list via the dashboard card
+    await page.locator('shade-dashboard a', { hasText: 'Services' }).click()
+    await expect(page.locator('shade-services-list')).toBeVisible()
     await page.locator('button', { hasText: 'Create Service' }).first().click()
     await expect(page.locator('shade-create-service-wizard')).toBeVisible()
 
@@ -43,10 +45,14 @@ test.describe.serial('App Flow', () => {
     await page.locator('input[name="runCommand"]').fill('echo hello')
     await page.locator('button', { hasText: 'Create' }).click()
 
-    await expect(page.locator('shade-dashboard')).toBeVisible()
-    await expect(page.getByTestId('page-header-title')).toContainText(displayName)
+    await expect(page.locator('shade-services-list')).toBeVisible()
 
-    // Create a repository - FuryStack (https://github.com/furystack/furystack)
+    // Scope all sidebar interactions to the correct stack
+    const stackSidebar = page.locator('shade-sidebar-stack-category').filter({ hasText: displayName })
+
+    // Navigate to repositories list
+    await stackSidebar.locator('shade-sidebar-stack-link a', { hasText: 'Repositories' }).click()
+    await expect(page.locator('shade-repositories-list')).toBeVisible()
     await page.locator('button', { hasText: 'Add Repository' }).first().click()
     await expect(page.locator('shade-create-repository')).toBeVisible()
 
@@ -54,9 +60,11 @@ test.describe.serial('App Flow', () => {
     await page.locator('input[name="url"]').fill('https://github.com/furystack/furystack')
     await page.locator('button', { hasText: 'Add' }).click()
 
-    await expect(page.locator('shade-dashboard')).toBeVisible()
-    await expect(page.getByTestId('page-header-title')).toContainText(displayName)
+    await expect(page.locator('shade-repositories-list')).toBeVisible()
 
+    // Navigate to services list
+    await stackSidebar.locator('shade-sidebar-stack-link a', { hasText: 'Services' }).click()
+    await expect(page.locator('shade-services-list')).toBeVisible()
     await page.locator('button', { hasText: 'Create Service' }).first().click()
     await expect(page.locator('shade-create-service-wizard')).toBeVisible()
 
@@ -65,6 +73,6 @@ test.describe.serial('App Flow', () => {
     await page.locator('input[name="runCommand"]').fill('echo hello')
     await page.locator('button', { hasText: 'Create' }).click()
 
-    await expect(page.locator('shade-dashboard')).toBeVisible()
+    await expect(page.locator('shade-services-list')).toBeVisible()
   })
 })

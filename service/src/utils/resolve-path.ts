@@ -7,6 +7,7 @@ import { resolve } from 'path'
  * commands all see the same absolute path.
  */
 export function resolvePath(path: string): string {
-  const expanded = path.startsWith('~/') || path === '~' ? path.replace(/^~/, homedir()) : path
+  const expanded =
+    path.startsWith('~/') || path.startsWith('~\\') || path === '~' ? path.replace(/^~/, homedir()) : path
   return resolve(expanded)
 }

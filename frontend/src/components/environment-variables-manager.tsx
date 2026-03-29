@@ -1,7 +1,7 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 
-import { Button, cssVariableTheme, Icon, icons, Paper } from '@furystack/shades-common-components'
+import { Button, cssVariableTheme, Icon, icons, Input, Paper, Select } from '@furystack/shades-common-components'
 import type { EnvironmentVariableValue, Prerequisite } from 'common'
 import { Prerequisite as PrerequisiteModel } from 'common'
 
@@ -32,6 +32,7 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
       props.environmentVariables,
     )
     const [isSaving, setIsSaving] = useState('isSaving', false)
+    const [touchedSensitive, setTouchedSensitive] = useState<Set<string>>('touchedSensitive', new Set())
 
     if (envPrereqs.length > 0 && !hasChecked) {
       const varNames = envPrereqs.map((p) => (p.config as { variableName: string }).variableName)
@@ -63,7 +64,15 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
     const handleSave = async () => {
       setIsSaving(true)
       try {
-        props.onSave(editState)
+        const toSave: Record<string, EnvironmentVariableValue> = {}
+        for (const [key, val] of Object.entries(editState)) {
+          if (val.isSensitive && val.source === 'custom' && !touchedSensitive.has(key)) {
+            toSave[key] = { ...val, customValue: '__UNCHANGED__' }
+          } else {
+            toSave[key] = val
+          }
+        }
+        props.onSave(toSave)
       } finally {
         setIsSaving(false)
       }
@@ -71,9 +80,11 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
 
     return (
       <Paper elevation={1} style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px' }}>
-        <strong style={{ fontSize: '16px' }}>Environment Variables</strong>
+        <strong style={{ fontSize: cssVariableTheme.typography.fontSize.lg }}>Environment Variables</strong>
         {envPrereqs.map((prereq) => {
           const varName = (prereq.config as { variableName: string }).variableName
+          const isSensitive =
+            editState[varName]?.isSensitive ?? (prereq.config as { isSensitive?: boolean }).isSensitive ?? false
           const current = editState[varName]
           const isGloballyAvailable = envAvailability[varName] ?? false
           const source = current?.source ?? (isGloballyAvailable ? 'inherit' : 'custom')
@@ -92,11 +103,14 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <strong style={{ fontFamily: 'monospace' }}>{varName}</strong>
-                <span style={{ opacity: '0.6', fontSize: '12px' }}>({prereq.name})</span>
+                {isSensitive ? <Icon icon={icons.lock} size="small" title="Sensitive value" /> : null}
+                <span style={{ opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
+                  ({prereq.name})
+                </span>
                 {isGloballyAvailable ? (
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: cssVariableTheme.typography.fontSize.xs,
                       padding: '2px 6px',
                       borderRadius: '4px',
                       background: cssVariableTheme.palette.success.main,
@@ -108,7 +122,7 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
                 ) : (
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: cssVariableTheme.typography.fontSize.xs,
                       padding: '2px 6px',
                       borderRadius: '4px',
                       background: cssVariableTheme.palette.warning.main,
@@ -120,49 +134,41 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
                 )}
               </div>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <select
-                  style={{
-                    padding: '8px',
-                    borderRadius: cssVariableTheme.shape.borderRadius.md,
-                    border: `1px solid ${cssVariableTheme.divider}`,
-                    background: cssVariableTheme.background.paper,
-                    color: cssVariableTheme.text.primary,
-                  }}
+                <Select
+                  variant="outlined"
+                  labelTitle="Source"
+                  value={source}
+                  options={[
+                    ...(isGloballyAvailable ? [{ value: 'inherit', label: 'Inherit from system' }] : []),
+                    { value: 'custom', label: 'Custom value' },
+                  ]}
                   onchange={(ev) => {
                     const newSource = (ev.target as HTMLSelectElement).value as 'inherit' | 'custom'
                     setEditState({
                       ...editState,
-                      [varName]: { source: newSource, customValue: current?.customValue },
+                      [varName]: { source: newSource, customValue: current?.customValue, isSensitive },
                     })
                   }}
-                >
-                  {isGloballyAvailable ? (
-                    <option value="inherit" selected={source === 'inherit'}>
-                      Inherit from system
-                    </option>
-                  ) : null}
-                  <option value="custom" selected={source === 'custom'}>
-                    Custom value
-                  </option>
-                </select>
+                />
                 {source === 'custom' ? (
-                  <input
-                    type="text"
+                  <Input
+                    variant="outlined"
+                    labelTitle="Value"
+                    type={isSensitive ? 'password' : 'text'}
                     value={current?.customValue ?? ''}
                     placeholder="Enter value..."
-                    style={{
-                      flex: '1',
-                      padding: '8px',
-                      borderRadius: cssVariableTheme.shape.borderRadius.md,
-                      border: `1px solid ${cssVariableTheme.divider}`,
-                      background: cssVariableTheme.background.paper,
-                      color: cssVariableTheme.text.primary,
-                      fontFamily: 'monospace',
-                    }}
+                    style={{ flex: '1', fontFamily: 'monospace' }}
                     oninput={(ev) => {
+                      if (isSensitive) {
+                        setTouchedSensitive(new Set([...touchedSensitive, varName]))
+                      }
                       setEditState({
                         ...editState,
-                        [varName]: { source: 'custom', customValue: (ev.target as HTMLInputElement).value },
+                        [varName]: {
+                          source: 'custom',
+                          customValue: (ev.target as HTMLInputElement).value,
+                          isSensitive,
+                        },
                       })
                     }}
                   />

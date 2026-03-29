@@ -12,6 +12,7 @@ import {
   StackConfig,
   StackDefinition,
 } from 'common'
+import { randomBytes } from 'crypto'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { ExportStackAction } from './export-stack-action.js'
@@ -55,6 +56,7 @@ describe('Import/Export Stack Actions', () => {
   let prereqStore: InMemoryStore<Prerequisite, 'id'>
 
   beforeEach(() => {
+    process.env.STACK_CRAFT_ENCRYPTION_KEY = randomBytes(32).toString('base64')
     injector = new Injector()
     useLogging(injector, VerboseConsoleLogger)
 

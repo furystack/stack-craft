@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, Form, Icon, icons, Input, MarkdownInput, Select } from '@furystack/shades-common-components'
+import { Button, Checkbox, Form, Icon, icons, Input, MarkdownEditor, Select } from '@furystack/shades-common-components'
 import type { Prerequisite, PrerequisiteConfig, PrerequisiteType } from 'common'
 
 type PrerequisiteFormPayload = {
@@ -10,6 +10,7 @@ type PrerequisiteFormPayload = {
   feedUrl?: string
   feedName?: string
   variableName?: string
+  isSensitive?: string
   script?: string
   installationHelp?: string
 }
@@ -49,7 +50,10 @@ const buildConfig = (data: PrerequisiteFormPayload): PrerequisiteConfig => {
     case 'github-cli':
       return {} as PrerequisiteConfig
     case 'env-variable':
-      return { variableName: data.variableName! } as PrerequisiteConfig
+      return {
+        variableName: data.variableName!,
+        ...(data.isSensitive === 'on' ? { isSensitive: true } : {}),
+      } as PrerequisiteConfig
     case 'custom-script':
       return { script: data.script! } as PrerequisiteConfig
     default:
@@ -165,14 +169,21 @@ export const PrerequisiteForm = Shade<PrerequisiteFormProps>({
         )}
 
         {selectedType === 'env-variable' && (
-          <Input
-            name="variableName"
-            labelTitle="Variable Name"
-            variant="outlined"
-            required
-            value={extractConfigField(props.initial?.config, 'variableName')}
-            getHelperText={() => 'The environment variable name to check (e.g., "GITHUB_TOKEN")'}
-          />
+          <div style={{ display: 'contents' }}>
+            <Input
+              name="variableName"
+              labelTitle="Variable Name"
+              variant="outlined"
+              required
+              value={extractConfigField(props.initial?.config, 'variableName')}
+              getHelperText={() => 'The environment variable name to check (e.g., "GITHUB_TOKEN")'}
+            />
+            <Checkbox
+              name="isSensitive"
+              labelTitle="Sensitive value (encrypt at rest and mask in API responses)"
+              checked={extractConfigField(props.initial?.config, 'isSensitive') === 'true'}
+            />
+          </div>
         )}
 
         {selectedType === 'custom-script' && (
@@ -186,7 +197,7 @@ export const PrerequisiteForm = Shade<PrerequisiteFormProps>({
           />
         )}
 
-        <MarkdownInput
+        <MarkdownEditor
           name="installationHelp"
           labelTitle="Installation Help"
           value={props.initial?.installationHelp ?? ''}

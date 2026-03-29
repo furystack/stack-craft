@@ -80,10 +80,10 @@ const AuthenticatedLayout = Shade({
     const syncProtocol = serviceUrl.protocol === 'https:' ? 'wss:' : 'ws:'
     const syncWsUrl = `${syncProtocol}//${serviceUrl.host}/api/ws`
 
-    const authenticatedInjector = useDisposable('authenticatedInjector', () => {
-      const child = injector.createChild()
-      child.setExplicitInstance(new EntitySyncService({ wsUrl: syncWsUrl }), EntitySyncService)
-      return child
+    useDisposable('entitySyncService', () => {
+      const service = new EntitySyncService({ wsUrl: syncWsUrl })
+      injector.setExplicitInstance(service, EntitySyncService)
+      return service
     })
 
     return (
@@ -96,12 +96,12 @@ const AuthenticatedLayout = Shade({
           left: {
             variant: 'collapsible',
             width: '220px',
-            component: <Sidebar injector={authenticatedInjector} />,
+            component: <Sidebar />,
             collapseOnBreakpoint: 'md',
           },
         }}
       >
-        <Body injector={authenticatedInjector} style={{ width: '100%', height: '100%', overflow: 'auto' }} />
+        <Body style={{ width: '100%', height: '100%', overflow: 'auto' }} />
       </PageLayout>
     )
   },

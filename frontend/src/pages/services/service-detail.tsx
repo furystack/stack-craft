@@ -7,6 +7,7 @@ import {
   Chip,
   CollectionService,
   ConfirmDialog,
+  cssVariableTheme,
   DataGrid,
   Icon,
   icons,
@@ -32,13 +33,16 @@ import {
 } from 'common'
 import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
 import { ServiceForm } from '../../components/entity-forms/service-form.js'
+import { LogViewer } from '../../components/log-viewer.js'
 import { PrerequisiteList } from '../../components/prerequisite-list.js'
 import { ServiceEnvOverrides } from '../../components/service-env-overrides.js'
+import { BranchSelector } from '../../components/branch-selector.js'
+import { ServicePipelineStepper } from '../../components/service-pipeline-stepper.js'
 import { ServiceStatusIndicator } from '../../components/service-status-indicator.js'
-import { BuildStatusChip, CloneStatusChip, InstallStatusChip, RunStatusChip } from '../../components/status-chips.js'
 import { GitHubReposApiClient } from '../../services/api-clients/github-repos-api-client.js'
 import { PrerequisitesApiClient } from '../../services/api-clients/prerequisites-api-client.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
+import { getPrimaryAction, getSecondaryActions } from '../../utils/service-pipeline.js'
 
 const eventLabels: Record<string, string> = {
   'clone-started': 'Clone started',
@@ -64,7 +68,10 @@ const eventLabels: Record<string, string> = {
   imported: 'Imported',
 }
 
+type TabId = 'overview' | 'logs' | 'history' | 'configuration'
+
 type ServiceDetailProps = {
+  stackName: string
   serviceId: string
 }
 
@@ -75,7 +82,8 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     const locationService = injector.getInstance(LocationService)
     const searchState = locationService.onDeserializedLocationSearchChanged.getValue()
     const hasEditParam = searchState.edit === true
-    const [isEditing, setIsEditing] = useState('isEditing', hasEditParam)
+    const initialTab: TabId = hasEditParam ? 'configuration' : 'overview'
+    const [activeTab, setActiveTab] = useState<TabId>('activeTab', initialTab)
     const [isConfirmingDelete, setIsConfirmingDelete] = useState('isConfirmingDelete', false)
 
     const serviceState = useEntitySync(options, ServiceDefinition, props.serviceId)
@@ -95,19 +103,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     if (serviceState.status === 'error') {
       return (
         <PageContainer>
-          <PageHeader
-            title="Error loading service"
-            description={serviceState.error}
-            actions={
-              <Button
-                variant="outlined"
-                onclick={() => history.back()}
-                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
-              >
-                Back
-              </Button>
-            }
-          />
+          <PageHeader title="Error loading service" description={serviceState.error} />
         </PageContainer>
       )
     }
@@ -116,18 +112,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     if (!serviceData) {
       return (
         <PageContainer>
-          <PageHeader
-            title="Service not found"
-            actions={
-              <Button
-                variant="outlined"
-                onclick={() => history.back()}
-                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
-              >
-                Back
-              </Button>
-            }
-          />
+          <PageHeader title="Service not found" />
         </PageContainer>
       )
     }
@@ -141,6 +126,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       autoFetchIntervalMinutes: 60,
       autoRestartOnFetch: false,
       environmentVariableOverrides: {},
+      localFiles: [],
       cloneStatus: 'not-cloned',
       installStatus: 'not-installed',
       buildStatus: 'not-built',
@@ -238,6 +224,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             prerequisiteIds: data.prerequisiteIds,
             prerequisiteServiceIds: data.prerequisiteServiceIds,
             files: data.files,
+            localFiles: data.localFiles,
           },
         })
         noty.emit('onNotyAdded', {
@@ -245,7 +232,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           body: `"${data.displayName ?? service.displayName}" was updated successfully.`,
           type: 'success',
         })
-        setIsEditing(false)
+        setActiveTab('overview')
       } catch (error) {
         noty.emit('onNotyAdded', {
           title: 'Error',
@@ -267,7 +254,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           body: `"${service.displayName}" was deleted.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/stacks/:name', { name: service.stackName })
+        stackCraftNavigate(injector, '/stacks/:stackName/services', { stackName: service.stackName })
       } catch (error) {
         noty.emit('onNotyAdded', {
           title: 'Error',
@@ -316,46 +303,31 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       return newId
     }
 
-    if (isEditing) {
-      return (
-        <PageContainer>
-          <PageHeader
-            title={`Edit: ${service.displayName}`}
-            actions={
-              <Button
-                variant="outlined"
-                onclick={() => setIsEditing(false)}
-                startIcon={<Icon icon={icons.chevronLeft} size="small" />}
-              >
-                Cancel
-              </Button>
-            }
-          />
-          <Paper>
-            <ServiceForm
-              mode="edit"
-              stackName={service.stackName}
-              repositories={repos}
-              prerequisites={allPrereqs}
-              otherServices={otherServices}
-              initial={service}
-              onSubmit={(data: Partial<ServiceView>) => void handleSave(data)}
-              onCreatePrerequisite={(data: Partial<Prerequisite>) => handleCreatePrerequisite(data)}
-              onCreateRepository={(data: Partial<GitHubRepository>) => handleCreateRepository(data)}
-              onCancel={() => setIsEditing(false)}
-            />
-          </Paper>
-        </PageContainer>
-      )
-    }
+    const primary = getPrimaryAction(service)
+    const secondaryActions = getSecondaryActions(service)
+
+    const tabs: Array<{ id: TabId; label: string }> = [
+      { id: 'overview', label: 'Overview' },
+      { id: 'logs', label: 'Logs' },
+      { id: 'history', label: 'History' },
+      { id: 'configuration', label: 'Configuration' },
+    ]
 
     return (
       <PageContainer>
+        {/* Header */}
         <PageHeader
           title={service.displayName}
           actions={
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <ServiceStatusIndicator service={service} />
+              {service.repositoryId ? (
+                <BranchSelector
+                  serviceId={service.id}
+                  currentBranch={service.currentBranch}
+                  isCloned={service.cloneStatus === 'cloned'}
+                />
+              ) : null}
               {servicePrereqs.length > 0 ? (
                 <Chip
                   variant="outlined"
@@ -373,19 +345,31 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                     : `${prereqSatisfiedCount}/${servicePrereqs.length} prereqs`}
                 </Chip>
               ) : null}
-              <StackCraftNestedRouteLink href="/services/:id/logs" params={{ id: service.id }}>
-                <Button variant="outlined" size="small" startIcon={<Icon icon={icons.file} size="small" />}>
-                  Logs
+              {primary.apiAction ? (
+                <Button
+                  variant="contained"
+                  size="small"
+                  color={primary.color === 'secondary' ? undefined : primary.color}
+                  loading={!!actionInProgress}
+                  disabled={!!actionInProgress}
+                  onclick={() => void runAction(primary.label, primary.apiAction)}
+                >
+                  {primary.label}
                 </Button>
-              </StackCraftNestedRouteLink>
-              <Button
-                variant="outlined"
-                size="small"
-                onclick={() => setIsEditing(true)}
-                startIcon={<Icon icon={icons.edit} size="small" />}
-              >
-                Edit
-              </Button>
+              ) : null}
+              {secondaryActions.map((action) => (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  color={action.color === 'secondary' ? undefined : action.color}
+                  title={action.tooltip}
+                  loading={actionInProgress === action.label}
+                  disabled={!!actionInProgress}
+                  onclick={() => void runAction(action.label, action.apiAction)}
+                >
+                  {action.label}
+                </Button>
+              ))}
               <Button
                 variant="outlined"
                 size="small"
@@ -398,18 +382,189 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             </div>
           }
         />
+
+        {/* Tab bar */}
+        <ServiceTabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+
+        {/* Tab content */}
+        {activeTab === 'overview' ? (
+          <OverviewTab
+            service={service}
+            linkedRepo={linkedRepo}
+            fullCwd={fullCwd}
+            servicePrereqs={servicePrereqs}
+            prereqSatisfiedCount={prereqSatisfiedCount}
+            prereqFailedCount={prereqFailedCount}
+            actionInProgress={actionInProgress}
+            onAction={(apiAction) => void runAction(apiAction, apiAction)}
+            onViewLogs={() =>
+              stackCraftNavigate(injector, '/stacks/:stackName/services/:serviceId/logs', {
+                stackName: service.stackName,
+                serviceId: service.id,
+              })
+            }
+          />
+        ) : null}
+
+        {activeTab === 'logs' ? <LogsTab serviceId={service.id} stackName={service.stackName} /> : null}
+
+        {activeTab === 'history' ? <ServiceHistory serviceId={service.id} stackName={service.stackName} /> : null}
+
+        {activeTab === 'configuration' ? (
+          <ConfigurationTab
+            service={service}
+            repos={repos}
+            allPrereqs={allPrereqs}
+            otherServices={otherServices}
+            servicePrereqs={servicePrereqs}
+            stackConfig={stackConfig}
+            actionInProgress={actionInProgress}
+            onSave={(data) => void handleSave(data)}
+            onCancel={() => setActiveTab('overview')}
+            onCreatePrerequisite={handleCreatePrerequisite}
+            onCreateRepository={handleCreateRepository}
+            onApplyFiles={async (relativePath?: string) => {
+              const key = relativePath ? `apply-file-${relativePath}` : 'apply-files-all'
+              setActionInProgress(key)
+              try {
+                await api.call({
+                  method: 'POST',
+                  action: '/services/:id/apply-files',
+                  url: { id: service.id },
+                  body: relativePath ? { relativePath } : {},
+                })
+                noty.emit('onNotyAdded', {
+                  title: 'Files applied',
+                  body: relativePath
+                    ? `${relativePath} was written to disk.`
+                    : 'All shared files were written to disk.',
+                  type: 'success',
+                })
+              } catch (error) {
+                noty.emit('onNotyAdded', {
+                  title: 'Error',
+                  body: error instanceof Error ? error.message : 'Failed to apply files',
+                  type: 'error',
+                })
+              } finally {
+                setActionInProgress(null)
+              }
+            }}
+          />
+        ) : null}
+
+        {ConfirmDialog(isConfirmingDelete, {
+          title: 'Delete Service',
+          message: `Are you sure you want to delete "${service.displayName}"? This action cannot be undone.`,
+          confirmText: 'Delete',
+          onConfirm: () => void handleDelete(),
+          onCancel: () => setIsConfirmingDelete(false),
+        })}
+      </PageContainer>
+    )
+  },
+})
+
+/* ============================================
+ * Tab Bar
+ * ============================================ */
+
+type ServiceTabBarProps = {
+  tabs: Array<{ id: TabId; label: string }>
+  activeTab: TabId
+  onTabChange: (tab: TabId) => void
+}
+
+const ServiceTabBar = Shade<ServiceTabBarProps>({
+  customElementName: 'shade-service-tab-bar',
+  css: {
+    display: 'flex',
+    gap: '0',
+    borderBottom: `1px solid ${cssVariableTheme.divider}`,
+    marginBottom: cssVariableTheme.spacing.md,
+
+    '& button': {
+      padding: `${cssVariableTheme.spacing.sm} ${cssVariableTheme.spacing.lg}`,
+      cursor: 'pointer',
+      border: 'none',
+      borderBottom: '2px solid transparent',
+      background: 'transparent',
+      color: cssVariableTheme.text.secondary,
+      fontWeight: cssVariableTheme.typography.fontWeight.normal,
+      fontSize: cssVariableTheme.typography.fontSize.md,
+      transition: `all ${cssVariableTheme.transitions.duration.normal} ${cssVariableTheme.transitions.easing.easeInOut}`,
+      fontFamily: 'inherit',
+    },
+    '& button:hover': {
+      color: cssVariableTheme.text.primary,
+    },
+    '& button[data-active]': {
+      borderBottomColor: cssVariableTheme.palette.primary.main,
+      color: cssVariableTheme.palette.primary.main,
+      fontWeight: cssVariableTheme.typography.fontWeight.semibold,
+    },
+  },
+  render: ({ props }) => {
+    return (
+      <div data-testid="service-detail-tabs">
+        {props.tabs.map((tab) => (
+          <button
+            type="button"
+            onclick={() => props.onTabChange(tab.id)}
+            {...(props.activeTab === tab.id ? { 'data-active': '' } : {})}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    )
+  },
+})
+
+/* ============================================
+ * Overview Tab
+ * ============================================ */
+
+type OverviewTabProps = {
+  service: ServiceView
+  linkedRepo: GitHubRepository | undefined
+  fullCwd: string | null
+  servicePrereqs: Prerequisite[]
+  prereqSatisfiedCount: number
+  prereqFailedCount: number
+  actionInProgress: string | null
+  onAction: (apiAction: string) => void
+  onViewLogs: (stageId: string) => void
+}
+
+const OverviewTab = Shade<OverviewTabProps>({
+  customElementName: 'shade-service-overview-tab',
+  render: ({ props }) => {
+    const { service, linkedRepo, fullCwd, servicePrereqs, prereqSatisfiedCount, prereqFailedCount } = props
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {service.description ? (
           <Paper>
             <MarkdownDisplay content={service.description} />
           </Paper>
         ) : null}
+
+        {/* Pipeline stepper */}
         <Paper>
+          <h3 style={{ margin: '0 0 8px 0' }}>Pipeline</h3>
+          <ServicePipelineStepper service={service} onAction={props.onAction} onViewLogs={props.onViewLogs} />
+        </Paper>
+
+        {/* Service info */}
+        <Paper>
+          <h3 style={{ margin: '0 0 12px 0' }}>Service Info</h3>
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '200px 1fr auto',
-              gap: '8px 16px',
-              fontSize: '14px',
+              gridTemplateColumns: 'minmax(120px, auto) 1fr auto',
+              gap: `8px ${cssVariableTheme.spacing.md}`,
+              fontSize: cssVariableTheme.typography.fontSize.md,
               alignItems: 'center',
             }}
           >
@@ -418,8 +573,8 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                 <strong>Repository</strong>
                 <span>
                   <StackCraftNestedRouteLink
-                    href="/repositories/:id"
-                    params={{ id: linkedRepo.id }}
+                    href="/stacks/:stackName/repositories/:repositoryId"
+                    params={{ stackName: service.stackName, repositoryId: linkedRepo.id }}
                     style={{ color: 'inherit' }}
                   >
                     {linkedRepo.displayName}
@@ -440,8 +595,23 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                 </span>
               </div>
             ) : null}
+            {service.repositoryId ? (
+              <div style={{ display: 'contents' }}>
+                <strong>Branch</strong>
+                <span>
+                  <BranchSelector
+                    serviceId={service.id}
+                    currentBranch={service.currentBranch}
+                    isCloned={service.cloneStatus === 'cloned'}
+                  />
+                </span>
+                <span />
+              </div>
+            ) : null}
             <strong>Working Directory</strong>
-            <span style={{ fontFamily: 'monospace' }}>{fullCwd ?? '(loading…)'}</span>
+            <span style={{ fontFamily: 'monospace', fontSize: cssVariableTheme.typography.fontSize.sm }}>
+              {fullCwd ?? '(loading…)'}
+            </span>
             {fullCwd ? (
               <span style={{ display: 'flex', gap: '4px' }}>
                 <a href={`cursor://file/${fullCwd}`} style={{ color: 'inherit' }}>
@@ -458,185 +628,10 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             ) : (
               <span />
             )}
-            {service.repositoryId ? (
-              <div style={{ display: 'contents' }}>
-                <strong>Clone</strong>
-                <CloneStatusChip status={service.cloneStatus} />
-                <Button
-                  variant="outlined"
-                  size="small"
-                  loading={actionInProgress === 'pull'}
-                  disabled={!!actionInProgress}
-                  onclick={() => void runAction('pull', '/services/:id/pull')}
-                  startIcon={<Icon icon={icons.download} size="small" />}
-                >
-                  {service.cloneStatus === 'not-cloned' ? 'Clone' : 'Pull'}
-                </Button>
-              </div>
-            ) : null}
-            {service.installCommand ? (
-              <div style={{ display: 'contents' }}>
-                <strong>Install</strong>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontFamily: 'monospace' }}>{service.installCommand}</span>
-                  <InstallStatusChip status={service.installStatus} />
-                </div>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  loading={actionInProgress === 'install'}
-                  disabled={!!actionInProgress}
-                  onclick={() => void runAction('install', '/services/:id/install')}
-                  startIcon={<Icon icon={icons.packageIcon} size="small" />}
-                >
-                  Install
-                </Button>
-              </div>
-            ) : null}
-            {service.buildCommand ? (
-              <div style={{ display: 'contents' }}>
-                <strong>Build</strong>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontFamily: 'monospace' }}>{service.buildCommand}</span>
-                  <BuildStatusChip status={service.buildStatus} />
-                </div>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  loading={actionInProgress === 'build'}
-                  disabled={!!actionInProgress}
-                  onclick={() => void runAction('build', '/services/:id/build')}
-                  startIcon={<Icon icon={icons.wrench} size="small" />}
-                >
-                  Build
-                </Button>
-              </div>
-            ) : null}
-            <strong>Run</strong>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontFamily: 'monospace' }}>{service.runCommand}</span>
-              <RunStatusChip status={service.runStatus} />
-            </div>
-            {service.runStatus !== 'running' ? (
-              <Button
-                variant="outlined"
-                size="small"
-                color="success"
-                loading={actionInProgress === 'start'}
-                disabled={!!actionInProgress}
-                onclick={() => void runAction('start', '/services/:id/start')}
-                startIcon={<Icon icon={icons.play} size="small" />}
-              >
-                Start
-              </Button>
-            ) : (
-              <Button
-                variant="outlined"
-                size="small"
-                loading={actionInProgress === 'stop'}
-                disabled={!!actionInProgress}
-                onclick={() => void runAction('stop', '/services/:id/stop')}
-                startIcon={<Icon icon={icons.stopCircle} size="small" />}
-              >
-                Stop
-              </Button>
-            )}
           </div>
         </Paper>
-        {service.files && service.files.length > 0 ? (
-          <Paper>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <h3 style={{ margin: '0' }}>Shared Files</h3>
-              <Chip variant="outlined" size="small">
-                {service.files.length} file(s)
-              </Chip>
-              <Button
-                variant="outlined"
-                size="small"
-                loading={actionInProgress === 'apply-files-all'}
-                disabled={!!actionInProgress}
-                onclick={async () => {
-                  setActionInProgress('apply-files-all')
-                  try {
-                    await api.call({
-                      method: 'POST',
-                      action: '/services/:id/apply-files',
-                      url: { id: service.id },
-                      body: {},
-                    })
-                    noty.emit('onNotyAdded', {
-                      title: 'Files applied',
-                      body: `All shared files were written to disk.`,
-                      type: 'success',
-                    })
-                  } catch (error) {
-                    noty.emit('onNotyAdded', {
-                      title: 'Error',
-                      body: error instanceof Error ? error.message : 'Failed to apply files',
-                      type: 'error',
-                    })
-                  } finally {
-                    setActionInProgress(null)
-                  }
-                }}
-                startIcon={<Icon icon={icons.download} size="small" />}
-              >
-                Apply All
-              </Button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {service.files.map((file) => (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    fontFamily: 'monospace',
-                    fontSize: '13px',
-                  }}
-                >
-                  <span style={{ flex: '1', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.relativePath}</span>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    loading={actionInProgress === `apply-file-${file.relativePath}`}
-                    disabled={!!actionInProgress}
-                    onclick={async () => {
-                      setActionInProgress(`apply-file-${file.relativePath}`)
-                      try {
-                        await api.call({
-                          method: 'POST',
-                          action: '/services/:id/apply-files',
-                          url: { id: service.id },
-                          body: { relativePath: file.relativePath },
-                        })
-                        noty.emit('onNotyAdded', {
-                          title: 'File applied',
-                          body: `${file.relativePath} was written to disk.`,
-                          type: 'success',
-                        })
-                      } catch (error) {
-                        noty.emit('onNotyAdded', {
-                          title: 'Error',
-                          body: error instanceof Error ? error.message : 'Failed to apply file',
-                          type: 'error',
-                        })
-                      } finally {
-                        setActionInProgress(null)
-                      }
-                    }}
-                    startIcon={<Icon icon={icons.download} size="small" />}
-                  >
-                    Apply
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </Paper>
-        ) : null}
+
+        {/* Prerequisites */}
         {servicePrereqs.length > 0 ? (
           <Paper>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
@@ -658,28 +653,86 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             <PrerequisiteList prerequisites={servicePrereqs} />
           </Paper>
         ) : null}
-        {servicePrereqs.some((p) => p.type === 'env-variable') ? (
-          <ServiceEnvOverrides
-            service={service}
-            envPrereqs={servicePrereqs.filter((p) => p.type === 'env-variable')}
-            stackEnvVars={stackConfig?.environmentVariables ?? {}}
-          />
-        ) : null}
-        <ServiceHistory serviceId={service.id} />
-        {ConfirmDialog(isConfirmingDelete, {
-          title: 'Delete Service',
-          message: `Are you sure you want to delete "${service.displayName}"? This action cannot be undone.`,
-          confirmText: 'Delete',
-          onConfirm: () => void handleDelete(),
-          onCancel: () => setIsConfirmingDelete(false),
-        })}
-      </PageContainer>
+      </div>
     )
   },
 })
 
+/* ============================================
+ * Logs Tab
+ * ============================================ */
+
+type LogsTabProps = {
+  serviceId: string
+  stackName: string
+}
+
+const LogsTab = Shade<LogsTabProps>({
+  customElementName: 'shade-service-logs-tab',
+  render: ({ props, injector }) => {
+    const api = injector.getInstance(ServicesApiClient)
+    const noty = injector.getInstance(NotyService)
+
+    const handleClearLogs = async () => {
+      try {
+        await api.call({
+          method: 'DELETE',
+          action: '/services/:id/logs',
+          url: { id: props.serviceId },
+        })
+        noty.emit('onNotyAdded', {
+          title: 'Logs cleared',
+          body: 'Service logs have been cleared.',
+          type: 'success',
+        })
+      } catch (error) {
+        noty.emit('onNotyAdded', {
+          title: 'Error',
+          body: error instanceof Error ? error.message : 'Failed to clear logs',
+          type: 'error',
+        })
+      }
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: '0' }}>Service Logs</h3>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Button
+              variant="outlined"
+              size="small"
+              color="error"
+              onclick={() => void handleClearLogs()}
+              startIcon={<Icon icon={icons.trash} size="small" />}
+            >
+              Clear Logs
+            </Button>
+            <StackCraftNestedRouteLink
+              href="/stacks/:stackName/services/:serviceId/logs"
+              params={{ stackName: props.stackName, serviceId: props.serviceId }}
+            >
+              <Button variant="outlined" size="small" startIcon={<Icon icon={icons.externalLink} size="small" />}>
+                Full View
+              </Button>
+            </StackCraftNestedRouteLink>
+          </div>
+        </div>
+        <Paper style={{ height: 'clamp(300px, 50vh, 600px)', overflow: 'hidden' }}>
+          <LogViewer serviceId={props.serviceId} />
+        </Paper>
+      </div>
+    )
+  },
+})
+
+/* ============================================
+ * History Tab
+ * ============================================ */
+
 type ServiceHistoryProps = {
   serviceId: string
+  stackName: string
 }
 
 type HistoryColumn = 'createdAt' | 'event' | 'triggeredBy' | 'triggerSource' | 'metadata' | 'processUid'
@@ -714,7 +767,6 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
 
     const [findOptions, setFindOptions] = useState<FindOptions<ServiceStateHistory, Array<keyof ServiceStateHistory>>>(
       'findOptionsObservable',
-
       {
         top: 25,
         order: { id: 'DESC' },
@@ -766,7 +818,9 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
               triggeredBy: (entry) => <span>{entry.triggeredBy}</span>,
               triggerSource: (entry) => <span>{entry.triggerSource}</span>,
               metadata: (entry) => (
-                <span style={{ fontFamily: 'monospace', fontSize: '12px', opacity: '0.8' }}>
+                <span
+                  style={{ fontFamily: 'monospace', fontSize: cssVariableTheme.typography.fontSize.sm, opacity: '0.8' }}
+                >
                   {entry.metadata ?? ''}
                 </span>
               ),
@@ -777,8 +831,9 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
                   <Button
                     size="small"
                     onclick={() =>
-                      stackCraftNavigate(injector, '/services/:id/logs/:processUid', {
-                        id: props.serviceId,
+                      stackCraftNavigate(injector, '/stacks/:stackName/services/:serviceId/logs/:processUid', {
+                        stackName: props.stackName,
+                        serviceId: props.serviceId,
                         processUid,
                       })
                     }
@@ -791,6 +846,166 @@ const ServiceHistory = Shade<ServiceHistoryProps>({
           />
         )}
       </Paper>
+    )
+  },
+})
+
+/* ============================================
+ * Configuration Tab
+ * ============================================ */
+
+type ConfigurationTabProps = {
+  service: ServiceView
+  repos: GitHubRepository[]
+  allPrereqs: Prerequisite[]
+  otherServices: ServiceDefinition[]
+  servicePrereqs: Prerequisite[]
+  stackConfig: StackConfig | undefined
+  actionInProgress: string | null
+  onSave: (data: Partial<ServiceView>) => void
+  onCancel: () => void
+  onCreatePrerequisite: (data: Partial<Prerequisite>) => Promise<string>
+  onCreateRepository: (data: Partial<GitHubRepository>) => Promise<string>
+  onApplyFiles: (relativePath?: string) => Promise<void>
+}
+
+const ConfigurationTab = Shade<ConfigurationTabProps>({
+  customElementName: 'shade-service-config-tab',
+  render: ({ props }) => {
+    const { service, repos, allPrereqs, otherServices, servicePrereqs, stackConfig, actionInProgress } = props
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Edit form */}
+        <Paper>
+          <h3 style={{ margin: '0 0 12px 0' }}>Edit Service</h3>
+          <ServiceForm
+            mode="edit"
+            stackName={service.stackName}
+            repositories={repos}
+            prerequisites={allPrereqs}
+            otherServices={otherServices}
+            initial={service}
+            onSubmit={props.onSave}
+            onCreatePrerequisite={props.onCreatePrerequisite}
+            onCreateRepository={props.onCreateRepository}
+            onCancel={props.onCancel}
+          />
+        </Paper>
+
+        {/* Shared files */}
+        {service.files && service.files.length > 0 ? (
+          <Paper>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <h3 style={{ margin: '0' }}>Shared Files</h3>
+              <Chip variant="outlined" size="small">
+                {service.files.length} file(s)
+              </Chip>
+              <Button
+                variant="outlined"
+                size="small"
+                loading={actionInProgress === 'apply-files-all'}
+                disabled={!!actionInProgress}
+                onclick={() => void props.onApplyFiles()}
+                startIcon={<Icon icon={icons.download} size="small" />}
+              >
+                Apply All
+              </Button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {service.files.map((file) => {
+                const isOverridden = (service.localFiles ?? []).some((lf) => lf.relativePath === file.relativePath)
+                return (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: `1px solid ${cssVariableTheme.divider}`,
+                      fontFamily: 'monospace',
+                      fontSize: cssVariableTheme.typography.fontSize.sm,
+                      opacity: isOverridden ? '0.5' : '1',
+                    }}
+                  >
+                    <span style={{ flex: '1', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.relativePath}</span>
+                    {isOverridden ? (
+                      <Chip variant="outlined" size="small">
+                        Overridden by local
+                      </Chip>
+                    ) : null}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      loading={actionInProgress === `apply-file-${file.relativePath}`}
+                      disabled={!!actionInProgress}
+                      onclick={() => void props.onApplyFiles(file.relativePath)}
+                      startIcon={<Icon icon={icons.download} size="small" />}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          </Paper>
+        ) : null}
+
+        {/* Local files */}
+        {service.localFiles && service.localFiles.length > 0 ? (
+          <Paper>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <h3 style={{ margin: '0' }}>Local Files</h3>
+              <Icon icon={icons.lock} size="small" title="Encrypted at rest, never exported" />
+              <Chip variant="outlined" size="small">
+                {service.localFiles.length} file(s)
+              </Chip>
+            </div>
+            <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
+              Per-installation secret files. Encrypted at rest and never included in stack exports.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {service.localFiles.map((file) => (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: `1px solid ${cssVariableTheme.palette.warning.main}`,
+                    fontFamily: 'monospace',
+                    fontSize: cssVariableTheme.typography.fontSize.sm,
+                  }}
+                >
+                  <Icon icon={icons.lock} size="small" />
+                  <span style={{ flex: '1', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.relativePath}</span>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    loading={actionInProgress === `apply-file-${file.relativePath}`}
+                    disabled={!!actionInProgress}
+                    onclick={() => void props.onApplyFiles(file.relativePath)}
+                    startIcon={<Icon icon={icons.download} size="small" />}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </Paper>
+        ) : null}
+
+        {/* Environment variable overrides */}
+        {servicePrereqs.some((p) => p.type === 'env-variable') ? (
+          <ServiceEnvOverrides
+            service={service}
+            envPrereqs={servicePrereqs.filter((p) => p.type === 'env-variable')}
+            stackEnvVars={stackConfig?.environmentVariables ?? {}}
+          />
+        ) : null}
+      </div>
     )
   },
 })

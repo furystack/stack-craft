@@ -14,7 +14,7 @@ import {
 } from '@furystack/shades-common-components'
 import type { EnvironmentVariableValue, StackView } from 'common'
 import { StackConfig, StackDefinition } from 'common'
-import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
+import { stackCraftNavigate } from '../../components/app-routes.js'
 import { StackForm } from '../../components/entity-forms/stack-form.js'
 import { EnvironmentVariablesManager } from '../../components/environment-variables-manager.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
@@ -45,17 +45,7 @@ export const EditStack = Shade<EditStackProps>({
     if (stackState.status === 'error') {
       return (
         <PageContainer>
-          <PageHeader
-            title="Error loading stack"
-            description={stackState.error}
-            actions={
-              <StackCraftNestedRouteLink href="/">
-                <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
-                  Back
-                </Button>
-              </StackCraftNestedRouteLink>
-            }
-          />
+          <PageHeader title="Error loading stack" description={stackState.error} />
         </PageContainer>
       )
     }
@@ -68,16 +58,7 @@ export const EditStack = Shade<EditStackProps>({
     if (!stack) {
       return (
         <PageContainer>
-          <PageHeader
-            title="Stack not found"
-            actions={
-              <StackCraftNestedRouteLink href="/">
-                <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
-                  Back
-                </Button>
-              </StackCraftNestedRouteLink>
-            }
-          />
+          <PageHeader title="Stack not found" />
         </PageContainer>
       )
     }
@@ -102,7 +83,7 @@ export const EditStack = Shade<EditStackProps>({
           body: `"${data.displayName ?? stack.displayName}" was updated successfully.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/stacks/:name', { name: stack.name })
+        stackCraftNavigate(injector, '/stacks/:stackName', { stackName: stack.name })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -141,26 +122,25 @@ export const EditStack = Shade<EditStackProps>({
         <PageHeader
           title={`Edit: ${stack.displayName}`}
           actions={
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <StackCraftNestedRouteLink href="/">
-                <Button variant="outlined" startIcon={<Icon icon={icons.chevronLeft} size="small" />}>
-                  Back
-                </Button>
-              </StackCraftNestedRouteLink>
-              <Button
-                variant="outlined"
-                color="error"
-                loading={isDeleting}
-                onclick={() => setIsConfirmingDelete(true)}
-                startIcon={<Icon icon={icons.trash} size="small" />}
-              >
-                Delete Stack
-              </Button>
-            </div>
+            <Button
+              variant="outlined"
+              size="small"
+              color="error"
+              loading={isDeleting}
+              onclick={() => setIsConfirmingDelete(true)}
+              startIcon={<Icon icon={icons.trash} size="small" />}
+            >
+              Delete Stack
+            </Button>
           }
         />
         <Paper>
-          <StackForm mode="edit" initial={stack} onSubmit={(data) => void handleSave(data)} cancelHref="/" />
+          <StackForm
+            mode="edit"
+            initial={stack}
+            onSubmit={(data) => void handleSave(data)}
+            onCancel={() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: stack.name })}
+          />
         </Paper>
         <EnvironmentVariablesManager
           stackName={stack.name}

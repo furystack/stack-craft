@@ -115,6 +115,13 @@
             "$ref": "#/definitions/EnvironmentVariableValue"
           },
           "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+        },
+        "localFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Per-installation secret files, encrypted at rest. NOT included in exports. When a local file shares a `relativePath` with a shared file from  {@link  ServiceDefinition.files  } , the local file takes precedence at apply time."
         }
       },
       "required": [
@@ -122,7 +129,8 @@
         "autoFetchEnabled",
         "autoFetchIntervalMinutes",
         "autoRestartOnFetch",
-        "environmentVariableOverrides"
+        "environmentVariableOverrides",
+        "localFiles"
       ],
       "additionalProperties": false
     },
@@ -137,6 +145,10 @@
         "customValue": {
           "type": "string",
           "description": "The custom value to use when source is 'custom'"
+        },
+        "isSensitive": {
+          "type": "boolean",
+          "description": "Whether this value contains sensitive data (e.g. passwords, tokens). When true, the value is encrypted at rest and masked in API responses. Overrides the prerequisite-level default when set."
         }
       },
       "required": ["source"],
@@ -165,6 +177,13 @@
             "$ref": "#/definitions/EnvironmentVariableValue"
           },
           "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+        },
+        "localFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Per-installation secret files, encrypted at rest. NOT included in exports. When a local file shares a `relativePath` with a shared file from  {@link  ServiceDefinition.files  } , the local file takes precedence at apply time."
         },
         "id": {
           "type": "string",
@@ -233,6 +252,7 @@
         "environmentVariableOverrides",
         "files",
         "id",
+        "localFiles",
         "prerequisiteIds",
         "prerequisiteServiceIds",
         "runCommand",
@@ -259,6 +279,13 @@
         "serviceId": {
           "type": "string",
           "description": "FK to  {@link  ServiceDefinition.id  }"
+        },
+        "currentBranch": {
+          "type": "string"
+        },
+        "commitsBehind": {
+          "type": "number",
+          "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
         },
         "cloneStatus": {
           "$ref": "#/definitions/CloneStatus"
@@ -308,6 +335,13 @@
             "$ref": "#/definitions/EnvironmentVariableValue"
           },
           "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+        },
+        "localFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Per-installation secret files, encrypted at rest. NOT included in exports. When a local file shares a `relativePath` with a shared file from  {@link  ServiceDefinition.files  } , the local file takes precedence at apply time."
         },
         "createdAt": {
           "type": "string"
@@ -383,6 +417,7 @@
         "files",
         "id",
         "installStatus",
+        "localFiles",
         "prerequisiteIds",
         "prerequisiteServiceIds",
         "runCommand",
@@ -391,7 +426,7 @@
         "stackName",
         "updatedAt"
       ],
-      "description": "Full service view combining definition, config, and status for API responses"
+      "description": "Full service view combining definition, config, status, and git state for API responses"
     },
     "CloneStatus": {
       "type": "string",
@@ -488,6 +523,13 @@
             "$ref": "#/definitions/EnvironmentVariableValue"
           },
           "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+        },
+        "localFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceFile"
+          },
+          "description": "Per-installation secret files, encrypted at rest. NOT included in exports. When a local file shares a `relativePath` with a shared file from  {@link  ServiceDefinition.files  } , the local file takes precedence at apply time."
         }
       },
       "required": [
@@ -498,6 +540,7 @@
         "displayName",
         "environmentVariableOverrides",
         "files",
+        "localFiles",
         "prerequisiteIds",
         "prerequisiteServiceIds",
         "runCommand",
@@ -588,6 +631,13 @@
                 "$ref": "#/definitions/EnvironmentVariableValue"
               },
               "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+            },
+            "localFiles": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ServiceFile"
+              },
+              "description": "Per-installation secret files, encrypted at rest. NOT included in exports. When a local file shares a `relativePath` with a shared file from  {@link  ServiceDefinition.files  } , the local file takes precedence at apply time."
             }
           },
           "additionalProperties": false
@@ -903,6 +953,85 @@
       "enum": ["api", "mcp", "auto-fetch", "auto-restart", "system"],
       "description": "How a state change was triggered. Used to distinguish user actions from automated system behavior."
     },
+    "ServiceBranchesEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "currentBranch": {
+              "type": "string"
+            },
+            "local": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "remote": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["currentBranch", "local", "remote"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["url", "result"],
+      "additionalProperties": false
+    },
+    "ServiceCheckoutEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "body": {
+          "type": "object",
+          "properties": {
+            "branch": {
+              "type": "string"
+            }
+          },
+          "required": ["branch"],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "serviceId": {
+              "type": "string"
+            }
+          },
+          "required": ["success", "serviceId"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["url", "body", "result"],
+      "additionalProperties": false
+    },
     "ServicesApi": {
       "type": "object",
       "properties": {
@@ -920,9 +1049,18 @@
             },
             "/services/:id/history": {
               "$ref": "#/definitions/ServiceHistoryEndpoint"
+            },
+            "/services/:id/branches": {
+              "$ref": "#/definitions/ServiceBranchesEndpoint"
             }
           },
-          "required": ["/services", "/services/:id", "/services/:id/logs", "/services/:id/history"],
+          "required": [
+            "/services",
+            "/services/:id",
+            "/services/:id/logs",
+            "/services/:id/history",
+            "/services/:id/branches"
+          ],
           "additionalProperties": false
         },
         "POST": {
@@ -957,6 +1095,9 @@
             },
             "/services/:id/apply-files": {
               "$ref": "#/definitions/ApplyServiceFilesEndpoint"
+            },
+            "/services/:id/checkout": {
+              "$ref": "#/definitions/ServiceCheckoutEndpoint"
             }
           },
           "required": [
@@ -969,7 +1110,8 @@
             "/services/:id/pull",
             "/services/:id/setup",
             "/services/:id/update",
-            "/services/:id/apply-files"
+            "/services/:id/apply-files",
+            "/services/:id/checkout"
           ],
           "additionalProperties": false
         },
@@ -992,7 +1134,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -1020,7 +1177,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -1035,7 +1207,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -1050,7 +1237,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -1065,7 +1267,22 @@
               "url": {},
               "query": {},
               "body": {},
-              "headers": {}
+              "headers": {},
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "deprecated": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
             },
             "required": ["result"],
             "additionalProperties": false
@@ -1082,7 +1299,7 @@
           "type": "object",
           "properties": {
             "findOptions": {
-              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22files%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22environmentVariableOverrides%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22)%5B%5D%3E"
+              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22files%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22environmentVariableOverrides%22%7C%22localFiles%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22%7C%22currentBranch%22%7C%22commitsBehind%22)%5B%5D%3E"
             }
           },
           "additionalProperties": false
@@ -1095,7 +1312,7 @@
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
-    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"files\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"environmentVariableOverrides\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\")[]>": {
+    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"files\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"environmentVariableOverrides\"|\"localFiles\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\"|\"currentBranch\"|\"commitsBehind\")[]>": {
       "type": "object",
       "properties": {
         "top": {
@@ -1185,6 +1402,10 @@
               "type": "string",
               "enum": ["ASC", "DESC"]
             },
+            "localFiles": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
             "cloneStatus": {
               "type": "string",
               "enum": ["ASC", "DESC"]
@@ -1220,6 +1441,14 @@
             "lastFetchedAt": {
               "type": "string",
               "enum": ["ASC", "DESC"]
+            },
+            "currentBranch": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "commitsBehind": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
             }
           },
           "additionalProperties": false,
@@ -1249,6 +1478,7 @@
               "autoFetchIntervalMinutes",
               "autoRestartOnFetch",
               "environmentVariableOverrides",
+              "localFiles",
               "cloneStatus",
               "installStatus",
               "buildStatus",
@@ -1257,7 +1487,9 @@
               "lastInstalledAt",
               "lastBuiltAt",
               "lastStartedAt",
-              "lastFetchedAt"
+              "lastFetchedAt",
+              "currentBranch",
+              "commitsBehind"
             ]
           },
           "description": "The result set will be limited to these fields"
@@ -2066,19 +2298,23 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string",
+                  "type": "object",
+                  "properties": {},
                   "description": "FK to  {@link  ServiceDefinition.id  }"
                 },
                 "$endsWith": {
-                  "type": "string",
+                  "type": "object",
+                  "properties": {},
                   "description": "FK to  {@link  ServiceDefinition.id  }"
                 },
                 "$like": {
-                  "type": "string",
+                  "type": "object",
+                  "properties": {},
                   "description": "FK to  {@link  ServiceDefinition.id  }"
                 },
                 "$regex": {
-                  "type": "string",
+                  "type": "object",
+                  "properties": {},
                   "description": "FK to  {@link  ServiceDefinition.id  }"
                 }
               },
@@ -2088,11 +2324,13 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string",
+                  "type": "object",
+                  "properties": {},
                   "description": "FK to  {@link  ServiceDefinition.id  }"
                 },
                 "$ne": {
-                  "type": "string",
+                  "type": "object",
+                  "properties": {},
                   "description": "FK to  {@link  ServiceDefinition.id  }"
                 }
               },
@@ -2104,14 +2342,16 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string",
+                    "type": "object",
+                    "properties": {},
                     "description": "FK to  {@link  ServiceDefinition.id  }"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string",
+                    "type": "object",
+                    "properties": {},
                     "description": "FK to  {@link  ServiceDefinition.id  }"
                   }
                 }
@@ -2299,6 +2539,56 @@
                       "$ref": "#/definitions/EnvironmentVariableValue"
                     },
                     "description": "Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults."
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "localFiles": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/ServiceFile"
+                  },
+                  "description": "Per-installation secret files, encrypted at rest. NOT included in exports. When a local file shares a `relativePath` with a shared file from  {@link  ServiceDefinition.files  } , the local file takes precedence at apply time."
+                },
+                "$ne": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/ServiceFile"
+                  },
+                  "description": "Per-installation secret files, encrypted at rest. NOT included in exports. When a local file shares a `relativePath` with a shared file from  {@link  ServiceDefinition.files  } , the local file takes precedence at apply time."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/ServiceFile"
+                    },
+                    "description": "Per-installation secret files, encrypted at rest. NOT included in exports. When a local file shares a `relativePath` with a shared file from  {@link  ServiceDefinition.files  } , the local file takes precedence at apply time."
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/ServiceFile"
+                    },
+                    "description": "Per-installation secret files, encrypted at rest. NOT included in exports. When a local file shares a `relativePath` with a shared file from  {@link  ServiceDefinition.files  } , the local file takes precedence at apply time."
                   }
                 }
               },
@@ -2753,6 +3043,106 @@
               "additionalProperties": false
             }
           ]
+        },
+        "currentBranch": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string"
+                },
+                "$ne": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "commitsBehind": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "number",
+                  "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
+                },
+                "$ne": {
+                  "type": "number",
+                  "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
         }
       }
     },
@@ -2805,6 +3195,7 @@
                   "autoFetchIntervalMinutes",
                   "autoRestartOnFetch",
                   "environmentVariableOverrides",
+                  "localFiles",
                   "cloneStatus",
                   "installStatus",
                   "buildStatus",
@@ -2813,7 +3204,9 @@
                   "lastInstalledAt",
                   "lastBuiltAt",
                   "lastStartedAt",
-                  "lastFetchedAt"
+                  "lastFetchedAt",
+                  "currentBranch",
+                  "commitsBehind"
                 ]
               },
               "description": "The list of fields to select"

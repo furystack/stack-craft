@@ -23,7 +23,7 @@ export type PrerequisiteConfigMap = {
   'nuget-feed': { feedUrl: string; feedName?: string }
   git: Record<string, never>
   'github-cli': Record<string, never>
-  'env-variable': { variableName: string }
+  'env-variable': { variableName: string; isSensitive?: boolean }
   'custom-script': { script: string }
 }
 

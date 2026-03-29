@@ -6,14 +6,6 @@ import { getRepository } from '@furystack/repository'
 import { DefaultSession } from '@furystack/rest-service'
 import { PasswordResetToken, usePasswordPolicy } from '@furystack/security'
 import { PrerequisiteCheckResult, PublicApiToken } from 'common'
-import { mkdirSync } from 'fs'
-import { join } from 'path'
-
-export const dataDir = process.env.STACK_CRAFT_DATA_DIR || join(process.cwd(), 'data')
-
-export const ensureDataDir = () => {
-  mkdirSync(dataDir, { recursive: true })
-}
 
 export const authorizedOnly = async (options: { injector: Injector }): Promise<AuthorizationResult> => {
   const isAllowed = await isAuthenticated(options.injector)

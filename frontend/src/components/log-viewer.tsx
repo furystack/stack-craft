@@ -1,6 +1,6 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
-import { Input, Loader } from '@furystack/shades-common-components'
+import { cssVariableTheme, Input, Loader } from '@furystack/shades-common-components'
 import { ServiceLogEntry } from 'common'
 
 import { LogLine } from './log-line.js'
@@ -44,7 +44,7 @@ export const LogViewer = Shade<LogViewerProps>({
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <div style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ padding: '8px', borderBottom: `1px solid ${cssVariableTheme.divider}` }}>
           <Input
             variant="outlined"
             labelTitle="Search logs"
@@ -60,10 +60,10 @@ export const LogViewer = Shade<LogViewerProps>({
             overflow: 'auto',
             padding: '8px 16px',
             fontFamily: "'Cascadia Code', 'Fira Code', 'Consolas', monospace",
-            fontSize: '13px',
+            fontSize: cssVariableTheme.typography.fontSize.sm,
             lineHeight: '1.5',
-            background: '#0d1117',
-            color: '#c9d1d9',
+            background: cssVariableTheme.background.default,
+            color: cssVariableTheme.text.primary,
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-all',
           }}
@@ -72,7 +72,11 @@ export const LogViewer = Shade<LogViewerProps>({
             <div style={{ opacity: '0.5', textAlign: 'center', padding: '32px' }}>No log output yet.</div>
           ) : null}
           {filteredEntries.map((entry) => (
-            <div style={{ color: entry.stream === 'stderr' ? '#f85149' : '#c9d1d9' }}>
+            <div
+              style={{
+                color: entry.stream === 'stderr' ? cssVariableTheme.palette.error.main : cssVariableTheme.text.primary,
+              }}
+            >
               <LogLine line={entry.line} />
             </div>
           ))}

@@ -1,13 +1,13 @@
 import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { ServiceConfig, ServiceDefinition, ServiceStatus } from 'common'
+import { ServiceConfig, ServiceDefinition, ServiceGitStatus, ServiceStatus } from 'common'
 
 import { useSystemIdentityContext } from '@furystack/core'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { GitService } from './git-service.js'
-import { ProcessManager } from './process-manager.js'
-import { WebsocketService } from './websocket-service.js'
+
+const FETCH_CHECK_INTERVAL_MS = 5 * 60 * 1000
 
 type WatchEntry = {
   serviceId: string
@@ -34,42 +34,29 @@ export class GitWatcher {
   @Injected(GitService)
   declare private git: GitService
 
-  @Injected(WebsocketService)
-  declare private ws: WebsocketService
-
-  @Injected(ProcessManager)
-  declare private pm: ProcessManager
-
   public async startWatching(serviceId: string): Promise<void> {
     if (this.watchers.has(serviceId)) return
 
     const elevated = this.getElevatedInjector()
     const svcDefDs = getRepository(elevated).getDataSetFor(ServiceDefinition, 'id')
-    const svcConfigDs = getRepository(elevated).getDataSetFor(ServiceConfig, 'serviceId')
 
     const defs = await svcDefDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = defs[0]
     if (!svc?.repositoryId) return
 
-    const configs = await svcConfigDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
-    const config = configs[0]
-    if (!config?.autoFetchEnabled) return
-
     const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
-    const intervalMs = (config.autoFetchIntervalMinutes ?? 60) * 60 * 1000
-
     const { remote } = await this.git.getBranches(cwd).catch(() => ({ remote: [] as string[] }))
 
     const entry: WatchEntry = {
       serviceId,
       lastBranches: new Set(remote),
       isFetching: false,
-      timer: setInterval(() => void this.fetchAndCheck(serviceId), intervalMs),
+      timer: setInterval(() => void this.fetchAndCheck(serviceId), FETCH_CHECK_INTERVAL_MS),
     }
 
     this.watchers.set(serviceId, entry)
     await this.logger.information({
-      message: `Started watching service ${svc.displayName} (every ${config.autoFetchIntervalMinutes}min)`,
+      message: `Started watching service ${svc.displayName} (every ${FETCH_CHECK_INTERVAL_MS / 60000}min)`,
     })
   }
 
@@ -90,6 +77,7 @@ export class GitWatcher {
     const svcDefDs = getRepository(elevated).getDataSetFor(ServiceDefinition, 'id')
     const svcConfigDs = getRepository(elevated).getDataSetFor(ServiceConfig, 'serviceId')
     const statusDs = getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId')
+    const gitStatusDs = getRepository(elevated).getDataSetFor(ServiceGitStatus, 'serviceId')
 
     const defs = await svcDefDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = defs[0]
@@ -104,6 +92,17 @@ export class GitWatcher {
       await this.git.fetch(cwd)
       await statusDs.update(elevated, serviceId, { lastFetchedAt: new Date().toISOString() })
 
+      const currentBranch = await this.git.getCurrentBranch(cwd).catch(() => undefined)
+      if (currentBranch) {
+        const commitsBehind = await this.git.getCommitsBehind(cwd, currentBranch)
+        const existing = await gitStatusDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+        if (existing.length > 0) {
+          await gitStatusDs.update(elevated, serviceId, { commitsBehind })
+        } else {
+          await gitStatusDs.add(elevated, { serviceId, currentBranch, commitsBehind })
+        }
+      }
+
       const { remote } = await this.git.getBranches(cwd)
       const newBranches = remote.filter((b) => !entry.lastBranches.has(b))
 
@@ -112,11 +111,6 @@ export class GitWatcher {
           message: `New branches detected for ${svc.displayName}: ${newBranches.join(', ')}`,
         })
         entry.lastBranches = new Set(remote)
-        void this.ws.announce({
-          type: 'git-branches-changed',
-          serviceId,
-          newBranches,
-        })
       }
 
       if (config?.autoRestartOnFetch) {
@@ -124,9 +118,11 @@ export class GitWatcher {
         const { updated } = await this.git.pull(cwd)
         if (updated) {
           await this.logger.information({ message: `Changes pulled, restarting ${svc.displayName}` })
-          if (svc.installCommand) await this.pm.installService(serviceId, autoRestartTrigger)
-          if (svc.buildCommand) await this.pm.buildService(serviceId, autoRestartTrigger)
-          await this.pm.restartService(serviceId, autoRestartTrigger)
+          const { ProcessManager } = await import('./process-manager.js')
+          const pm = getInjectorReference(this).getInstance(ProcessManager)
+          if (svc.installCommand) await pm.installService(serviceId, autoRestartTrigger)
+          if (svc.buildCommand) await pm.buildService(serviceId, autoRestartTrigger)
+          await pm.restartService(serviceId, autoRestartTrigger)
         }
       }
     } catch (error) {
@@ -140,14 +136,14 @@ export class GitWatcher {
   }
 
   public async [Symbol.asyncDispose]() {
+    for (const [, entry] of this.watchers) {
+      clearInterval(entry.timer)
+    }
+    this.watchers.clear()
     try {
       await this.elevatedInjector?.[Symbol.asyncDispose]()
     } catch {
       // May already be disposed by the parent injector
     }
-    for (const [, entry] of this.watchers) {
-      clearInterval(entry.timer)
-    }
-    this.watchers.clear()
   }
 }

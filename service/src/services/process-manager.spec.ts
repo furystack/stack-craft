@@ -7,6 +7,7 @@ import {
   Prerequisite,
   ServiceConfig,
   ServiceDefinition,
+  ServiceGitStatus,
   ServiceLogEntry,
   ServiceStateHistory,
   ServiceStatus,
@@ -17,9 +18,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { TriggerSource } from 'common'
 
+import { GitHeadWatcher } from './git-head-watcher.js'
 import { LogStorageService } from './log-storage-service.js'
 import { ProcessManager } from './process-manager.js'
-import { WebsocketService } from './websocket-service.js'
 
 const testTrigger = { triggeredBy: 'test', triggerSource: 'api' as TriggerSource }
 
@@ -207,6 +208,7 @@ describe('ProcessManager', () => {
       autoFetchIntervalMinutes: 60,
       autoRestartOnFetch: false,
       environmentVariableOverrides: {},
+      localFiles: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -225,18 +227,20 @@ describe('ProcessManager', () => {
     addStore(injector, new InMemoryStore({ model: Prerequisite, primaryKey: 'id' }))
     addStore(injector, new InMemoryStore({ model: ServiceLogEntry, primaryKey: 'id' }))
     addStore(injector, new InMemoryStore({ model: ServiceStateHistory, primaryKey: 'id' }))
+    addStore(injector, new InMemoryStore({ model: ServiceGitStatus, primaryKey: 'serviceId' }))
 
     getRepository(injector).createDataSet(ServiceDefinition, 'id', {})
     getRepository(injector).createDataSet(ServiceConfig, 'serviceId', {})
     getRepository(injector).createDataSet(ServiceStatus, 'serviceId', {})
+    getRepository(injector).createDataSet(ServiceGitStatus, 'serviceId', {})
     getRepository(injector).createDataSet(StackConfig, 'stackName', {})
     getRepository(injector).createDataSet(GitHubRepository, 'id', {})
     getRepository(injector).createDataSet(Prerequisite, 'id', {})
     getRepository(injector).createDataSet(ServiceLogEntry, 'id', {})
     getRepository(injector).createDataSet(ServiceStateHistory, 'id', {})
 
-    const mockWs = { announce: vi.fn().mockResolvedValue(undefined) }
-    injector.setExplicitInstance(mockWs as unknown as WebsocketService, WebsocketService)
+    const mockGitHeadWatcher = { watch: vi.fn().mockResolvedValue(undefined), unwatch: vi.fn() }
+    injector.setExplicitInstance(mockGitHeadWatcher as unknown as GitHeadWatcher, GitHeadWatcher)
 
     mockLogStorage = {
       addEntry: vi.fn().mockResolvedValue(undefined),

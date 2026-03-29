@@ -1,4 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
+import { cssVariableTheme } from '@furystack/shades-common-components'
 import { StackCraftNestedRouteLink } from '../components/app-routes.js'
 import { environmentOptions } from '../environment-options.js'
 
@@ -17,10 +18,10 @@ export const Offline = Shade({
       perspective: '400px',
     },
     '& a': {
-      color: '#6cf',
+      color: cssVariableTheme.palette.primary.main,
     },
     '& a:hover': {
-      color: '#9df',
+      color: cssVariableTheme.palette.primary.light,
     },
   },
   render: () => {

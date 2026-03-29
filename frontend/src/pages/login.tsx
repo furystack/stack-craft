@@ -92,7 +92,7 @@ export const Login = Shade({
       borderRadius: cssVariableTheme.shape.borderRadius.sm,
       backgroundColor: 'rgba(211, 47, 47, 0.1)',
       border: '1px solid rgba(211, 47, 47, 0.3)',
-      color: '#f44336',
+      color: cssVariableTheme.palette.error.main,
       fontSize: cssVariableTheme.typography.fontSize.sm,
       display: 'flex',
       alignItems: 'center',

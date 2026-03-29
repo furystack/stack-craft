@@ -7,6 +7,8 @@ import { Prerequisite, PrerequisiteCheckResult, StackConfig } from 'common'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 
+import { CryptoService } from '../../../utils/crypto-service.js'
+
 const execFileAsync = promisify(execFile)
 
 const COMMAND_TIMEOUT = 30_000
@@ -116,8 +118,23 @@ const checkGithubCli = async (): Promise<CheckResult> => {
 const checkEnvVariable = (
   config: { variableName: string },
   configuredValue?: EnvironmentVariableValue,
+  crypto?: CryptoService,
 ): CheckResult => {
   if (configuredValue?.source === 'custom' && configuredValue.customValue !== undefined) {
+    if (crypto && crypto.isEncrypted(configuredValue.customValue)) {
+      try {
+        crypto.decrypt(configuredValue.customValue)
+        return {
+          satisfied: true,
+          output: `Environment variable ${config.variableName} is configured with an encrypted custom value`,
+        }
+      } catch {
+        return {
+          satisfied: false,
+          output: `Environment variable ${config.variableName} has a custom value but decryption failed`,
+        }
+      }
+    }
     return { satisfied: true, output: `Environment variable ${config.variableName} is configured with a custom value` }
   }
 
@@ -131,14 +148,17 @@ const checkEnvVariable = (
 }
 
 const checkCustomScript = async (config: { script: string }): Promise<CheckResult> => {
-  const { stdout, stderr } = await execFileAsync('/bin/sh', ['-c', config.script], { timeout: COMMAND_TIMEOUT })
+  const isWindows = process.platform === 'win32'
+  const shell = isWindows ? 'cmd.exe' : '/bin/sh'
+  const shellFlag = isWindows ? '/c' : '-c'
+  const { stdout, stderr } = await execFileAsync(shell, [shellFlag, config.script], { timeout: COMMAND_TIMEOUT })
   return { satisfied: true, output: (stdout || stderr).trim() }
 }
 
 export const runCheck = async (
   type: PrerequisiteType,
   config: PrerequisiteConfig,
-  options?: { envVarConfig?: EnvironmentVariableValue },
+  options?: { envVarConfig?: EnvironmentVariableValue; crypto?: CryptoService },
 ): Promise<CheckResult> => {
   switch (type) {
     case 'node':
@@ -156,7 +176,7 @@ export const runCheck = async (
     case 'github-cli':
       return checkGithubCli()
     case 'env-variable':
-      return checkEnvVariable(config as { variableName: string }, options?.envVarConfig)
+      return checkEnvVariable(config as { variableName: string }, options?.envVarConfig, options?.crypto)
     case 'custom-script':
       return checkCustomScript(config as { script: string })
     default:
@@ -192,8 +212,9 @@ export const CheckPrerequisiteAction: RequestAction<CheckPrerequisiteEndpoint> =
     // Entry may not exist yet if the prerequisite was created after startup
   })
 
+  const crypto = injector.getInstance(CryptoService)
   try {
-    const result = await runCheck(prereq.type, prereq.config, { envVarConfig })
+    const result = await runCheck(prereq.type, prereq.config, { envVarConfig, crypto })
     const checkUpdate = {
       status: result.satisfied ? ('satisfied' as const) : ('failed' as const),
       output: result.output,

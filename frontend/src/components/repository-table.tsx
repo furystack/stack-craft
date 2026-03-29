@@ -74,7 +74,10 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
           ),
           url: (entry) => <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>{entry.url}</span>,
           actions: (entry) => (
-            <StackCraftNestedRouteLink href={`/repositories/:id`} params={{ id: entry.id }}>
+            <StackCraftNestedRouteLink
+              href="/stacks/:stackName/repositories/:repositoryId"
+              params={{ stackName: props.stackName, repositoryId: entry.id }}
+            >
               <Button variant="outlined" size="small" startIcon={<Icon icon={icons.edit} size="small" />}>
                 Edit
               </Button>

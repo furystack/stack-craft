@@ -14,6 +14,7 @@ export const mcpTrigger = { triggeredBy: 'mcp-user', triggerSource: 'mcp' as con
 export const environmentVariableValueSchema = z.object({
   source: z.enum(['inherit', 'custom']),
   customValue: z.string().optional(),
+  isSensitive: z.boolean().optional(),
 })
 
 export const registerServiceAction = (

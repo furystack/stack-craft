@@ -1,3 +1,5 @@
+import { useSystemIdentityContext } from '@furystack/core'
+import { usingAsync } from '@furystack/utils'
 import { useStaticFiles } from '@furystack/rest-service'
 import { injector } from './config.js'
 import { attachShutdownHandler } from './shutdown-handler.js'
@@ -17,6 +19,7 @@ import { ProcessManager } from './services/process-manager.js'
 import { WebsocketService } from './services/websocket-service.js'
 import { setupEntitySync } from './setup-entity-sync.js'
 import { setupMcp } from './mcp/setup-mcp.js'
+import { encryptExistingSecrets } from './utils/encrypt-existing-secrets.js'
 
 const port = getPort()
 
@@ -26,6 +29,10 @@ const setupRestApis = async () => {
 
   const processManager = injector.getInstance(ProcessManager)
   await processManager.reconcileStaleStates()
+
+  await usingAsync(useSystemIdentityContext({ injector }), async (elevated) => {
+    await encryptExistingSecrets(elevated)
+  })
 
   await setupInstallRestApi(injector)
   await setupIdentityRestApi(injector)
