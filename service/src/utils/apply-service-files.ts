@@ -49,7 +49,7 @@ export function applyServiceFiles(
   for (const file of toApply) {
     const target = resolve(join(resolvedCwd, file.relativePath))
 
-    if (target !== resolvedCwd && !target.startsWith(resolvedCwd + '/')) {
+    if (target !== resolvedCwd && !target.startsWith(`${resolvedCwd}/`)) {
       throw new Error(`File path "${file.relativePath}" resolves outside the service directory`)
     }
 

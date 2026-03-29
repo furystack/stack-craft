@@ -1,7 +1,8 @@
 import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import type { CloneStatus, InstallStatus, BuildStatus, RunStatus, ServiceStateEvent, TriggerSource } from 'common'
+import { type ChildProcess, spawn } from 'child_process'
+import type { BuildStatus, CloneStatus, InstallStatus, RunStatus, ServiceStateEvent, TriggerSource } from 'common'
 import {
   GitHubRepository,
   Prerequisite,
@@ -10,17 +11,16 @@ import {
   ServiceStateHistory,
   ServiceStatus,
   StackConfig,
+  getServiceCwd,
 } from 'common'
-import { getServiceCwd } from 'common'
-import { type ChildProcess, spawn } from 'child_process'
-import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs'
 import { randomUUID } from 'crypto'
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs'
 import { dirname, join, resolve as resolvePosix } from 'path'
 
 import { useSystemIdentityContext } from '@furystack/core'
+import { applyServiceFiles, mergeServiceFiles } from '../utils/apply-service-files.js'
 import { CryptoService } from '../utils/crypto-service.js'
 import { decryptLocalFiles } from '../utils/env-encryption-helpers.js'
-import { applyServiceFiles, mergeServiceFiles } from '../utils/apply-service-files.js'
 import { resolvePath } from '../utils/resolve-path.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { GitHeadWatcher } from './git-head-watcher.js'
@@ -358,7 +358,7 @@ export class ProcessManager {
 
     const cwd = resolvePath(getServiceCwd(stackConfig, svc, repo))
     const stackRoot = resolvePosix(resolvePath(stackConfig.mainDirectory))
-    if (cwd !== stackRoot && !cwd.startsWith(stackRoot + '/')) {
+    if (cwd !== stackRoot && !cwd.startsWith(`${stackRoot}/`)) {
       throw new Error(`Resolved path "${cwd}" is outside the stack directory "${stackRoot}"`)
     }
 

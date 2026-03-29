@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "vitest": "^4.1.2"
   },
   "dependencies": {
@@ -27,7 +27,7 @@
     "@furystack/websocket-api": "^13.2.6",
     "@modelcontextprotocol/sdk": "1.28.0",
     "common": "workspace:^",
-    "pg": "^8.16.0",
+    "pg": "^8.20.0",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.8"
   }
