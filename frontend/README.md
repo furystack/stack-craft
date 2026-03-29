@@ -1,26 +1,47 @@
-# Introduction
+# Stack Craft Frontend
 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project.
+Shades-based single page application for Stack Craft.
 
-# Getting Started
+## Tech Stack
 
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
+- **[Shades](https://github.com/furystack/furystack/tree/develop/packages/shades)** -- FuryStack's web component framework
+- **[Vite](https://vite.dev/)** -- Build tool and dev server
+- **TypeScript** -- Strict mode enabled
 
-1. Installation process
-2. Software dependencies
-3. Latest releases
-4. API references
+## Development
 
-# Build and Test
+```bash
+# Start the dev server (port 8080)
+yarn start
 
-TODO: Describe and show how to build your code and run the tests.
+# Build for production
+yarn build
+```
 
-# Contribute
+The dev server proxies API requests to the backend on port 9090. Make sure the backend is running before starting the frontend.
 
-TODO: Explain how other users and developers can contribute to make your code better.
+## Project Structure
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://www.visualstudio.com/en-us/docs/git/create-a-readme). You can also seek inspiration from the below readme files:
+```
+frontend/src/
+├── components/       # Reusable UI components
+│   ├── entity-forms/ # Form components for creating/editing entities
+│   └── ...
+├── pages/            # Page-level components (one per route)
+│   ├── dashboard/
+│   ├── services/
+│   ├── stacks/
+│   ├── wizards/
+│   └── ...
+├── services/         # Business logic and API client services
+│   └── api-clients/  # Typed REST API clients
+├── utils/            # Utility functions
+└── index.tsx         # Application entry point
+```
 
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+## Key Patterns
+
+- **Dependency injection:** Services are accessed via `injector.getInstance(ServiceClass)`
+- **Reactive state:** `useObservable` subscribes to `ObservableValue` instances from services
+- **Entity sync:** Real-time data updates via WebSocket through `@furystack/entity-sync-client`
+- **Routing:** `NestedRouter` with typed routes defined in `components/app-routes.tsx`

@@ -1,56 +1,44 @@
-import { describe, expect, it } from 'vitest'
+import { Injector } from '@furystack/inject'
+import { usingAsync } from '@furystack/utils'
+import { describe, expect, it, vi } from 'vitest'
 
 import { CheckEnvAvailabilityAction } from './check-env-availability-action.js'
 
-const createMockActionContext = (body: { variableNames: string[] }) => ({
-  injector: {} as never,
-  getBody: () => Promise.resolve(body),
-  getUrlParams: () => ({}) as never,
-  getQuery: () => ({}) as never,
-  request: {} as never,
-  response: {} as never,
-})
+const callAction = (injector: Injector, body: { variableNames: string[] }) =>
+  CheckEnvAvailabilityAction({
+    injector,
+    getBody: vi.fn().mockResolvedValue(body),
+  } as unknown as Parameters<typeof CheckEnvAvailabilityAction>[0])
 
 describe('CheckEnvAvailabilityAction', () => {
-  it('should return true for env vars that exist', async () => {
-    const originalPath = process.env.PATH
-    try {
-      process.env.PATH = '/usr/bin'
-      const result = await CheckEnvAvailabilityAction(createMockActionContext({ variableNames: ['PATH'] }))
-      expect(result.chunk.PATH).toBe(true)
-    } finally {
-      if (originalPath !== undefined) {
-        process.env.PATH = originalPath
-      }
-    }
+  it('should return true for variables that exist in process.env', async () => {
+    process.env.TEST_VAR_EXISTS = 'some-value'
+    await usingAsync(new Injector(), async (injector) => {
+      const result = await callAction(injector, { variableNames: ['TEST_VAR_EXISTS', 'TEST_VAR_MISSING'] })
+
+      const body = JSON.parse(JSON.stringify(result.chunk)) as Record<string, boolean>
+      expect(body.TEST_VAR_EXISTS).toBe(true)
+      expect(body.TEST_VAR_MISSING).toBe(false)
+    })
+    delete process.env.TEST_VAR_EXISTS
   })
 
-  it('should return false for env vars that do not exist', async () => {
-    delete process.env.DEFINITELY_NOT_SET_12345
-    const result = await CheckEnvAvailabilityAction(
-      createMockActionContext({ variableNames: ['DEFINITELY_NOT_SET_12345'] }),
-    )
-    expect(result.chunk.DEFINITELY_NOT_SET_12345).toBe(false)
+  it('should return false for all when no variables match', async () => {
+    await usingAsync(new Injector(), async (injector) => {
+      const result = await callAction(injector, { variableNames: ['DEFINITELY_NOT_SET_1', 'DEFINITELY_NOT_SET_2'] })
+
+      const body = JSON.parse(JSON.stringify(result.chunk)) as Record<string, boolean>
+      expect(body.DEFINITELY_NOT_SET_1).toBe(false)
+      expect(body.DEFINITELY_NOT_SET_2).toBe(false)
+    })
   })
 
-  it('should handle multiple variables', async () => {
-    delete process.env.MISSING_VAR_A
-    delete process.env.MISSING_VAR_B
-    process.env.EXISTING_VAR_A = 'value'
-    try {
-      const result = await CheckEnvAvailabilityAction(
-        createMockActionContext({ variableNames: ['EXISTING_VAR_A', 'MISSING_VAR_A', 'MISSING_VAR_B'] }),
-      )
-      expect(result.chunk.EXISTING_VAR_A).toBe(true)
-      expect(result.chunk.MISSING_VAR_A).toBe(false)
-      expect(result.chunk.MISSING_VAR_B).toBe(false)
-    } finally {
-      delete process.env.EXISTING_VAR_A
-    }
-  })
+  it('should handle an empty array', async () => {
+    await usingAsync(new Injector(), async (injector) => {
+      const result = await callAction(injector, { variableNames: [] })
 
-  it('should return empty object for empty input', async () => {
-    const result = await CheckEnvAvailabilityAction(createMockActionContext({ variableNames: [] }))
-    expect(result.chunk).toEqual({})
+      const body = JSON.parse(JSON.stringify(result.chunk)) as Record<string, boolean>
+      expect(Object.keys(body)).toHaveLength(0)
+    })
   })
 })

@@ -4,7 +4,12 @@ export default defineConfig({
   test: {
     coverage: {
       enabled: true,
-      include: ['common/src/**/*.ts', 'frontend/src/**/*.ts', 'service/src/**/*.ts'],
+      include: ['common/src/**/*.{ts,tsx}', 'frontend/src/**/*.{ts,tsx}', 'service/src/**/*.{ts,tsx}'],
+      thresholds: {
+        lines: 23,
+        branches: 18,
+        functions: 15,
+      },
     },
     projects: [
       {

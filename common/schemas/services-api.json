@@ -270,7 +270,8 @@
         }
       },
       "required": ["result", "body"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Creates a new service definition with optional configuration"
     },
     "ServiceView": {
       "type": "object",
@@ -689,7 +690,8 @@
         }
       },
       "required": ["url", "result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Triggers a lifecycle action (start, stop, restart, install, build, pull, setup, update) on a service"
     },
     "ApplyServiceFilesEndpoint": {
       "type": "object",
@@ -734,7 +736,8 @@
         }
       },
       "required": ["url", "body", "result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Writes shared and local service files to disk, optionally for a single file"
     },
     "ServiceLogsEndpoint": {
       "type": "object",
@@ -779,7 +782,8 @@
         }
       },
       "required": ["url", "query", "result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Retrieves recent log entries for a service, optionally filtered by process UID or search text"
     },
     "ServiceLogEntry": {
       "type": "object",
@@ -832,7 +836,8 @@
         }
       },
       "required": ["url", "result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Deletes all stored log entries for a service"
     },
     "ServiceHistoryEndpoint": {
       "type": "object",
@@ -871,7 +876,8 @@
         }
       },
       "required": ["url", "query", "result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Retrieves the state transition history for a service"
     },
     "ServiceStateHistory": {
       "type": "object",
@@ -990,7 +996,8 @@
         }
       },
       "required": ["url", "result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Lists local and remote branches for the service's linked repository"
     },
     "ServiceCheckoutEndpoint": {
       "type": "object",
@@ -1030,7 +1037,8 @@
         }
       },
       "required": ["url", "body", "result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Switches the service's repository to a different branch"
     },
     "ServicesApi": {
       "type": "object",

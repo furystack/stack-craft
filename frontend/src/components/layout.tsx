@@ -43,6 +43,43 @@ export const Layout = Shade({
       return <Init />
     }
 
+    if (installState === 'error') {
+      return (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            gap: '16px',
+            color: cssVariableTheme.text.primary,
+          }}
+        >
+          <h2 style={{ margin: '0' }}>Unable to Connect</h2>
+          <p style={{ color: cssVariableTheme.text.secondary, maxWidth: '400px', textAlign: 'center' }}>
+            Could not reach the Stack Craft service. Please check that the backend is running and try again.
+          </p>
+          <button
+            onclick={() => {
+              setInstallState('loading')
+            }}
+            style={{
+              padding: '8px 24px',
+              cursor: 'pointer',
+              borderRadius: '4px',
+              border: 'none',
+              background: cssVariableTheme.palette.primary.main,
+              color: cssVariableTheme.text.primary,
+              fontSize: '14px',
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )
+    }
+
     if (installState === 'needsInstall') {
       return (
         <div>
@@ -66,7 +103,7 @@ export const Layout = Shade({
 
     return (
       <div>
-        <NotyList style={{ zIndex: '2' }} />
+        <NotyList style={{ zIndex: '2' }} aria-live="polite" />
         <AuthenticatedLayout />
       </div>
     )

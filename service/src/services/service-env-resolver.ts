@@ -1,0 +1,79 @@
+import { useSystemIdentityContext } from '@furystack/core'
+import { Injectable, type Injector, getInjectorReference } from '@furystack/inject'
+import { getRepository } from '@furystack/repository'
+import { Prerequisite, ServiceConfig, ServiceDefinition, StackConfig } from 'common'
+
+import { CryptoService } from '../utils/crypto-service.js'
+
+/**
+ * Resolves the effective environment variables for a service by looking up
+ * its env-variable prerequisites and merging stack-level defaults with
+ * optional service-level overrides.
+ */
+@Injectable({ lifetime: 'singleton' })
+export class ServiceEnvResolver {
+  private elevatedInjector?: Injector
+
+  private getElevatedInjector(): Injector {
+    if (!this.elevatedInjector) {
+      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+    }
+    return this.elevatedInjector
+  }
+
+  public async resolveServiceEnvVars(serviceId: string): Promise<Record<string, string>> {
+    const elevated = this.getElevatedInjector()
+    const repository = getRepository(elevated)
+
+    const services = await repository
+      .getDataSetFor(ServiceDefinition, 'id')
+      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
+    const svc = services[0]
+    if (!svc) return {}
+
+    const allPrereqs = await repository
+      .getDataSetFor(Prerequisite, 'id')
+      .find(elevated, { filter: { stackName: { $eq: svc.stackName } } })
+    const envPrereqs = allPrereqs.filter((p) => p.type === 'env-variable' && svc.prerequisiteIds.includes(p.id))
+    if (envPrereqs.length === 0) return {}
+
+    const stackConfigs = await repository
+      .getDataSetFor(StackConfig, 'stackName')
+      .find(elevated, { filter: { stackName: { $eq: svc.stackName } }, top: 1 })
+    const stackConfig = stackConfigs[0]
+
+    const svcConfigs = await repository
+      .getDataSetFor(ServiceConfig, 'serviceId')
+      .find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+    const svcConfig = svcConfigs[0]
+
+    const resolved: Record<string, string> = {}
+    for (const prereq of envPrereqs) {
+      const varName = (prereq.config as { variableName: string }).variableName
+      const override = svcConfig?.environmentVariableOverrides?.[varName]
+      const stackDefault = stackConfig?.environmentVariables?.[varName]
+      const config = override ?? stackDefault
+
+      if (config?.source === 'custom' && config.customValue !== undefined) {
+        const crypto = this.getElevatedInjector().getInstance(CryptoService)
+        resolved[varName] = crypto.isEncrypted(config.customValue)
+          ? crypto.decrypt(config.customValue)
+          : config.customValue
+      } else if (config?.source === 'inherit' || !config) {
+        const globalValue = process.env[varName]
+        if (globalValue !== undefined) {
+          resolved[varName] = globalValue
+        }
+      }
+    }
+    return resolved
+  }
+
+  public async [Symbol.asyncDispose]() {
+    try {
+      await this.elevatedInjector?.[Symbol.asyncDispose]()
+    } catch {
+      // May already be disposed by the parent injector
+    }
+  }
+}

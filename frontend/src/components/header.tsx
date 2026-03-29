@@ -49,6 +49,7 @@ export const Header = Shade<HeaderProps>({
               size="small"
               onclick={() => injector.getInstance(SessionService).logout()}
               startIcon={<Icon icon={icons.logOut} size="small" />}
+              title="Sign out of your account"
             >
               Log Out
             </Button>

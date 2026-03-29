@@ -18,126 +18,23 @@ import {
   StackDefinition,
   User,
 } from 'common'
-import type { EnvironmentVariableValue, PrerequisiteConfig, PrerequisiteType, ServiceFile } from 'common'
-import { DataTypes, Model } from 'sequelize'
+import { DataTypes } from 'sequelize'
 import type { Options, Sequelize } from 'sequelize'
 
 import { authorizedDataSet } from '../../config.js'
-
-// --- Sequelize Model classes ---
-
-class StackDefinitionModel extends Model<StackDefinition, StackDefinition> implements StackDefinition {
-  declare name: string
-  declare displayName: string
-  declare description: string
-  declare createdAt: string
-  declare updatedAt: string
-}
-
-class StackConfigModel extends Model<StackConfig, StackConfig> implements StackConfig {
-  declare stackName: string
-  declare mainDirectory: string
-  declare environmentVariables: Record<string, EnvironmentVariableValue>
-  declare createdAt: string
-  declare updatedAt: string
-}
-
-class ServiceDefinitionModel extends Model<ServiceDefinition, ServiceDefinition> implements ServiceDefinition {
-  declare id: string
-  declare stackName: string
-  declare displayName: string
-  declare description: string
-  declare workingDirectory: string | undefined
-  declare repositoryId: string | undefined
-  declare prerequisiteIds: string[]
-  declare prerequisiteServiceIds: string[]
-  declare installCommand: string | undefined
-  declare buildCommand: string | undefined
-  declare runCommand: string
-  declare files: ServiceFile[]
-  declare createdAt: string
-  declare updatedAt: string
-}
-
-class ServiceConfigModel extends Model<ServiceConfig, ServiceConfig> implements ServiceConfig {
-  declare serviceId: string
-  declare autoFetchEnabled: boolean
-  declare autoFetchIntervalMinutes: number
-  declare autoRestartOnFetch: boolean
-  declare environmentVariableOverrides: Record<string, EnvironmentVariableValue>
-  declare localFiles: ServiceFile[]
-  declare createdAt: string
-  declare updatedAt: string
-}
-
-class ServiceStatusModel extends Model<ServiceStatus, ServiceStatus> implements ServiceStatus {
-  declare serviceId: string
-  declare cloneStatus: ServiceStatus['cloneStatus']
-  declare installStatus: ServiceStatus['installStatus']
-  declare buildStatus: ServiceStatus['buildStatus']
-  declare runStatus: ServiceStatus['runStatus']
-  declare lastClonedAt: string | undefined
-  declare lastInstalledAt: string | undefined
-  declare lastBuiltAt: string | undefined
-  declare lastStartedAt: string | undefined
-  declare lastFetchedAt: string | undefined
-  declare updatedAt: string
-}
-
-class ServiceStateHistoryModel extends Model<ServiceStateHistory, ServiceStateHistory> implements ServiceStateHistory {
-  declare id: number
-  declare serviceId: string
-  declare event: ServiceStateHistory['event']
-  declare previousState: string | undefined
-  declare newState: string | undefined
-  declare triggeredBy: string
-  declare triggerSource: ServiceStateHistory['triggerSource']
-  declare metadata: string | undefined
-  declare processUid: string | undefined
-  declare createdAt: string
-}
-
-class GitHubRepositoryModel extends Model<GitHubRepository, GitHubRepository> implements GitHubRepository {
-  declare id: string
-  declare stackName: string
-  declare url: string
-  declare displayName: string
-  declare description: string
-  declare createdAt: string
-  declare updatedAt: string
-}
-
-class PrerequisiteModel extends Model<Prerequisite, Prerequisite> implements Prerequisite {
-  declare id: string
-  declare stackName: string
-  declare name: string
-  declare type: PrerequisiteType
-  declare config: PrerequisiteConfig
-  declare installationHelp: string
-  declare createdAt: string
-  declare updatedAt: string
-}
-
-class UserModel extends Model<User, User> implements User {
-  declare username: string
-  declare roles: string[]
-}
-
-class PasswordCredentialModel extends Model<PasswordCredential, PasswordCredential> implements PasswordCredential {
-  declare userName: string
-  declare passwordHash: string
-  declare salt: string
-  declare creationDate: string
-}
-
-class ApiTokenModel extends Model<ApiToken, ApiToken> implements ApiToken {
-  declare id: string
-  declare username: string
-  declare name: string
-  declare tokenHash: string
-  declare lastUsedAt: string | undefined
-  declare createdAt: string
-}
+import {
+  ApiTokenModel,
+  GitHubRepositoryModel,
+  PasswordCredentialModel,
+  PrerequisiteModel,
+  ServiceConfigModel,
+  ServiceDefinitionModel,
+  ServiceStateHistoryModel,
+  ServiceStatusModel,
+  StackConfigModel,
+  StackDefinitionModel,
+  UserModel,
+} from './models.js'
 
 const getDbOptions = (): Options => {
   const databaseUrl = process.env.DATABASE_URL

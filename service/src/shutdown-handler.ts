@@ -7,20 +7,20 @@ export const attachShutdownHandler = async (i: Injector) => {
 
   await logger.information({ message: '💤  Attaching shutdown handler...' })
 
-  const onExit = async ({ code, reason, error }: { code: number; reason: string; error?: any }) => {
+  const onExit = async ({ code, reason, error }: { code: number; reason: string; error?: unknown }) => {
     process.removeAllListeners('exit')
     try {
       if (code) {
+        const errorMessage = error instanceof Error ? error.message : undefined
+        const errorStack = error instanceof Error ? error.stack : undefined
         await logger.fatal({
           message: `Something bad happened, starting shutdown with code '${code}' due '${reason}'`,
           data: {
             code,
             reason,
             error,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            errorMessage: error?.message,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            errorStack: error?.stack,
+            errorMessage,
+            errorStack,
           },
         })
       } else {

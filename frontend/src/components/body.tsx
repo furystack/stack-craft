@@ -1,7 +1,7 @@
 import type { Injector } from '@furystack/inject'
 import { createComponent, NestedRouter, Shade } from '@furystack/shades'
-import { Dashboard } from '../pages/dashboard/index.js'
 import { Init, Offline } from '../pages/index.js'
+import { NotFound } from '../pages/not-found.js'
 import { SessionService } from '../services/session.js'
 import { appRoutes } from './app-routes.js'
 
@@ -15,7 +15,7 @@ export const Body = Shade<{ style?: Partial<CSSStyleDeclaration>; injector?: Inj
         {(() => {
           switch (sessionState) {
             case 'authenticated':
-              return <NestedRouter routes={appRoutes} notFound={<Dashboard />} />
+              return <NestedRouter routes={appRoutes} notFound={<NotFound />} />
             case 'offline':
               return <Offline />
             default:

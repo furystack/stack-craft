@@ -255,7 +255,7 @@ export const Sidebar = Shade<{ injector?: Injector }>({
     ) as StackView[]
 
     return (
-      <nav style={{ padding: '4px 0 8px' }}>
+      <nav aria-label="Main navigation" style={{ padding: '4px 0 8px' }}>
         <SidebarItem href="/" icon={icons.home} label="Dashboard" currentUrl={currentUrl} />
         <Divider />
         <div className="sidebar-section-label">Stacks</div>
