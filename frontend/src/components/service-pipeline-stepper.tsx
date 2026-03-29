@@ -71,7 +71,7 @@ export const ServicePipelineStepper = Shade<ServicePipelineStepperProps>({
     const visibleStages = stages.filter((s) => s.status !== 'skipped')
 
     const hasInProgress = visibleStages.some((s) => s.status === 'in-progress')
-    const commitsBehind = props.service.commitsBehind
+    const { commitsBehind } = props.service
 
     return (
       <Timeline pending={hasInProgress ? 'Operation in progress...' : undefined}>

@@ -4,6 +4,8 @@ import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ExportStackEndpoint } from 'common'
 import { GitHubRepository, Prerequisite, ServiceDefinition, StackDefinition } from 'common'
 
+import { detectSecretsInServiceDefinition } from '../../../utils/secret-detector.js'
+
 export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ injector, getUrlParams }) => {
   const { id: stackName } = getUrlParams()
   const repository = getRepository(injector)
@@ -29,10 +31,20 @@ export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ in
     ...rest
   }: T) => rest
 
+  const warnings = services.flatMap((svc) =>
+    detectSecretsInServiceDefinition({
+      files: svc.files,
+      runCommand: svc.runCommand,
+      installCommand: svc.installCommand,
+      buildCommand: svc.buildCommand,
+    }).map((w) => ({ ...w, source: `${svc.displayName} > ${w.source}` })),
+  )
+
   return JsonResult({
     stack: stripTimestamps(stack),
     services: services.map(stripTimestamps),
     repositories: repositories.map(stripTimestamps),
     prerequisites: prerequisites.map(stripTimestamps),
+    ...(warnings.length > 0 ? { warnings } : {}),
   })
 }

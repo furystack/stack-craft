@@ -113,6 +113,9 @@
           "properties": {
             "variableName": {
               "type": "string"
+            },
+            "isSensitive": {
+              "type": "boolean"
             }
           },
           "required": ["variableName"],

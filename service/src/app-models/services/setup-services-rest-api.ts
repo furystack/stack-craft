@@ -11,6 +11,8 @@ import { randomUUID } from 'crypto'
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getPort } from '../../get-port.js'
 import { ProcessManager } from '../../services/process-manager.js'
+import { CryptoService, SENSITIVE_VALUE_MASK } from '../../utils/crypto-service.js'
+import { encryptEnvValues, maskSensitiveEnvValues } from '../../utils/env-encryption-helpers.js'
 import { ClearServiceLogsAction } from './actions/clear-service-logs-action.js'
 import { ServiceBranchesAction } from './actions/service-branches-action.js'
 import { ServiceCheckoutAction } from './actions/service-checkout-action.js'
@@ -23,21 +25,32 @@ const mergeServiceView = (
   config: ServiceConfig | undefined,
   status: ServiceStatus | undefined,
   gitStatus: ServiceGitStatus | undefined,
-): ServiceView => ({
-  serviceId: def.id,
-  autoFetchEnabled: false,
-  autoFetchIntervalMinutes: 60,
-  autoRestartOnFetch: false,
-  environmentVariableOverrides: {},
-  cloneStatus: 'not-cloned',
-  installStatus: 'not-installed',
-  buildStatus: 'not-built',
-  runStatus: 'stopped',
-  ...def,
-  ...(config ?? {}),
-  ...(status ?? {}),
-  ...(gitStatus ?? {}),
-})
+  crypto?: CryptoService,
+): ServiceView => {
+  const merged: ServiceView = {
+    serviceId: def.id,
+    autoFetchEnabled: false,
+    autoFetchIntervalMinutes: 60,
+    autoRestartOnFetch: false,
+    environmentVariableOverrides: {},
+    cloneStatus: 'not-cloned',
+    installStatus: 'not-installed',
+    buildStatus: 'not-built',
+    runStatus: 'stopped',
+    ...def,
+    ...(config ?? {}),
+    ...(status ?? {}),
+    ...(gitStatus ?? {}),
+  }
+  if (crypto) {
+    merged.environmentVariableOverrides = maskSensitiveEnvValues(
+      crypto,
+      merged.environmentVariableOverrides,
+      SENSITIVE_VALUE_MASK,
+    )
+  }
+  return merged
+}
 
 export const setupServicesRestApi = async (injector: Injector) => {
   await useRestService<ServicesApi>({
@@ -51,6 +64,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
           async ({ injector: i, getQuery }) => {
             const query = getQuery()
             const repo = getRepository(i)
+            const crypto = i.getInstance(CryptoService)
             const defs = await repo.getDataSetFor(ServiceDefinition, 'id').find(i, {
               top: query.findOptions?.top,
               skip: query.findOptions?.skip,
@@ -65,7 +79,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
             const gitStatusMap = new Map(gitStatuses.map((g) => [g.serviceId, g]))
 
             const entries = defs.map((def) =>
-              mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id), gitStatusMap.get(def.id)),
+              mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id), gitStatusMap.get(def.id), crypto),
             )
             const count = await repo.getDataSetFor(ServiceDefinition, 'id').count(i, query.findOptions?.filter)
             return JsonResult({ count, entries })
@@ -75,6 +89,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
           async ({ injector: i, getUrlParams }) => {
             const { id } = getUrlParams()
             const repo = getRepository(i)
+            const crypto = i.getInstance(CryptoService)
             const defs = await repo
               .getDataSetFor(ServiceDefinition, 'id')
               .find(i, { filter: { id: { $eq: id } }, top: 1 })
@@ -91,7 +106,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
               .getDataSetFor(ServiceGitStatus, 'serviceId')
               .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
 
-            return JsonResult(mergeServiceView(def, configs[0], statuses[0], gitStatuses[0]))
+            return JsonResult(mergeServiceView(def, configs[0], statuses[0], gitStatuses[0], crypto))
           },
         ),
         '/services/:id/logs': Validate({ schema: servicesApiSchema, schemaName: 'ServiceLogsEndpoint' })(
@@ -109,6 +124,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
           async ({ injector: i, getBody }) => {
             const body = await getBody()
             const repo = getRepository(i)
+            const crypto = i.getInstance(CryptoService)
             const now = new Date().toISOString()
             const id = body.id ?? randomUUID()
 
@@ -134,7 +150,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
               autoFetchEnabled: body.autoFetchEnabled ?? false,
               autoFetchIntervalMinutes: body.autoFetchIntervalMinutes ?? 60,
               autoRestartOnFetch: body.autoRestartOnFetch ?? false,
-              environmentVariableOverrides: body.environmentVariableOverrides ?? {},
+              environmentVariableOverrides: encryptEnvValues(crypto, body.environmentVariableOverrides ?? {}),
               createdAt: now,
               updatedAt: now,
             }
@@ -152,7 +168,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
             await repo.getDataSetFor(ServiceConfig, 'serviceId').add(i, config)
             await repo.getDataSetFor(ServiceStatus, 'serviceId').add(i, status)
 
-            return JsonResult(mergeServiceView(def, config, status, undefined))
+            return JsonResult(mergeServiceView(def, config, status, undefined, crypto))
           },
         ),
         '/services/:id/start': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(
@@ -221,8 +237,17 @@ export const setupServicesRestApi = async (injector: Injector) => {
             if (body.autoFetchIntervalMinutes !== undefined)
               configFields.autoFetchIntervalMinutes = body.autoFetchIntervalMinutes
             if (body.autoRestartOnFetch !== undefined) configFields.autoRestartOnFetch = body.autoRestartOnFetch
-            if (body.environmentVariableOverrides !== undefined)
-              configFields.environmentVariableOverrides = body.environmentVariableOverrides
+            if (body.environmentVariableOverrides !== undefined) {
+              const crypto = i.getInstance(CryptoService)
+              const existing = await repo
+                .getDataSetFor(ServiceConfig, 'serviceId')
+                .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
+              configFields.environmentVariableOverrides = encryptEnvValues(
+                crypto,
+                body.environmentVariableOverrides,
+                existing[0]?.environmentVariableOverrides,
+              )
+            }
 
             if (Object.keys(defFields).length > 0) {
               await repo.getDataSetFor(ServiceDefinition, 'id').update(i, id, defFields)

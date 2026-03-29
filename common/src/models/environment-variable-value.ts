@@ -8,4 +8,10 @@ export type EnvironmentVariableValue = {
   source: 'inherit' | 'custom'
   /** The custom value to use when source is 'custom' */
   customValue?: string
+  /**
+   * Whether this value contains sensitive data (e.g. passwords, tokens).
+   * When true, the value is encrypted at rest and masked in API responses.
+   * Overrides the prerequisite-level default when set.
+   */
+  isSensitive?: boolean
 }

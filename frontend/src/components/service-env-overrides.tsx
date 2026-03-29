@@ -24,6 +24,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
       service.environmentVariableOverrides ?? {},
     )
     const [isSaving, setIsSaving] = useState('isSaving', false)
+    const [touchedSensitive, setTouchedSensitive] = useState<Set<string>>('touchedSensitive', new Set())
 
     if (envPrereqs.length === 0) return <div />
 
@@ -46,11 +47,19 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
     const handleSave = async () => {
       setIsSaving(true)
       try {
+        const toSave: Record<string, EnvironmentVariableValue> = {}
+        for (const [key, val] of Object.entries(editState)) {
+          if (val.isSensitive && val.source === 'custom' && !touchedSensitive.has(key)) {
+            toSave[key] = { ...val, customValue: '__UNCHANGED__' }
+          } else {
+            toSave[key] = val
+          }
+        }
         await injector.getInstance(ServicesApiClient).call({
           method: 'PATCH',
           action: '/services/:id',
           url: { id: service.id },
-          body: { environmentVariableOverrides: editState },
+          body: { environmentVariableOverrides: toSave },
         })
       } finally {
         setIsSaving(false)
@@ -67,6 +76,11 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
           const varName = (prereq.config as { variableName: string }).variableName
           const stackValue = stackEnvVars[varName]
           const override = editState[varName]
+          const isSensitive =
+            override?.isSensitive ??
+            stackValue?.isSensitive ??
+            (prereq.config as { isSensitive?: boolean }).isSensitive ??
+            false
           const isGloballyAvailable = envAvailability[varName] ?? false
           const hasOverride = override !== undefined
 
@@ -87,6 +101,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <strong style={{ fontFamily: 'monospace' }}>{varName}</strong>
+                {isSensitive ? <Icon icon={icons.lock} size="small" title="Sensitive value" /> : null}
                 <span style={{ opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
                   ({prereq.name})
                 </span>
@@ -136,7 +151,11 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
                     } else {
                       setEditState({
                         ...editState,
-                        [varName]: { source: val as 'inherit' | 'custom', customValue: override?.customValue },
+                        [varName]: {
+                          source: val as 'inherit' | 'custom',
+                          customValue: override?.customValue,
+                          isSensitive,
+                        },
                       })
                     }
                   }}
@@ -145,13 +164,21 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
                   <Input
                     variant="outlined"
                     labelTitle="Value"
+                    type={isSensitive ? 'password' : 'text'}
                     value={override.customValue ?? ''}
                     placeholder="Enter value..."
                     style={{ flex: '1', fontFamily: 'monospace' }}
                     oninput={(ev) => {
+                      if (isSensitive) {
+                        setTouchedSensitive(new Set([...touchedSensitive, varName]))
+                      }
                       setEditState({
                         ...editState,
-                        [varName]: { source: 'custom', customValue: (ev.target as HTMLInputElement).value },
+                        [varName]: {
+                          source: 'custom',
+                          customValue: (ev.target as HTMLInputElement).value,
+                          isSensitive,
+                        },
                       })
                     }}
                   />

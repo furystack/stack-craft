@@ -19,6 +19,13 @@ type ShareableServiceDefinition = Omit<ServiceDefinition, 'createdAt' | 'updated
 type ShareableGitHubRepository = Omit<GitHubRepository, 'createdAt' | 'updatedAt'>
 type ShareablePrerequisite = Omit<Prerequisite, 'createdAt' | 'updatedAt'>
 
+export type SecretWarning = {
+  line: number
+  pattern: string
+  snippet: string
+  source: string
+}
+
 export type ExportStackEndpoint = {
   url: { id: string }
   result: {
@@ -26,11 +33,12 @@ export type ExportStackEndpoint = {
     services: ShareableServiceDefinition[]
     repositories: ShareableGitHubRepository[]
     prerequisites: ShareablePrerequisite[]
+    warnings?: SecretWarning[]
   }
 }
 
 export type ImportStackEndpoint = {
-  result: { success: boolean }
+  result: { success: boolean; warnings?: SecretWarning[] }
   body: {
     stack: ShareableStackDefinition
     services: ShareableServiceDefinition[]

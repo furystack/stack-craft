@@ -21,6 +21,8 @@ import { getCurrentUser } from '@furystack/core'
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getPort } from '../../get-port.js'
 import { ProcessManager } from '../../services/process-manager.js'
+import { CryptoService, SENSITIVE_VALUE_MASK } from '../../utils/crypto-service.js'
+import { encryptEnvValues, maskSensitiveEnvValues } from '../../utils/env-encryption-helpers.js'
 import { ExportStackAction } from './actions/export-stack-action.js'
 import { ImportStackAction } from './actions/import-stack-action.js'
 
@@ -36,6 +38,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
           async ({ injector: i, getQuery }) => {
             const query = getQuery()
             const repo = getRepository(i)
+            const crypto = i.getInstance(CryptoService)
             const defs = await repo.getDataSetFor(StackDefinition, 'name').find(i, {
               top: query.findOptions?.top,
               skip: query.findOptions?.skip,
@@ -44,13 +47,22 @@ export const setupStacksRestApi = async (injector: Injector) => {
             })
             const configs = await repo.getDataSetFor(StackConfig, 'stackName').find(i, {})
             const configMap = new Map(configs.map((c) => [c.stackName, c]))
-            const entries = defs.map(
-              (def) =>
-                ({
-                  ...def,
-                  ...(configMap.get(def.name) ?? { stackName: def.name, mainDirectory: '' }),
-                }) as StackView,
-            )
+            const entries = defs.map((def) => {
+              const config = configMap.get(def.name) ?? {
+                stackName: def.name,
+                mainDirectory: '',
+                environmentVariables: {},
+              }
+              return {
+                ...def,
+                ...config,
+                environmentVariables: maskSensitiveEnvValues(
+                  crypto,
+                  config.environmentVariables ?? {},
+                  SENSITIVE_VALUE_MASK,
+                ),
+              } as StackView
+            })
             return JsonResult({ count: entries.length, entries })
           },
         ),
@@ -58,6 +70,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
           async ({ injector: i, getUrlParams }) => {
             const { id } = getUrlParams()
             const repo = getRepository(i)
+            const crypto = i.getInstance(CryptoService)
             const defs = await repo
               .getDataSetFor(StackDefinition, 'name')
               .find(i, { filter: { name: { $eq: id } }, top: 1 })
@@ -68,7 +81,11 @@ export const setupStacksRestApi = async (injector: Injector) => {
               .find(i, { filter: { stackName: { $eq: id } }, top: 1 })
             const config = configs[0]
             if (!config) throw new RequestError('Stack config not found', 404)
-            return JsonResult({ ...def, ...config })
+            return JsonResult({
+              ...def,
+              ...config,
+              environmentVariables: maskSensitiveEnvValues(crypto, config.environmentVariables, SENSITIVE_VALUE_MASK),
+            })
           },
         ),
         '/stacks/:id/export': Validate({ schema: stacksApiSchema, schemaName: 'ExportStackEndpoint' })(
@@ -80,6 +97,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
           async ({ injector: i, getBody }) => {
             const body = await getBody()
             const repo = getRepository(i)
+            const crypto = i.getInstance(CryptoService)
             const now = new Date().toISOString()
             const name = body.name ?? randomUUID()
             const def = {
@@ -92,7 +110,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
             const config = {
               stackName: name,
               mainDirectory: body.mainDirectory,
-              environmentVariables: body.environmentVariables ?? {},
+              environmentVariables: encryptEnvValues(crypto, body.environmentVariables ?? {}),
               createdAt: now,
               updatedAt: now,
             }
@@ -134,6 +152,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
             const { id } = getUrlParams()
             const body = await getBody()
             const repo = getRepository(i)
+            const crypto = i.getInstance(CryptoService)
 
             const defFields: Partial<StackDefinition> = {}
             if (body.displayName !== undefined) defFields.displayName = body.displayName
@@ -141,7 +160,16 @@ export const setupStacksRestApi = async (injector: Injector) => {
 
             const configFields: Partial<StackConfig> = {}
             if (body.mainDirectory !== undefined) configFields.mainDirectory = body.mainDirectory
-            if (body.environmentVariables !== undefined) configFields.environmentVariables = body.environmentVariables
+            if (body.environmentVariables !== undefined) {
+              const existing = await repo
+                .getDataSetFor(StackConfig, 'stackName')
+                .find(i, { filter: { stackName: { $eq: id } }, top: 1 })
+              configFields.environmentVariables = encryptEnvValues(
+                crypto,
+                body.environmentVariables,
+                existing[0]?.environmentVariables,
+              )
+            }
 
             if (Object.keys(defFields).length > 0) {
               await repo.getDataSetFor(StackDefinition, 'name').update(i, id, defFields)

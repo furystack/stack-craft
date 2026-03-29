@@ -12,6 +12,10 @@
         "customValue": {
           "type": "string",
           "description": "The custom value to use when source is 'custom'"
+        },
+        "isSensitive": {
+          "type": "boolean",
+          "description": "Whether this value contains sensitive data (e.g. passwords, tokens). When true, the value is encrypted at rest and masked in API responses. Overrides the prerequisite-level default when set."
         }
       },
       "required": ["source"],
@@ -723,6 +727,9 @@
           "properties": {
             "variableName": {
               "type": "string"
+            },
+            "isSensitive": {
+              "type": "boolean"
             }
           },
           "required": ["variableName"],
@@ -819,6 +826,9 @@
           "properties": {
             "variableName": {
               "type": "string"
+            },
+            "isSensitive": {
+              "type": "boolean"
             }
           },
           "required": ["variableName"],

@@ -4,10 +4,13 @@ import { getRepository } from '@furystack/repository'
 import { ServiceConfig, StackConfig } from 'common'
 import { z } from 'zod'
 
+import { CryptoService } from '../../utils/crypto-service.js'
+import { encryptEnvValues } from '../../utils/env-encryption-helpers.js'
 import { environmentVariableValueSchema, errorResult, textResult } from './mcp-helpers.js'
 
 export const registerEnvVariableTools = (mcp: McpServer, _injector: Injector, elevated: Injector) => {
   const repository = getRepository(elevated)
+  const crypto = elevated.getInstance(CryptoService)
 
   mcp.registerTool(
     'set_stack_env_variable',
@@ -27,7 +30,11 @@ export const registerEnvVariableTools = (mcp: McpServer, _injector: Injector, el
         const config = configs[0]
         if (!config) return errorResult(`Stack config not found: ${stackName}`)
 
-        const updated = { ...config.environmentVariables, [variableName]: value }
+        const updated = encryptEnvValues(
+          crypto,
+          { ...config.environmentVariables, [variableName]: value },
+          config.environmentVariables,
+        )
         await repository
           .getDataSetFor(StackConfig, 'stackName')
           .update(elevated, stackName, { environmentVariables: updated })
@@ -84,7 +91,11 @@ export const registerEnvVariableTools = (mcp: McpServer, _injector: Injector, el
         const config = configs[0]
         if (!config) return errorResult(`Service config not found: ${serviceId}`)
 
-        const updated = { ...config.environmentVariableOverrides, [variableName]: value }
+        const updated = encryptEnvValues(
+          crypto,
+          { ...config.environmentVariableOverrides, [variableName]: value },
+          config.environmentVariableOverrides,
+        )
         await repository
           .getDataSetFor(ServiceConfig, 'serviceId')
           .update(elevated, serviceId, { environmentVariableOverrides: updated })

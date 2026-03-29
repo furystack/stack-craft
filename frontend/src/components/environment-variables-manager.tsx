@@ -32,6 +32,7 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
       props.environmentVariables,
     )
     const [isSaving, setIsSaving] = useState('isSaving', false)
+    const [touchedSensitive, setTouchedSensitive] = useState<Set<string>>('touchedSensitive', new Set())
 
     if (envPrereqs.length > 0 && !hasChecked) {
       const varNames = envPrereqs.map((p) => (p.config as { variableName: string }).variableName)
@@ -63,7 +64,15 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
     const handleSave = async () => {
       setIsSaving(true)
       try {
-        props.onSave(editState)
+        const toSave: Record<string, EnvironmentVariableValue> = {}
+        for (const [key, val] of Object.entries(editState)) {
+          if (val.isSensitive && val.source === 'custom' && !touchedSensitive.has(key)) {
+            toSave[key] = { ...val, customValue: '__UNCHANGED__' }
+          } else {
+            toSave[key] = val
+          }
+        }
+        props.onSave(toSave)
       } finally {
         setIsSaving(false)
       }
@@ -74,6 +83,8 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
         <strong style={{ fontSize: cssVariableTheme.typography.fontSize.lg }}>Environment Variables</strong>
         {envPrereqs.map((prereq) => {
           const varName = (prereq.config as { variableName: string }).variableName
+          const isSensitive =
+            editState[varName]?.isSensitive ?? (prereq.config as { isSensitive?: boolean }).isSensitive ?? false
           const current = editState[varName]
           const isGloballyAvailable = envAvailability[varName] ?? false
           const source = current?.source ?? (isGloballyAvailable ? 'inherit' : 'custom')
@@ -92,6 +103,7 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <strong style={{ fontFamily: 'monospace' }}>{varName}</strong>
+                {isSensitive ? <Icon icon={icons.lock} size="small" title="Sensitive value" /> : null}
                 <span style={{ opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
                   ({prereq.name})
                 </span>
@@ -134,7 +146,7 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
                     const newSource = (ev.target as HTMLSelectElement).value as 'inherit' | 'custom'
                     setEditState({
                       ...editState,
-                      [varName]: { source: newSource, customValue: current?.customValue },
+                      [varName]: { source: newSource, customValue: current?.customValue, isSensitive },
                     })
                   }}
                 />
@@ -142,13 +154,21 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
                   <Input
                     variant="outlined"
                     labelTitle="Value"
+                    type={isSensitive ? 'password' : 'text'}
                     value={current?.customValue ?? ''}
                     placeholder="Enter value..."
                     style={{ flex: '1', fontFamily: 'monospace' }}
                     oninput={(ev) => {
+                      if (isSensitive) {
+                        setTouchedSensitive(new Set([...touchedSensitive, varName]))
+                      }
                       setEditState({
                         ...editState,
-                        [varName]: { source: 'custom', customValue: (ev.target as HTMLInputElement).value },
+                        [varName]: {
+                          source: 'custom',
+                          customValue: (ev.target as HTMLInputElement).value,
+                          isSensitive,
+                        },
                       })
                     }}
                   />

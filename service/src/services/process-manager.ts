@@ -18,6 +18,7 @@ import { randomUUID } from 'crypto'
 import { dirname, join, resolve as resolvePosix } from 'path'
 
 import { useSystemIdentityContext } from '@furystack/core'
+import { CryptoService } from '../utils/crypto-service.js'
 import { applyServiceFiles } from '../utils/apply-service-files.js'
 import { resolvePath } from '../utils/resolve-path.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
@@ -373,7 +374,7 @@ export class ProcessManager {
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
         await this.gitHeadWatcher.watch(serviceId, cwd)
         void this.gitWatcher.startWatching(serviceId)
-        this.applySharedFiles(svc, cwd)
+        await this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       } else if (isGitRepo) {
         await this.logger.information({ message: `Pulling in ${cwd}` })
@@ -381,7 +382,7 @@ export class ProcessManager {
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
         await this.gitHeadWatcher.watch(serviceId, cwd)
         void this.gitWatcher.startWatching(serviceId)
-        this.applySharedFiles(svc, cwd)
+        await this.applySharedFiles(svc, cwd)
         return { cloned: false, pulled: true, updated }
       } else {
         const dirContents = readdirSync(cwd)
@@ -396,7 +397,7 @@ export class ProcessManager {
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
         await this.gitHeadWatcher.watch(serviceId, cwd)
         void this.gitWatcher.startWatching(serviceId)
-        this.applySharedFiles(svc, cwd)
+        await this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       }
     } catch (error) {
@@ -407,11 +408,12 @@ export class ProcessManager {
     }
   }
 
-  private applySharedFiles(svc: ServiceDefinition, cwd: string): void {
+  private async applySharedFiles(svc: ServiceDefinition, cwd: string): Promise<void> {
     const files = svc.files ?? []
     if (files.length === 0) return
     try {
-      const applied = applyServiceFiles(cwd, files)
+      const variables = await this.resolveServiceEnvVars(svc.id)
+      const applied = applyServiceFiles(cwd, files, undefined, variables)
       void this.logger.information({
         message: `Applied ${applied.length} shared file(s) for ${svc.displayName}: ${applied.join(', ')}`,
       })
@@ -443,7 +445,8 @@ export class ProcessManager {
       if (!file) throw new Error(`File not found in service definition: ${relativePath}`)
     }
 
-    return applyServiceFiles(cwd, files, relativePath)
+    const variables = await this.resolveServiceEnvVars(serviceId)
+    return applyServiceFiles(cwd, files, relativePath, variables)
   }
 
   /**
@@ -813,7 +816,10 @@ export class ProcessManager {
       const config = override ?? stackDefault
 
       if (config?.source === 'custom' && config.customValue !== undefined) {
-        resolved[varName] = config.customValue
+        const crypto = this.getElevatedInjector().getInstance(CryptoService)
+        resolved[varName] = crypto.isEncrypted(config.customValue)
+          ? crypto.decrypt(config.customValue)
+          : config.customValue
       } else if (config?.source === 'inherit' || !config) {
         const globalValue = process.env[varName]
         if (globalValue !== undefined) {
