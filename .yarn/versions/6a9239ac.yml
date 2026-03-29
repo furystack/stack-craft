@@ -1,0 +1,5 @@
+releases:
+  common: minor
+  frontend: minor
+  service: minor
+  stack-craft: minor
