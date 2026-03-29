@@ -15,22 +15,20 @@ test('DOG FOODING TIME - Create a service that uses the StackCraft GitHub reposi
 This stack is used to test the dogfooding of the StackCraft application.
 It is used to test the following features:
   - Creating a stack
+  - Adding realistic prerequisites (Node.js, Yarn, Git, environment variables)
+  - Configuring environment variables (plain text + confidential)
+  - Adding a local .env file override
   - Creating a service that uses the StackCraft GitHub repository
   - Cloning, installing, building and running the service
 
 ### Test Steps
 
   1. Create a stack
-  2. Create a service that uses the StackCraft GitHub repository
+  2. Create a service with prerequisites, env vars, file overrides, and the StackCraft GitHub repository
   3. Clone, install, build and run the service
   4. Verify that the service is running
   5. Verify that the service is logging to the console
-  6. Verify that the service is accessible via the browser
-  7. Verify that the service is accessible via the API
-  8. Remove the service
-  9. Remove the stack
-  10. Verify that the stack and service are removed
-  11. The dog has eaten the food. Woof woof!
+  6. The dog has eaten the food. Woof woof!
 
   `
 
@@ -64,6 +62,69 @@ It is used to test the following features:
   await page.locator('input[name="displayName"]').fill('StackCraft DOG FOODING TIME!')
   await page.locator('input[name="workingDirectory"]').fill(workingDirectory)
   await page.locator('input[name="runCommand"]').fill('yarn start:service')
+
+  // --- Add realistic prerequisites inline ---
+
+  const prereqForm = page.locator('shade-prerequisite-form')
+
+  const typeSelect = page.locator('shade-select').filter({ has: page.locator('input[name="type"]') })
+
+  // Prerequisite 1: Node.js >= 22
+  await page.locator('button', { hasText: 'Add Prerequisite' }).click()
+  await expect(prereqForm).toBeVisible()
+  await prereqForm.locator('input[name="name"]').fill('Node.js >= 22')
+  await typeSelect.locator('.select-trigger').click()
+  await typeSelect.locator('.dropdown-item', { hasText: 'Node.js' }).click()
+  await prereqForm.locator('input[name="minimumVersion"]').fill('22.0.0')
+  await prereqForm.locator('button', { hasText: 'Add' }).click()
+  await expect(page.locator('shade-noty-list')).toContainText('"Node.js >= 22" was added.')
+
+  // Prerequisite 2: Yarn >= 4
+  await page.locator('button', { hasText: 'Add Prerequisite' }).click()
+  await expect(prereqForm).toBeVisible()
+  await prereqForm.locator('input[name="name"]').fill('Yarn >= 4')
+  await typeSelect.locator('.select-trigger').click()
+  await typeSelect.locator('.dropdown-item', { hasText: 'Yarn' }).click()
+  await prereqForm.locator('input[name="minimumVersion"]').fill('4.0.0')
+  await prereqForm.locator('button', { hasText: 'Add' }).click()
+  await expect(page.locator('shade-noty-list')).toContainText('"Yarn >= 4" was added.')
+
+  // Prerequisite 3: Git
+  await page.locator('button', { hasText: 'Add Prerequisite' }).click()
+  await expect(prereqForm).toBeVisible()
+  await prereqForm.locator('input[name="name"]').fill('Git')
+  await typeSelect.locator('.select-trigger').click()
+  await typeSelect.locator('.dropdown-item', { hasText: 'Git' }).first().click()
+  await prereqForm.locator('button', { hasText: 'Add' }).click()
+  await expect(page.locator('shade-noty-list')).toContainText('"Git" was added.')
+
+  // Prerequisite 4: MOCK_API_KEY (plain text environment variable)
+  await page.locator('button', { hasText: 'Add Prerequisite' }).click()
+  await expect(prereqForm).toBeVisible()
+  await prereqForm.locator('input[name="name"]').fill('Mock API Key')
+  await typeSelect.locator('.select-trigger').click()
+  await typeSelect.locator('.dropdown-item', { hasText: 'Environment Variable' }).click()
+  await prereqForm.locator('input[name="variableName"]').fill('MOCK_API_KEY')
+  await prereqForm.locator('button', { hasText: 'Add' }).click()
+  await expect(page.locator('shade-noty-list')).toContainText('"Mock API Key" was added.')
+
+  // Prerequisite 5: STACK_CRAFT_ENCRYPTION_KEY (confidential environment variable)
+  await page.locator('button', { hasText: 'Add Prerequisite' }).click()
+  await expect(prereqForm).toBeVisible()
+  await prereqForm.locator('input[name="name"]').fill('Encryption Key')
+  await typeSelect.locator('.select-trigger').click()
+  await typeSelect.locator('.dropdown-item', { hasText: 'Environment Variable' }).click()
+  await prereqForm.locator('input[name="variableName"]').fill('STACK_CRAFT_ENCRYPTION_KEY')
+  await prereqForm.locator('input[name="isSensitive"]').check()
+  await prereqForm.locator('button', { hasText: 'Add' }).click()
+  await expect(page.locator('shade-noty-list')).toContainText('"Encryption Key" was added.')
+
+  // --- Add local .env file override ---
+  await page.locator('button', { hasText: 'Add Local File' }).click()
+  await page.locator('input[placeholder="Relative path (e.g. .env.local)"]').fill('.env')
+  await page
+    .locator('textarea[placeholder="File content (secret)"]')
+    .fill('STACK_CRAFT_ENCRYPTION_KEY=e2e-dogfooding-test-key')
 
   // Add StackCraft GitHub repository inline
   await page.locator('button', { hasText: 'New' }).click()
