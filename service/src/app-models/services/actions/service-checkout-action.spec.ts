@@ -7,7 +7,6 @@ import { GitHubRepository, ServiceDefinition, ServiceStatus, StackConfig } from 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { GitService } from '../../../services/git-service.js'
-import { ProcessManager } from '../../../services/process-manager.js'
 import { ServiceCheckoutAction } from './service-checkout-action.js'
 
 const createMockActionContext = (options: {
@@ -26,7 +25,6 @@ const createMockActionContext = (options: {
 describe('ServiceCheckoutAction', () => {
   let injector: Injector
   let mockGit: { checkout: ReturnType<typeof vi.fn>; getCurrentBranch: ReturnType<typeof vi.fn> }
-  let mockPm: { updateBranch: ReturnType<typeof vi.fn> }
 
   beforeEach(async () => {
     injector = new Injector()
@@ -48,11 +46,6 @@ describe('ServiceCheckoutAction', () => {
       getCurrentBranch: vi.fn().mockResolvedValue('dev'),
     }
     injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
-
-    mockPm = {
-      updateBranch: vi.fn().mockResolvedValue(undefined),
-    }
-    injector.setExplicitInstance(mockPm as unknown as ProcessManager, ProcessManager)
   })
 
   afterEach(async () => {
@@ -131,6 +124,5 @@ describe('ServiceCheckoutAction', () => {
     expect(body.success).toBe(true)
     expect(body.serviceId).toBe('svc-1')
     expect(mockGit.checkout).toHaveBeenCalledWith(expect.any(String), 'dev')
-    expect(mockPm.updateBranch).toHaveBeenCalledWith('svc-1', 'dev', expect.objectContaining({ triggerSource: 'api' }))
   })
 })

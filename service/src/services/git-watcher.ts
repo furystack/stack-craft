@@ -7,7 +7,6 @@ import { useSystemIdentityContext } from '@furystack/core'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { GitService } from './git-service.js'
 import { ProcessManager } from './process-manager.js'
-import { WebsocketService } from './websocket-service.js'
 
 type WatchEntry = {
   serviceId: string
@@ -33,9 +32,6 @@ export class GitWatcher {
 
   @Injected(GitService)
   declare private git: GitService
-
-  @Injected(WebsocketService)
-  declare private ws: WebsocketService
 
   @Injected(ProcessManager)
   declare private pm: ProcessManager
@@ -112,11 +108,6 @@ export class GitWatcher {
           message: `New branches detected for ${svc.displayName}: ${newBranches.join(', ')}`,
         })
         entry.lastBranches = new Set(remote)
-        void this.ws.announce({
-          type: 'git-branches-changed',
-          serviceId,
-          newBranches,
-        })
       }
 
       if (config?.autoRestartOnFetch) {

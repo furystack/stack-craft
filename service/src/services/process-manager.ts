@@ -21,9 +21,9 @@ import { useSystemIdentityContext } from '@furystack/core'
 import { applyServiceFiles } from '../utils/apply-service-files.js'
 import { resolvePath } from '../utils/resolve-path.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
+import { GitHeadWatcher } from './git-head-watcher.js'
 import { GitService } from './git-service.js'
 import { LogStorageService } from './log-storage-service.js'
-import { WebsocketService } from './websocket-service.js'
 
 const MAX_HISTORY_PER_SERVICE = 10_000
 const HISTORY_PRUNE_CHECK_INTERVAL = 100
@@ -60,8 +60,8 @@ export class ProcessManager {
   @Injected(LogStorageService)
   declare private logStorage: LogStorageService
 
-  @Injected(WebsocketService)
-  declare private ws: WebsocketService
+  @Injected(GitHeadWatcher)
+  declare private gitHeadWatcher: GitHeadWatcher
 
   private logBuffer: Array<{ serviceId: string; processUid: string; stream: 'stdout' | 'stderr'; line: string }> = []
   private flushTimer: ReturnType<typeof setTimeout> | null = null
@@ -149,16 +149,6 @@ export class ProcessManager {
           void this.pruneHistory(serviceId, elevated)
         }
       }
-
-      void this.ws.announce({
-        type: 'service-status-changed',
-        serviceId,
-        cloneStatus: update.cloneStatus ?? current.cloneStatus,
-        installStatus: update.installStatus ?? current.installStatus,
-        buildStatus: update.buildStatus ?? current.buildStatus,
-        runStatus: update.runStatus ?? current.runStatus,
-        currentBranch: current.currentBranch,
-      })
     } catch {
       // May fire after disposal during shutdown — safe to ignore
     }
@@ -377,14 +367,14 @@ export class ProcessManager {
         mkdirSync(dirname(cwd), { recursive: true })
         await git.clone(repo.url, cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
-        await this.refreshCurrentBranch(serviceId, cwd)
+        await this.gitHeadWatcher.watch(serviceId, cwd)
         this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       } else if (isGitRepo) {
         await this.logger.information({ message: `Pulling in ${cwd}` })
         const { updated } = await git.pull(cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
-        await this.refreshCurrentBranch(serviceId, cwd)
+        await this.gitHeadWatcher.watch(serviceId, cwd)
         this.applySharedFiles(svc, cwd)
         return { cloned: false, pulled: true, updated }
       } else {
@@ -398,7 +388,7 @@ export class ProcessManager {
         mkdirSync(dirname(cwd), { recursive: true })
         await git.clone(repo.url, cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
-        await this.refreshCurrentBranch(serviceId, cwd)
+        await this.gitHeadWatcher.watch(serviceId, cwd)
         this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       }
@@ -407,30 +397,6 @@ export class ProcessManager {
         error: error instanceof Error ? error.message : 'Unknown clone/pull error',
       })
       throw error
-    }
-  }
-
-  /**
-   * Updates the currentBranch field on ServiceStatus.
-   */
-  public async updateBranch(serviceId: string, branch: string, _trigger: TriggerContext): Promise<void> {
-    const elevated = this.getElevatedInjector()
-    const statusDs = getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId')
-    await statusDs.update(elevated, serviceId, { currentBranch: branch, updatedAt: new Date().toISOString() })
-  }
-
-  private async refreshCurrentBranch(serviceId: string, cwd: string): Promise<void> {
-    try {
-      const git = getInjectorReference(this).getInstance(GitService)
-      const branch = await git.getCurrentBranch(cwd)
-      const elevated = this.getElevatedInjector()
-      await getRepository(elevated)
-        .getDataSetFor(ServiceStatus, 'serviceId')
-        .update(elevated, serviceId, { currentBranch: branch })
-    } catch (error) {
-      void this.logger.verbose({
-        message: `Failed to refresh branch for ${serviceId}: ${(error as Error).message}`,
-      })
     }
   }
 
@@ -909,7 +875,7 @@ export class ProcessManager {
         await this.updateServiceStatus(status.serviceId, update, 'state-reconciled', reconcileTrigger, staleMetadata)
       }
 
-      if (status.cloneStatus === 'cloned' && !status.currentBranch) {
+      if (status.cloneStatus === 'cloned') {
         try {
           const services = await getRepository(elevated)
             .getDataSetFor(ServiceDefinition, 'id')
@@ -917,11 +883,11 @@ export class ProcessManager {
           const svc = services[0]
           if (svc) {
             const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
-            await this.refreshCurrentBranch(status.serviceId, cwd)
+            await this.gitHeadWatcher.watch(status.serviceId, cwd)
           }
         } catch (error) {
           await this.logger.verbose({
-            message: `Could not refresh branch for service ${status.serviceId}: ${(error as Error).message}`,
+            message: `Could not start git HEAD watcher for service ${status.serviceId}: ${(error as Error).message}`,
           })
         }
       }

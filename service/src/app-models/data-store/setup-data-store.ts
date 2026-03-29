@@ -1,4 +1,5 @@
 import type { Injector } from '@furystack/inject'
+import { addStore, InMemoryStore } from '@furystack/core'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { useSequelize } from '@furystack/sequelize-store'
@@ -10,6 +11,7 @@ import {
   PrerequisiteCheckResult,
   ServiceConfig,
   ServiceDefinition,
+  ServiceGitStatus,
   ServiceStateHistory,
   ServiceStatus,
   StackConfig,
@@ -78,7 +80,6 @@ class ServiceStatusModel extends Model<ServiceStatus, ServiceStatus> implements 
   declare lastBuiltAt: string | undefined
   declare lastStartedAt: string | undefined
   declare lastFetchedAt: string | undefined
-  declare currentBranch: string | undefined
   declare updatedAt: string
 }
 
@@ -324,7 +325,6 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
       lastBuiltAt: { type: DataTypes.DATE, allowNull: true },
       lastStartedAt: { type: DataTypes.DATE, allowNull: true },
       lastFetchedAt: { type: DataTypes.DATE, allowNull: true },
-      currentBranch: { type: DataTypes.STRING, allowNull: true },
       updatedAt: { type: DataTypes.DATE },
     },
     { sequelize, createdAt: false },
@@ -521,6 +521,9 @@ export const setupDataStore = async (injector: Injector) => {
   getRepository(injector).createDataSet(ServiceStateHistory, 'id', { ...authorizedDataSet })
   getRepository(injector).createDataSet(ApiToken, 'id', { ...authorizedDataSet })
   getRepository(injector).createDataSet(PrerequisiteCheckResult, 'prerequisiteId', { ...authorizedDataSet })
+
+  addStore(injector, new InMemoryStore({ model: ServiceGitStatus, primaryKey: 'serviceId' }))
+  getRepository(injector).createDataSet(ServiceGitStatus, 'serviceId', { ...authorizedDataSet })
 
   await logger.information({ message: 'Data store initialized' })
 }

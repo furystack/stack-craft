@@ -216,6 +216,21 @@
       "additionalProperties": false,
       "description": "Shareable service definition. Contains the immutable description of a service and its commands. Included in stack exports and shared between installations."
     },
+    "ServiceGitStatus": {
+      "type": "object",
+      "properties": {
+        "serviceId": {
+          "type": "string",
+          "description": "FK to  {@link  import ('./service-definition.js').ServiceDefinition.id }"
+        },
+        "currentBranch": {
+          "type": "string"
+        }
+      },
+      "required": ["serviceId"],
+      "additionalProperties": false,
+      "description": "In-memory git state for a service. Derived from the filesystem (`.git/HEAD`), never persisted to DB."
+    },
     "CloneStatus": {
       "type": "string",
       "enum": ["not-cloned", "cloning", "cloned", "failed"]
@@ -250,9 +265,6 @@
         },
         "runStatus": {
           "$ref": "#/definitions/RunStatus"
-        },
-        "currentBranch": {
-          "type": "string"
         },
         "lastClonedAt": {
           "type": "string"
@@ -335,6 +347,9 @@
           "type": "string",
           "description": "FK to  {@link  ServiceDefinition.id  }"
         },
+        "currentBranch": {
+          "type": "string"
+        },
         "cloneStatus": {
           "$ref": "#/definitions/CloneStatus"
         },
@@ -346,9 +361,6 @@
         },
         "runStatus": {
           "$ref": "#/definitions/RunStatus"
-        },
-        "currentBranch": {
-          "type": "string"
         },
         "lastClonedAt": {
           "type": "string"
@@ -469,7 +481,7 @@
         "stackName",
         "updatedAt"
       ],
-      "description": "Full service view combining definition, config, and status for API responses"
+      "description": "Full service view combining definition, config, status, and git state for API responses"
     },
     "User": {
       "type": "object",

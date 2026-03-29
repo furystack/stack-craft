@@ -4,7 +4,7 @@ import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, useRestService, Validate } from '@furystack/rest-service'
 import type { ServicesApi, ServiceView } from 'common'
-import { ServiceConfig, ServiceDefinition, ServiceStatus } from 'common'
+import { ServiceConfig, ServiceDefinition, ServiceGitStatus, ServiceStatus } from 'common'
 import servicesApiSchema from 'common/schemas/services-api.json' with { type: 'json' }
 import { randomUUID } from 'crypto'
 
@@ -22,6 +22,7 @@ const mergeServiceView = (
   def: ServiceDefinition,
   config: ServiceConfig | undefined,
   status: ServiceStatus | undefined,
+  gitStatus: ServiceGitStatus | undefined,
 ): ServiceView => ({
   serviceId: def.id,
   autoFetchEnabled: false,
@@ -35,6 +36,7 @@ const mergeServiceView = (
   ...def,
   ...(config ?? {}),
   ...(status ?? {}),
+  ...(gitStatus ?? {}),
 })
 
 export const setupServicesRestApi = async (injector: Injector) => {
@@ -57,10 +59,14 @@ export const setupServicesRestApi = async (injector: Injector) => {
             })
             const configs = await repo.getDataSetFor(ServiceConfig, 'serviceId').find(i, {})
             const statuses = await repo.getDataSetFor(ServiceStatus, 'serviceId').find(i, {})
+            const gitStatuses = await repo.getDataSetFor(ServiceGitStatus, 'serviceId').find(i, {})
             const configMap = new Map(configs.map((c) => [c.serviceId, c]))
             const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
+            const gitStatusMap = new Map(gitStatuses.map((g) => [g.serviceId, g]))
 
-            const entries = defs.map((def) => mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id)))
+            const entries = defs.map((def) =>
+              mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id), gitStatusMap.get(def.id)),
+            )
             const count = await repo.getDataSetFor(ServiceDefinition, 'id').count(i, query.findOptions?.filter)
             return JsonResult({ count, entries })
           },
@@ -81,8 +87,11 @@ export const setupServicesRestApi = async (injector: Injector) => {
             const statuses = await repo
               .getDataSetFor(ServiceStatus, 'serviceId')
               .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
+            const gitStatuses = await repo
+              .getDataSetFor(ServiceGitStatus, 'serviceId')
+              .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
 
-            return JsonResult(mergeServiceView(def, configs[0], statuses[0]))
+            return JsonResult(mergeServiceView(def, configs[0], statuses[0], gitStatuses[0]))
           },
         ),
         '/services/:id/logs': Validate({ schema: servicesApiSchema, schemaName: 'ServiceLogsEndpoint' })(
@@ -143,7 +152,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
             await repo.getDataSetFor(ServiceConfig, 'serviceId').add(i, config)
             await repo.getDataSetFor(ServiceStatus, 'serviceId').add(i, status)
 
-            return JsonResult(mergeServiceView(def, config, status))
+            return JsonResult(mergeServiceView(def, config, status, undefined))
           },
         ),
         '/services/:id/start': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(
