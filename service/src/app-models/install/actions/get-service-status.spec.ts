@@ -3,9 +3,10 @@ import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { PasswordCredential, PasswordResetToken, usePasswordPolicy } from '@furystack/security'
+import { usingAsync } from '@furystack/utils'
 import type { InstallState } from 'common'
 import { User } from 'common'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { GetServiceStatus } from './get-service-status.js'
 
@@ -32,33 +33,25 @@ const createMockActionContext = (options: { injector: Injector }) => ({
 })
 
 describe('GetServiceStatus', () => {
-  let injector: Injector
+  it('should return "needsInstall" when no users exist', () =>
+    usingAsync(setupInjector(), async (injector) => {
+      const result = await GetServiceStatus(
+        createMockActionContext({ injector }) as Parameters<typeof GetServiceStatus>[0],
+      )
+      const body = (result as { chunk: { state: InstallState } }).chunk
+      expect(body.state).toBe('needsInstall')
+    }))
 
-  beforeEach(() => {
-    injector = setupInjector()
-  })
+  it('should return "installed" when users exist', () =>
+    usingAsync(setupInjector(), async (injector) => {
+      const elevated = useSystemIdentityContext({ injector })
+      await getRepository(elevated).getDataSetFor(User, 'username').add(elevated, { username: 'admin', roles: [] })
+      await elevated[Symbol.asyncDispose]()
 
-  afterEach(async () => {
-    await injector[Symbol.asyncDispose]()
-  })
-
-  it('should return "needsInstall" when no users exist', async () => {
-    const result = await GetServiceStatus(
-      createMockActionContext({ injector }) as Parameters<typeof GetServiceStatus>[0],
-    )
-    const body = (result as { chunk: { state: InstallState } }).chunk
-    expect(body.state).toBe('needsInstall')
-  })
-
-  it('should return "installed" when users exist', async () => {
-    const elevated = useSystemIdentityContext({ injector })
-    await getRepository(elevated).getDataSetFor(User, 'username').add(elevated, { username: 'admin', roles: [] })
-    await elevated[Symbol.asyncDispose]()
-
-    const result = await GetServiceStatus(
-      createMockActionContext({ injector }) as Parameters<typeof GetServiceStatus>[0],
-    )
-    const body = (result as { chunk: { state: InstallState } }).chunk
-    expect(body.state).toBe('installed')
-  })
+      const result = await GetServiceStatus(
+        createMockActionContext({ injector }) as Parameters<typeof GetServiceStatus>[0],
+      )
+      const body = (result as { chunk: { state: InstallState } }).chunk
+      expect(body.state).toBe('installed')
+    }))
 })

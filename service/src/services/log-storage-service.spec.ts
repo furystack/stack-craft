@@ -2,103 +2,111 @@ import { addStore, InMemoryStore } from '@furystack/core'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
+import { usingAsync } from '@furystack/utils'
 import { ServiceLogEntry } from 'common'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { LogStorageService } from './log-storage-service.js'
 
+const setupLogStorageInjector = (injector: Injector) => {
+  useLogging(injector, VerboseConsoleLogger)
+  addStore(injector, new InMemoryStore({ model: ServiceLogEntry, primaryKey: 'id' }))
+  let autoId = 0
+  getRepository(injector).createDataSet(ServiceLogEntry, 'id', {
+    modifyOnAdd: async ({ entity }) => ({ ...entity, id: ++autoId }),
+  })
+  return injector.getInstance(LogStorageService)
+}
+
 describe('LogStorageService', () => {
-  let injector: Injector
-  let logStorage: LogStorageService
+  it('should add and retrieve log entries', () =>
+    usingAsync(new Injector(), async (injector) => {
+      const logStorage = setupLogStorageInjector(injector)
 
-  beforeEach(() => {
-    injector = new Injector()
-    useLogging(injector, VerboseConsoleLogger)
-    addStore(injector, new InMemoryStore({ model: ServiceLogEntry, primaryKey: 'id' }))
-    let autoId = 0
-    getRepository(injector).createDataSet(ServiceLogEntry, 'id', {
-      modifyOnAdd: async ({ entity }) => ({ ...entity, id: ++autoId }),
-    })
-    logStorage = injector.getInstance(LogStorageService)
-  })
+      await logStorage.addEntry('svc-1', 'proc-1', 'stdout', 'hello world')
+      await logStorage.addEntry('svc-1', 'proc-1', 'stderr', 'error line')
 
-  afterEach(async () => {
-    await logStorage[Symbol.asyncDispose]()
-    try {
-      await injector[Symbol.asyncDispose]()
-    } catch {
-      // May already be disposed
-    }
-  })
+      const entries = await logStorage.getEntries('svc-1')
+      expect(entries).toHaveLength(2)
+      expect(entries[0].line).toBe('error line')
+      expect(entries[1].line).toBe('hello world')
+    }))
 
-  it('should add and retrieve log entries', async () => {
-    await logStorage.addEntry('svc-1', 'proc-1', 'stdout', 'hello world')
-    await logStorage.addEntry('svc-1', 'proc-1', 'stderr', 'error line')
+  it('should return empty array for unknown service', () =>
+    usingAsync(new Injector(), async (injector) => {
+      const logStorage = setupLogStorageInjector(injector)
+      const entries = await logStorage.getEntries('nonexistent')
+      expect(entries).toEqual([])
+    }))
 
-    const entries = await logStorage.getEntries('svc-1')
-    expect(entries).toHaveLength(2)
-    expect(entries[0].line).toBe('error line')
-    expect(entries[1].line).toBe('hello world')
-  })
+  it('should respect the limit parameter', () =>
+    usingAsync(new Injector(), async (injector) => {
+      const logStorage = setupLogStorageInjector(injector)
 
-  it('should return empty array for unknown service', async () => {
-    const entries = await logStorage.getEntries('nonexistent')
-    expect(entries).toEqual([])
-  })
+      for (let i = 0; i < 10; i++) {
+        await logStorage.addEntry('svc-1', 'proc-1', 'stdout', `line ${i}`)
+      }
 
-  it('should respect the limit parameter', async () => {
-    for (let i = 0; i < 10; i++) {
-      await logStorage.addEntry('svc-1', 'proc-1', 'stdout', `line ${i}`)
-    }
+      const entries = await logStorage.getEntries('svc-1', { limit: 3 })
+      expect(entries).toHaveLength(3)
+    }))
 
-    const entries = await logStorage.getEntries('svc-1', { limit: 3 })
-    expect(entries).toHaveLength(3)
-  })
+  it('should filter by processUid', () =>
+    usingAsync(new Injector(), async (injector) => {
+      const logStorage = setupLogStorageInjector(injector)
 
-  it('should filter by processUid', async () => {
-    await logStorage.addEntry('svc-1', 'proc-1', 'stdout', 'first session')
-    await logStorage.addEntry('svc-1', 'proc-2', 'stdout', 'second session')
+      await logStorage.addEntry('svc-1', 'proc-1', 'stdout', 'first session')
+      await logStorage.addEntry('svc-1', 'proc-2', 'stdout', 'second session')
 
-    const entries = await logStorage.getEntries('svc-1', { processUid: 'proc-1' })
-    expect(entries).toHaveLength(1)
-    expect(entries[0].line).toBe('first session')
-  })
+      const entries = await logStorage.getEntries('svc-1', { processUid: 'proc-1' })
+      expect(entries).toHaveLength(1)
+      expect(entries[0].line).toBe('first session')
+    }))
 
-  it('should clear logs for a service', async () => {
-    await logStorage.addEntry('svc-1', 'proc-1', 'stdout', 'line 1')
-    await logStorage.addEntry('svc-1', 'proc-1', 'stdout', 'line 2')
-    await logStorage.addEntry('svc-2', 'proc-2', 'stdout', 'other service')
+  it('should clear logs for a service', () =>
+    usingAsync(new Injector(), async (injector) => {
+      const logStorage = setupLogStorageInjector(injector)
 
-    await logStorage.clearLogs('svc-1')
+      await logStorage.addEntry('svc-1', 'proc-1', 'stdout', 'line 1')
+      await logStorage.addEntry('svc-1', 'proc-1', 'stdout', 'line 2')
+      await logStorage.addEntry('svc-2', 'proc-2', 'stdout', 'other service')
 
-    const svc1Entries = await logStorage.getEntries('svc-1')
-    expect(svc1Entries).toHaveLength(0)
+      await logStorage.clearLogs('svc-1')
 
-    const svc2Entries = await logStorage.getEntries('svc-2')
-    expect(svc2Entries).toHaveLength(1)
-  })
+      const svc1Entries = await logStorage.getEntries('svc-1')
+      expect(svc1Entries).toHaveLength(0)
 
-  it('should prune old entries when exceeding max', async () => {
-    for (let i = 0; i < 10; i++) {
-      await logStorage.addEntry('svc-1', 'proc-1', 'stdout', `line ${i}`)
-    }
+      const svc2Entries = await logStorage.getEntries('svc-2')
+      expect(svc2Entries).toHaveLength(1)
+    }))
 
-    await logStorage.prune('svc-1', 5)
+  it('should prune old entries when exceeding max', () =>
+    usingAsync(new Injector(), async (injector) => {
+      const logStorage = setupLogStorageInjector(injector)
 
-    const entries = await logStorage.getEntries('svc-1', { limit: 100 })
-    expect(entries).toHaveLength(5)
-    expect(entries[0].line).toBe('line 9')
-    expect(entries[4].line).toBe('line 5')
-  })
+      for (let i = 0; i < 10; i++) {
+        await logStorage.addEntry('svc-1', 'proc-1', 'stdout', `line ${i}`)
+      }
 
-  it('should not prune when below max', async () => {
-    for (let i = 0; i < 3; i++) {
-      await logStorage.addEntry('svc-1', 'proc-1', 'stdout', `line ${i}`)
-    }
+      await logStorage.prune('svc-1', 5)
 
-    await logStorage.prune('svc-1', 10)
+      const entries = await logStorage.getEntries('svc-1', { limit: 100 })
+      expect(entries).toHaveLength(5)
+      expect(entries[0].line).toBe('line 9')
+      expect(entries[4].line).toBe('line 5')
+    }))
 
-    const entries = await logStorage.getEntries('svc-1', { limit: 100 })
-    expect(entries).toHaveLength(3)
-  })
+  it('should not prune when below max', () =>
+    usingAsync(new Injector(), async (injector) => {
+      const logStorage = setupLogStorageInjector(injector)
+
+      for (let i = 0; i < 3; i++) {
+        await logStorage.addEntry('svc-1', 'proc-1', 'stdout', `line ${i}`)
+      }
+
+      await logStorage.prune('svc-1', 10)
+
+      const entries = await logStorage.getEntries('svc-1', { limit: 100 })
+      expect(entries).toHaveLength(3)
+    }))
 })

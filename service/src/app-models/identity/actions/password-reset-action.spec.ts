@@ -2,7 +2,8 @@ import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { RequestError } from '@furystack/rest'
 import { PasswordAuthenticator, PasswordComplexityError, UnauthenticatedError } from '@furystack/security'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { usingAsync } from '@furystack/utils'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { PasswordResetAction } from './password-reset-action.js'
 
@@ -22,105 +23,113 @@ const createMockActionContext = <TBody = unknown>(options: { injector: Injector;
   response: {} as never,
 })
 
+const createSetup = () => {
+  const injector = new Injector()
+  useLogging(injector, VerboseConsoleLogger)
+  const mockAuthenticator = {
+    setPasswordForUser: vi.fn().mockResolvedValue(undefined),
+  }
+  injector.setExplicitInstance(mockAuthenticator as unknown as PasswordAuthenticator, PasswordAuthenticator)
+  getCurrentUserMock.mockResolvedValue({ username: 'testuser', roles: [] })
+  return { injector, mockAuthenticator }
+}
+
 describe('PasswordResetAction', () => {
-  let injector: Injector
-  let mockAuthenticator: { setPasswordForUser: ReturnType<typeof vi.fn> }
-
-  beforeEach(() => {
-    injector = new Injector()
-    useLogging(injector, VerboseConsoleLogger)
-
-    mockAuthenticator = {
-      setPasswordForUser: vi.fn().mockResolvedValue(undefined),
-    }
-    injector.setExplicitInstance(mockAuthenticator as unknown as PasswordAuthenticator, PasswordAuthenticator)
-
-    getCurrentUserMock.mockResolvedValue({ username: 'testuser', roles: [] })
-  })
-
-  afterEach(async () => {
+  afterEach(() => {
     vi.restoreAllMocks()
-    await injector[Symbol.asyncDispose]()
   })
 
-  it('should reset password successfully', async () => {
-    const result = await PasswordResetAction(
-      createMockActionContext({
-        injector,
-        body: { currentPassword: 'old-pass', newPassword: 'new-pass' },
-      }),
-    )
-    const body = result.chunk as { success: boolean }
+  it('should reset password successfully', () => {
+    const { injector, mockAuthenticator } = createSetup()
+    return usingAsync(injector, async () => {
+      const result = await PasswordResetAction(
+        createMockActionContext({
+          injector,
+          body: { currentPassword: 'old-pass', newPassword: 'new-pass' },
+        }),
+      )
+      const body = result.chunk as { success: boolean }
 
-    expect(body.success).toBe(true)
-    expect(mockAuthenticator.setPasswordForUser).toHaveBeenCalledWith('testuser', 'old-pass', 'new-pass')
+      expect(body.success).toBe(true)
+      expect(mockAuthenticator.setPasswordForUser).toHaveBeenCalledWith('testuser', 'old-pass', 'new-pass')
+    })
   })
 
-  it('should throw 401 when user is not authenticated', async () => {
+  it('should throw 401 when user is not authenticated', () => {
+    const { injector } = createSetup()
     getCurrentUserMock.mockResolvedValue(null)
-
-    await expect(
-      PasswordResetAction(
-        createMockActionContext({
-          injector,
-          body: { currentPassword: 'old', newPassword: 'new' },
-        }),
-      ),
-    ).rejects.toThrow(RequestError)
+    return usingAsync(injector, async () => {
+      await expect(
+        PasswordResetAction(
+          createMockActionContext({
+            injector,
+            body: { currentPassword: 'old', newPassword: 'new' },
+          }),
+        ),
+      ).rejects.toThrow(RequestError)
+    })
   })
 
-  it('should throw 400 when current password is incorrect', async () => {
+  it('should throw 400 when current password is incorrect', () => {
+    const { injector, mockAuthenticator } = createSetup()
     mockAuthenticator.setPasswordForUser.mockRejectedValue(new UnauthenticatedError())
-
-    await expect(
-      PasswordResetAction(
-        createMockActionContext({
-          injector,
-          body: { currentPassword: 'wrong', newPassword: 'new' },
-        }),
-      ),
-    ).rejects.toThrow('Current password is incorrect')
+    return usingAsync(injector, async () => {
+      await expect(
+        PasswordResetAction(
+          createMockActionContext({
+            injector,
+            body: { currentPassword: 'wrong', newPassword: 'new' },
+          }),
+        ),
+      ).rejects.toThrow('Current password is incorrect')
+    })
   })
 
-  it('should throw 400 when new password does not meet complexity requirements', async () => {
+  it('should throw 400 when new password does not meet complexity requirements', () => {
+    const { injector, mockAuthenticator } = createSetup()
     mockAuthenticator.setPasswordForUser.mockRejectedValue(
       new PasswordComplexityError([{ rule: 'minLength', message: 'Too short' }], 'Too short'),
     )
-
-    await expect(
-      PasswordResetAction(
-        createMockActionContext({
-          injector,
-          body: { currentPassword: 'old', newPassword: '1' },
-        }),
-      ),
-    ).rejects.toThrow('Password does not meet complexity requirements')
+    return usingAsync(injector, async () => {
+      await expect(
+        PasswordResetAction(
+          createMockActionContext({
+            injector,
+            body: { currentPassword: 'old', newPassword: '1' },
+          }),
+        ),
+      ).rejects.toThrow('Password does not meet complexity requirements')
+    })
   })
 
-  it('should rethrow RequestError as-is', async () => {
+  it('should rethrow RequestError as-is', () => {
+    const { injector, mockAuthenticator } = createSetup()
     const original = new RequestError('Custom error', 422)
     mockAuthenticator.setPasswordForUser.mockRejectedValue(original)
-
-    await expect(
-      PasswordResetAction(
-        createMockActionContext({
-          injector,
-          body: { currentPassword: 'old', newPassword: 'new' },
-        }),
-      ),
-    ).rejects.toBe(original)
+    return usingAsync(injector, async () => {
+      await expect(
+        PasswordResetAction(
+          createMockActionContext({
+            injector,
+            body: { currentPassword: 'old', newPassword: 'new' },
+          }),
+        ),
+      ).rejects.toBe(original)
+    })
   })
 
-  it('should throw 500 for unexpected errors', async () => {
+  it('should throw 500 for unexpected errors', () => {
+    const { injector, mockAuthenticator } = createSetup()
     mockAuthenticator.setPasswordForUser.mockRejectedValue(new Error('DB connection lost'))
-
-    await expect(
-      PasswordResetAction(
-        createMockActionContext({
-          injector,
-          body: { currentPassword: 'old', newPassword: 'new' },
-        }),
-      ),
-    ).rejects.toThrow('Password reset failed')
+    return usingAsync(injector, async () => {
+      await expect(
+        PasswordResetAction(
+          createMockActionContext({
+            injector,
+            body: { currentPassword: 'old', newPassword: 'new' },
+          }),
+        ),
+      ).rejects.toThrow('Password reset failed')
+    })
   })
 })

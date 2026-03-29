@@ -2,10 +2,11 @@ import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/co
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
+import { usingAsync } from '@furystack/utils'
 import { Prerequisite, PrerequisiteCheckResult, StackConfig } from 'common'
 import type { PrerequisiteConfig, PrerequisiteType } from 'common'
 import { randomBytes } from 'crypto'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { runCheck, CheckPrerequisiteAction } from './check-prerequisite-action.js'
 
@@ -30,34 +31,28 @@ const createMockActionContext = (options: { injector: Injector; urlParams?: Reco
   response: {} as never,
 })
 
+const createSetup = () => {
+  process.env.STACK_CRAFT_ENCRYPTION_KEY = randomBytes(32).toString('base64')
+  vi.clearAllMocks()
+
+  const injector = new Injector()
+  useLogging(injector, VerboseConsoleLogger)
+
+  const prereqStore = new InMemoryStore({ model: Prerequisite, primaryKey: 'id' })
+  addStore(injector, prereqStore)
+  getRepository(injector).createDataSet(Prerequisite, 'id', {})
+
+  const stackConfigStore = new InMemoryStore({ model: StackConfig, primaryKey: 'stackName' })
+  addStore(injector, stackConfigStore)
+  getRepository(injector).createDataSet(StackConfig, 'stackName', {})
+
+  addStore(injector, new InMemoryStore({ model: PrerequisiteCheckResult, primaryKey: 'prerequisiteId' }))
+  getRepository(injector).createDataSet(PrerequisiteCheckResult, 'prerequisiteId', {})
+
+  return { injector, prereqStore, stackConfigStore }
+}
+
 describe('CheckPrerequisiteAction', () => {
-  let injector: Injector
-  let prereqStore: InMemoryStore<Prerequisite, 'id'>
-  let stackConfigStore: InMemoryStore<StackConfig, 'stackName'>
-
-  beforeEach(() => {
-    process.env.STACK_CRAFT_ENCRYPTION_KEY = randomBytes(32).toString('base64')
-    injector = new Injector()
-    useLogging(injector, VerboseConsoleLogger)
-
-    prereqStore = new InMemoryStore({ model: Prerequisite, primaryKey: 'id' })
-    addStore(injector, prereqStore)
-    getRepository(injector).createDataSet(Prerequisite, 'id', {})
-
-    stackConfigStore = new InMemoryStore({ model: StackConfig, primaryKey: 'stackName' })
-    addStore(injector, stackConfigStore)
-    getRepository(injector).createDataSet(StackConfig, 'stackName', {})
-
-    addStore(injector, new InMemoryStore({ model: PrerequisiteCheckResult, primaryKey: 'prerequisiteId' }))
-    getRepository(injector).createDataSet(PrerequisiteCheckResult, 'prerequisiteId', {})
-
-    vi.clearAllMocks()
-  })
-
-  afterEach(async () => {
-    await injector[Symbol.asyncDispose]()
-  })
-
   describe('runCheck', () => {
     describe('node', () => {
       it('should return satisfied when version meets minimum', async () => {
@@ -214,97 +209,105 @@ describe('CheckPrerequisiteAction', () => {
 
   describe('CheckPrerequisiteAction handler', () => {
     it('should return check result for existing prerequisite', async () => {
-      const ts = new Date().toISOString()
-      await prereqStore.add({
-        id: 'prereq-1',
-        stackName: 'test-stack',
-        name: 'Node.js',
-        type: 'node',
-        config: { minimumVersion: '18.0.0' },
-        installationHelp: 'Install Node.js',
-        createdAt: ts,
-        updatedAt: ts,
+      const { injector, prereqStore } = createSetup()
+      await usingAsync(injector, async () => {
+        const ts = new Date().toISOString()
+        await prereqStore.add({
+          id: 'prereq-1',
+          stackName: 'test-stack',
+          name: 'Node.js',
+          type: 'node',
+          config: { minimumVersion: '18.0.0' },
+          installationHelp: 'Install Node.js',
+          createdAt: ts,
+          updatedAt: ts,
+        })
+
+        execFileMock.mockResolvedValue({ stdout: 'v20.11.0\n', stderr: '' })
+
+        const elevated = useSystemIdentityContext({ injector })
+        const result = await CheckPrerequisiteAction(
+          createMockActionContext({ injector: elevated, urlParams: { id: 'prereq-1' } }),
+        )
+
+        const body = result.chunk as { satisfied: boolean; output: string }
+        expect(body.satisfied).toBe(true)
       })
-
-      execFileMock.mockResolvedValue({ stdout: 'v20.11.0\n', stderr: '' })
-
-      const elevated = useSystemIdentityContext({ injector })
-      const result = await CheckPrerequisiteAction(
-        createMockActionContext({ injector: elevated, urlParams: { id: 'prereq-1' } }),
-      )
-      await elevated[Symbol.asyncDispose]()
-
-      const body = result.chunk as { satisfied: boolean; output: string }
-      expect(body.satisfied).toBe(true)
     })
 
     it('should throw 404 for non-existent prerequisite', async () => {
-      const elevated = useSystemIdentityContext({ injector })
-      await expect(
-        CheckPrerequisiteAction(createMockActionContext({ injector: elevated, urlParams: { id: 'nonexistent' } })),
-      ).rejects.toThrow('Prerequisite not found')
-      await elevated[Symbol.asyncDispose]()
+      const { injector } = createSetup()
+      await usingAsync(injector, async () => {
+        const elevated = useSystemIdentityContext({ injector })
+        await expect(
+          CheckPrerequisiteAction(createMockActionContext({ injector: elevated, urlParams: { id: 'nonexistent' } })),
+        ).rejects.toThrow('Prerequisite not found')
+      })
     })
 
     it('should check env-variable prerequisite using stack config', async () => {
-      const ts = new Date().toISOString()
-      delete process.env.STACK_CONFIGURED_VAR_12345
+      const { injector, prereqStore, stackConfigStore } = createSetup()
+      await usingAsync(injector, async () => {
+        const ts = new Date().toISOString()
+        delete process.env.STACK_CONFIGURED_VAR_12345
 
-      await prereqStore.add({
-        id: 'prereq-env-1',
-        stackName: 'test-stack',
-        name: 'Database URL',
-        type: 'env-variable',
-        config: { variableName: 'STACK_CONFIGURED_VAR_12345' },
-        installationHelp: '',
-        createdAt: ts,
-        updatedAt: ts,
+        await prereqStore.add({
+          id: 'prereq-env-1',
+          stackName: 'test-stack',
+          name: 'Database URL',
+          type: 'env-variable',
+          config: { variableName: 'STACK_CONFIGURED_VAR_12345' },
+          installationHelp: '',
+          createdAt: ts,
+          updatedAt: ts,
+        })
+        await stackConfigStore.add({
+          stackName: 'test-stack',
+          mainDirectory: '/tmp',
+          environmentVariables: {
+            STACK_CONFIGURED_VAR_12345: { source: 'custom', customValue: 'configured-value' },
+          },
+          createdAt: ts,
+          updatedAt: ts,
+        })
+
+        const elevated = useSystemIdentityContext({ injector })
+        const result = await CheckPrerequisiteAction(
+          createMockActionContext({ injector: elevated, urlParams: { id: 'prereq-env-1' } }),
+        )
+
+        const body = result.chunk as { satisfied: boolean; output: string }
+        expect(body.satisfied).toBe(true)
+        expect(body.output).toContain('custom value')
       })
-      await stackConfigStore.add({
-        stackName: 'test-stack',
-        mainDirectory: '/tmp',
-        environmentVariables: {
-          STACK_CONFIGURED_VAR_12345: { source: 'custom', customValue: 'configured-value' },
-        },
-        createdAt: ts,
-        updatedAt: ts,
-      })
-
-      const elevated = useSystemIdentityContext({ injector })
-      const result = await CheckPrerequisiteAction(
-        createMockActionContext({ injector: elevated, urlParams: { id: 'prereq-env-1' } }),
-      )
-      await elevated[Symbol.asyncDispose]()
-
-      const body = result.chunk as { satisfied: boolean; output: string }
-      expect(body.satisfied).toBe(true)
-      expect(body.output).toContain('custom value')
     })
 
     it('should return not satisfied when check throws', async () => {
-      const ts = new Date().toISOString()
-      await prereqStore.add({
-        id: 'prereq-2',
-        stackName: 'test-stack',
-        name: 'Node.js',
-        type: 'node',
-        config: { minimumVersion: '18.0.0' },
-        installationHelp: 'Install Node.js',
-        createdAt: ts,
-        updatedAt: ts,
+      const { injector, prereqStore } = createSetup()
+      await usingAsync(injector, async () => {
+        const ts = new Date().toISOString()
+        await prereqStore.add({
+          id: 'prereq-2',
+          stackName: 'test-stack',
+          name: 'Node.js',
+          type: 'node',
+          config: { minimumVersion: '18.0.0' },
+          installationHelp: 'Install Node.js',
+          createdAt: ts,
+          updatedAt: ts,
+        })
+
+        execFileMock.mockRejectedValue(new Error('Command not found'))
+
+        const elevated = useSystemIdentityContext({ injector })
+        const result = await CheckPrerequisiteAction(
+          createMockActionContext({ injector: elevated, urlParams: { id: 'prereq-2' } }),
+        )
+
+        const body = result.chunk as { satisfied: boolean; output: string }
+        expect(body.satisfied).toBe(false)
+        expect(body.output).toContain('Command not found')
       })
-
-      execFileMock.mockRejectedValue(new Error('Command not found'))
-
-      const elevated = useSystemIdentityContext({ injector })
-      const result = await CheckPrerequisiteAction(
-        createMockActionContext({ injector: elevated, urlParams: { id: 'prereq-2' } }),
-      )
-      await elevated[Symbol.asyncDispose]()
-
-      const body = result.chunk as { satisfied: boolean; output: string }
-      expect(body.satisfied).toBe(false)
-      expect(body.output).toContain('Command not found')
     })
   })
 })

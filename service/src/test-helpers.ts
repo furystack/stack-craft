@@ -1,5 +1,6 @@
 import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
-import { Injector } from '@furystack/inject'
+import type { Injector } from '@furystack/inject'
+import { Injector as InjectorImpl } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import {
@@ -17,7 +18,7 @@ import {
 } from 'common'
 
 export const createTestInjector = () => {
-  const injector = new Injector()
+  const injector = new InjectorImpl()
   useLogging(injector, VerboseConsoleLogger)
 
   addStore(injector, new InMemoryStore({ model: StackDefinition, primaryKey: 'name' }))
@@ -47,6 +48,20 @@ export const createTestInjector = () => {
   const elevated = useSystemIdentityContext({ injector })
 
   return { injector, elevated }
+}
+
+/**
+ * Runs a test callback with a fully configured test injector and elevated context.
+ * Both are automatically disposed after the callback completes (or throws).
+ */
+export const withTestInjector = async (fn: (ctx: { injector: Injector; elevated: Injector }) => Promise<void>) => {
+  const { injector, elevated } = createTestInjector()
+  try {
+    await fn({ injector, elevated })
+  } finally {
+    await elevated[Symbol.asyncDispose]()
+    await injector[Symbol.asyncDispose]()
+  }
 }
 
 export const createMockActionContext = <TBody = unknown, TUrl = Record<string, string>>(options: {

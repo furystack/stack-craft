@@ -1,7 +1,8 @@
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
+import { usingAsync } from '@furystack/utils'
 import type { ServiceLogEntry } from 'common'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { LogStorageService } from '../../../services/log-storage-service.js'
 import { ServiceLogsAction } from './service-logs-action.js'
@@ -19,78 +20,93 @@ const createMockActionContext = <TUrl = Record<string, string>, TQuery = Record<
   response: {} as never,
 })
 
+const createSetup = () => {
+  const injector = new Injector()
+  useLogging(injector, VerboseConsoleLogger)
+
+  const mockLogStorage = {
+    getEntries: vi.fn().mockResolvedValue([]),
+  }
+  injector.setExplicitInstance(mockLogStorage as unknown as LogStorageService, LogStorageService)
+
+  return { injector, mockLogStorage }
+}
+
 describe('ServiceLogsAction', () => {
-  let injector: Injector
-  let mockLogStorage: { getEntries: ReturnType<typeof vi.fn> }
-
-  beforeEach(() => {
-    injector = new Injector()
-    useLogging(injector, VerboseConsoleLogger)
-
-    mockLogStorage = {
-      getEntries: vi.fn().mockResolvedValue([]),
-    }
-    injector.setExplicitInstance(mockLogStorage as unknown as LogStorageService, LogStorageService)
-  })
-
-  afterEach(async () => {
-    await injector[Symbol.asyncDispose]()
-  })
-
   it('should return entries from LogStorageService', async () => {
-    const entries: Array<Partial<ServiceLogEntry>> = [{ serviceId: 'svc-1', line: 'hello', stream: 'stdout' }]
-    mockLogStorage.getEntries.mockResolvedValue(entries)
+    const { injector, mockLogStorage } = createSetup()
+    await usingAsync(injector, async () => {
+      const entries: Array<Partial<ServiceLogEntry>> = [{ serviceId: 'svc-1', line: 'hello', stream: 'stdout' }]
+      mockLogStorage.getEntries.mockResolvedValue(entries)
 
-    const result = await ServiceLogsAction(createMockActionContext({ injector, urlParams: { id: 'svc-1' }, query: {} }))
-    const body = result.chunk as { entries: ServiceLogEntry[] }
+      const result = await ServiceLogsAction(
+        createMockActionContext({ injector, urlParams: { id: 'svc-1' }, query: {} }),
+      )
+      const body = result.chunk as { entries: ServiceLogEntry[] }
 
-    expect(body.entries).toEqual(entries)
-    expect(mockLogStorage.getEntries).toHaveBeenCalledWith('svc-1', {
-      limit: undefined,
-      processUid: undefined,
-      search: undefined,
+      expect(body.entries).toEqual(entries)
+      expect(mockLogStorage.getEntries).toHaveBeenCalledWith('svc-1', {
+        limit: undefined,
+        processUid: undefined,
+        search: undefined,
+      })
     })
   })
 
   it('should pass parsed line count as limit', async () => {
-    await ServiceLogsAction(createMockActionContext({ injector, urlParams: { id: 'svc-1' }, query: { lines: 50 } }))
+    const { injector, mockLogStorage } = createSetup()
+    await usingAsync(injector, async () => {
+      await ServiceLogsAction(createMockActionContext({ injector, urlParams: { id: 'svc-1' }, query: { lines: 50 } }))
 
-    expect(mockLogStorage.getEntries).toHaveBeenCalledWith('svc-1', expect.objectContaining({ limit: 50 }))
+      expect(mockLogStorage.getEntries).toHaveBeenCalledWith('svc-1', expect.objectContaining({ limit: 50 }))
+    })
   })
 
   it('should pass processUid filter', async () => {
-    await ServiceLogsAction(
-      createMockActionContext({
-        injector,
-        urlParams: { id: 'svc-1' },
-        query: { processUid: 'uid-123' },
-      }),
-    )
+    const { injector, mockLogStorage } = createSetup()
+    await usingAsync(injector, async () => {
+      await ServiceLogsAction(
+        createMockActionContext({
+          injector,
+          urlParams: { id: 'svc-1' },
+          query: { processUid: 'uid-123' },
+        }),
+      )
 
-    expect(mockLogStorage.getEntries).toHaveBeenCalledWith('svc-1', expect.objectContaining({ processUid: 'uid-123' }))
+      expect(mockLogStorage.getEntries).toHaveBeenCalledWith(
+        'svc-1',
+        expect.objectContaining({ processUid: 'uid-123' }),
+      )
+    })
   })
 
   it('should pass search filter', async () => {
-    await ServiceLogsAction(
-      createMockActionContext({
-        injector,
-        urlParams: { id: 'svc-1' },
-        query: { search: 'error' },
-      }),
-    )
+    const { injector, mockLogStorage } = createSetup()
+    await usingAsync(injector, async () => {
+      await ServiceLogsAction(
+        createMockActionContext({
+          injector,
+          urlParams: { id: 'svc-1' },
+          query: { search: 'error' },
+        }),
+      )
 
-    expect(mockLogStorage.getEntries).toHaveBeenCalledWith('svc-1', expect.objectContaining({ search: 'error' }))
+      expect(mockLogStorage.getEntries).toHaveBeenCalledWith('svc-1', expect.objectContaining({ search: 'error' }))
+    })
   })
 
   it('should treat non-finite line count as undefined limit', async () => {
-    await ServiceLogsAction(
-      createMockActionContext({
-        injector,
-        urlParams: { id: 'svc-1' },
-        query: { lines: Infinity },
-      }),
-    )
+    const { injector, mockLogStorage } = createSetup()
+    await usingAsync(injector, async () => {
+      await ServiceLogsAction(
+        createMockActionContext({
+          injector,
+          urlParams: { id: 'svc-1' },
+          query: { lines: Infinity },
+        }),
+      )
 
-    expect(mockLogStorage.getEntries).toHaveBeenCalledWith('svc-1', expect.objectContaining({ limit: undefined }))
+      expect(mockLogStorage.getEntries).toHaveBeenCalledWith('svc-1', expect.objectContaining({ limit: undefined }))
+    })
   })
 })

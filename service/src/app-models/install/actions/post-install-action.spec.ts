@@ -3,8 +3,9 @@ import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { PasswordCredential, PasswordResetToken, usePasswordPolicy } from '@furystack/security'
+import { usingAsync } from '@furystack/utils'
 import { User } from 'common'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { PostInstallAction } from './post-install-action.js'
 
@@ -31,49 +32,41 @@ const createMockActionContext = (options: { injector: Injector; body?: Record<st
 })
 
 describe('PostInstallAction', () => {
-  let injector: Injector
-
-  beforeEach(() => {
-    injector = setupInjector()
-  })
-
-  afterEach(async () => {
-    await injector[Symbol.asyncDispose]()
-  })
-
-  it('should install the service and return success', async () => {
-    const result = await PostInstallAction(
-      createMockActionContext({
-        injector,
-        body: { username: 'admin', password: 'secret123' },
-      }) as unknown as Parameters<typeof PostInstallAction>[0],
-    )
-
-    expect((result as { chunk: unknown }).chunk).toEqual({ success: true })
-
-    const elevated = useSystemIdentityContext({ injector })
-    const users = await getRepository(elevated).getDataSetFor(User, 'username').find(elevated, {})
-    await elevated[Symbol.asyncDispose]()
-
-    expect(users).toHaveLength(1)
-    expect(users[0].username).toBe('admin')
-  })
-
-  it('should throw if service is already installed', async () => {
-    await PostInstallAction(
-      createMockActionContext({
-        injector,
-        body: { username: 'admin', password: 'secret123' },
-      }) as unknown as Parameters<typeof PostInstallAction>[0],
-    )
-
-    await expect(
-      PostInstallAction(
+  it('should install the service and return success', () =>
+    usingAsync(setupInjector(), async (injector) => {
+      const result = await PostInstallAction(
         createMockActionContext({
           injector,
-          body: { username: 'admin2', password: 'pass' },
+          body: { username: 'admin', password: 'secret123' },
         }) as unknown as Parameters<typeof PostInstallAction>[0],
-      ),
-    ).rejects.toThrow('Service is already installed')
-  })
+      )
+
+      expect((result as { chunk: unknown }).chunk).toEqual({ success: true })
+
+      const elevated = useSystemIdentityContext({ injector })
+      const users = await getRepository(elevated).getDataSetFor(User, 'username').find(elevated, {})
+      await elevated[Symbol.asyncDispose]()
+
+      expect(users).toHaveLength(1)
+      expect(users[0].username).toBe('admin')
+    }))
+
+  it('should throw if service is already installed', () =>
+    usingAsync(setupInjector(), async (injector) => {
+      await PostInstallAction(
+        createMockActionContext({
+          injector,
+          body: { username: 'admin', password: 'secret123' },
+        }) as unknown as Parameters<typeof PostInstallAction>[0],
+      )
+
+      await expect(
+        PostInstallAction(
+          createMockActionContext({
+            injector,
+            body: { username: 'admin2', password: 'pass' },
+          }) as unknown as Parameters<typeof PostInstallAction>[0],
+        ),
+      ).rejects.toThrow('Service is already installed')
+    }))
 })
