@@ -6,9 +6,9 @@ export default defineConfig({
       enabled: true,
       include: ['common/src/**/*.{ts,tsx}', 'frontend/src/**/*.{ts,tsx}', 'service/src/**/*.{ts,tsx}'],
       thresholds: {
-        lines: 27,
-        branches: 22,
-        functions: 17,
+        lines: 35,
+        branches: 27,
+        functions: 24,
       },
     },
     projects: [
