@@ -131,38 +131,67 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
         .find(injector, { filter: { serviceId: { $eq: svcId } } })
         .catch(() => [] as ServiceStateHistory[])
       if (historyEntries.length > 0) {
-        await historyDs.remove(injector, ...historyEntries.map((e) => e.id)).catch(() => {
-          /* rollback */
-        })
+        await historyDs.remove(injector, ...historyEntries.map((e) => e.id)).catch(
+          (e) =>
+            void logger.warning({
+              message: 'Rollback: failed to remove history entries',
+              data: { stackName, error: e },
+            }),
+        )
       }
     }
     if (svcIds.length > 0) {
-      await svcStatusDs.remove(injector, ...svcIds).catch(() => {
-        /* rollback */
-      })
-      await svcConfigDs.remove(injector, ...svcIds).catch(() => {
-        /* rollback */
-      })
-      await svcDefDs.remove(injector, ...svcIds).catch(() => {
-        /* rollback */
-      })
+      await svcStatusDs.remove(injector, ...svcIds).catch(
+        (e) =>
+          void logger.warning({
+            message: 'Rollback: failed to remove service statuses',
+            data: { stackName, error: e },
+          }),
+      )
+      await svcConfigDs.remove(injector, ...svcIds).catch(
+        (e) =>
+          void logger.warning({
+            message: 'Rollback: failed to remove service configs',
+            data: { stackName, error: e },
+          }),
+      )
+      await svcDefDs.remove(injector, ...svcIds).catch(
+        (e) =>
+          void logger.warning({
+            message: 'Rollback: failed to remove service definitions',
+            data: { stackName, error: e },
+          }),
+      )
     }
     if (prerequisites.length > 0) {
-      await prereqDs.remove(injector, ...prerequisites.map((p) => p.id)).catch(() => {
-        /* rollback */
-      })
+      await prereqDs
+        .remove(injector, ...prerequisites.map((p) => p.id))
+        .catch(
+          (e) =>
+            void logger.warning({ message: 'Rollback: failed to remove prerequisites', data: { stackName, error: e } }),
+        )
     }
     if (repositories.length > 0) {
-      await repoDs.remove(injector, ...repositories.map((r) => r.id)).catch(() => {
-        /* rollback */
-      })
+      await repoDs
+        .remove(injector, ...repositories.map((r) => r.id))
+        .catch(
+          (e) =>
+            void logger.warning({ message: 'Rollback: failed to remove repositories', data: { stackName, error: e } }),
+        )
     }
-    await stackConfigDs.remove(injector, stackName).catch(() => {
-      /* rollback */
-    })
-    await stackDefDs.remove(injector, stackName).catch(() => {
-      /* rollback */
-    })
+    await stackConfigDs
+      .remove(injector, stackName)
+      .catch(
+        (e) =>
+          void logger.warning({ message: 'Rollback: failed to remove stack config', data: { stackName, error: e } }),
+      )
+    await stackDefDs.remove(injector, stackName).catch(
+      (e) =>
+        void logger.warning({
+          message: 'Rollback: failed to remove stack definition',
+          data: { stackName, error: e },
+        }),
+    )
 
     const message = error instanceof Error ? error.message : 'Unknown error during import'
     throw new RequestError(`Import failed: ${message}`, 500)

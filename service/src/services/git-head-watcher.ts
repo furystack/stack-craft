@@ -17,6 +17,7 @@ type WatchedEntry = {
 
 const DEBOUNCE_MS = 200
 
+/** Watches `.git/HEAD` file changes to detect branch switches and updates the in-memory git status */
 @Injectable({ lifetime: 'singleton' })
 export class GitHeadWatcher {
   private watchers = new Map<string, WatchedEntry>()

@@ -28,8 +28,8 @@ export const createMcpServer = (injector: Injector, elevated: Injector) => {
   return mcp
 }
 
-const SESSION_TTL_MS = 30 * 60 * 1000
-const MAX_SESSIONS = 50
+const SESSION_TTL_MS = parseInt(process.env.MCP_SESSION_TTL_MS as string, 10) || 30 * 60 * 1000
+const MAX_SESSIONS = parseInt(process.env.MCP_MAX_SESSIONS as string, 10) || 50
 
 type TransportEntry = {
   transport: StreamableHTTPServerTransport
@@ -41,7 +41,10 @@ export class McpSessionManager {
   private sweepInterval: ReturnType<typeof setInterval>
 
   constructor() {
-    this.sweepInterval = setInterval(() => this.sweep(), 60_000)
+    this.sweepInterval = setInterval(
+      () => this.sweep(),
+      parseInt(process.env.MCP_SESSION_SWEEP_MS as string, 10) || 60_000,
+    )
     this.sweepInterval.unref()
   }
 

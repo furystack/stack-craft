@@ -4,6 +4,7 @@ import { SyncSubscribeAction, SyncUnsubscribeAction } from '@furystack/entity-sy
 import { useWebsockets } from '@furystack/websocket-api'
 import { getPort } from '../get-port.js'
 
+/** Initializes the WebSocket server for real-time entity synchronization with connected clients */
 @Injectable({ lifetime: 'singleton' })
 export class WebsocketService {
   public async init(injector: Injector) {

@@ -1,5 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, cssVariableTheme, Timeline, TimelineItem } from '@furystack/shades-common-components'
+import { Button, cssVariableTheme, Timeline, TimelineItem, Tooltip } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
 
 import type { PipelineStageStatus } from '../utils/service-pipeline.js'
@@ -94,20 +94,21 @@ export const ServicePipelineStepper = Shade<ServicePipelineStepperProps>({
             <TimelineItem color={color} label={stage.label} dot={dot}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {stage.command ? (
-                  <span
-                    style={{
-                      fontFamily: 'monospace',
-                      fontSize: cssVariableTheme.typography.fontSize.sm,
-                      opacity: '0.6',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      maxWidth: '300px',
-                    }}
-                    title={stage.command}
-                  >
-                    {stage.command}
-                  </span>
+                  <Tooltip title={stage.command}>
+                    <span
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: cssVariableTheme.typography.fontSize.sm,
+                        opacity: '0.6',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        maxWidth: '300px',
+                      }}
+                    >
+                      {stage.command}
+                    </span>
+                  </Tooltip>
                 ) : null}
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   {actionLabel && props.onAction ? (

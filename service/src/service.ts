@@ -1,4 +1,5 @@
 import { useSystemIdentityContext } from '@furystack/core'
+import { getLogger } from '@furystack/logging'
 import { usingAsync } from '@furystack/utils'
 import { ServerManager, useStaticFiles } from '@furystack/rest-service'
 import { injector } from './config.js'
@@ -71,8 +72,11 @@ setupRestApis()
     }),
   )
   .catch((err) => {
-    console.error(err)
-    process.exit(1)
+    getLogger(injector)
+      .withScope('service')
+      .fatal({ message: 'Failed to start service', data: { error: err } })
+      .catch(() => console.error('Failed to start service (logger unavailable)', err))
+      .finally(() => process.exit(1))
   })
 
 void attachShutdownHandler(injector)

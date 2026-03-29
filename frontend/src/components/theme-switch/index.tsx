@@ -1,6 +1,6 @@
 import { createComponent, Shade } from '@furystack/shades'
 import type { ButtonProps } from '@furystack/shades-common-components'
-import { Button, ThemeProviderService } from '@furystack/shades-common-components'
+import { Button, ThemeProviderService, Tooltip } from '@furystack/shades-common-components'
 
 import { applyTheme, DEFAULT_THEME_KEY, THEME_STORAGE_KEY } from '../../services/theme-registry.js'
 
@@ -22,16 +22,19 @@ export const ThemeSwitch = Shade<Omit<ButtonProps, 'onclick'>>({
     )
 
     return (
-      <Button
-        {...props}
-        onclick={() => {
-          const newKey = isDark ? 'light' : 'dark'
-          setThemeKey(newKey)
-          void applyTheme(newKey, themeProvider)
-        }}
-      >
-        {isDark ? '☀️' : '🌜'}
-      </Button>
+      <Tooltip title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}>
+        <Button
+          {...props}
+          aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+          onclick={() => {
+            const newKey = isDark ? 'light' : 'dark'
+            setThemeKey(newKey)
+            void applyTheme(newKey, themeProvider)
+          }}
+        >
+          {isDark ? '☀️' : '🌜'}
+        </Button>
+      </Tooltip>
     )
   },
 })

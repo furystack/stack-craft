@@ -43,12 +43,12 @@ Open http://localhost:8080 in your browser. On first launch, the installer wizar
 
 Environment variables can be set in the `.env` file at the project root.
 
-| Variable                     | Default                                                      | Description                                                                                           |
-| ---------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`               | `postgres://stackcraft:stackcraft@localhost:5433/stackcraft` | PostgreSQL connection string                                                                          |
-| `APP_SERVICE_PORT`           | `9090`                                                       | Backend HTTP server port                                                                              |
-| `MCP_PORT`                   | `9091`                                                       | MCP server port                                                                                       |
-| `STACK_CRAFT_ENCRYPTION_KEY` | *(auto-generated)*                                           | Base64-encoded 256-bit key for encrypting sensitive values. If unset, a key file is created in `~/.stack-craft/` |
+| Variable                     | Default                                                      | Description                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`               | `postgres://stackcraft:stackcraft@localhost:5433/stackcraft` | PostgreSQL connection string                                                                                     |
+| `APP_SERVICE_PORT`           | `9090`                                                       | Backend HTTP server port                                                                                         |
+| `MCP_PORT`                   | `9091`                                                       | MCP server port                                                                                                  |
+| `STACK_CRAFT_ENCRYPTION_KEY` | _(auto-generated)_                                           | Base64-encoded 256-bit key for encrypting sensitive values. If unset, a key file is created in `~/.stack-craft/` |
 
 ## Docker
 
@@ -70,6 +70,24 @@ docker run -p 9090:9090 \
   furystack/stack-craft
 ```
 
+## Architecture
+
+```
+                          ┌──────────────────────────┐
+                          │  Browser (Shades SPA)    │
+                          └────────┬─────────────────┘
+                                   │ REST + WebSocket
+                          ┌────────▼─────────────────┐
+  MCP Clients ──HTTP+SSE──▶  Node.js Service :9090   │
+        :9091              │  (FuryStack REST)        │
+                          └──┬──────────────┬────────┘
+                             │              │
+                    ┌────────▼──┐    ┌──────▼──────┐
+                    │ PostgreSQL│    │ File System  │
+                    │           │    │ (git, procs) │
+                    └───────────┘    └─────────────┘
+```
+
 ## Project Structure
 
 ```
@@ -77,8 +95,11 @@ stack-craft/
 ├── common/     # Shared API type definitions and models
 ├── frontend/   # Shades-based SPA (Vite)
 ├── service/    # FuryStack REST backend (Node.js)
+├── docs/       # Documentation (troubleshooting, etc.)
 └── e2e/        # Playwright end-to-end tests
 ```
+
+See also: [frontend/README.md](frontend/README.md) for frontend-specific documentation.
 
 ## Testing
 
@@ -102,6 +123,20 @@ yarn test:e2e
 | `yarn lint`           | Run ESLint                                    |
 | `yarn format`         | Format code with Prettier                     |
 | `yarn create-schemas` | Regenerate JSON schemas from TypeScript types |
+
+## MCP Server
+
+Stack Craft includes a [Model Context Protocol](https://modelcontextprotocol.io/) server for AI assistant integration. It runs on a separate port (default `9091`) and provides tools for managing stacks, services, repositories, prerequisites, and environment variables.
+
+**Connecting:** Point your MCP client to `http://localhost:9091/mcp` using Streamable HTTP transport with a Bearer token for authentication. Create API tokens via the UI under User Settings.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, and the release workflow.
+
+## Troubleshooting
+
+See [docs/troubleshooting.md](docs/troubleshooting.md) for common issues and their resolutions.
 
 ## License
 

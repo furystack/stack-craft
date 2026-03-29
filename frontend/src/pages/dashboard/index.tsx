@@ -184,6 +184,18 @@ export const Dashboard = Shade<DashboardProps>({
           </Paper>
         ) : null}
 
+        {services.length === 0 ? (
+          <p
+            style={{
+              margin: '0 0 8px',
+              color: cssVariableTheme.text.secondary,
+              fontSize: cssVariableTheme.typography.fontSize.md,
+            }}
+          >
+            Getting started? Add repositories, then define prerequisites, create services, and run setup.
+          </p>
+        ) : null}
+
         <StackCraftNestedRouteLink
           href="/stacks/:stackName/services"
           params={{ stackName: props.stackName }}

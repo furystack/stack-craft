@@ -173,7 +173,19 @@ export const ServicesList = Shade<ServicesListProps>({
           }
         />
         {services.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px', opacity: '0.5' }}>No services in this stack yet.</div>
+          <div style={{ textAlign: 'center', padding: '32px', opacity: '0.7' }}>
+            No services in this stack yet.
+            <div style={{ marginTop: '12px' }}>
+              <StackCraftNestedRouteLink
+                href="/stacks/:stackName/services/wizard"
+                params={{ stackName: props.stackName }}
+              >
+                <Button variant="outlined" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
+                  Create Service
+                </Button>
+              </StackCraftNestedRouteLink>
+            </div>
+          </div>
         ) : (
           <ServiceTable
             services={services}

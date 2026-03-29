@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Injector } from '@furystack/inject'
+import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { ServiceConfig, ServiceDefinition, ServiceStateHistory, ServiceStatus } from 'common'
 import { randomUUID } from 'crypto'
@@ -19,6 +20,7 @@ import {
 
 export const registerServiceTools = (mcp: McpServer, injector: Injector, elevated: Injector) => {
   const repository = getRepository(elevated)
+  const logger = getLogger(elevated).withScope('MCP:ServiceTools')
 
   mcp.registerTool(
     'list_services',
@@ -296,11 +298,23 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
         await repository
           .getDataSetFor(ServiceStatus, 'serviceId')
           .remove(elevated, serviceId)
-          .catch(() => {})
+          .catch(
+            (e) =>
+              void logger.warning({
+                message: 'Failed to remove service status during delete',
+                data: { serviceId, error: e },
+              }),
+          )
         await repository
           .getDataSetFor(ServiceConfig, 'serviceId')
           .remove(elevated, serviceId)
-          .catch(() => {})
+          .catch(
+            (e) =>
+              void logger.warning({
+                message: 'Failed to remove service config during delete',
+                data: { serviceId, error: e },
+              }),
+          )
         await repository.getDataSetFor(ServiceDefinition, 'id').remove(elevated, serviceId)
         return textResult(`Service ${serviceId} deleted`)
       } catch (error) {

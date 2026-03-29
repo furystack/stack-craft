@@ -101,7 +101,7 @@ Service stdout/stderr is captured in-memory and available via:
 
 ### Application Logs (Stack Craft Backend)
 
-The backend logs to stdout via the FuryStack `VerboseConsoleLogger`. In production, pipe stdout to your preferred log aggregator:
+The backend logs to stdout via the FuryStack `VerboseConsoleLogger`. Log verbosity can be configured via the `LOG_LEVEL` environment variable (default: `verbose`). Available levels: `verbose`, `debug`, `information`, `warning`, `error`, `fatal`. In production, pipe stdout to your preferred log aggregator:
 
 ```bash
 # Docker
@@ -127,12 +127,143 @@ curl http://localhost:9090/api/system/health
 
 ## Environment Variables Reference
 
-| Variable                     | Default                                                      | Description                                                                                           |
-| ---------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`               | `postgres://stackcraft:stackcraft@localhost:5433/stackcraft` | PostgreSQL connection string                                                                          |
-| `APP_SERVICE_PORT`           | `9090`                                                       | Backend HTTP server port                                                                              |
-| `MCP_PORT`                   | `9091`                                                       | MCP server port                                                                                       |
-| `STACK_CRAFT_ENCRYPTION_KEY` | *(auto-generated)*                                           | Base64-encoded 256-bit key for encrypting sensitive values. If unset, a key file is created in `~/.stack-craft/` |
+| Variable                     | Default                                                      | Description                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`               | `postgres://stackcraft:stackcraft@localhost:5433/stackcraft` | PostgreSQL connection string                                                                                     |
+| `APP_SERVICE_PORT`           | `9090`                                                       | Backend HTTP server port                                                                                         |
+| `MCP_PORT`                   | `9091`                                                       | MCP server port                                                                                                  |
+| `STACK_CRAFT_ENCRYPTION_KEY` | _(auto-generated)_                                           | Base64-encoded 256-bit key for encrypting sensitive values. If unset, a key file is created in `~/.stack-craft/` |
+
+---
+
+## MCP Server Troubleshooting
+
+### Connection Refused on Port 9091
+
+**Symptom:** `curl: (7) Failed to connect to localhost port 9091: Connection refused`
+
+**Causes:**
+
+- The Stack Craft service is not running
+- The MCP server is configured on a different port
+
+**Resolution:**
+
+1. Verify the service is running: `curl http://localhost:9090/api/system/health`
+2. Check the `MCP_PORT` value in your `.env` file (default: `9091`)
+3. Ensure nothing else is occupying the configured port
+
+### Authentication Errors
+
+**Symptom:** MCP tool calls return `401 Unauthorized` or `403 Forbidden`.
+
+**Cause:** The MCP server requires a Bearer token for authentication.
+
+**Resolution:**
+
+1. Open the Stack Craft UI and navigate to **User Settings**
+2. Create a new API token
+3. Configure your MCP client with the token as a Bearer token in the `Authorization` header
+
+### Common Tool Errors
+
+**Symptom:** MCP tool calls return "Service not found" or "Stack not found".
+
+**Causes:**
+
+- The service or stack ID/name is incorrect
+- The resource was deleted or has not been imported yet
+
+**Resolution:**
+
+1. Use the `list_services` or `list_stacks` MCP tool to verify available resources
+2. Double-check the ID or name passed to the tool
+3. Import the stack or create the service if it does not exist yet
+
+### Testing the MCP Endpoint
+
+You can verify the MCP server is listening with:
+
+```bash
+curl http://localhost:9091/mcp
+# Expects 405 Method Not Allowed — the endpoint requires POST with SSE
+```
+
+A `405` response confirms the MCP server is running and reachable. Any other response (connection refused, timeout) indicates the server is not available.
+
+---
+
+## Encryption Key Issues
+
+### Encryption Key Changed or Lost
+
+**Symptom:** Services that previously stored encrypted values (e.g. environment variable secrets) show decryption errors or garbled values.
+
+**Cause:** The `STACK_CRAFT_ENCRYPTION_KEY` has changed since the values were encrypted. Existing encrypted values become undecryptable with a different key.
+
+**Resolution:**
+
+1. If you still have the old key, restore it in `.env` and restart the service
+2. If the old key is lost, you must re-enter all sensitive values (environment secrets, tokens, etc.) through the UI or API
+
+### Rotating the Encryption Key
+
+To rotate the encryption key:
+
+1. Stop the Stack Craft service
+2. Update `STACK_CRAFT_ENCRYPTION_KEY` in your `.env` file with a new base64-encoded 256-bit key
+3. Start the service
+4. Re-enter all sensitive values (environment secrets, tokens) — they must be re-encrypted with the new key
+
+### Key File Location
+
+If the `STACK_CRAFT_ENCRYPTION_KEY` environment variable is not set, Stack Craft auto-generates a key file at:
+
+```
+~/.stack-craft/encryption.key
+```
+
+This file is created on first startup and reused on subsequent runs. Back up this file to avoid losing access to encrypted values.
+
+### Docker Persistence
+
+**Symptom:** Encrypted values break after a container restart.
+
+**Cause:** The auto-generated key file inside the container is lost when the container is recreated.
+
+**Resolution:**
+
+- **Option A:** Set the `STACK_CRAFT_ENCRYPTION_KEY` environment variable explicitly
+- **Option B:** Mount the `~/.stack-craft/` directory as a volume to persist the key file
+
+---
+
+## Docker Production
+
+### Port Mapping
+
+Stack Craft exposes two ports that both need to be mapped:
+
+| Port   | Protocol       | Purpose               |
+| ------ | -------------- | --------------------- |
+| `9090` | HTTP/WebSocket | REST API and frontend |
+| `9091` | HTTP/SSE       | MCP server            |
+
+### Encryption Key
+
+In production, always set `STACK_CRAFT_ENCRYPTION_KEY` explicitly rather than relying on the auto-generated key file. Alternatively, mount `~/.stack-craft/` as a persistent volume.
+
+### Example Docker Run
+
+```bash
+docker run -d \
+  --name stack-craft \
+  -p 9090:9090 \
+  -p 9091:9091 \
+  -e DATABASE_URL=postgres://stackcraft:stackcraft@db:5432/stackcraft \
+  -e STACK_CRAFT_ENCRYPTION_KEY=your-base64-encoded-key \
+  stack-craft:latest
+```
 
 ---
 

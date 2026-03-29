@@ -5,6 +5,7 @@ import { promisify } from 'util'
 
 const execFileAsync = promisify(execFile)
 
+/** Low-level wrapper around git CLI operations (clone, fetch, pull, checkout, branch listing) */
 @Injectable({ lifetime: 'singleton' })
 export class GitService {
   @Injected((injector) => getLogger(injector).withScope('GitService'))

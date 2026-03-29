@@ -1,6 +1,8 @@
 import { addStore, InMemoryStore, isAuthenticated } from '@furystack/core'
 import { Injector } from '@furystack/inject'
-import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
+import { useLogging } from '@furystack/logging'
+
+import { FilteredConsoleLogger } from './utils/filtered-console-logger.js'
 import type { AuthorizationResult } from '@furystack/repository'
 import { getRepository } from '@furystack/repository'
 import { DefaultSession } from '@furystack/rest-service'
@@ -26,7 +28,7 @@ export const authorizedDataSet = {
 }
 
 export const injector = new Injector()
-useLogging(injector, VerboseConsoleLogger)
+useLogging(injector, FilteredConsoleLogger)
 
 addStore(injector, new InMemoryStore({ model: DefaultSession, primaryKey: 'sessionId' }))
   .addStore(new InMemoryStore({ model: PublicApiToken, primaryKey: 'id' }))

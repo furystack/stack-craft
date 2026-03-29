@@ -7,8 +7,12 @@ export const attachShutdownHandler = async (i: Injector) => {
 
   await logger.information({ message: '💤  Attaching shutdown handler...' })
 
+  let isShuttingDown = false
+
   const onExit = async ({ code, reason, error }: { code: number; reason: string; error?: unknown }) => {
-    process.removeAllListeners('exit')
+    if (isShuttingDown) return
+    isShuttingDown = true
+
     try {
       if (code) {
         const errorMessage = error instanceof Error ? error.message : undefined
@@ -38,13 +42,14 @@ export const attachShutdownHandler = async (i: Injector) => {
       }
       await i[Symbol.asyncDispose]()
     } catch (e) {
-      console.error('Error during shutdown', e)
+      await logger.fatal({ message: 'Error during shutdown', data: { error: e } }).catch(() => {
+        // Last resort: logger itself failed
+        console.error('Error during shutdown (logger unavailable)', e)
+      })
       process.exit(1)
     }
     process.exit(code)
   }
-
-  process.once('exit', () => void onExit({ code: 0, reason: 'exit' }))
 
   // catches ctrl+c event
   process.once('SIGINT', () => void onExit({ code: 0, reason: 'SIGINT' }))

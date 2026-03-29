@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Injector } from '@furystack/inject'
+import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import {
   GitHubRepository,
@@ -21,6 +22,7 @@ import { environmentVariableValueSchema, errorResult, mcpTrigger, textResult } f
 
 export const registerStackTools = (mcp: McpServer, injector: Injector, elevated: Injector) => {
   const repository = getRepository(elevated)
+  const logger = getLogger(elevated).withScope('MCP:StackTools')
 
   mcp.registerTool('list_stacks', { description: 'List all stacks' }, async () => {
     const defs = await repository.getDataSetFor(StackDefinition, 'name').find(elevated, {})
@@ -156,12 +158,30 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
           await repository
             .getDataSetFor(ServiceStatus, 'serviceId')
             .remove(elevated, ...svcIds)
-            .catch(() => {})
+            .catch(
+              (e) =>
+                void logger.warning({
+                  message: 'Failed to remove service statuses during stack delete',
+                  data: { stackName, error: e },
+                }),
+            )
           await repository
             .getDataSetFor(ServiceConfig, 'serviceId')
             .remove(elevated, ...svcIds)
-            .catch(() => {})
-          await svcDs.remove(elevated, ...svcIds).catch(() => {})
+            .catch(
+              (e) =>
+                void logger.warning({
+                  message: 'Failed to remove service configs during stack delete',
+                  data: { stackName, error: e },
+                }),
+            )
+          await svcDs.remove(elevated, ...svcIds).catch(
+            (e) =>
+              void logger.warning({
+                message: 'Failed to remove service definitions during stack delete',
+                data: { stackName, error: e },
+              }),
+          )
         }
 
         const repos = await repository
@@ -171,7 +191,13 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
           await repository
             .getDataSetFor(GitHubRepository, 'id')
             .remove(elevated, ...repos.map((r) => r.id))
-            .catch(() => {})
+            .catch(
+              (e) =>
+                void logger.warning({
+                  message: 'Failed to remove repositories during stack delete',
+                  data: { stackName, error: e },
+                }),
+            )
         }
 
         const prereqs = await repository
@@ -181,13 +207,25 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
           await repository
             .getDataSetFor(Prerequisite, 'id')
             .remove(elevated, ...prereqs.map((p) => p.id))
-            .catch(() => {})
+            .catch(
+              (e) =>
+                void logger.warning({
+                  message: 'Failed to remove prerequisites during stack delete',
+                  data: { stackName, error: e },
+                }),
+            )
         }
 
         await repository
           .getDataSetFor(StackConfig, 'stackName')
           .remove(elevated, stackName)
-          .catch(() => {})
+          .catch(
+            (e) =>
+              void logger.warning({
+                message: 'Failed to remove stack config during stack delete',
+                data: { stackName, error: e },
+              }),
+          )
         await repository.getDataSetFor(StackDefinition, 'name').remove(elevated, stackName)
 
         return textResult(`Stack ${stackName} deleted`)
@@ -411,22 +449,70 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
             .find(elevated, { filter: { serviceId: { $eq: svcId } } })
             .catch(() => [] as ServiceStateHistory[])
           if (historyEntries.length > 0) {
-            await historyDs.remove(elevated, ...historyEntries.map((e) => e.id)).catch(() => {})
+            await historyDs.remove(elevated, ...historyEntries.map((e) => e.id)).catch(
+              (e) =>
+                void logger.warning({
+                  message: 'Rollback: failed to remove history entries',
+                  data: { stackName, error: e },
+                }),
+            )
           }
         }
         if (svcIds.length > 0) {
-          await svcStatusDs.remove(elevated, ...svcIds).catch(() => {})
-          await svcConfigDs.remove(elevated, ...svcIds).catch(() => {})
-          await svcDefDs.remove(elevated, ...svcIds).catch(() => {})
+          await svcStatusDs.remove(elevated, ...svcIds).catch(
+            (e) =>
+              void logger.warning({
+                message: 'Rollback: failed to remove service statuses',
+                data: { stackName, error: e },
+              }),
+          )
+          await svcConfigDs.remove(elevated, ...svcIds).catch(
+            (e) =>
+              void logger.warning({
+                message: 'Rollback: failed to remove service configs',
+                data: { stackName, error: e },
+              }),
+          )
+          await svcDefDs.remove(elevated, ...svcIds).catch(
+            (e) =>
+              void logger.warning({
+                message: 'Rollback: failed to remove service definitions',
+                data: { stackName, error: e },
+              }),
+          )
         }
         if (prereqEntries.length > 0) {
-          await prereqDs.remove(elevated, ...prereqEntries.map((p) => p.id)).catch(() => {})
+          await prereqDs.remove(elevated, ...prereqEntries.map((p) => p.id)).catch(
+            (e) =>
+              void logger.warning({
+                message: 'Rollback: failed to remove prerequisites',
+                data: { stackName, error: e },
+              }),
+          )
         }
         if (repoEntries.length > 0) {
-          await repoDs.remove(elevated, ...repoEntries.map((r) => r.id)).catch(() => {})
+          await repoDs.remove(elevated, ...repoEntries.map((r) => r.id)).catch(
+            (e) =>
+              void logger.warning({
+                message: 'Rollback: failed to remove repositories',
+                data: { stackName, error: e },
+              }),
+          )
         }
-        await stackConfigDs.remove(elevated, stackName).catch(() => {})
-        await stackDefDs.remove(elevated, stackName).catch(() => {})
+        await stackConfigDs.remove(elevated, stackName).catch(
+          (e) =>
+            void logger.warning({
+              message: 'Rollback: failed to remove stack config',
+              data: { stackName, error: e },
+            }),
+        )
+        await stackDefDs.remove(elevated, stackName).catch(
+          (e) =>
+            void logger.warning({
+              message: 'Rollback: failed to remove stack definition',
+              data: { stackName, error: e },
+            }),
+        )
 
         return errorResult(`Failed to import stack: ${(error as Error).message}`)
       }

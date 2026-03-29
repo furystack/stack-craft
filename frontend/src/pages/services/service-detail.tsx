@@ -506,10 +506,12 @@ const ServiceTabBar = Shade<ServiceTabBarProps>({
   },
   render: ({ props }) => {
     return (
-      <div data-testid="service-detail-tabs">
+      <div data-testid="service-detail-tabs" role="tablist">
         {props.tabs.map((tab) => (
           <button
             type="button"
+            role="tab"
+            aria-selected={props.activeTab === tab.id}
             onclick={() => props.onTabChange(tab.id)}
             {...(props.activeTab === tab.id ? { 'data-active': '' } : {})}
           >

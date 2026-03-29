@@ -57,7 +57,10 @@ export class ProcessRunner {
     if (!managed) return
     this.logBuffer.push({ serviceId, processUid: managed.processUid, stream, line })
     if (!this.flushTimer) {
-      this.flushTimer = setTimeout(() => void this.flushLogBuffer(), 100)
+      this.flushTimer = setTimeout(
+        () => void this.flushLogBuffer(),
+        parseInt(process.env.LOG_FLUSH_INTERVAL_MS as string, 10) || 100,
+      )
     }
   }
 

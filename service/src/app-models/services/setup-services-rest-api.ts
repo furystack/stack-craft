@@ -1,4 +1,5 @@
 import type { Injector } from '@furystack/inject'
+import { getLogger } from '@furystack/logging'
 import '@furystack/repository'
 import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
@@ -284,18 +285,27 @@ export const setupServicesRestApi = async (injector: Injector) => {
           async ({ injector: i, getUrlParams }) => {
             const { id } = getUrlParams()
             const repo = getRepository(i)
+            const deleteLogger = getLogger(i).withScope('DeleteService')
             await repo
               .getDataSetFor(ServiceStatus, 'serviceId')
               .remove(i, id)
-              .catch(() => {
-                /* Status row may not exist */
-              })
+              .catch(
+                (e) =>
+                  void deleteLogger.warning({
+                    message: 'Failed to remove service status during delete',
+                    data: { serviceId: id, error: e },
+                  }),
+              )
             await repo
               .getDataSetFor(ServiceConfig, 'serviceId')
               .remove(i, id)
-              .catch(() => {
-                /* Config row may not exist */
-              })
+              .catch(
+                (e) =>
+                  void deleteLogger.warning({
+                    message: 'Failed to remove service config during delete',
+                    data: { serviceId: id, error: e },
+                  }),
+              )
             await repo.getDataSetFor(ServiceDefinition, 'id').remove(i, id)
             return JsonResult({})
           },

@@ -2,16 +2,8 @@ import type { ChildProcess } from 'child_process'
 import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import type { BuildStatus, CloneStatus, InstallStatus, RunStatus, ServiceStateEvent, TriggerSource } from 'common'
-import {
-  GitHubRepository,
-  ServiceConfig,
-  ServiceDefinition,
-  ServiceStateHistory,
-  ServiceStatus,
-  StackConfig,
-  getServiceCwd,
-} from 'common'
+import type { RunStatus, ServiceStateEvent, TriggerSource } from 'common'
+import { GitHubRepository, ServiceConfig, ServiceDefinition, ServiceStatus, StackConfig, getServiceCwd } from 'common'
 import { randomUUID } from 'crypto'
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs'
 import { dirname, join, resolve as resolvePosix, sep } from 'path'
@@ -21,6 +13,7 @@ import { applyServiceFiles, mergeServiceFiles } from '../utils/apply-service-fil
 import { CryptoService } from '../utils/crypto-service.js'
 import { ConflictError, NotFoundError, ValidationError } from '../utils/domain-error.js'
 import { decryptLocalFiles } from '../utils/env-encryption-helpers.js'
+import { getServiceOrThrow } from '../utils/get-service-or-throw.js'
 import { resolvePath } from '../utils/resolve-path.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { GitHeadWatcher } from './git-head-watcher.js'
@@ -28,10 +21,9 @@ import { GitService } from './git-service.js'
 import { GitWatcher } from './git-watcher.js'
 import { ProcessRunner } from './process-runner.js'
 import { ServiceEnvResolver } from './service-env-resolver.js'
+import { ServiceStatusManager } from './service-status-manager.js'
 import { computeExecutionLevels } from './service-graph-resolver.js'
-
-const MAX_HISTORY_PER_SERVICE = 10_000
-const HISTORY_PRUNE_CHECK_INTERVAL = 100
+import { StaleStateReconciler } from './stale-state-reconciler.js'
 
 export type TriggerContext = {
   triggeredBy: string
@@ -45,7 +37,6 @@ export type TriggerContext = {
 @Injectable({ lifetime: 'singleton' })
 export class ProcessManager {
   private elevatedInjector?: Injector
-  private historyInsertCount = 0
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
@@ -69,115 +60,15 @@ export class ProcessManager {
   @Injected(GitWatcher)
   declare private gitWatcher: GitWatcher
 
-  private async updateServiceStatus(
-    serviceId: string,
-    update: {
-      cloneStatus?: CloneStatus
-      installStatus?: InstallStatus
-      buildStatus?: BuildStatus
-      runStatus?: RunStatus
-    },
-    event: ServiceStateEvent,
-    trigger: TriggerContext,
-    metadata?: Record<string, unknown>,
-    options?: { skipHistory?: boolean; processUid?: string },
-  ) {
-    try {
-      const elevated = this.getElevatedInjector()
-      const statusDs = getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId')
+  @Injected(ServiceStatusManager)
+  declare private statusManager: ServiceStatusManager
 
-      const statuses = await statusDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
-      const current = statuses[0]
-      if (!current) return
-
-      const now = new Date().toISOString()
-      const patchData: Partial<ServiceStatus> = { ...update, updatedAt: now }
-
-      if (update.cloneStatus === 'cloned') patchData.lastClonedAt = now
-      if (update.installStatus === 'installed') patchData.lastInstalledAt = now
-      if (update.buildStatus === 'built') patchData.lastBuiltAt = now
-      if (update.runStatus === 'running') patchData.lastStartedAt = now
-
-      await statusDs.update(elevated, serviceId, patchData)
-
-      if (!options?.skipHistory) {
-        const historyDs = getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id')
-
-        const previousState = JSON.stringify({
-          cloneStatus: current.cloneStatus,
-          installStatus: current.installStatus,
-          buildStatus: current.buildStatus,
-          runStatus: current.runStatus,
-        })
-
-        const newState = JSON.stringify({
-          cloneStatus: update.cloneStatus ?? current.cloneStatus,
-          installStatus: update.installStatus ?? current.installStatus,
-          buildStatus: update.buildStatus ?? current.buildStatus,
-          runStatus: update.runStatus ?? current.runStatus,
-        })
-
-        await historyDs.add(elevated, {
-          serviceId,
-          event,
-          previousState,
-          newState,
-          triggeredBy: trigger.triggeredBy,
-          triggerSource: trigger.triggerSource,
-          metadata: metadata ? JSON.stringify(metadata) : undefined,
-          processUid: options?.processUid,
-          createdAt: now,
-        })
-
-        this.historyInsertCount++
-        if (this.historyInsertCount >= HISTORY_PRUNE_CHECK_INTERVAL) {
-          this.historyInsertCount = 0
-          void this.pruneHistory(serviceId, elevated)
-        }
-      }
-    } catch (e) {
-      void this.logger.warning({
-        message: `Failed to update service status for ${serviceId}`,
-        data: { error: e instanceof Error ? e.message : e },
-      })
-    }
-  }
-
-  private async pruneHistory(serviceId: string, elevated: Injector): Promise<void> {
-    try {
-      const historyDs = getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id')
-      const count = await historyDs.count(elevated, { serviceId: { $eq: serviceId } })
-      if (count <= MAX_HISTORY_PER_SERVICE) return
-
-      const excess = count - MAX_HISTORY_PER_SERVICE
-      const oldEntries = await historyDs.find(elevated, {
-        filter: { serviceId: { $eq: serviceId } },
-        order: { id: 'ASC' },
-        top: excess,
-        select: ['id'],
-      })
-
-      if (oldEntries.length > 0) {
-        await historyDs.remove(elevated, ...oldEntries.map((e) => e.id))
-        await this.logger.verbose({
-          message: `Pruned ${oldEntries.length} old history entries for service ${serviceId}`,
-        })
-      }
-    } catch (e) {
-      void this.logger.warning({
-        message: `Failed to prune history for service ${serviceId}`,
-        data: { error: e instanceof Error ? e.message : e },
-      })
-    }
-  }
+  @Injected(StaleStateReconciler)
+  declare private reconciler: StaleStateReconciler
 
   public async startService(serviceId: string, trigger: TriggerContext): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const services = await getRepository(elevated)
-      .getDataSetFor(ServiceDefinition, 'id')
-      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
-    const svc = services[0]
-    if (!svc) throw new NotFoundError(`Service not found: ${serviceId}`)
+    const svc = await getServiceOrThrow(serviceId, elevated)
 
     if (this.runner.processes.has(serviceId) || this.runner.pendingOperations.has(serviceId)) {
       throw new ConflictError(`Service already has a running process: ${serviceId}`)
@@ -186,9 +77,16 @@ export class ProcessManager {
     this.runner.pendingOperations.add(serviceId)
     try {
       await this.logger.information({ message: `Starting service: ${svc.displayName}` })
-      await this.updateServiceStatus(serviceId, { runStatus: 'starting' }, 'run-started', trigger, undefined, {
-        skipHistory: true,
-      })
+      await this.statusManager.updateServiceStatus(
+        serviceId,
+        { runStatus: 'starting' },
+        'run-started',
+        trigger,
+        undefined,
+        {
+          skipHistory: true,
+        },
+      )
 
       const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
       const envVars = await this.envResolver.resolveServiceEnvVars(serviceId)
@@ -214,7 +112,7 @@ export class ProcessManager {
 
       child.on('error', (err) => {
         void this.logger.error({ message: `Service error: ${svc.displayName}`, data: { error: err } })
-        void this.updateServiceStatus(
+        void this.statusManager.updateServiceStatus(
           serviceId,
           { runStatus: 'error' },
           'run-crashed',
@@ -229,7 +127,7 @@ export class ProcessManager {
         void this.logger.information({ message: `Service exited: ${svc.displayName} (code ${code})` })
         const newStatus: RunStatus = code === 0 ? 'stopped' : 'error'
         const event: ServiceStateEvent = code === 0 ? 'run-stopped' : 'run-crashed'
-        void this.updateServiceStatus(
+        void this.statusManager.updateServiceStatus(
           serviceId,
           { runStatus: newStatus },
           event,
@@ -241,9 +139,16 @@ export class ProcessManager {
       })
 
       child.on('spawn', () => {
-        void this.updateServiceStatus(serviceId, { runStatus: 'running' }, 'run-started', trigger, undefined, {
-          processUid,
-        })
+        void this.statusManager.updateServiceStatus(
+          serviceId,
+          { runStatus: 'running' },
+          'run-started',
+          trigger,
+          undefined,
+          {
+            processUid,
+          },
+        )
       })
     } finally {
       this.runner.pendingOperations.delete(serviceId)
@@ -257,17 +162,27 @@ export class ProcessManager {
     }
 
     await this.logger.information({ message: `Stopping service: ${serviceId}` })
-    await this.updateServiceStatus(serviceId, { runStatus: 'stopping' }, 'run-stopped', trigger, undefined, {
-      skipHistory: true,
-    })
+    await this.statusManager.updateServiceStatus(
+      serviceId,
+      { runStatus: 'stopping' },
+      'run-stopped',
+      trigger,
+      undefined,
+      {
+        skipHistory: true,
+      },
+    )
 
     this.runner.killProcessGroup(managed.process, 'SIGTERM')
 
     await new Promise<void>((resolve) => {
-      const timeout = setTimeout(() => {
-        this.runner.killProcessGroup(managed.process, 'SIGKILL')
-        resolve()
-      }, 10000)
+      const timeout = setTimeout(
+        () => {
+          this.runner.killProcessGroup(managed.process, 'SIGKILL')
+          resolve()
+        },
+        parseInt(process.env.STOP_TIMEOUT_MS as string, 10) || 10_000,
+      )
 
       managed.process.on('exit', () => {
         clearTimeout(timeout)
@@ -285,11 +200,8 @@ export class ProcessManager {
 
   public async installService(serviceId: string, trigger: TriggerContext): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const services = await getRepository(elevated)
-      .getDataSetFor(ServiceDefinition, 'id')
-      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
-    const svc = services[0]
-    if (!svc?.installCommand) throw new ValidationError(`No install command for service: ${serviceId}`)
+    const svc = await getServiceOrThrow(serviceId, elevated)
+    if (!svc.installCommand) throw new ValidationError(`No install command for service: ${serviceId}`)
 
     const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
     await this.runOneShot(serviceId, svc.installCommand, cwd, 'install', trigger)
@@ -297,11 +209,8 @@ export class ProcessManager {
 
   public async buildService(serviceId: string, trigger: TriggerContext): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const services = await getRepository(elevated)
-      .getDataSetFor(ServiceDefinition, 'id')
-      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
-    const svc = services[0]
-    if (!svc?.buildCommand) throw new ValidationError(`No build command for service: ${serviceId}`)
+    const svc = await getServiceOrThrow(serviceId, elevated)
+    if (!svc.buildCommand) throw new ValidationError(`No build command for service: ${serviceId}`)
 
     const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
     await this.runOneShot(serviceId, svc.buildCommand, cwd, 'build', trigger)
@@ -318,11 +227,7 @@ export class ProcessManager {
     const elevated = this.getElevatedInjector()
     const repository = getRepository(elevated)
 
-    const services = await repository
-      .getDataSetFor(ServiceDefinition, 'id')
-      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
-    const svc = services[0]
-    if (!svc) throw new NotFoundError(`Service not found: ${serviceId}`)
+    const svc = await getServiceOrThrow(serviceId, elevated)
 
     const configs = await repository
       .getDataSetFor(StackConfig, 'stackName')
@@ -347,7 +252,7 @@ export class ProcessManager {
       throw new ValidationError(`Resolved path "${cwd}" is outside the stack directory "${stackRoot}"`)
     }
 
-    await this.updateServiceStatus(serviceId, { cloneStatus: 'cloning' }, 'clone-started', trigger)
+    await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloning' }, 'clone-started', trigger)
 
     try {
       const git = getInjectorReference(this).getInstance(GitService)
@@ -357,7 +262,7 @@ export class ProcessManager {
         await this.logger.information({ message: `Cloning ${repo.url} into ${cwd}` })
         mkdirSync(dirname(cwd), { recursive: true })
         await git.clone(repo.url, cwd)
-        await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
         await this.gitHeadWatcher.watch(serviceId, cwd)
         void this.gitWatcher.startWatching(serviceId)
         await this.applySharedFiles(svc, cwd)
@@ -365,7 +270,7 @@ export class ProcessManager {
       } else if (isGitRepo) {
         await this.logger.information({ message: `Pulling in ${cwd}` })
         const { updated } = await git.pull(cwd)
-        await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
         await this.gitHeadWatcher.watch(serviceId, cwd)
         void this.gitWatcher.startWatching(serviceId)
         await this.applySharedFiles(svc, cwd)
@@ -380,14 +285,14 @@ export class ProcessManager {
         rmSync(cwd, { recursive: true })
         mkdirSync(dirname(cwd), { recursive: true })
         await git.clone(repo.url, cwd)
-        await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
         await this.gitHeadWatcher.watch(serviceId, cwd)
         void this.gitWatcher.startWatching(serviceId)
         await this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       }
     } catch (error) {
-      await this.updateServiceStatus(serviceId, { cloneStatus: 'failed' }, 'clone-failed', trigger, {
+      await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'failed' }, 'clone-failed', trigger, {
         error: error instanceof Error ? error.message : 'Unknown clone/pull error',
       })
       throw error
@@ -430,11 +335,7 @@ export class ProcessManager {
     const crypto = elevated.getInstance(CryptoService)
     const repository = getRepository(elevated)
 
-    const services = await repository
-      .getDataSetFor(ServiceDefinition, 'id')
-      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
-    const svc = services[0]
-    if (!svc) throw new NotFoundError(`Service not found: ${serviceId}`)
+    const svc = await getServiceOrThrow(serviceId, elevated)
 
     const svcConfigs = await repository
       .getDataSetFor(ServiceConfig, 'serviceId')
@@ -460,13 +361,9 @@ export class ProcessManager {
    */
   public async setupService(serviceId: string, trigger: TriggerContext): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const services = await getRepository(elevated)
-      .getDataSetFor(ServiceDefinition, 'id')
-      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
-    const svc = services[0]
-    if (!svc) throw new NotFoundError(`Service not found: ${serviceId}`)
+    const svc = await getServiceOrThrow(serviceId, elevated)
 
-    await this.updateServiceStatus(serviceId, {}, 'setup-started', trigger)
+    await this.statusManager.updateServiceStatus(serviceId, {}, 'setup-started', trigger)
 
     try {
       if (svc.repositoryId) {
@@ -487,9 +384,9 @@ export class ProcessManager {
         await this.buildService(serviceId, trigger)
       }
 
-      await this.updateServiceStatus(serviceId, {}, 'setup-completed', trigger)
+      await this.statusManager.updateServiceStatus(serviceId, {}, 'setup-completed', trigger)
     } catch (error) {
-      await this.updateServiceStatus(serviceId, {}, 'setup-failed', trigger, {
+      await this.statusManager.updateServiceStatus(serviceId, {}, 'setup-failed', trigger, {
         error: error instanceof Error ? error.message : 'Setup failed',
       })
       throw error
@@ -502,18 +399,14 @@ export class ProcessManager {
    */
   public async updateService(serviceId: string, trigger: TriggerContext): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const services = await getRepository(elevated)
-      .getDataSetFor(ServiceDefinition, 'id')
-      .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
-    const svc = services[0]
-    if (!svc) throw new NotFoundError(`Service not found: ${serviceId}`)
+    const svc = await getServiceOrThrow(serviceId, elevated)
 
     const statuses = await getRepository(elevated)
       .getDataSetFor(ServiceStatus, 'serviceId')
       .find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
     const currentStatus = statuses[0]
 
-    await this.updateServiceStatus(serviceId, {}, 'update-started', trigger)
+    await this.statusManager.updateServiceStatus(serviceId, {}, 'update-started', trigger)
 
     try {
       if (!svc.repositoryId) {
@@ -523,7 +416,7 @@ export class ProcessManager {
       const { updated } = await this.cloneOrPullService(serviceId, trigger)
 
       if (!updated) {
-        await this.updateServiceStatus(serviceId, {}, 'update-completed', trigger, {
+        await this.statusManager.updateServiceStatus(serviceId, {}, 'update-completed', trigger, {
           message: 'Already up to date',
         })
         return
@@ -547,9 +440,9 @@ export class ProcessManager {
         await this.startService(serviceId, trigger)
       }
 
-      await this.updateServiceStatus(serviceId, {}, 'update-completed', trigger)
+      await this.statusManager.updateServiceStatus(serviceId, {}, 'update-completed', trigger)
     } catch (error) {
-      await this.updateServiceStatus(serviceId, {}, 'update-failed', trigger, {
+      await this.statusManager.updateServiceStatus(serviceId, {}, 'update-failed', trigger, {
         error: error instanceof Error ? error.message : 'Update failed',
       })
       throw error
@@ -616,7 +509,9 @@ export class ProcessManager {
       purpose === 'install' ? ({ installStatus: 'failed' } as const) : ({ buildStatus: 'failed' } as const)
 
     const processUid = randomUUID()
-    await this.updateServiceStatus(serviceId, progressStatus, progressEvent, trigger, undefined, { processUid })
+    await this.statusManager.updateServiceStatus(serviceId, progressStatus, progressEvent, trigger, undefined, {
+      processUid,
+    })
 
     let child: ChildProcess
     try {
@@ -653,7 +548,7 @@ export class ProcessManager {
 
     return new Promise((resolve, reject) => {
       child.on('error', (err) => {
-        void this.updateServiceStatus(
+        void this.statusManager.updateServiceStatus(
           serviceId,
           failedStatus,
           failedEvent,
@@ -668,10 +563,12 @@ export class ProcessManager {
       child.on('exit', (code) => {
         this.runner.processes.delete(serviceId)
         if (code === 0) {
-          void this.updateServiceStatus(serviceId, doneStatus, doneEvent, trigger, undefined, { processUid })
+          void this.statusManager.updateServiceStatus(serviceId, doneStatus, doneEvent, trigger, undefined, {
+            processUid,
+          })
           resolve()
         } else {
-          void this.updateServiceStatus(
+          void this.statusManager.updateServiceStatus(
             serviceId,
             failedStatus,
             failedEvent,
@@ -690,64 +587,7 @@ export class ProcessManager {
    * Should be called once during startup, after data stores are ready.
    */
   public async reconcileStaleStates(): Promise<void> {
-    const elevated = this.getElevatedInjector()
-    const statusDs = getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId')
-    const allStatuses = await statusDs.find(elevated, {})
-
-    const reconcileTrigger: TriggerContext = { triggeredBy: 'system', triggerSource: 'system' }
-    const staleMetadata = {
-      reason: 'Stale state detected on startup. Service may have been terminated outside the application.',
-    }
-
-    for (const status of allStatuses) {
-      const update: Partial<ServiceStatus> = {}
-      let hasStaleState = false
-
-      if (status.runStatus === 'running' || status.runStatus === 'starting' || status.runStatus === 'stopping') {
-        update.runStatus = 'stopped'
-        hasStaleState = true
-      }
-
-      if (status.installStatus === 'installing') {
-        update.installStatus = 'not-installed'
-        hasStaleState = true
-      }
-
-      if (status.buildStatus === 'building') {
-        update.buildStatus = 'not-built'
-        hasStaleState = true
-      }
-
-      if (status.cloneStatus === 'cloning') {
-        update.cloneStatus = 'not-cloned'
-        hasStaleState = true
-      }
-
-      if (hasStaleState) {
-        await this.logger.warning({
-          message: `Reconciling stale state for service ${status.serviceId}: ${JSON.stringify(update)}`,
-        })
-        await this.updateServiceStatus(status.serviceId, update, 'state-reconciled', reconcileTrigger, staleMetadata)
-      }
-
-      if (status.cloneStatus === 'cloned') {
-        try {
-          const services = await getRepository(elevated)
-            .getDataSetFor(ServiceDefinition, 'id')
-            .find(elevated, { filter: { id: { $eq: status.serviceId } }, top: 1 })
-          const svc = services[0]
-          if (svc) {
-            const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
-            await this.gitHeadWatcher.watch(status.serviceId, cwd)
-            void this.gitWatcher.startWatching(status.serviceId)
-          }
-        } catch (error) {
-          await this.logger.verbose({
-            message: `Could not start git watcher for service ${status.serviceId}: ${(error as Error).message}`,
-          })
-        }
-      }
-    }
+    await this.reconciler.reconcileStaleStates()
   }
 
   public async [Symbol.asyncDispose]() {
@@ -759,9 +599,15 @@ export class ProcessManager {
 
     const shutdownTrigger: TriggerContext = { triggeredBy: 'system', triggerSource: 'system' }
     for (const [serviceId] of entries) {
-      await this.updateServiceStatus(serviceId, { runStatus: 'stopped' }, 'run-stopped', shutdownTrigger, {
-        reason: 'backend-shutdown',
-      })
+      await this.statusManager.updateServiceStatus(
+        serviceId,
+        { runStatus: 'stopped' },
+        'run-stopped',
+        shutdownTrigger,
+        {
+          reason: 'backend-shutdown',
+        },
+      )
     }
 
     if (entries.length > 0) {
@@ -774,13 +620,16 @@ export class ProcessManager {
         entries.map(
           ([serviceId, managed]) =>
             new Promise<void>((resolve) => {
-              const timeout = setTimeout(() => {
-                if (!managed.process.killed) {
-                  this.runner.killProcessGroup(managed.process, 'SIGKILL')
-                  void this.logger.warning({ message: `Sent SIGKILL to service: ${serviceId}` })
-                }
-                resolve()
-              }, 5000)
+              const timeout = setTimeout(
+                () => {
+                  if (!managed.process.killed) {
+                    this.runner.killProcessGroup(managed.process, 'SIGKILL')
+                    void this.logger.warning({ message: `Sent SIGKILL to service: ${serviceId}` })
+                  }
+                  resolve()
+                },
+                parseInt(process.env.SHUTDOWN_KILL_TIMEOUT_MS as string, 10) || 5_000,
+              )
 
               managed.process.on('exit', () => {
                 clearTimeout(timeout)

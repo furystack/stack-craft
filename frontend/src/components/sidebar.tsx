@@ -85,6 +85,12 @@ const SidebarStackCategory = Shade<SidebarStackCategoryProps>({
       borderRadius: cssVariableTheme.shape.borderRadius.sm,
       margin: '0 8px',
       transition: `background ${cssVariableTheme.transitions.duration.fast} ease, color ${cssVariableTheme.transitions.duration.fast} ease`,
+      border: 'none',
+      background: 'none',
+      color: 'inherit',
+      fontFamily: 'inherit',
+      width: 'calc(100% - 16px)',
+      textAlign: 'left',
     },
     '& .category-header:hover': {
       background: cssVariableTheme.action.hoverBackground,
@@ -119,9 +125,11 @@ const SidebarStackCategory = Shade<SidebarStackCategoryProps>({
 
     return (
       <div>
-        <div
+        <button
+          type="button"
           className="category-header"
           {...(isCategoryActive ? { 'data-active': '' } : {})}
+          aria-expanded={isExpanded}
           onclick={() => setIsExpanded(!isExpanded)}
         >
           <span className="expand-arrow" {...(isExpanded ? { 'data-expanded': '' } : {})}>
@@ -129,7 +137,7 @@ const SidebarStackCategory = Shade<SidebarStackCategoryProps>({
           </span>
           <Icon icon={icons.layers} size={16} />
           <span>{props.stack.displayName}</span>
-        </div>
+        </button>
         {isExpanded ? (
           <div className="category-children">
             <SidebarStackLink stackName={props.stack.name} label="Overview" currentUrl={props.currentUrl} />

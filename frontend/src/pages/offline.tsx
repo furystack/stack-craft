@@ -34,7 +34,7 @@ export const Offline = Shade({
           <a href={environmentOptions.serviceUrl} target="_blank">
             {environmentOptions.serviceUrl}
           </a>
-          . It seems to be the service is unaccessible at the moment. You can check the following things:
+          . It seems to be the service is inaccessible at the moment. You can check the following things:
         </p>
         <ul>
           <li>

@@ -1,3 +1,8 @@
+/**
+ * REST API type definitions for stack management endpoints.
+ * Stacks group related services, repositories, and prerequisites into a deployable unit.
+ */
+
 import type { WithOptionalId } from '@furystack/core'
 import type { DeleteEndpoint, GetCollectionEndpoint, GetEntityEndpoint, PatchEndpoint, RestApi } from '@furystack/rest'
 import type { EnvironmentVariableValue } from '../models/environment-variable-value.js'
@@ -12,7 +17,10 @@ import type { StackView } from '../models/views.js'
 
 export type StackWritableFields = Omit<StackDefinition, 'createdAt' | 'updatedAt'> &
   Omit<StackConfig, 'createdAt' | 'updatedAt' | 'stackName'>
+
+/** Creates a new stack with optional configuration */
 export type PostStackEndpoint = { result: StackView; body: WithOptionalId<StackWritableFields, 'name'> }
+
 export type PatchStackEndpoint = PatchEndpoint<StackWritableFields, 'name'>
 
 type ShareableStackDefinition = Omit<StackDefinition, 'createdAt' | 'updatedAt'>
@@ -20,6 +28,7 @@ type ShareableServiceDefinition = Omit<ServiceDefinition, 'createdAt' | 'updated
 type ShareableGitHubRepository = Omit<GitHubRepository, 'createdAt' | 'updatedAt'>
 type ShareablePrerequisite = Omit<Prerequisite, 'createdAt' | 'updatedAt'>
 
+/** A warning about a potential secret detected during stack export */
 export type SecretWarning = {
   line: number
   pattern: string
@@ -28,6 +37,7 @@ export type SecretWarning = {
   suggestion?: string
 }
 
+/** Exports a stack and all its associated services, repositories, and prerequisites for sharing */
 export type ExportStackEndpoint = {
   url: { id: string }
   result: {
@@ -39,6 +49,7 @@ export type ExportStackEndpoint = {
   }
 }
 
+/** Imports a previously exported stack, creating all associated entities and applying configuration overrides */
 export type ImportStackEndpoint = {
   result: { success: boolean; warnings?: SecretWarning[] }
   body: {
@@ -60,6 +71,7 @@ export type ImportStackEndpoint = {
   }
 }
 
+/** Runs the setup pipeline (clone, install, build) for all services in a stack */
 export type StackSetupEndpoint = {
   url: { id: string }
   result: { success: boolean }

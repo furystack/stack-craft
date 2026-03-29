@@ -150,7 +150,7 @@ const EntityNameResolver = Shade<EntityNameResolverProps>({
     }
 
     return (
-      <nav>
+      <nav aria-label="Breadcrumb">
         {resolved.map((segment, index) => {
           const isLast = index === resolved.length - 1
           return (
