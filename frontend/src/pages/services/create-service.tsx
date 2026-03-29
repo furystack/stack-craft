@@ -62,6 +62,7 @@ export const CreateService = Shade<CreateServiceProps>({
             prerequisiteIds: data.prerequisiteIds ?? [],
             prerequisiteServiceIds: data.prerequisiteServiceIds ?? [],
             files: data.files ?? [],
+            localFiles: data.localFiles ?? [],
             environmentVariableOverrides: data.environmentVariableOverrides ?? {},
           },
         })

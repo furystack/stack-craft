@@ -2,6 +2,7 @@ export type SecretWarning = {
   line: number
   pattern: string
   snippet: string
+  suggestion?: string
 }
 
 const SECRET_PATTERNS: Array<{ regex: RegExp; label: string }> = [
@@ -56,7 +57,11 @@ export const detectSecretsInServiceDefinition = (opts: {
 
   for (const file of opts.files ?? []) {
     for (const warning of detectSecretPatterns(file.content)) {
-      results.push({ ...warning, source: `file: ${file.relativePath}` })
+      results.push({
+        ...warning,
+        source: `file: ${file.relativePath}`,
+        suggestion: 'Move this value to a local file or use {{VARIABLE_NAME}} template interpolation',
+      })
     }
   }
 
@@ -67,7 +72,11 @@ export const detectSecretsInServiceDefinition = (opts: {
   ] as const) {
     if (command) {
       for (const warning of detectSecretPatterns(command)) {
-        results.push({ ...warning, source: label })
+        results.push({
+          ...warning,
+          source: label,
+          suggestion: 'Use an environment variable prerequisite instead of inlining the secret',
+        })
       }
     }
   }

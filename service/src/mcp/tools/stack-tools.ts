@@ -361,6 +361,7 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
             autoFetchIntervalMinutes: 60,
             autoRestartOnFetch: false,
             environmentVariableOverrides: {},
+            localFiles: [],
             createdAt: now,
             updatedAt: now,
           })

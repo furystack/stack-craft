@@ -15,7 +15,7 @@ import {
 } from 'common'
 
 import { CryptoService } from '../../../utils/crypto-service.js'
-import { encryptEnvValues } from '../../../utils/env-encryption-helpers.js'
+import { encryptEnvValues, encryptLocalFiles } from '../../../utils/env-encryption-helpers.js'
 import { detectSecretsInServiceDefinition } from '../../../utils/secret-detector.js'
 
 export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ injector, getBody }) => {
@@ -92,6 +92,7 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
         autoFetchIntervalMinutes: userConfig?.autoFetchIntervalMinutes ?? 60,
         autoRestartOnFetch: userConfig?.autoRestartOnFetch ?? false,
         environmentVariableOverrides: encryptEnvValues(crypto, userConfig?.environmentVariableOverrides ?? {}),
+        localFiles: encryptLocalFiles(crypto, userConfig?.localFiles ?? []),
         createdAt: now,
         updatedAt: now,
       })

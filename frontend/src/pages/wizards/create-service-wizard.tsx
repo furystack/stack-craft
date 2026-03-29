@@ -80,6 +80,7 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
             prerequisiteIds: data.prerequisiteIds ?? [],
             prerequisiteServiceIds: data.prerequisiteServiceIds ?? [],
             files: data.files ?? [],
+            localFiles: data.localFiles ?? [],
             environmentVariableOverrides: data.environmentVariableOverrides ?? {},
           },
         })

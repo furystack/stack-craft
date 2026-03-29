@@ -64,6 +64,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
     const [isCreatingPrereq, setIsCreatingPrereq] = useState('isCreatingPrereq', false)
     const [isCreatingRepo, setIsCreatingRepo] = useState('isCreatingRepo', false)
     const [sharedFiles, setSharedFiles] = useState<ServiceFile[]>('sharedFiles', props.initial?.files ?? [])
+    const [localFiles, setLocalFiles] = useState<ServiceFile[]>('localFiles', props.initial?.localFiles ?? [])
 
     const togglePrereqId = (id: string) => {
       const updated = selectedPrereqIds.includes(id)
@@ -104,6 +105,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
               prerequisiteIds: selectedPrereqIds,
               prerequisiteServiceIds: selectedPrereqServiceIds,
               files: sharedFiles.filter((f) => f.relativePath.trim().length > 0),
+              localFiles: localFiles.filter((f) => f.relativePath.trim().length > 0),
             })
           }
           disableOnSubmit
@@ -264,6 +266,110 @@ export const ServiceForm = Shade<ServiceFormProps>({
               startIcon={<Icon icon={icons.plus} size="small" />}
             >
               Add File
+            </Button>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px 0' }}>
+              <h4 style={{ margin: '0', opacity: '0.7' }}>Local Files</h4>
+              <Icon icon={icons.lock} size="small" title="Encrypted at rest, never exported" />
+            </div>
+            <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
+              Per-installation secret files. Encrypted at rest and never included in stack exports.
+            </p>
+            {localFiles.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '8px' }}>
+                {localFiles.map((file, index) => {
+                  const isOverridingShared = sharedFiles.some((sf) => sf.relativePath === file.relativePath)
+                  return (
+                    <div
+                      style={{
+                        border: `2px solid ${cssVariableTheme.palette.warning.main}`,
+                        borderRadius: '8px',
+                        padding: '12px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                        <input
+                          type="text"
+                          placeholder="Relative path (e.g. .env.local)"
+                          value={file.relativePath}
+                          oninput={(ev: Event) => {
+                            const updated = [...localFiles]
+                            updated[index] = { ...updated[index], relativePath: (ev.target as HTMLInputElement).value }
+                            setLocalFiles(updated)
+                          }}
+                          style={{
+                            flex: '1',
+                            padding: '6px 10px',
+                            borderRadius: '4px',
+                            border: `1px solid ${cssVariableTheme.divider}`,
+                            background: 'transparent',
+                            color: 'inherit',
+                            fontFamily: 'monospace',
+                            fontSize: cssVariableTheme.typography.fontSize.sm,
+                          }}
+                        />
+                        {isOverridingShared ? (
+                          <span
+                            style={{
+                              fontSize: cssVariableTheme.typography.fontSize.xs,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: cssVariableTheme.palette.warning.main,
+                              color: cssVariableTheme.palette.warning.mainContrast,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Overrides shared
+                          </span>
+                        ) : null}
+                        <Button
+                          type="button"
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onclick={() => setLocalFiles(localFiles.filter((_, i) => i !== index))}
+                          startIcon={<Icon icon={icons.close} size="small" />}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                      <textarea
+                        placeholder="File content (secret)"
+                        value={file.content}
+                        oninput={(ev: Event) => {
+                          const updated = [...localFiles]
+                          updated[index] = { ...updated[index], content: (ev.target as HTMLTextAreaElement).value }
+                          setLocalFiles(updated)
+                        }}
+                        rows={4}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '4px',
+                          border: `1px solid ${cssVariableTheme.divider}`,
+                          background: 'transparent',
+                          color: 'inherit',
+                          fontFamily: 'monospace',
+                          fontSize: cssVariableTheme.typography.fontSize.sm,
+                          resize: 'vertical',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            ) : null}
+            <Button
+              type="button"
+              variant="outlined"
+              size="small"
+              onclick={() => setLocalFiles([...localFiles, { relativePath: '', content: '' }])}
+              startIcon={<Icon icon={icons.plus} size="small" />}
+            >
+              Add Local File
             </Button>
           </div>
 

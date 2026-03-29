@@ -1,8 +1,15 @@
 import { randomBytes } from 'crypto'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { CryptoService, UNCHANGED_SENTINEL } from './crypto-service.js'
-import { decryptEnvValues, encryptEnvValues, maskSensitiveEnvValues } from './env-encryption-helpers.js'
+import { CryptoService, SENSITIVE_VALUE_MASK, UNCHANGED_SENTINEL } from './crypto-service.js'
+import {
+  decryptEnvValues,
+  decryptLocalFiles,
+  encryptEnvValues,
+  encryptLocalFiles,
+  maskLocalFiles,
+  maskSensitiveEnvValues,
+} from './env-encryption-helpers.js'
 
 describe('env-encryption-helpers', () => {
   let crypto: CryptoService
@@ -108,6 +115,65 @@ describe('env-encryption-helpers', () => {
       }
       const result = maskSensitiveEnvValues(crypto, values, '****')
       expect(result.VAR.customValue).toBe('plain')
+    })
+  })
+
+  describe('encryptLocalFiles', () => {
+    it('should encrypt file content', () => {
+      const files = [{ relativePath: '.env', content: 'SECRET=abc123' }]
+      const result = encryptLocalFiles(crypto, files)
+      expect(result).toHaveLength(1)
+      expect(result[0].relativePath).toBe('.env')
+      expect(crypto.isEncrypted(result[0].content)).toBe(true)
+    })
+
+    it('should skip already-encrypted content', () => {
+      const encrypted = crypto.encrypt('original')
+      const files = [{ relativePath: '.env', content: encrypted }]
+      const result = encryptLocalFiles(crypto, files)
+      expect(result[0].content).toBe(encrypted)
+    })
+
+    it('should handle UNCHANGED_SENTINEL by preserving existing', () => {
+      const encrypted = crypto.encrypt('secret-data')
+      const existing = [{ relativePath: '.env', content: encrypted }]
+      const files = [{ relativePath: '.env', content: UNCHANGED_SENTINEL }]
+      const result = encryptLocalFiles(crypto, files, existing)
+      expect(result[0].content).toBe(encrypted)
+    })
+
+    it('should handle UNCHANGED_SENTINEL with no existing match', () => {
+      const files = [{ relativePath: '.env', content: UNCHANGED_SENTINEL }]
+      const result = encryptLocalFiles(crypto, files)
+      expect(result[0].content).toBe(UNCHANGED_SENTINEL)
+    })
+  })
+
+  describe('decryptLocalFiles', () => {
+    it('should decrypt encrypted file content', () => {
+      const encrypted = crypto.encrypt('DB_URL=postgres://localhost')
+      const files = [{ relativePath: '.env', content: encrypted }]
+      const result = decryptLocalFiles(crypto, files)
+      expect(result[0].content).toBe('DB_URL=postgres://localhost')
+    })
+
+    it('should pass through non-encrypted content', () => {
+      const files = [{ relativePath: 'readme.txt', content: 'plain text' }]
+      const result = decryptLocalFiles(crypto, files)
+      expect(result[0].content).toBe('plain text')
+    })
+  })
+
+  describe('maskLocalFiles', () => {
+    it('should mask encrypted content', () => {
+      const encrypted = crypto.encrypt('secret')
+      const files = [
+        { relativePath: '.env', content: encrypted },
+        { relativePath: 'config.json', content: 'not encrypted' },
+      ]
+      const result = maskLocalFiles(crypto, files)
+      expect(result[0].content).toBe(SENSITIVE_VALUE_MASK)
+      expect(result[1].content).toBe('not encrypted')
     })
   })
 })

@@ -3,7 +3,7 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { applyServiceFiles, interpolateTemplateVars } from './apply-service-files.js'
+import { applyServiceFiles, interpolateTemplateVars, mergeServiceFiles } from './apply-service-files.js'
 
 describe('interpolateTemplateVars', () => {
   it('should replace a single variable', () => {
@@ -111,5 +111,38 @@ describe('applyServiceFiles with variables', () => {
     expect(applied).toEqual(['.env'])
     expect(existsSync(join(tempDir, '.env'))).toBe(true)
     expect(existsSync(join(tempDir, 'config.json'))).toBe(false)
+  })
+})
+
+describe('mergeServiceFiles', () => {
+  it('should return shared files when no local files', () => {
+    const shared = [{ relativePath: '.env', content: 'A=1' }]
+    const result = mergeServiceFiles(shared, [])
+    expect(result).toEqual(shared)
+  })
+
+  it('should return local files when no shared files', () => {
+    const local = [{ relativePath: '.env', content: 'SECRET=x' }]
+    const result = mergeServiceFiles([], local)
+    expect(result).toEqual(local)
+  })
+
+  it('should let local files override shared files with same path', () => {
+    const shared = [
+      { relativePath: '.env', content: 'SHARED_VALUE' },
+      { relativePath: 'config.json', content: '{}' },
+    ]
+    const local = [{ relativePath: '.env', content: 'LOCAL_SECRET' }]
+    const result = mergeServiceFiles(shared, local)
+    expect(result).toHaveLength(2)
+    expect(result.find((f) => f.relativePath === '.env')?.content).toBe('LOCAL_SECRET')
+    expect(result.find((f) => f.relativePath === 'config.json')?.content).toBe('{}')
+  })
+
+  it('should include both shared and local when paths differ', () => {
+    const shared = [{ relativePath: 'a.txt', content: 'A' }]
+    const local = [{ relativePath: 'b.txt', content: 'B' }]
+    const result = mergeServiceFiles(shared, local)
+    expect(result).toHaveLength(2)
   })
 })

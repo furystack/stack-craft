@@ -208,6 +208,7 @@ describe('ProcessManager', () => {
       autoFetchIntervalMinutes: 60,
       autoRestartOnFetch: false,
       environmentVariableOverrides: {},
+      localFiles: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })

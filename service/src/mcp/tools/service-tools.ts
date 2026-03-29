@@ -170,6 +170,7 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
           autoFetchIntervalMinutes: autoFetchIntervalMinutes ?? 60,
           autoRestartOnFetch: autoRestartOnFetch ?? false,
           environmentVariableOverrides: environmentVariableOverrides ?? {},
+          localFiles: [],
           createdAt: now,
           updatedAt: now,
         }

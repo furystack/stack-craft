@@ -23,6 +23,7 @@ const baseService: ServiceView = {
   autoFetchIntervalMinutes: 60,
   autoRestartOnFetch: false,
   environmentVariableOverrides: {},
+  localFiles: [],
   cloneStatus: 'not-cloned',
   installStatus: 'not-installed',
   buildStatus: 'not-built',

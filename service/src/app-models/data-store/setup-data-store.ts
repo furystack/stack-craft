@@ -65,6 +65,7 @@ class ServiceConfigModel extends Model<ServiceConfig, ServiceConfig> implements 
   declare autoFetchIntervalMinutes: number
   declare autoRestartOnFetch: boolean
   declare environmentVariableOverrides: Record<string, EnvironmentVariableValue>
+  declare localFiles: ServiceFile[]
   declare createdAt: string
   declare updatedAt: string
 }
@@ -302,6 +303,10 @@ async function initAllModels(sequelize: Sequelize): Promise<void> {
       environmentVariableOverrides: {
         type: DataTypes.JSONB,
         defaultValue: {},
+      },
+      localFiles: {
+        type: DataTypes.JSONB,
+        defaultValue: [],
       },
       createdAt: { type: DataTypes.DATE },
       updatedAt: { type: DataTypes.DATE },

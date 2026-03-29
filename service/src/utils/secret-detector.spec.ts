@@ -85,6 +85,20 @@ describe('detectSecretsInServiceDefinition', () => {
     expect(results[0]?.source).toBe('file: .env')
   })
 
+  it('should include suggestion for file secrets', () => {
+    const results = detectSecretsInServiceDefinition({
+      files: [{ relativePath: '.env', content: 'password=bad' }],
+    })
+    expect(results[0]?.suggestion).toContain('local file')
+  })
+
+  it('should include suggestion for command secrets', () => {
+    const results = detectSecretsInServiceDefinition({
+      runCommand: 'password=bad npm start',
+    })
+    expect(results[0]?.suggestion).toContain('environment variable')
+  })
+
   it('should scan commands', () => {
     const results = detectSecretsInServiceDefinition({
       runCommand: 'API_KEY=abc123 npm start',

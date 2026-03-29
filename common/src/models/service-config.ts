@@ -1,4 +1,5 @@
 import type { EnvironmentVariableValue } from './environment-variable-value.js'
+import type { ServiceFile } from './service-definition.js'
 
 /**
  * User-specific service configuration.
@@ -21,6 +22,13 @@ export class ServiceConfig {
 
   /** Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults. */
   environmentVariableOverrides: Record<string, EnvironmentVariableValue> = {}
+
+  /**
+   * Per-installation secret files, encrypted at rest. NOT included in exports.
+   * When a local file shares a `relativePath` with a shared file from
+   * {@link ServiceDefinition.files}, the local file takes precedence at apply time.
+   */
+  localFiles: ServiceFile[] = []
 
   createdAt!: string
   updatedAt!: string

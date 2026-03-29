@@ -19,7 +19,8 @@ import { dirname, join, resolve as resolvePosix } from 'path'
 
 import { useSystemIdentityContext } from '@furystack/core'
 import { CryptoService } from '../utils/crypto-service.js'
-import { applyServiceFiles } from '../utils/apply-service-files.js'
+import { decryptLocalFiles } from '../utils/env-encryption-helpers.js'
+import { applyServiceFiles, mergeServiceFiles } from '../utils/apply-service-files.js'
 import { resolvePath } from '../utils/resolve-path.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { GitHeadWatcher } from './git-head-watcher.js'
@@ -409,17 +410,27 @@ export class ProcessManager {
   }
 
   private async applySharedFiles(svc: ServiceDefinition, cwd: string): Promise<void> {
-    const files = svc.files ?? []
-    if (files.length === 0) return
+    const elevated = this.getElevatedInjector()
+    const crypto = elevated.getInstance(CryptoService)
+
+    const svcConfigs = await getRepository(elevated)
+      .getDataSetFor(ServiceConfig, 'serviceId')
+      .find(elevated, { filter: { serviceId: { $eq: svc.id } }, top: 1 })
+    const localFiles = decryptLocalFiles(crypto, svcConfigs[0]?.localFiles ?? [])
+    const sharedFiles = svc.files ?? []
+
+    const merged = mergeServiceFiles(sharedFiles, localFiles)
+    if (merged.length === 0) return
+
     try {
       const variables = await this.resolveServiceEnvVars(svc.id)
-      const applied = applyServiceFiles(cwd, files, undefined, variables)
+      const applied = applyServiceFiles(cwd, merged, undefined, variables)
       void this.logger.information({
-        message: `Applied ${applied.length} shared file(s) for ${svc.displayName}: ${applied.join(', ')}`,
+        message: `Applied ${applied.length} file(s) for ${svc.displayName}: ${applied.join(', ')}`,
       })
     } catch (error) {
       void this.logger.warning({
-        message: `Failed to apply shared files for ${svc.displayName}: ${(error as Error).message}`,
+        message: `Failed to apply files for ${svc.displayName}: ${(error as Error).message}`,
       })
     }
   }
@@ -431,22 +442,30 @@ export class ProcessManager {
    */
   public async applyFiles(serviceId: string, relativePath?: string): Promise<string[]> {
     const elevated = this.getElevatedInjector()
-    const services = await getRepository(elevated)
+    const crypto = elevated.getInstance(CryptoService)
+    const repository = getRepository(elevated)
+
+    const services = await repository
       .getDataSetFor(ServiceDefinition, 'id')
       .find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = services[0]
     if (!svc) throw new Error(`Service not found: ${serviceId}`)
 
+    const svcConfigs = await repository
+      .getDataSetFor(ServiceConfig, 'serviceId')
+      .find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+    const localFiles = decryptLocalFiles(crypto, svcConfigs[0]?.localFiles ?? [])
+    const merged = mergeServiceFiles(svc.files ?? [], localFiles)
+
     const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
-    const files = svc.files ?? []
 
     if (relativePath) {
-      const file = files.find((f) => f.relativePath === relativePath)
-      if (!file) throw new Error(`File not found in service definition: ${relativePath}`)
+      const file = merged.find((f) => f.relativePath === relativePath)
+      if (!file) throw new Error(`File not found in service definition or local files: ${relativePath}`)
     }
 
     const variables = await this.resolveServiceEnvVars(serviceId)
-    return applyServiceFiles(cwd, files, relativePath, variables)
+    return applyServiceFiles(cwd, merged, relativePath, variables)
   }
 
   /**

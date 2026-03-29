@@ -126,6 +126,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       autoFetchIntervalMinutes: 60,
       autoRestartOnFetch: false,
       environmentVariableOverrides: {},
+      localFiles: [],
       cloneStatus: 'not-cloned',
       installStatus: 'not-installed',
       buildStatus: 'not-built',
@@ -223,6 +224,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             prerequisiteIds: data.prerequisiteIds,
             prerequisiteServiceIds: data.prerequisiteServiceIds,
             files: data.files,
+            localFiles: data.localFiles,
           },
         })
         noty.emit('onNotyAdded', {
@@ -911,7 +913,60 @@ const ConfigurationTab = Shade<ConfigurationTabProps>({
               </Button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {service.files.map((file) => (
+              {service.files.map((file) => {
+                const isOverridden = (service.localFiles ?? []).some((lf) => lf.relativePath === file.relativePath)
+                return (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: `1px solid ${cssVariableTheme.divider}`,
+                      fontFamily: 'monospace',
+                      fontSize: cssVariableTheme.typography.fontSize.sm,
+                      opacity: isOverridden ? '0.5' : '1',
+                    }}
+                  >
+                    <span style={{ flex: '1', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.relativePath}</span>
+                    {isOverridden ? (
+                      <Chip variant="outlined" size="small">
+                        Overridden by local
+                      </Chip>
+                    ) : null}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      loading={actionInProgress === `apply-file-${file.relativePath}`}
+                      disabled={!!actionInProgress}
+                      onclick={() => void props.onApplyFiles(file.relativePath)}
+                      startIcon={<Icon icon={icons.download} size="small" />}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          </Paper>
+        ) : null}
+
+        {/* Local files */}
+        {service.localFiles && service.localFiles.length > 0 ? (
+          <Paper>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <h3 style={{ margin: '0' }}>Local Files</h3>
+              <Icon icon={icons.lock} size="small" title="Encrypted at rest, never exported" />
+              <Chip variant="outlined" size="small">
+                {service.localFiles.length} file(s)
+              </Chip>
+            </div>
+            <p style={{ margin: '0 0 8px 0', opacity: '0.6', fontSize: cssVariableTheme.typography.fontSize.sm }}>
+              Per-installation secret files. Encrypted at rest and never included in stack exports.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {service.localFiles.map((file) => (
                 <div
                   style={{
                     display: 'flex',
@@ -919,11 +974,12 @@ const ConfigurationTab = Shade<ConfigurationTabProps>({
                     gap: '12px',
                     padding: '8px 12px',
                     borderRadius: '8px',
-                    border: `1px solid ${cssVariableTheme.divider}`,
+                    border: `1px solid ${cssVariableTheme.palette.warning.main}`,
                     fontFamily: 'monospace',
                     fontSize: cssVariableTheme.typography.fontSize.sm,
                   }}
                 >
+                  <Icon icon={icons.lock} size="small" />
                   <span style={{ flex: '1', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.relativePath}</span>
                   <Button
                     variant="outlined"

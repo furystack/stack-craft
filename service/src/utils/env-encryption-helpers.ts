@@ -1,7 +1,7 @@
-import type { EnvironmentVariableValue } from 'common'
+import type { EnvironmentVariableValue, ServiceFile } from 'common'
 
 import type { CryptoService } from './crypto-service.js'
-import { UNCHANGED_SENTINEL } from './crypto-service.js'
+import { SENSITIVE_VALUE_MASK, UNCHANGED_SENTINEL } from './crypto-service.js'
 
 /**
  * Encrypts `customValue` for entries where `isSensitive` is true.
@@ -71,4 +71,51 @@ export const maskSensitiveEnvValues = (
     }
   }
   return result
+}
+
+// --- Local file encryption helpers ---
+
+/**
+ * Encrypts the `content` of each local file.
+ * Skips already-encrypted content and handles the unchanged sentinel.
+ */
+export const encryptLocalFiles = (
+  crypto: CryptoService,
+  files: ServiceFile[],
+  existingFiles?: ServiceFile[],
+): ServiceFile[] => {
+  return files.map((file) => {
+    if (file.content === UNCHANGED_SENTINEL) {
+      const existing = existingFiles?.find((f) => f.relativePath === file.relativePath)
+      return existing ?? file
+    }
+    if (crypto.isEncrypted(file.content)) {
+      return file
+    }
+    return { ...file, content: crypto.encrypt(file.content) }
+  })
+}
+
+/**
+ * Decrypts the `content` of each local file.
+ */
+export const decryptLocalFiles = (crypto: CryptoService, files: ServiceFile[]): ServiceFile[] => {
+  return files.map((file) => {
+    if (crypto.isEncrypted(file.content)) {
+      return { ...file, content: crypto.decrypt(file.content) }
+    }
+    return file
+  })
+}
+
+/**
+ * Replaces encrypted file content with a mask for safe API responses.
+ */
+export const maskLocalFiles = (crypto: CryptoService, files: ServiceFile[]): ServiceFile[] => {
+  return files.map((file) => {
+    if (crypto.isEncrypted(file.content)) {
+      return { ...file, content: SENSITIVE_VALUE_MASK }
+    }
+    return file
+  })
 }

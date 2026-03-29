@@ -4,6 +4,7 @@ import type { EnvironmentVariableValue } from '../models/environment-variable-va
 import type { GitHubRepository } from '../models/github-repository.js'
 import type { Prerequisite } from '../models/prerequisite.js'
 import type { ServiceConfig } from '../models/service-config.js'
+import type { ServiceFile } from '../models/service-definition.js'
 import type { ServiceDefinition } from '../models/service-definition.js'
 import type { StackConfig } from '../models/stack-config.js'
 import type { StackDefinition } from '../models/stack-definition.js'
@@ -24,6 +25,7 @@ export type SecretWarning = {
   pattern: string
   snippet: string
   source: string
+  suggestion?: string
 }
 
 export type ExportStackEndpoint = {
@@ -51,6 +53,7 @@ export type ImportStackEndpoint = {
         string,
         Partial<Pick<ServiceConfig, 'autoFetchEnabled' | 'autoFetchIntervalMinutes' | 'autoRestartOnFetch'>> & {
           environmentVariableOverrides?: Record<string, EnvironmentVariableValue>
+          localFiles?: ServiceFile[]
         }
       >
     }

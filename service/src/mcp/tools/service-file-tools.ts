@@ -1,16 +1,20 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Injector } from '@furystack/inject'
 import { getRepository } from '@furystack/repository'
-import { ServiceDefinition } from 'common'
+import { ServiceConfig, ServiceDefinition } from 'common'
 import type { ServiceFile } from 'common'
 import { z } from 'zod'
 
 import { ProcessManager } from '../../services/process-manager.js'
+import { CryptoService } from '../../utils/crypto-service.js'
+import { decryptLocalFiles, encryptLocalFiles } from '../../utils/env-encryption-helpers.js'
 import { errorResult, textResult } from './mcp-helpers.js'
 
 export const registerServiceFileTools = (mcp: McpServer, injector: Injector, elevated: Injector) => {
   const repository = getRepository(elevated)
+  const crypto = elevated.getInstance(CryptoService)
   const svcDs = () => repository.getDataSetFor(ServiceDefinition, 'id')
+  const svcConfigDs = () => repository.getDataSetFor(ServiceConfig, 'serviceId')
 
   const getService = async (serviceId: string) => {
     const results = await svcDs().find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
@@ -166,6 +170,129 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
         return textResult(`Applied: ${applied.join(', ')}`)
       } catch (error) {
         return errorResult(`Failed to apply file: ${(error as Error).message}`)
+      }
+    },
+  )
+
+  const getServiceConfig = async (serviceId: string) => {
+    const results = await svcConfigDs().find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+    return results[0]
+  }
+
+  mcp.registerTool(
+    'list_local_files',
+    {
+      description: 'List local (secret) files for a service. Content is shown decrypted.',
+      inputSchema: { serviceId: z.string() },
+    },
+    async ({ serviceId }) => {
+      const config = await getServiceConfig(serviceId)
+      if (!config) return errorResult(`Service config not found: ${serviceId}`)
+      const files = decryptLocalFiles(crypto, config.localFiles ?? [])
+      return textResult(JSON.stringify(files.map((f) => ({ relativePath: f.relativePath, contentLength: f.content.length })), null, 2))
+    },
+  )
+
+  mcp.registerTool(
+    'read_local_file',
+    {
+      description: 'Read the content of a specific local (secret) file. Content is returned decrypted.',
+      inputSchema: {
+        serviceId: z.string(),
+        relativePath: z.string().describe('Relative path of the local file to read'),
+      },
+    },
+    async ({ serviceId, relativePath }) => {
+      const config = await getServiceConfig(serviceId)
+      if (!config) return errorResult(`Service config not found: ${serviceId}`)
+      const files = decryptLocalFiles(crypto, config.localFiles ?? [])
+      const file = files.find((f) => f.relativePath === relativePath)
+      if (!file) return errorResult(`Local file not found: ${relativePath}`)
+      return textResult(file.content)
+    },
+  )
+
+  mcp.registerTool(
+    'add_local_file',
+    {
+      description: 'Add a local (secret) file to a service. Encrypted at rest, never exported.',
+      inputSchema: {
+        serviceId: z.string(),
+        relativePath: z.string().describe('Relative path (e.g. ".env.local", "secrets/config.json")'),
+        content: z.string().describe('File content (will be encrypted at rest)'),
+      },
+    },
+    async ({ serviceId, relativePath, content }) => {
+      try {
+        const config = await getServiceConfig(serviceId)
+        if (!config) return errorResult(`Service config not found: ${serviceId}`)
+
+        const existing = decryptLocalFiles(crypto, config.localFiles ?? [])
+        if (existing.some((f) => f.relativePath === relativePath)) {
+          return errorResult(`Local file already exists: ${relativePath}. Use update_local_file to modify it.`)
+        }
+
+        existing.push({ relativePath, content })
+        await svcConfigDs().update(elevated, serviceId, { localFiles: encryptLocalFiles(crypto, existing) })
+        return textResult(`Local file added: ${relativePath}`)
+      } catch (error) {
+        return errorResult(`Failed to add local file: ${(error as Error).message}`)
+      }
+    },
+  )
+
+  mcp.registerTool(
+    'update_local_file',
+    {
+      description: 'Update the content of an existing local (secret) file',
+      inputSchema: {
+        serviceId: z.string(),
+        relativePath: z.string().describe('Relative path of the local file to update'),
+        content: z.string().describe('New file content (will be encrypted at rest)'),
+      },
+    },
+    async ({ serviceId, relativePath, content }) => {
+      try {
+        const config = await getServiceConfig(serviceId)
+        if (!config) return errorResult(`Service config not found: ${serviceId}`)
+
+        const existing = decryptLocalFiles(crypto, config.localFiles ?? [])
+        const idx = existing.findIndex((f) => f.relativePath === relativePath)
+        if (idx === -1) return errorResult(`Local file not found: ${relativePath}`)
+
+        existing[idx] = { relativePath, content }
+        await svcConfigDs().update(elevated, serviceId, { localFiles: encryptLocalFiles(crypto, existing) })
+        return textResult(`Local file updated: ${relativePath}`)
+      } catch (error) {
+        return errorResult(`Failed to update local file: ${(error as Error).message}`)
+      }
+    },
+  )
+
+  mcp.registerTool(
+    'remove_local_file',
+    {
+      description: 'Remove a local (secret) file from a service',
+      inputSchema: {
+        serviceId: z.string(),
+        relativePath: z.string().describe('Relative path of the local file to remove'),
+      },
+    },
+    async ({ serviceId, relativePath }) => {
+      try {
+        const config = await getServiceConfig(serviceId)
+        if (!config) return errorResult(`Service config not found: ${serviceId}`)
+
+        const existing: ServiceFile[] = config.localFiles ?? []
+        const decrypted = decryptLocalFiles(crypto, existing)
+        const idx = decrypted.findIndex((f) => f.relativePath === relativePath)
+        if (idx === -1) return errorResult(`Local file not found: ${relativePath}`)
+
+        decrypted.splice(idx, 1)
+        await svcConfigDs().update(elevated, serviceId, { localFiles: encryptLocalFiles(crypto, decrypted) })
+        return textResult(`Local file removed: ${relativePath}`)
+      } catch (error) {
+        return errorResult(`Failed to remove local file: ${(error as Error).message}`)
       }
     },
   )

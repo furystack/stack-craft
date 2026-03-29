@@ -15,12 +15,22 @@ export function interpolateTemplateVars(content: string, variables: Record<strin
 }
 
 /**
- * Writes shared service files to disk relative to the service working directory.
+ * Merges shared files with local files. Local files take precedence when
+ * a `relativePath` appears in both arrays.
+ */
+export function mergeServiceFiles(sharedFiles: ServiceFile[], localFiles: ServiceFile[]): ServiceFile[] {
+  const localPaths = new Set(localFiles.map((f) => f.relativePath))
+  const merged = sharedFiles.filter((f) => !localPaths.has(f.relativePath))
+  return [...merged, ...localFiles]
+}
+
+/**
+ * Writes service files to disk relative to the service working directory.
  * Creates parent directories as needed.
  * Supports `{{VARIABLE_NAME}}` placeholders that are resolved from the provided
  * `variables` map before writing.
  * @param serviceCwd - Absolute path to the service working directory
- * @param files - Files to write
+ * @param files - Files to write (typically merged shared + local via `mergeServiceFiles`)
  * @param relativePath - If provided, only the file matching this path is written
  * @param variables - Optional map of template variables to interpolate
  * @returns The list of relative paths that were written

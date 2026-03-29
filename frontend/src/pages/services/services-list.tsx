@@ -53,6 +53,7 @@ export const ServicesList = Shade<ServicesListProps>({
       autoFetchIntervalMinutes: 60,
       autoRestartOnFetch: false,
       environmentVariableOverrides: {},
+      localFiles: [],
       cloneStatus: 'not-cloned' as const,
       installStatus: 'not-installed' as const,
       buildStatus: 'not-built' as const,

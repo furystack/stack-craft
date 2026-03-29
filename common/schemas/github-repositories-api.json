@@ -25,7 +25,13 @@
           "description": "Optional description"
         }
       },
-      "required": ["id", "stackName", "url", "displayName", "description"],
+      "required": [
+        "id",
+        "stackName",
+        "url",
+        "displayName",
+        "description"
+      ],
       "additionalProperties": false
     },
     "PostGitHubRepoEndpoint": {
@@ -38,7 +44,10 @@
           "$ref": "#/definitions/WithOptionalId%3CGitHubRepoWritableFields%2C%22id%22%3E"
         }
       },
-      "required": ["result", "body"],
+      "required": [
+        "result",
+        "body"
+      ],
       "additionalProperties": false
     },
     "GitHubRepository": {
@@ -71,7 +80,15 @@
           "type": "string"
         }
       },
-      "required": ["id", "stackName", "url", "displayName", "description", "createdAt", "updatedAt"],
+      "required": [
+        "id",
+        "stackName",
+        "url",
+        "displayName",
+        "description",
+        "createdAt",
+        "updatedAt"
+      ],
       "additionalProperties": false,
       "description": "Shareable GitHub repository definition. Links a git repository to a stack for cloning and pulling. Included in stack exports and shared between installations."
     },
@@ -100,7 +117,12 @@
           "description": "Optional description"
         }
       },
-      "required": ["description", "displayName", "stackName", "url"]
+      "required": [
+        "description",
+        "displayName",
+        "stackName",
+        "url"
+      ]
     },
     "PatchGitHubRepoEndpoint": {
       "$ref": "#/definitions/PatchEndpoint%3CGitHubRepoWritableFields%2C%22id%22%3E"
@@ -142,14 +164,20 @@
               "description": "UUID primary key"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": ["body", "url", "result"],
+      "required": [
+        "body",
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for updating entities"
     },
@@ -163,7 +191,9 @@
               "type": "string"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
@@ -176,11 +206,16 @@
               "type": "string"
             }
           },
-          "required": ["accessible"],
+          "required": [
+            "accessible"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["url", "result"],
+      "required": [
+        "url",
+        "result"
+      ],
       "additionalProperties": false
     },
     "GitHubRepositoriesApi": {
@@ -196,7 +231,10 @@
               "$ref": "#/definitions/GetEntityEndpoint%3CGitHubRepository%2C%22id%22%3E"
             }
           },
-          "required": ["/github-repositories", "/github-repositories/:id"],
+          "required": [
+            "/github-repositories",
+            "/github-repositories/:id"
+          ],
           "additionalProperties": false
         },
         "POST": {
@@ -209,7 +247,10 @@
               "$ref": "#/definitions/ValidateRepoEndpoint"
             }
           },
-          "required": ["/github-repositories", "/github-repositories/:id/validate"],
+          "required": [
+            "/github-repositories",
+            "/github-repositories/:id/validate"
+          ],
           "additionalProperties": false
         },
         "PATCH": {
@@ -219,7 +260,9 @@
               "$ref": "#/definitions/PatchGitHubRepoEndpoint"
             }
           },
-          "required": ["/github-repositories/:id"],
+          "required": [
+            "/github-repositories/:id"
+          ],
           "additionalProperties": false
         },
         "PUT": {
@@ -248,7 +291,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -259,7 +304,9 @@
               "$ref": "#/definitions/DeleteEndpoint%3CGitHubRepository%2C%22id%22%3E"
             }
           },
-          "required": ["/github-repositories/:id"],
+          "required": [
+            "/github-repositories/:id"
+          ],
           "additionalProperties": false
         },
         "HEAD": {
@@ -288,7 +335,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -318,7 +367,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -348,7 +399,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -378,12 +431,19 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         }
       },
-      "required": ["GET", "POST", "PATCH", "DELETE"],
+      "required": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ],
       "additionalProperties": false
     },
     "GetCollectionEndpoint<GitHubRepository>": {
@@ -402,7 +462,10 @@
           "$ref": "#/definitions/GetCollectionResult%3CGitHubRepository%3E"
         }
       },
-      "required": ["query", "result"],
+      "required": [
+        "query",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
@@ -422,31 +485,52 @@
           "properties": {
             "id": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "stackName": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "url": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "displayName": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "description": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "createdAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "updatedAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             }
           },
           "additionalProperties": false,
@@ -456,7 +540,15 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["id", "stackName", "url", "displayName", "description", "createdAt", "updatedAt"]
+            "enum": [
+              "id",
+              "stackName",
+              "url",
+              "displayName",
+              "description",
+              "createdAt",
+              "updatedAt"
+            ]
           },
           "description": "The result set will be limited to these fields"
         },
@@ -917,7 +1009,10 @@
           "description": "List of the selected entities"
         }
       },
-      "required": ["count", "entries"],
+      "required": [
+        "count",
+        "entries"
+      ],
       "additionalProperties": false,
       "description": "Response Model for GetCollection"
     },
@@ -931,7 +1026,15 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": ["id", "stackName", "url", "displayName", "description", "createdAt", "updatedAt"]
+                "enum": [
+                  "id",
+                  "stackName",
+                  "url",
+                  "displayName",
+                  "description",
+                  "createdAt",
+                  "updatedAt"
+                ]
               },
               "description": "The list of fields to select"
             }
@@ -946,14 +1049,20 @@
               "description": "The entity's unique identifier"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "$ref": "#/definitions/GitHubRepository"
         }
       },
-      "required": ["query", "url", "result"],
+      "required": [
+        "query",
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for getting a single entity"
     },
@@ -968,14 +1077,19 @@
               "description": "UUID primary key"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": ["url", "result"],
+      "required": [
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for deleting entities"
     }
