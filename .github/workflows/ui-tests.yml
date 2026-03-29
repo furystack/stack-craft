@@ -18,7 +18,7 @@ jobs:
           POSTGRES_PASSWORD: stackcraft
           POSTGRES_DB: stackcraft
         ports:
-          - 5432:5432
+          - 5433:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -26,7 +26,7 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgres://stackcraft:stackcraft@localhost:5432/stackcraft
+      DATABASE_URL: postgres://stackcraft:stackcraft@localhost:5433/stackcraft
 
     steps:
       - uses: actions/checkout@v4

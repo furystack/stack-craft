@@ -15,7 +15,7 @@ Example web app with common type API definitions, a FuryStack-based backend serv
 When running the Docker image, pass the `DATABASE_URL` environment variable:
 
 ```bash
-docker run -e DATABASE_URL=postgres://user:password@host:5432/stackcraft furystack/stack-craft
+docker run -e DATABASE_URL=postgres://user:password@host:5433/stackcraft furystack/stack-craft
 ```
 
 # Testing
