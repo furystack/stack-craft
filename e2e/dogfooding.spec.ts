@@ -163,7 +163,7 @@ It is used to test the following features:
   await expect(page.locator('shade-service-status-indicator')).toContainText('Running')
 
   // Navigate to the Logs tab via the tab bar
-  await page.getByTestId('service-detail-tabs').getByRole('button', { name: 'Logs' }).click()
+  await page.getByTestId('service-detail-tabs').getByRole('tab', { name: 'Logs' }).click()
   await expect(page.locator('shade-service-logs-tab')).toBeVisible()
 
   // Verify that the log viewer is present with entries
