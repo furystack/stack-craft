@@ -189,7 +189,13 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
       const config = await getServiceConfig(serviceId)
       if (!config) return errorResult(`Service config not found: ${serviceId}`)
       const files = decryptLocalFiles(crypto, config.localFiles ?? [])
-      return textResult(JSON.stringify(files.map((f) => ({ relativePath: f.relativePath, contentLength: f.content.length })), null, 2))
+      return textResult(
+        JSON.stringify(
+          files.map((f) => ({ relativePath: f.relativePath, contentLength: f.content.length })),
+          null,
+          2,
+        ),
+      )
     },
   )
 

@@ -12,8 +12,8 @@ const SECRET_PATTERNS: Array<{ regex: RegExp; label: string }> = [
   { regex: /-----BEGIN\s+[\w\s]*(?:PRIVATE|RSA|EC|DSA)\s+KEY-----/, label: 'private key header' },
   { regex: /(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{36,}/, label: 'GitHub token' },
   { regex: /sk-[A-Za-z0-9]{20,}/, label: 'OpenAI-style API key' },
-  { regex: /[A-Za-z0-9+/]{40,}={0,2}(?:\s|$)/, label: 'high-entropy base64 string' },
-  { regex: /[0-9a-f]{40,}(?:\s|$)/i, label: 'high-entropy hex string' },
+  { regex: /[A-Za-z0-9+/]{64,}={0,2}(?:\s|$)/, label: 'high-entropy base64 string' },
+  { regex: /(?<![A-Za-z0-9])[0-9a-f]{64,}(?:\s|$)/, label: 'high-entropy hex string' },
 ]
 
 const MAX_SNIPPET_LENGTH = 80

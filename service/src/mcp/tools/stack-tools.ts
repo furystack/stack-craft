@@ -15,6 +15,8 @@ import { randomUUID } from 'crypto'
 import { z } from 'zod'
 
 import { ProcessManager } from '../../services/process-manager.js'
+import { CryptoService } from '../../utils/crypto-service.js'
+import { encryptEnvValues } from '../../utils/env-encryption-helpers.js'
 import { environmentVariableValueSchema, errorResult, mcpTrigger, textResult } from './mcp-helpers.js'
 
 export const registerStackTools = (mcp: McpServer, injector: Injector, elevated: Injector) => {
@@ -295,67 +297,77 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
       },
     },
     async ({ stack, services, repositories, prerequisites, config }) => {
-      try {
-        const now = new Date().toISOString()
-        const stackName = stack.name
+      const now = new Date().toISOString()
+      const stackName = stack.name
+      const crypto = elevated.getInstance(CryptoService)
 
-        await repository.getDataSetFor(StackDefinition, 'name').add(elevated, {
+      const repoEntries = repositories.map((repo) => ({
+        ...repo,
+        description: repo.description ?? '',
+        stackName,
+        createdAt: now,
+        updatedAt: now,
+      }))
+
+      const prereqEntries = prerequisites.map(
+        (prereq) =>
+          ({
+            ...prereq,
+            installationHelp: prereq.installationHelp ?? '',
+            stackName,
+            createdAt: now,
+            updatedAt: now,
+          }) as Prerequisite,
+      )
+
+      const svcDefs = services.map((svc) => ({
+        ...svc,
+        description: svc.description ?? '',
+        prerequisiteIds: svc.prerequisiteIds ?? [],
+        prerequisiteServiceIds: svc.prerequisiteServiceIds ?? [],
+        files: svc.files ?? [],
+        stackName,
+        createdAt: now,
+        updatedAt: now,
+      }))
+
+      const stackDefDs = repository.getDataSetFor(StackDefinition, 'name')
+      const stackConfigDs = repository.getDataSetFor(StackConfig, 'stackName')
+      const repoDs = repository.getDataSetFor(GitHubRepository, 'id')
+      const prereqDs = repository.getDataSetFor(Prerequisite, 'id')
+      const svcDefDs = repository.getDataSetFor(ServiceDefinition, 'id')
+      const svcConfigDs = repository.getDataSetFor(ServiceConfig, 'serviceId')
+      const svcStatusDs = repository.getDataSetFor(ServiceStatus, 'serviceId')
+      const historyDs = repository.getDataSetFor(ServiceStateHistory, 'id')
+
+      try {
+        await stackDefDs.add(elevated, {
           ...stack,
           description: stack.description ?? '',
           createdAt: now,
           updatedAt: now,
         })
 
-        await repository.getDataSetFor(StackConfig, 'stackName').add(elevated, {
+        await stackConfigDs.add(elevated, {
           stackName,
           mainDirectory: config.mainDirectory,
-          environmentVariables: config.environmentVariables ?? {},
+          environmentVariables: encryptEnvValues(crypto, config.environmentVariables ?? {}),
           createdAt: now,
           updatedAt: now,
         })
 
-        const repoEntries = repositories.map((repo) => ({
-          ...repo,
-          description: repo.description ?? '',
-          stackName,
-          createdAt: now,
-          updatedAt: now,
-        }))
         if (repoEntries.length > 0) {
-          await repository.getDataSetFor(GitHubRepository, 'id').add(elevated, ...repoEntries)
+          await repoDs.add(elevated, ...repoEntries)
         }
-
-        const prereqEntries = prerequisites.map(
-          (prereq) =>
-            ({
-              ...prereq,
-              installationHelp: prereq.installationHelp ?? '',
-              stackName,
-              createdAt: now,
-              updatedAt: now,
-            }) as Prerequisite,
-        )
         if (prereqEntries.length > 0) {
-          await repository.getDataSetFor(Prerequisite, 'id').add(elevated, ...prereqEntries)
+          await prereqDs.add(elevated, ...prereqEntries)
         }
-
-        const svcDefs = services.map((svc) => ({
-          ...svc,
-          description: svc.description ?? '',
-          prerequisiteIds: svc.prerequisiteIds ?? [],
-          prerequisiteServiceIds: svc.prerequisiteServiceIds ?? [],
-          files: svc.files ?? [],
-          stackName,
-          createdAt: now,
-          updatedAt: now,
-        }))
         if (svcDefs.length > 0) {
-          await repository.getDataSetFor(ServiceDefinition, 'id').add(elevated, ...svcDefs)
+          await svcDefDs.add(elevated, ...svcDefs)
         }
 
-        const historyDs = repository.getDataSetFor(ServiceStateHistory, 'id')
         for (const svcDef of svcDefs) {
-          await repository.getDataSetFor(ServiceConfig, 'serviceId').add(elevated, {
+          await svcConfigDs.add(elevated, {
             serviceId: svcDef.id,
             autoFetchEnabled: false,
             autoFetchIntervalMinutes: 60,
@@ -366,7 +378,7 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
             updatedAt: now,
           })
 
-          await repository.getDataSetFor(ServiceStatus, 'serviceId').add(elevated, {
+          await svcStatusDs.add(elevated, {
             serviceId: svcDef.id,
             cloneStatus: 'not-cloned',
             installStatus: 'not-installed',
@@ -393,6 +405,29 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
 
         return textResult(`Stack ${stackName} imported successfully`)
       } catch (error) {
+        const svcIds = svcDefs.map((s) => s.id)
+        for (const svcId of svcIds) {
+          const historyEntries = await historyDs
+            .find(elevated, { filter: { serviceId: { $eq: svcId } } })
+            .catch(() => [] as ServiceStateHistory[])
+          if (historyEntries.length > 0) {
+            await historyDs.remove(elevated, ...historyEntries.map((e) => e.id)).catch(() => {})
+          }
+        }
+        if (svcIds.length > 0) {
+          await svcStatusDs.remove(elevated, ...svcIds).catch(() => {})
+          await svcConfigDs.remove(elevated, ...svcIds).catch(() => {})
+          await svcDefDs.remove(elevated, ...svcIds).catch(() => {})
+        }
+        if (prereqEntries.length > 0) {
+          await prereqDs.remove(elevated, ...prereqEntries.map((p) => p.id)).catch(() => {})
+        }
+        if (repoEntries.length > 0) {
+          await repoDs.remove(elevated, ...repoEntries.map((r) => r.id)).catch(() => {})
+        }
+        await stackConfigDs.remove(elevated, stackName).catch(() => {})
+        await stackDefDs.remove(elevated, stackName).catch(() => {})
+
         return errorResult(`Failed to import stack: ${(error as Error).message}`)
       }
     },

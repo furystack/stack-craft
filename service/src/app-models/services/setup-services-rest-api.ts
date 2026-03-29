@@ -12,7 +12,12 @@ import { getCorsOptions } from '../../get-cors-options.js'
 import { getPort } from '../../get-port.js'
 import { ProcessManager } from '../../services/process-manager.js'
 import { CryptoService, SENSITIVE_VALUE_MASK } from '../../utils/crypto-service.js'
-import { encryptEnvValues, encryptLocalFiles, maskLocalFiles, maskSensitiveEnvValues } from '../../utils/env-encryption-helpers.js'
+import {
+  encryptEnvValues,
+  encryptLocalFiles,
+  maskLocalFiles,
+  maskSensitiveEnvValues,
+} from '../../utils/env-encryption-helpers.js'
 import { ClearServiceLogsAction } from './actions/clear-service-logs-action.js'
 import { ServiceBranchesAction } from './actions/service-branches-action.js'
 import { ServiceCheckoutAction } from './actions/service-checkout-action.js'
@@ -241,10 +246,13 @@ export const setupServicesRestApi = async (injector: Injector) => {
               configFields.autoFetchIntervalMinutes = body.autoFetchIntervalMinutes
             if (body.autoRestartOnFetch !== undefined) configFields.autoRestartOnFetch = body.autoRestartOnFetch
 
-            const needsExisting =
-              body.environmentVariableOverrides !== undefined || body.localFiles !== undefined
+            const needsExisting = body.environmentVariableOverrides !== undefined || body.localFiles !== undefined
             const existing = needsExisting
-              ? (await repo.getDataSetFor(ServiceConfig, 'serviceId').find(i, { filter: { serviceId: { $eq: id } }, top: 1 }))[0]
+              ? (
+                  await repo
+                    .getDataSetFor(ServiceConfig, 'serviceId')
+                    .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
+                )[0]
               : undefined
 
             if (body.environmentVariableOverrides !== undefined) {

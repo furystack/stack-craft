@@ -358,7 +358,7 @@ export class ProcessManager {
 
     const cwd = resolvePath(getServiceCwd(stackConfig, svc, repo))
     const stackRoot = resolvePosix(resolvePath(stackConfig.mainDirectory))
-    if (!cwd.startsWith(stackRoot)) {
+    if (cwd !== stackRoot && !cwd.startsWith(stackRoot + '/')) {
       throw new Error(`Resolved path "${cwd}" is outside the stack directory "${stackRoot}"`)
     }
 
@@ -685,8 +685,14 @@ export class ProcessManager {
     const processUid = randomUUID()
     await this.updateServiceStatus(serviceId, progressStatus, progressEvent, trigger, undefined, { processUid })
 
-    const envVars = await this.resolveServiceEnvVars(serviceId)
-    const child = this.spawnCommand(command, cwd, envVars)
+    let child: ChildProcess
+    try {
+      const envVars = await this.resolveServiceEnvVars(serviceId)
+      child = this.spawnCommand(command, cwd, envVars)
+    } catch (error) {
+      this.pendingOperations.delete(serviceId)
+      throw error
+    }
 
     const managed: ManagedProcess = {
       serviceId,

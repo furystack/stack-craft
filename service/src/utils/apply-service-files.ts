@@ -44,10 +44,12 @@ export function applyServiceFiles(
   const toApply = relativePath ? files.filter((f) => f.relativePath === relativePath) : files
   const applied: string[] = []
 
-  for (const file of toApply) {
-    const target = resolve(join(serviceCwd, file.relativePath))
+  const resolvedCwd = resolve(serviceCwd)
 
-    if (!target.startsWith(serviceCwd)) {
+  for (const file of toApply) {
+    const target = resolve(join(resolvedCwd, file.relativePath))
+
+    if (target !== resolvedCwd && !target.startsWith(resolvedCwd + '/')) {
       throw new Error(`File path "${file.relativePath}" resolves outside the service directory`)
     }
 
