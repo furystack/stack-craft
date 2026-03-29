@@ -263,6 +263,10 @@
         "currentBranch": {
           "type": "string"
         },
+        "commitsBehind": {
+          "type": "number",
+          "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
+        },
         "cloneStatus": {
           "$ref": "#/definitions/CloneStatus"
         },
@@ -1252,7 +1256,7 @@
           "type": "object",
           "properties": {
             "findOptions": {
-              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22files%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22environmentVariableOverrides%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22%7C%22currentBranch%22)%5B%5D%3E"
+              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22files%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22environmentVariableOverrides%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22%7C%22currentBranch%22%7C%22commitsBehind%22)%5B%5D%3E"
             }
           },
           "additionalProperties": false
@@ -1265,7 +1269,7 @@
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
-    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"files\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"environmentVariableOverrides\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\"|\"currentBranch\")[]>": {
+    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"files\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"environmentVariableOverrides\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\"|\"currentBranch\"|\"commitsBehind\")[]>": {
       "type": "object",
       "properties": {
         "top": {
@@ -1394,6 +1398,10 @@
             "currentBranch": {
               "type": "string",
               "enum": ["ASC", "DESC"]
+            },
+            "commitsBehind": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
             }
           },
           "additionalProperties": false,
@@ -1432,7 +1440,8 @@
               "lastBuiltAt",
               "lastStartedAt",
               "lastFetchedAt",
-              "currentBranch"
+              "currentBranch",
+              "commitsBehind"
             ]
           },
           "description": "The result set will be limited to these fields"
@@ -2984,6 +2993,58 @@
               "additionalProperties": false
             }
           ]
+        },
+        "commitsBehind": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "number",
+                  "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
+                },
+                "$ne": {
+                  "type": "number",
+                  "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
         }
       }
     },
@@ -3045,7 +3106,8 @@
                   "lastBuiltAt",
                   "lastStartedAt",
                   "lastFetchedAt",
-                  "currentBranch"
+                  "currentBranch",
+                  "commitsBehind"
                 ]
               },
               "description": "The list of fields to select"

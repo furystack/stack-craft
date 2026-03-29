@@ -225,11 +225,15 @@
         },
         "currentBranch": {
           "type": "string"
+        },
+        "commitsBehind": {
+          "type": "number",
+          "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
         }
       },
       "required": ["serviceId"],
       "additionalProperties": false,
-      "description": "In-memory git state for a service. Derived from the filesystem (`.git/HEAD`), never persisted to DB."
+      "description": "In-memory git state for a service. Derived from the filesystem (`.git/HEAD`) and periodic remote checks, never persisted to DB."
     },
     "CloneStatus": {
       "type": "string",
@@ -349,6 +353,10 @@
         },
         "currentBranch": {
           "type": "string"
+        },
+        "commitsBehind": {
+          "type": "number",
+          "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
         },
         "cloneStatus": {
           "$ref": "#/definitions/CloneStatus"

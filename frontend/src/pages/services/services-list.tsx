@@ -10,7 +10,7 @@ import {
   PageHeader,
 } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
-import { ServiceConfig, ServiceDefinition, ServiceStatus } from 'common'
+import { ServiceConfig, ServiceDefinition, ServiceGitStatus, ServiceStatus } from 'common'
 
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { ServiceTable } from '../../components/service-table.js'
@@ -39,8 +39,13 @@ export const ServicesList = Shade<ServicesListProps>({
     const configs =
       configsState.status === 'synced' || configsState.status === 'cached' ? configsState.data.entries : []
 
+    const gitStatusState = useCollectionSync(options, ServiceGitStatus, {})
+    const gitStatuses =
+      gitStatusState.status === 'synced' || gitStatusState.status === 'cached' ? gitStatusState.data.entries : []
+
     const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
     const configMap = new Map(configs.map((c) => [c.serviceId, c]))
+    const gitStatusMap = new Map(gitStatuses.map((g) => [g.serviceId, g]))
 
     const services: ServiceView[] = defs.map((def) => ({
       serviceId: def.id,
@@ -55,6 +60,7 @@ export const ServicesList = Shade<ServicesListProps>({
       ...def,
       ...(configMap.get(def.id) ?? {}),
       ...(statusMap.get(def.id) ?? {}),
+      ...(gitStatusMap.get(def.id) ?? {}),
     }))
 
     const isLoading = servicesState.status === 'connecting'
@@ -126,6 +132,7 @@ export const ServicesList = Shade<ServicesListProps>({
                   <Button
                     size="small"
                     loading={isBulkLoading}
+                    title="Clone, install, and build (initial provisioning)"
                     onclick={() => void bulkAction('setup')}
                     startIcon={<Icon icon={icons.settings} size="small" />}
                   >
@@ -145,6 +152,7 @@ export const ServicesList = Shade<ServicesListProps>({
                   <Button
                     size="small"
                     loading={isBulkLoading}
+                    title="Pull, install, build, and restart if running"
                     onclick={() => void bulkAction('update')}
                     startIcon={<Icon icon={icons.download} size="small" />}
                   >

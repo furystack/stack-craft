@@ -1,6 +1,6 @@
 /**
  * In-memory git state for a service.
- * Derived from the filesystem (`.git/HEAD`), never persisted to DB.
+ * Derived from the filesystem (`.git/HEAD`) and periodic remote checks, never persisted to DB.
  * @see ServiceStatus for the persisted runtime status
  */
 export class ServiceGitStatus {
@@ -8,4 +8,7 @@ export class ServiceGitStatus {
   serviceId!: string
 
   currentBranch?: string
+
+  /** Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch. */
+  commitsBehind?: number
 }

@@ -360,6 +360,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                   variant="outlined"
                   size="small"
                   color={action.color === 'secondary' ? undefined : action.color}
+                  title={action.tooltip}
                   loading={actionInProgress === action.label}
                   disabled={!!actionInProgress}
                   onclick={() => void runAction(action.label, action.apiAction)}

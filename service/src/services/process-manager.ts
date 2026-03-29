@@ -23,6 +23,7 @@ import { resolvePath } from '../utils/resolve-path.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { GitHeadWatcher } from './git-head-watcher.js'
 import { GitService } from './git-service.js'
+import { GitWatcher } from './git-watcher.js'
 import { LogStorageService } from './log-storage-service.js'
 
 const MAX_HISTORY_PER_SERVICE = 10_000
@@ -62,6 +63,9 @@ export class ProcessManager {
 
   @Injected(GitHeadWatcher)
   declare private gitHeadWatcher: GitHeadWatcher
+
+  @Injected(GitWatcher)
+  declare private gitWatcher: GitWatcher
 
   private logBuffer: Array<{ serviceId: string; processUid: string; stream: 'stdout' | 'stderr'; line: string }> = []
   private flushTimer: ReturnType<typeof setTimeout> | null = null
@@ -368,6 +372,7 @@ export class ProcessManager {
         await git.clone(repo.url, cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
         await this.gitHeadWatcher.watch(serviceId, cwd)
+        void this.gitWatcher.startWatching(serviceId)
         this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       } else if (isGitRepo) {
@@ -375,6 +380,7 @@ export class ProcessManager {
         const { updated } = await git.pull(cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
         await this.gitHeadWatcher.watch(serviceId, cwd)
+        void this.gitWatcher.startWatching(serviceId)
         this.applySharedFiles(svc, cwd)
         return { cloned: false, pulled: true, updated }
       } else {
@@ -389,6 +395,7 @@ export class ProcessManager {
         await git.clone(repo.url, cwd)
         await this.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
         await this.gitHeadWatcher.watch(serviceId, cwd)
+        void this.gitWatcher.startWatching(serviceId)
         this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       }
@@ -884,10 +891,11 @@ export class ProcessManager {
           if (svc) {
             const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
             await this.gitHeadWatcher.watch(status.serviceId, cwd)
+            void this.gitWatcher.startWatching(status.serviceId)
           }
         } catch (error) {
           await this.logger.verbose({
-            message: `Could not start git HEAD watcher for service ${status.serviceId}: ${(error as Error).message}`,
+            message: `Could not start git watcher for service ${status.serviceId}: ${(error as Error).message}`,
           })
         }
       }

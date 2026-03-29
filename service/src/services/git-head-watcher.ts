@@ -75,7 +75,8 @@ export class GitHeadWatcher {
 
   private async onHeadChanged(serviceId: string, cwd: string): Promise<void> {
     const branch = await this.readBranch(serviceId, cwd)
-    await this.upsertGitStatus(serviceId, branch)
+    const commitsBehind = branch ? await this.git.getCommitsBehind(cwd, branch).catch(() => 0) : undefined
+    await this.upsertGitStatus(serviceId, branch, commitsBehind)
   }
 
   private async readBranch(serviceId: string, cwd: string): Promise<string | undefined> {
@@ -87,16 +88,20 @@ export class GitHeadWatcher {
     }
   }
 
-  private async upsertGitStatus(serviceId: string, currentBranch: string | undefined): Promise<void> {
+  private async upsertGitStatus(
+    serviceId: string,
+    currentBranch: string | undefined,
+    commitsBehind?: number,
+  ): Promise<void> {
     try {
       const elevated = this.getElevatedInjector()
       const ds = getRepository(elevated).getDataSetFor(ServiceGitStatus, 'serviceId')
       const existing = await ds.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
 
       if (existing.length > 0) {
-        await ds.update(elevated, serviceId, { currentBranch })
+        await ds.update(elevated, serviceId, { currentBranch, commitsBehind })
       } else {
-        await ds.add(elevated, { serviceId, currentBranch })
+        await ds.add(elevated, { serviceId, currentBranch, commitsBehind })
       }
     } catch (error) {
       void this.logger.verbose({

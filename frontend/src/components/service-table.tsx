@@ -21,6 +21,7 @@ import { ServicesApiClient } from '../services/api-clients/services-api-client.j
 import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
 import { getPrimaryAction } from '../utils/service-pipeline.js'
 import { StackCraftNestedRouteLink } from './app-routes.js'
+import { BranchSelector } from './branch-selector.js'
 import { MiniPipelineDots } from './mini-pipeline-dots.js'
 
 type ServiceTableProps = {
@@ -134,15 +135,13 @@ export const ServiceTable = Shade<ServiceTableProps>({
           },
           pipeline: (entry) => <MiniPipelineDots service={entry} />,
           branch: (entry) => (
-            <span
-              style={{
-                fontFamily: 'monospace',
-                fontSize: cssVariableTheme.typography.fontSize.sm,
-                opacity: entry.currentBranch ? '0.8' : '0.3',
-              }}
-            >
-              {entry.currentBranch ?? '—'}
-            </span>
+            <div onclick={(e: MouseEvent) => e.stopPropagation()}>
+              <BranchSelector
+                serviceId={entry.id}
+                currentBranch={entry.currentBranch}
+                isCloned={entry.cloneStatus === 'cloned'}
+              />
+            </div>
           ),
           actions: (entry) => {
             const primary = getPrimaryAction(entry)
@@ -182,17 +181,43 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     startIcon={<Icon icon={icons.refresh} size="small" />}
                   />
                 ) : null}
-                {/* Update */}
+                {/* Update (pull + install + build + restart if running) */}
                 {entry.repositoryId && entry.cloneStatus === 'cloned' ? (
-                  <Button
-                    variant="text"
-                    size="small"
-                    title="Update"
-                    onclick={() => {
-                      void api.call({ method: 'POST', action: '/services/:id/update', url: { id: entry.id } })
-                    }}
-                    startIcon={<Icon icon={icons.download} size="small" />}
-                  />
+                  <div style={{ position: 'relative', display: 'inline-flex' }}>
+                    <Button
+                      variant="text"
+                      size="small"
+                      title="Update: pull, install, build, and restart if running"
+                      onclick={() => {
+                        void api.call({ method: 'POST', action: '/services/:id/update', url: { id: entry.id } })
+                      }}
+                      startIcon={<Icon icon={icons.download} size="small" />}
+                    />
+                    {entry.commitsBehind ? (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: '-2px',
+                          right: '-2px',
+                          minWidth: '16px',
+                          height: '16px',
+                          borderRadius: '8px',
+                          backgroundColor: cssVariableTheme.palette.primary.main,
+                          color: cssVariableTheme.palette.primary.mainContrast,
+                          fontSize: '10px',
+                          fontWeight: 'bold',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0 4px',
+                          lineHeight: '1',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        {entry.commitsBehind}
+                      </span>
+                    ) : null}
+                  </div>
                 ) : null}
                 {/* Logs */}
                 <StackCraftNestedRouteLink

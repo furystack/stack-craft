@@ -16,6 +16,7 @@ export type ServiceAction = {
   apiAction: string
   color: keyof Palette
   icon: string
+  tooltip?: string
 }
 
 const stageStatusColor: Record<PipelineStageStatus, keyof Palette> = {
@@ -130,18 +131,36 @@ export const getSecondaryActions = (service: ServiceView): ServiceAction[] => {
 
   if (service.runStatus === 'running') {
     actions.push({ label: 'Restart', apiAction: '/services/:id/restart', color: 'warning', icon: 'refresh' })
-    actions.push({ label: 'Update', apiAction: '/services/:id/update', color: 'primary', icon: 'download' })
+    actions.push({
+      label: 'Update',
+      apiAction: '/services/:id/update',
+      color: 'primary',
+      icon: 'download',
+      tooltip: 'Pull, install, build, and restart if running',
+    })
   }
 
   const stages = getPipelineStages(service)
   const hasPendingStages = stages.some((s) => s.status === 'pending' && s.id !== 'run')
   if (hasPendingStages) {
-    actions.push({ label: 'Set Up All', apiAction: '/services/:id/setup', color: 'primary', icon: 'settings' })
+    actions.push({
+      label: 'Set Up All',
+      apiAction: '/services/:id/setup',
+      color: 'primary',
+      icon: 'settings',
+      tooltip: 'Clone, install, and build (initial provisioning)',
+    })
   }
 
   if (service.runStatus === 'stopped' || service.runStatus === 'error') {
     if (service.repositoryId && service.cloneStatus === 'cloned') {
-      actions.push({ label: 'Update', apiAction: '/services/:id/update', color: 'primary', icon: 'download' })
+      actions.push({
+        label: 'Update',
+        apiAction: '/services/:id/update',
+        color: 'primary',
+        icon: 'download',
+        tooltip: 'Pull, install, build, and restart if running',
+      })
     }
   }
 
