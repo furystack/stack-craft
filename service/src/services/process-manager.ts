@@ -1,7 +1,7 @@
 import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { type ChildProcess, spawn } from 'child_process'
+import { type ChildProcess, spawn, spawnSync } from 'child_process'
 import type { BuildStatus, CloneStatus, InstallStatus, RunStatus, ServiceStateEvent, TriggerSource } from 'common'
 import {
   GitHubRepository,
@@ -15,7 +15,7 @@ import {
 } from 'common'
 import { randomUUID } from 'crypto'
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs'
-import { dirname, join, resolve as resolvePosix } from 'path'
+import { dirname, join, resolve as resolvePosix, sep } from 'path'
 
 import { useSystemIdentityContext } from '@furystack/core'
 import { applyServiceFiles, mergeServiceFiles } from '../utils/apply-service-files.js'
@@ -218,12 +218,12 @@ export class ProcessManager {
       this.processes.set(serviceId, managed)
 
       child.stdout?.on('data', (data: Buffer) => {
-        const lines = data.toString().split('\n').filter(Boolean)
+        const lines = data.toString().split(/\r?\n/).filter(Boolean)
         lines.forEach((line) => this.addLogLine(serviceId, 'stdout', line))
       })
 
       child.stderr?.on('data', (data: Buffer) => {
-        const lines = data.toString().split('\n').filter(Boolean)
+        const lines = data.toString().split(/\r?\n/).filter(Boolean)
         lines.forEach((line) => this.addLogLine(serviceId, 'stderr', line))
       })
 
@@ -358,7 +358,7 @@ export class ProcessManager {
 
     const cwd = resolvePath(getServiceCwd(stackConfig, svc, repo))
     const stackRoot = resolvePosix(resolvePath(stackConfig.mainDirectory))
-    if (cwd !== stackRoot && !cwd.startsWith(`${stackRoot}/`)) {
+    if (cwd !== stackRoot && !cwd.startsWith(`${stackRoot}${sep}`)) {
       throw new Error(`Resolved path "${cwd}" is outside the stack directory "${stackRoot}"`)
     }
 
@@ -706,7 +706,7 @@ export class ProcessManager {
     child.stdout?.on('data', (data: Buffer) => {
       data
         .toString()
-        .split('\n')
+        .split(/\r?\n/)
         .filter(Boolean)
         .forEach((line) => this.addLogLine(serviceId, 'stdout', line))
     })
@@ -714,7 +714,7 @@ export class ProcessManager {
     child.stderr?.on('data', (data: Buffer) => {
       data
         .toString()
-        .split('\n')
+        .split(/\r?\n/)
         .filter(Boolean)
         .forEach((line) => this.addLogLine(serviceId, 'stderr', line))
     })
@@ -755,13 +755,18 @@ export class ProcessManager {
 
   /**
    * Kills a managed process and all its children by targeting the process group.
-   * Falls back to killing just the shell process if the group kill fails
-   * (e.g. the process already exited).
+   * On Unix, sends a signal to the process group via negative PID.
+   * On Windows, uses `taskkill /T /F` to terminate the entire process tree.
+   * Falls back to killing just the shell process if the group kill fails.
    */
   private killProcessGroup(child: ChildProcess, signal: NodeJS.Signals): boolean {
     if (child.pid == null) return false
     try {
-      process.kill(-child.pid, signal)
+      if (process.platform === 'win32') {
+        spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
+      } else {
+        process.kill(-child.pid, signal)
+      }
       return true
     } catch {
       try {
@@ -790,12 +795,19 @@ export class ProcessManager {
     'TMPDIR',
     'TMP',
     'TEMP',
+    // Windows-specific
+    'USERPROFILE',
+    'APPDATA',
+    'LOCALAPPDATA',
+    'SYSTEMROOT',
+    'COMSPEC',
+    'PATHEXT',
   ])
 
   private static getSafeEnv(): NodeJS.ProcessEnv {
     const env: NodeJS.ProcessEnv = {}
     for (const key of Object.keys(process.env)) {
-      if (ProcessManager.SAFE_ENV_KEYS.has(key) || key.startsWith('STACK_CRAFT_')) {
+      if (ProcessManager.SAFE_ENV_KEYS.has(key.toUpperCase()) || key.startsWith('STACK_CRAFT_')) {
         env[key] = process.env[key]
       }
     }

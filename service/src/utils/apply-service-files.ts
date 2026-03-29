@@ -1,6 +1,6 @@
 import type { ServiceFile } from 'common'
 import { mkdirSync, writeFileSync } from 'fs'
-import { dirname, join, resolve } from 'path'
+import { dirname, join, resolve, sep } from 'path'
 
 const TEMPLATE_PATTERN = /\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}/g
 
@@ -49,7 +49,7 @@ export function applyServiceFiles(
   for (const file of toApply) {
     const target = resolve(join(resolvedCwd, file.relativePath))
 
-    if (target !== resolvedCwd && !target.startsWith(`${resolvedCwd}/`)) {
+    if (target !== resolvedCwd && !target.startsWith(`${resolvedCwd}${sep}`)) {
       throw new Error(`File path "${file.relativePath}" resolves outside the service directory`)
     }
 

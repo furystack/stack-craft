@@ -148,7 +148,10 @@ const checkEnvVariable = (
 }
 
 const checkCustomScript = async (config: { script: string }): Promise<CheckResult> => {
-  const { stdout, stderr } = await execFileAsync('/bin/sh', ['-c', config.script], { timeout: COMMAND_TIMEOUT })
+  const isWindows = process.platform === 'win32'
+  const shell = isWindows ? 'cmd.exe' : '/bin/sh'
+  const shellFlag = isWindows ? '/c' : '-c'
+  const { stdout, stderr } = await execFileAsync(shell, [shellFlag, config.script], { timeout: COMMAND_TIMEOUT })
   return { satisfied: true, output: (stdout || stderr).trim() }
 }
 

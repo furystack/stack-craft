@@ -1,7 +1,7 @@
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { execFileSync } from 'child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -38,7 +38,7 @@ describe('GitService', () => {
     bareDir = join(tempDir, 'bare.git')
     workDir = join(tempDir, 'work')
 
-    execFileSync('mkdir', ['-p', bareDir])
+    mkdirSync(bareDir, { recursive: true })
     initBareRepo(bareDir)
     initAndClone(bareDir, workDir)
   })
