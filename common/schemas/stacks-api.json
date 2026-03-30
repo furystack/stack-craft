@@ -223,193 +223,175 @@
       "additionalProperties": false,
       "description": "A warning about a potential secret detected during stack export"
     },
-    "ExportStackEndpoint": {
+    "ExportStackResult": {
       "type": "object",
       "properties": {
-        "url": {
+        "stack": {
           "type": "object",
           "properties": {
-            "id": {
-              "type": "string"
+            "name": {
+              "type": "string",
+              "description": "Unique kebab-case identifier for the stack"
+            },
+            "displayName": {
+              "type": "string",
+              "description": "Human-readable name shown in the UI"
+            },
+            "description": {
+              "type": "string",
+              "description": "Optional description of what this stack does"
             }
           },
-          "required": ["id"],
+          "required": ["name", "displayName", "description"],
           "additionalProperties": false
         },
-        "result": {
-          "type": "object",
-          "properties": {
-            "stack": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "description": "Unique kebab-case identifier for the stack"
-                },
-                "displayName": {
-                  "type": "string",
-                  "description": "Human-readable name shown in the UI"
-                },
-                "description": {
-                  "type": "string",
-                  "description": "Optional description of what this stack does"
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "prerequisiteIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
                 }
               },
-              "required": ["name", "displayName", "description"],
-              "additionalProperties": false
-            },
-            "services": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "prerequisiteIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "prerequisiteServiceIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "id": {
-                    "type": "string",
-                    "description": "UUID primary key"
-                  },
-                  "stackName": {
-                    "type": "string",
-                    "description": "FK to  {@link  StackDefinition.name  }"
-                  },
-                  "displayName": {
-                    "type": "string",
-                    "description": "Human-readable name shown in the UI"
-                  },
-                  "description": {
-                    "type": "string",
-                    "description": "Optional description of what this service does"
-                  },
-                  "workingDirectory": {
-                    "type": "string",
-                    "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
-                  },
-                  "repositoryId": {
-                    "type": "string",
-                    "description": "Optional FK to  {@link  GitHubRepository.id  }"
-                  },
-                  "installCommand": {
-                    "type": "string",
-                    "description": "Shell command to install dependencies (e.g. \"npm install\")"
-                  },
-                  "buildCommand": {
-                    "type": "string",
-                    "description": "Shell command to build the service (e.g. \"npm run build\")"
-                  },
-                  "runCommand": {
-                    "type": "string",
-                    "description": "Shell command to run the service (e.g. \"npm start\")"
-                  },
-                  "files": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/definitions/ServiceFile"
-                    },
-                    "description": "Shared files placed relative to the service root"
-                  }
+              "prerequisiteServiceIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "id": {
+                "type": "string",
+                "description": "UUID primary key"
+              },
+              "stackName": {
+                "type": "string",
+                "description": "FK to  {@link  StackDefinition.name  }"
+              },
+              "displayName": {
+                "type": "string",
+                "description": "Human-readable name shown in the UI"
+              },
+              "description": {
+                "type": "string",
+                "description": "Optional description of what this service does"
+              },
+              "workingDirectory": {
+                "type": "string",
+                "description": "Optional relative path within stack for grouping (e.g. \"frontends/public\")"
+              },
+              "repositoryId": {
+                "type": "string",
+                "description": "Optional FK to  {@link  GitHubRepository.id  }"
+              },
+              "installCommand": {
+                "type": "string",
+                "description": "Shell command to install dependencies (e.g. \"npm install\")"
+              },
+              "buildCommand": {
+                "type": "string",
+                "description": "Shell command to build the service (e.g. \"npm run build\")"
+              },
+              "runCommand": {
+                "type": "string",
+                "description": "Shell command to run the service (e.g. \"npm start\")"
+              },
+              "files": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/ServiceFile"
                 },
-                "required": [
-                  "description",
-                  "displayName",
-                  "files",
-                  "id",
-                  "prerequisiteIds",
-                  "prerequisiteServiceIds",
-                  "runCommand",
-                  "stackName"
-                ]
+                "description": "Shared files placed relative to the service root"
               }
             },
-            "repositories": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "description": "UUID primary key"
-                  },
-                  "stackName": {
-                    "type": "string",
-                    "description": "FK to  {@link  StackDefinition.name  }"
-                  },
-                  "url": {
-                    "type": "string",
-                    "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
-                  },
-                  "displayName": {
-                    "type": "string",
-                    "description": "Human-readable name shown in the UI"
-                  },
-                  "description": {
-                    "type": "string",
-                    "description": "Optional description"
-                  }
-                },
-                "required": ["id", "stackName", "url", "displayName", "description"],
-                "additionalProperties": false
+            "required": [
+              "description",
+              "displayName",
+              "files",
+              "id",
+              "prerequisiteIds",
+              "prerequisiteServiceIds",
+              "runCommand",
+              "stackName"
+            ]
+          }
+        },
+        "repositories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "UUID primary key"
+              },
+              "stackName": {
+                "type": "string",
+                "description": "FK to  {@link  StackDefinition.name  }"
+              },
+              "url": {
+                "type": "string",
+                "description": "Full URL to the git repository (e.g. \"https://github.com/user/repo\")"
+              },
+              "displayName": {
+                "type": "string",
+                "description": "Human-readable name shown in the UI"
+              },
+              "description": {
+                "type": "string",
+                "description": "Optional description"
               }
             },
-            "prerequisites": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "description": "UUID primary key"
-                  },
-                  "stackName": {
-                    "type": "string",
-                    "description": "FK to  {@link  StackDefinition.name  }"
-                  },
-                  "name": {
-                    "type": "string",
-                    "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
-                  },
-                  "type": {
-                    "$ref": "#/definitions/PrerequisiteType",
-                    "description": "Discriminator that determines the check logic and config shape"
-                  },
-                  "config": {
-                    "$ref": "#/definitions/PrerequisiteConfig",
-                    "description": "Type-specific configuration (stored as JSON TEXT in the database)"
-                  },
-                  "installationHelp": {
-                    "type": "string",
-                    "description": "Help text shown when the prerequisite check fails"
-                  }
-                },
-                "required": ["id", "stackName", "name", "type", "config", "installationHelp"],
-                "additionalProperties": false
+            "required": ["id", "stackName", "url", "displayName", "description"],
+            "additionalProperties": false
+          }
+        },
+        "prerequisites": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "UUID primary key"
+              },
+              "stackName": {
+                "type": "string",
+                "description": "FK to  {@link  StackDefinition.name  }"
+              },
+              "name": {
+                "type": "string",
+                "description": "Human-readable prerequisite name (e.g. \"Node.js >= 18\")"
+              },
+              "type": {
+                "$ref": "#/definitions/PrerequisiteType",
+                "description": "Discriminator that determines the check logic and config shape"
+              },
+              "config": {
+                "$ref": "#/definitions/PrerequisiteConfig",
+                "description": "Type-specific configuration (stored as JSON TEXT in the database)"
+              },
+              "installationHelp": {
+                "type": "string",
+                "description": "Help text shown when the prerequisite check fails"
               }
             },
-            "warnings": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/SecretWarning"
-              }
-            }
-          },
-          "required": ["stack", "services", "repositories", "prerequisites"],
-          "additionalProperties": false
+            "required": ["id", "stackName", "name", "type", "config", "installationHelp"],
+            "additionalProperties": false
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SecretWarning"
+          }
         }
       },
-      "required": ["url", "result"],
-      "additionalProperties": false,
-      "description": "Exports a stack and all its associated services, repositories, and prerequisites for sharing"
+      "required": ["stack", "services", "repositories", "prerequisites"],
+      "additionalProperties": false
     },
     "ServiceFile": {
       "type": "object",
@@ -528,6 +510,27 @@
         }
       ],
       "description": "Union of all possible prerequisite config shapes."
+    },
+    "ExportStackEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "result": {
+          "$ref": "#/definitions/ExportStackResult"
+        }
+      },
+      "required": ["url", "result"],
+      "additionalProperties": false,
+      "description": "Exports a stack and all its associated services, repositories, and prerequisites for sharing"
     },
     "ImportStackEndpoint": {
       "type": "object",

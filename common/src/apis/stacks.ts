@@ -9,8 +9,7 @@ import type { EnvironmentVariableValue } from '../models/environment-variable-va
 import type { GitHubRepository } from '../models/github-repository.js'
 import type { Prerequisite } from '../models/prerequisite.js'
 import type { ServiceConfig } from '../models/service-config.js'
-import type { ServiceFile } from '../models/service-definition.js'
-import type { ServiceDefinition } from '../models/service-definition.js'
+import type { ServiceDefinition, ServiceFile } from '../models/service-definition.js'
 import type { StackConfig } from '../models/stack-config.js'
 import type { StackDefinition } from '../models/stack-definition.js'
 import type { StackView } from '../models/views.js'
@@ -40,16 +39,18 @@ export type SecretWarning = {
   suggestion?: string
 }
 
+export type ExportStackResult = {
+  stack: ShareableStackDefinition
+  services: ShareableServiceDefinition[]
+  repositories: ShareableGitHubRepository[]
+  prerequisites: ShareablePrerequisite[]
+  warnings?: SecretWarning[]
+}
+
 /** Exports a stack and all its associated services, repositories, and prerequisites for sharing */
 export type ExportStackEndpoint = {
   url: { id: string }
-  result: {
-    stack: ShareableStackDefinition
-    services: ShareableServiceDefinition[]
-    repositories: ShareableGitHubRepository[]
-    prerequisites: ShareablePrerequisite[]
-    warnings?: SecretWarning[]
-  }
+  result: ExportStackResult
 }
 
 /** Imports a previously exported stack, creating all associated entities and applying configuration overrides */

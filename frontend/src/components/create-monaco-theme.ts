@@ -1,0 +1,147 @@
+import type { DeepPartial } from '@furystack/utils'
+
+import { getRgbFromColorString, getTextColor, type Theme } from '@furystack/shades-common-components'
+
+type BuiltinTheme = 'vs' | 'vs-dark' | 'hc-black' | 'hc-light'
+
+/**
+ * Must stay in sync with `MonacoThemeData` in `monaco-mfe/src/theme.ts`.
+ * Defined separately because the MFE is loaded at runtime and cannot share
+ * compile-time types with the host.
+ */
+export type MonacoThemeData = {
+  base: BuiltinTheme
+  inherit: boolean
+  rules: Array<{ token: string; foreground?: string; background?: string; fontStyle?: string }>
+  colors: Record<string, string>
+}
+
+const SHADES_THEME_NAME = 'shades-theme'
+
+const toHex = (n: number): string =>
+  Math.max(0, Math.min(255, Math.round(n)))
+    .toString(16)
+    .padStart(2, '0')
+
+const rgbToHex = (color: string): string => {
+  const { r, g, b, a } = getRgbFromColorString(color)
+  const base = `#${toHex(r)}${toHex(g)}${toHex(b)}`
+  return a < 1 ? `${base}${toHex(a * 255)}` : base
+}
+
+const withAlpha = (hex: string, alpha: number): string => {
+  const base = hex.length === 9 ? hex.slice(0, 7) : hex
+  return `${base}${toHex(alpha * 255)}`
+}
+
+/**
+ * Creates a Monaco `IStandaloneThemeData` from a FuryStack Shades theme.
+ * Inherits syntax highlighting from the closest built-in base (`vs` or `vs-dark`)
+ * and maps Shades design tokens to Monaco editor chrome colors.
+ */
+export const createMonacoTheme = (theme: DeepPartial<Theme>): { name: string; data: MonacoThemeData } => {
+  const bg = theme.background?.default
+  let base: BuiltinTheme = 'vs-dark'
+  let detected = false
+
+  if (bg) {
+    try {
+      base = getTextColor(bg, 'vs', 'vs-dark') as BuiltinTheme
+      detected = true
+    } catch {
+      // Background color detection failed, will try text color
+    }
+  }
+
+  if (!detected && theme.text?.primary) {
+    try {
+      base = getTextColor(theme.text.primary, 'vs-dark', 'vs') as BuiltinTheme
+    } catch (e) {
+      console.warn('Failed to determine Monaco base theme, falling back to vs-dark', e)
+    }
+  }
+
+  const colors: Record<string, string> = {}
+
+  const map = (monacoKey: string, color: string | undefined) => {
+    if (!color) return
+    try {
+      colors[monacoKey] = rgbToHex(color)
+    } catch {
+      // skip unresolvable colors
+    }
+  }
+
+  const mapWithAlpha = (monacoKey: string, color: string | undefined, alpha: number) => {
+    if (!color) return
+    try {
+      colors[monacoKey] = withAlpha(rgbToHex(color), alpha)
+    } catch {
+      // skip unresolvable colors
+    }
+  }
+
+  map('editor.background', theme.background?.default)
+  map('editor.foreground', theme.text?.primary)
+
+  map('editorLineNumber.foreground', theme.text?.secondary)
+  map('editorLineNumber.activeForeground', theme.text?.primary)
+  map('editorLineNumber.dimmedForeground', theme.text?.disabled)
+
+  map('editorCursor.foreground', theme.palette?.primary?.main)
+
+  mapWithAlpha('editor.selectionBackground', theme.palette?.primary?.main, 0.35)
+  mapWithAlpha('editor.selectionHighlightBackground', theme.palette?.primary?.main, 0.15)
+  mapWithAlpha('editor.inactiveSelectionBackground', theme.palette?.primary?.main, 0.2)
+
+  map('editor.lineHighlightBackground', theme.action?.selectedBackground)
+  map('editor.hoverHighlightBackground', theme.action?.hoverBackground)
+
+  mapWithAlpha('editor.findMatchBackground', theme.palette?.warning?.main, 0.4)
+  mapWithAlpha('editor.findMatchHighlightBackground', theme.palette?.warning?.main, 0.2)
+
+  map('editorGutter.background', theme.background?.default)
+
+  map('editorWhitespace.foreground', theme.text?.disabled)
+
+  map('editorWidget.background', theme.background?.paper)
+  map('editorWidget.foreground', theme.text?.primary)
+  map('editorWidget.border', theme.divider)
+  map('editorHoverWidget.background', theme.background?.paper)
+  map('editorHoverWidget.foreground', theme.text?.primary)
+  map('editorHoverWidget.border', theme.divider)
+  map('editorSuggestWidget.background', theme.background?.paper)
+  map('editorSuggestWidget.foreground', theme.text?.primary)
+  map('editorSuggestWidget.border', theme.divider)
+  mapWithAlpha('editorSuggestWidget.selectedBackground', theme.palette?.primary?.main, 0.2)
+
+  map('editorError.foreground', theme.palette?.error?.main)
+  map('editorWarning.foreground', theme.palette?.warning?.main)
+  map('editorInfo.foreground', theme.palette?.info?.main)
+  map('editorHint.foreground', theme.palette?.success?.main)
+
+  map('editorOverviewRuler.errorForeground', theme.palette?.error?.main)
+  map('editorOverviewRuler.warningForeground', theme.palette?.warning?.main)
+  map('editorOverviewRuler.infoForeground', theme.palette?.info?.main)
+
+  map('editorLink.activeForeground', theme.palette?.primary?.main)
+
+  mapWithAlpha('editorBracketMatch.background', theme.palette?.primary?.main, 0.2)
+  map('editorBracketMatch.border', theme.palette?.primary?.main)
+
+  map('editorCodeLens.foreground', theme.text?.secondary)
+
+  mapWithAlpha('scrollbarSlider.background', theme.text?.secondary, 0.2)
+  mapWithAlpha('scrollbarSlider.hoverBackground', theme.text?.secondary, 0.35)
+  mapWithAlpha('scrollbarSlider.activeBackground', theme.text?.secondary, 0.5)
+
+  return {
+    name: theme.name || SHADES_THEME_NAME,
+    data: {
+      base,
+      inherit: true,
+      rules: [],
+      colors,
+    },
+  }
+}

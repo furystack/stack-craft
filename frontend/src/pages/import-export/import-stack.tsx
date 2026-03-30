@@ -12,18 +12,19 @@ import {
   PageContainer,
   PageHeader,
   Paper,
-  TextArea,
 } from '@furystack/shades-common-components'
-import type { EnvironmentVariableValue, ExportStackEndpoint } from 'common'
+import type { EnvironmentVariableValue, ExportStackResult } from 'common'
+import stacksApiSchema from 'common/schemas/stacks-api.json' with { type: 'json' }
 
-import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
+import { stackCraftNavigate, StackCraftNestedRouteLink } from '../../components/app-routes.js'
+import { LazyMonacoEditor } from '../../components/lazy-monaco-editor.js'
 import { prerequisiteTypeLabels } from '../../components/status-chips.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 import { SystemApiClient } from '../../services/api-clients/system-api-client.js'
-import { EnvVarConfigRow } from './env-var-config-row.js'
 import type { EnvVarEntry } from './env-var-config-row.js'
+import { EnvVarConfigRow } from './env-var-config-row.js'
 
-type ParsedExport = ExportStackEndpoint['result']
+type ParsedExport = ExportStackResult
 
 type ImportConfigPayload = {
   mainDirectory: string
@@ -35,6 +36,13 @@ type ImportConfigPayload = {
 export const isImportConfigPayload = (data: unknown): data is ImportConfigPayload => {
   const d = data as ImportConfigPayload
   return d.mainDirectory?.length > 0
+}
+
+const { $schema, ...importSchema } = stacksApiSchema
+
+const finalImportSchema = {
+  $ref: '#/definitions/ExportStackResult',
+  ...importSchema,
 }
 
 export const ImportStack = Shade({
@@ -152,24 +160,15 @@ export const ImportStack = Shade({
         />
         <Paper>
           {!parsed ? (
-            <Paper elevation={1}>
-              <TextArea
-                variant="outlined"
-                value={jsonInput}
-                placeholder="Paste exported stack JSON here..."
-                oninput={(ev) => {
-                  const el = ev.currentTarget as HTMLElement
-                  setJsonInput(el.innerText ?? el.textContent ?? '')
-                }}
-                style={{
-                  width: '100%',
-                  minHeight: '300px',
-                  fontFamily: 'monospace',
-                  fontSize: '13px',
-                  resize: 'vertical',
-                  boxSizing: 'border-box',
-                }}
-              />
+            <Paper elevation={1} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ height: '400px', border: `1px solid ${cssVariableTheme.divider}`, borderRadius: '4px' }}>
+                <LazyMonacoEditor
+                  value={jsonInput}
+                  language="json"
+                  schemaInfo={{ schemaName: 'ExportStackResult', jsonSchema: finalImportSchema }}
+                  onValueChange={(value) => setJsonInput(value)}
+                />
+              </div>
               {parseError && (
                 <div style={{ color: cssVariableTheme.palette.error.main, marginTop: '8px' }}>{parseError}</div>
               )}
