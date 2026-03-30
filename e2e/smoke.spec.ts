@@ -2,6 +2,9 @@ import { expect, test } from '@playwright/test'
 import { login } from './helpers.js'
 
 test.describe.serial('App Flow', () => {
+  let stackName: string
+  let displayName: string
+
   test('Login and view dashboard', async ({ page }) => {
     await page.goto('/')
     await login(page)
@@ -10,8 +13,8 @@ test.describe.serial('App Flow', () => {
   test('Create stack, create service, verify dashboard', async ({ page, browserName }) => {
     const uuid = crypto.randomUUID()
 
-    const stackName = `e2e-test-stack-${uuid}`
-    const displayName = `E2E Test Stack - ${browserName} - ${uuid}`
+    stackName = `e2e-test-stack-${uuid}`
+    displayName = `E2E Test Stack - ${browserName} - ${uuid}`
 
     const workingDirectory = `/tmp/e2e-test-stack-${uuid}`
 
@@ -74,5 +77,25 @@ test.describe.serial('App Flow', () => {
     await page.locator('button', { hasText: 'Create' }).click()
 
     await expect(page.locator('shade-services-list')).toBeVisible()
+  })
+
+  test('Clean up stack', async ({ page }) => {
+    await page.goto('/')
+    await login(page)
+
+    // Click on the stack card in the main dashboard to open its overview
+    await page.locator('stack-list-dashboard shade-card', { hasText: displayName }).click()
+    await expect(page.getByTestId('page-header-title')).toContainText(displayName)
+
+    // Navigate to Edit Stack via the header button
+    await page.locator('a', { hasText: 'Edit Stack' }).click()
+    await expect(page.locator('shade-edit-stack')).toBeVisible()
+
+    // Delete the stack
+    await page.locator('button', { hasText: 'Delete Stack' }).click()
+    await page.locator('shade-dialog .dialog-confirm-btn').click()
+
+    await expect(page.locator('shade-noty-list')).toContainText(`"${displayName}" was deleted.`)
+    await expect(page.locator('shade-dashboard')).toBeVisible({ timeout: 10000 })
   })
 })

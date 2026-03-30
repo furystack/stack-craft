@@ -26,7 +26,7 @@ export const ServiceStatusIndicator = Shade<ServiceStatusIndicatorProps>({
   render: ({ props }) => {
     const { label, color } = getAggregateStatus(props.service)
     return (
-      <Chip variant="outlined" color={color} size="small">
+      <Chip variant="outlined" color={color} size="small" data-testid="service-status-indicator">
         {label}
       </Chip>
     )

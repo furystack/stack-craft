@@ -79,6 +79,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
           return (
             <Paper
               elevation={0}
+              data-testid={`env-override-${varName}`}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -131,8 +132,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
                     ...(isGloballyAvailable ? [{ value: 'inherit', label: 'Inherit from system' }] : []),
                     { value: 'custom', label: 'Custom value' },
                   ]}
-                  onchange={(ev) => {
-                    const val = (ev.target as HTMLSelectElement).value
+                  onValueChange={(val) => {
                     if (val === '') {
                       const next = { ...editState }
                       delete next[varName]
@@ -179,6 +179,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Button
             variant="contained"
+            data-testid="save-env-overrides"
             loading={isSaving}
             onclick={() => void handleSave()}
             startIcon={<Icon icon={icons.check} size="small" />}

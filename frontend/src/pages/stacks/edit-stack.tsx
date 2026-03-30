@@ -126,6 +126,7 @@ export const EditStack = Shade<EditStackProps>({
               variant="outlined"
               size="small"
               color="error"
+              data-testid="delete-stack-button"
               loading={isDeleting}
               onclick={() => setIsConfirmingDelete(true)}
               startIcon={<Icon icon={icons.trash} size="small" />}
