@@ -30,6 +30,9 @@ export default defineConfig({
           environment: 'jsdom',
           include: ['frontend/src/**/*.spec.(ts|tsx)'],
         },
+        define: {
+          __APP_SERVICE_PORT__: JSON.stringify('9090'),
+        },
       },
     ],
   },
