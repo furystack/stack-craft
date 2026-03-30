@@ -3,7 +3,7 @@ import { Injectable, Injected, type Injector, getInjectorReference } from '@fury
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { GitHubRepository, ServiceConfig, ServiceDefinition, StackConfig, getServiceCwd } from 'common'
-import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs'
+import { existsSync, mkdirSync, readdirSync, renameSync } from 'fs'
 import { dirname, join, resolve as resolvePosix, sep } from 'path'
 
 import { applyServiceFiles, mergeServiceFiles } from '../utils/apply-service-files.js'
@@ -102,12 +102,13 @@ export class GitOperationsService {
         return { cloned: false, pulled: true, updated }
       } else {
         const dirContents = readdirSync(cwd)
+        const backupPath = `${cwd}.backup-${Date.now()}`
         if (dirContents.length > 0) {
           await this.logger.warning({
-            message: `Directory "${cwd}" exists with ${dirContents.length} entries but is not a git repo. Removing and re-cloning.`,
+            message: `Directory "${cwd}" exists with ${dirContents.length} entries but is not a git repo. Moving to "${backupPath}" and re-cloning.`,
           })
         }
-        rmSync(cwd, { recursive: true })
+        renameSync(cwd, backupPath)
         mkdirSync(dirname(cwd), { recursive: true })
         await git.clone(repo.url, cwd)
         await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)

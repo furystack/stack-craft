@@ -30,7 +30,7 @@ export const ServiceCheckoutAction: RequestAction<ServiceCheckoutEndpoint> = asy
     throw new RequestError('Repository is not cloned yet', 400)
   }
 
-  const cwd = await resolveServiceCwd(injector, svc)
+  const cwd = await resolveServiceCwd(injector, svc, injector)
   const git = injector.getInstance(GitService)
 
   const localBranch = branch.replace(/^origin\//, '')

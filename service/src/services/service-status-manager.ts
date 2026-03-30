@@ -14,7 +14,7 @@ const HISTORY_PRUNE_CHECK_INTERVAL = 100
 @Injectable({ lifetime: 'singleton' })
 export class ServiceStatusManager {
   private elevatedInjector?: Injector
-  private historyInsertCount = 0
+  private historyInsertCounts = new Map<string, number>()
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
@@ -86,10 +86,12 @@ export class ServiceStatusManager {
           createdAt: now,
         })
 
-        this.historyInsertCount++
-        if (this.historyInsertCount >= HISTORY_PRUNE_CHECK_INTERVAL) {
-          this.historyInsertCount = 0
+        const count = (this.historyInsertCounts.get(serviceId) ?? 0) + 1
+        if (count >= HISTORY_PRUNE_CHECK_INTERVAL) {
+          this.historyInsertCounts.set(serviceId, 0)
           void this.pruneHistory(serviceId, elevated)
+        } else {
+          this.historyInsertCounts.set(serviceId, count)
         }
       }
     } catch (e) {

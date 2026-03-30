@@ -10,6 +10,11 @@ export type ManagedProcess = {
   processUid: string
 }
 
+/**
+ * Environment variables allowed to pass through to spawned child processes.
+ * Other host env vars are stripped to prevent leaking secrets.
+ * Variables prefixed with STACK_CRAFT_ are always passed through.
+ */
 const SAFE_ENV_KEYS = new Set([
   'PATH',
   'HOME',
@@ -25,6 +30,17 @@ const SAFE_ENV_KEYS = new Set([
   'DOTNET_ROOT',
   'DOTNET_CLI_HOME',
   'NUGET_PACKAGES',
+  'JAVA_HOME',
+  'GOPATH',
+  'GOROOT',
+  'CARGO_HOME',
+  'RUSTUP_HOME',
+  'PYTHONPATH',
+  'VIRTUAL_ENV',
+  'CONDA_PREFIX',
+  'NVM_DIR',
+  'VOLTA_HOME',
+  'FNM_DIR',
   'TMPDIR',
   'TMP',
   'TEMP',
