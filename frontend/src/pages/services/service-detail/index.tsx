@@ -156,70 +156,74 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           }
         />
 
-        <Tabs
-          activeKey={activeTab}
-          onTabChange={(key) => setActiveTab(key as TabId)}
-          tabs={[
-            {
-              header: <span>Overview</span>,
-              hash: 'overview',
-              component: (
-                <OverviewTab
-                  service={service}
-                  linkedRepo={linkedRepo}
-                  fullCwd={fullCwd}
-                  servicePrereqs={servicePrereqs}
-                  prereqSatisfiedCount={prereqSatisfiedCount}
-                  prereqFailedCount={prereqFailedCount}
-                  actionInProgress={actionInProgress}
-                  onAction={(apiAction) => void runServiceAction(injector, service.id, apiAction, setActionInProgress)}
-                  onViewLogs={() =>
-                    stackCraftNavigate(injector, '/stacks/:stackName/services/:serviceId/logs', {
-                      stackName: service.stackName,
-                      serviceId: service.id,
-                    })
-                  }
-                />
-              ),
-            },
-            {
-              header: <span>Logs</span>,
-              hash: 'logs',
-              component: <LogsTab serviceId={service.id} stackName={service.stackName} />,
-            },
-            {
-              header: <span>History</span>,
-              hash: 'history',
-              component: <ServiceHistory serviceId={service.id} stackName={service.stackName} />,
-            },
-            {
-              header: <span>Configuration</span>,
-              hash: 'configuration',
-              component: (
-                <ConfigurationTab
-                  service={service}
-                  repos={repos}
-                  allPrereqs={allPrereqs}
-                  otherServices={otherServices}
-                  servicePrereqs={servicePrereqs}
-                  stackConfig={stackConfig}
-                  actionInProgress={actionInProgress}
-                  onSave={(data) => {
-                    void saveService(injector, service.id, data, service.displayName).then((ok) => {
-                      if (ok) setActiveTab('overview')
-                    })
-                  }}
-                  onCancel={() => setActiveTab('overview')}
-                  onCreatePrerequisite={(data) => createPrerequisite(injector, service.stackName, data)}
-                  onCreateRepository={(data) => createRepository(injector, service.stackName, data)}
-                  onApplyFiles={(relativePath) =>
-                    applyServiceFiles(injector, service.id, setActionInProgress, relativePath)
-                  }
-                />
-              ),
-            },
-          ]}
-        />
+        <div data-testid="service-detail-tabs" style={{ display: 'contents' }}>
+          <Tabs
+            activeKey={activeTab}
+            onTabChange={(key) => setActiveTab(key as TabId)}
+            tabs={[
+              {
+                header: <span>Overview</span>,
+                hash: 'overview',
+                component: (
+                  <OverviewTab
+                    service={service}
+                    linkedRepo={linkedRepo}
+                    fullCwd={fullCwd}
+                    servicePrereqs={servicePrereqs}
+                    prereqSatisfiedCount={prereqSatisfiedCount}
+                    prereqFailedCount={prereqFailedCount}
+                    actionInProgress={actionInProgress}
+                    onAction={(apiAction) =>
+                      void runServiceAction(injector, service.id, apiAction, setActionInProgress)
+                    }
+                    onViewLogs={() =>
+                      stackCraftNavigate(injector, '/stacks/:stackName/services/:serviceId/logs', {
+                        stackName: service.stackName,
+                        serviceId: service.id,
+                      })
+                    }
+                  />
+                ),
+              },
+              {
+                header: <span>Logs</span>,
+                hash: 'logs',
+                component: <LogsTab serviceId={service.id} stackName={service.stackName} />,
+              },
+              {
+                header: <span>History</span>,
+                hash: 'history',
+                component: <ServiceHistory serviceId={service.id} stackName={service.stackName} />,
+              },
+              {
+                header: <span>Configuration</span>,
+                hash: 'configuration',
+                component: (
+                  <ConfigurationTab
+                    service={service}
+                    repos={repos}
+                    allPrereqs={allPrereqs}
+                    otherServices={otherServices}
+                    servicePrereqs={servicePrereqs}
+                    stackConfig={stackConfig}
+                    actionInProgress={actionInProgress}
+                    onSave={(data) => {
+                      void saveService(injector, service.id, data, service.displayName).then((ok) => {
+                        if (ok) setActiveTab('overview')
+                      })
+                    }}
+                    onCancel={() => setActiveTab('overview')}
+                    onCreatePrerequisite={(data) => createPrerequisite(injector, service.stackName, data)}
+                    onCreateRepository={(data) => createRepository(injector, service.stackName, data)}
+                    onApplyFiles={(relativePath) =>
+                      applyServiceFiles(injector, service.id, setActionInProgress, relativePath)
+                    }
+                  />
+                ),
+              },
+            ]}
+          />
+        </div>
 
         {ConfirmDialog(isConfirmingDelete, {
           title: 'Delete Service',
