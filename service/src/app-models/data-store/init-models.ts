@@ -3,8 +3,10 @@ import type { Sequelize } from 'sequelize'
 
 import {
   ApiTokenModel,
+  DefaultSessionModel,
   GitHubRepositoryModel,
   PasswordCredentialModel,
+  PasswordResetTokenModel,
   PrerequisiteModel,
   ServiceConfigModel,
   ServiceDefinitionModel,
@@ -234,6 +236,31 @@ export async function initAllModels(sequelize: Sequelize): Promise<void> {
     { sequelize, updatedAt: false },
   )
 
+  DefaultSessionModel.init(
+    {
+      sessionId: { type: DataTypes.STRING, primaryKey: true },
+      username: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        references: { model: UserModel, key: 'username' },
+      },
+    },
+    { sequelize, timestamps: false },
+  )
+
+  PasswordResetTokenModel.init(
+    {
+      token: { type: DataTypes.STRING, primaryKey: true },
+      userName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        references: { model: UserModel, key: 'username' },
+      },
+      createdAt: { type: DataTypes.DATE },
+    },
+    { sequelize, updatedAt: false },
+  )
+
   // --- Associations ---
 
   UserModel.hasOne(PasswordCredentialModel, { foreignKey: 'userName', onDelete: 'CASCADE' })
@@ -241,6 +268,12 @@ export async function initAllModels(sequelize: Sequelize): Promise<void> {
 
   UserModel.hasMany(ApiTokenModel, { foreignKey: 'username', onDelete: 'CASCADE' })
   ApiTokenModel.belongsTo(UserModel, { foreignKey: 'username' })
+
+  UserModel.hasMany(DefaultSessionModel, { foreignKey: 'username', onDelete: 'CASCADE' })
+  DefaultSessionModel.belongsTo(UserModel, { foreignKey: 'username' })
+
+  UserModel.hasMany(PasswordResetTokenModel, { foreignKey: 'userName', onDelete: 'CASCADE' })
+  PasswordResetTokenModel.belongsTo(UserModel, { foreignKey: 'userName' })
 
   StackDefinitionModel.hasOne(StackConfigModel, { foreignKey: 'stackName', onDelete: 'CASCADE' })
   StackConfigModel.belongsTo(StackDefinitionModel, { foreignKey: 'stackName' })

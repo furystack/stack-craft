@@ -3,7 +3,8 @@ import { addStore, InMemoryStore } from '@furystack/core'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { useSequelize } from '@furystack/sequelize-store'
-import { PasswordCredential } from '@furystack/security'
+import { DefaultSession } from '@furystack/rest-service'
+import { PasswordCredential, PasswordResetToken } from '@furystack/security'
 import {
   ApiToken,
   GitHubRepository,
@@ -25,8 +26,10 @@ import { getDbOptions } from './db-options.js'
 import { initAllModels } from './init-models.js'
 import {
   ApiTokenModel,
+  DefaultSessionModel,
   GitHubRepositoryModel,
   PasswordCredentialModel,
+  PasswordResetTokenModel,
   PrerequisiteModel,
   ServiceConfigModel,
   ServiceDefinitionModel,
@@ -134,6 +137,22 @@ const registerSequelizeStores = (injector: Injector, dbOptions: ReturnType<typeo
     options: dbOptions,
     initModel: initOnce,
   })
+  useSequelize({
+    injector,
+    model: DefaultSession,
+    sequelizeModel: DefaultSessionModel,
+    primaryKey: 'sessionId',
+    options: dbOptions,
+    initModel: initOnce,
+  })
+  useSequelize({
+    injector,
+    model: PasswordResetToken,
+    sequelizeModel: PasswordResetTokenModel,
+    primaryKey: 'token',
+    options: dbOptions,
+    initModel: initOnce,
+  })
 }
 
 const registerDataSets = (injector: Injector) => {
@@ -149,6 +168,8 @@ const registerDataSets = (injector: Injector) => {
   repo.createDataSet(ServiceStatus, 'serviceId', { ...authorizedDataSet })
   repo.createDataSet(ServiceStateHistory, 'id', { ...authorizedDataSet })
   repo.createDataSet(ApiToken, 'id', { ...authorizedDataSet })
+  repo.createDataSet(DefaultSession, 'sessionId')
+  repo.createDataSet(PasswordResetToken, 'token')
   repo.createDataSet(PrerequisiteCheckResult, 'prerequisiteId', { ...authorizedDataSet })
 
   addStore(injector, new InMemoryStore({ model: ServiceGitStatus, primaryKey: 'serviceId' }))

@@ -1,4 +1,5 @@
-import type { PasswordCredential } from '@furystack/security'
+import type { DefaultSession } from '@furystack/rest-service'
+import type { PasswordCredential, PasswordResetToken } from '@furystack/security'
 import type {
   ApiToken,
   EnvironmentVariableValue,
@@ -133,5 +134,19 @@ export class ApiTokenModel extends Model<ApiToken, ApiToken> implements ApiToken
   declare name: string
   declare tokenHash: string
   declare lastUsedAt: string | undefined
+  declare createdAt: string
+}
+
+export class DefaultSessionModel extends Model<DefaultSession, DefaultSession> implements DefaultSession {
+  declare sessionId: string
+  declare username: string
+}
+
+export class PasswordResetTokenModel
+  extends Model<PasswordResetToken, PasswordResetToken>
+  implements PasswordResetToken
+{
+  declare userName: string
+  declare token: string
   declare createdAt: string
 }

@@ -5,8 +5,7 @@ import { useLogging } from '@furystack/logging'
 import { FilteredConsoleLogger } from './utils/filtered-console-logger.js'
 import type { AuthorizationResult } from '@furystack/repository'
 import { getRepository } from '@furystack/repository'
-import { DefaultSession } from '@furystack/rest-service'
-import { PasswordResetToken, usePasswordPolicy } from '@furystack/security'
+import { usePasswordPolicy } from '@furystack/security'
 import { PrerequisiteCheckResult, PublicApiToken } from 'common'
 
 export const authorizedOnly = async (options: { injector: Injector }): Promise<AuthorizationResult> => {
@@ -30,13 +29,10 @@ export const authorizedDataSet = {
 export const injector = new Injector()
 useLogging(injector, FilteredConsoleLogger)
 
-addStore(injector, new InMemoryStore({ model: DefaultSession, primaryKey: 'sessionId' }))
-  .addStore(new InMemoryStore({ model: PublicApiToken, primaryKey: 'id' }))
-  .addStore(new InMemoryStore({ model: PrerequisiteCheckResult, primaryKey: 'prerequisiteId' }))
-  .addStore(new InMemoryStore({ model: PasswordResetToken, primaryKey: 'token' }))
+addStore(injector, new InMemoryStore({ model: PublicApiToken, primaryKey: 'id' })).addStore(
+  new InMemoryStore({ model: PrerequisiteCheckResult, primaryKey: 'prerequisiteId' }),
+)
 
-getRepository(injector).createDataSet(DefaultSession, 'sessionId')
 getRepository(injector).createDataSet(PublicApiToken, 'id', { ...authorizedDataSet })
-getRepository(injector).createDataSet(PasswordResetToken, 'token')
 
 usePasswordPolicy(injector)
