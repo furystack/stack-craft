@@ -48,7 +48,7 @@ test.describe.serial('App Flow', () => {
     await expect(page.locator('shade-services-list')).toBeVisible()
 
     // Scope all sidebar interactions to the correct stack
-    const stackSidebar = page.locator('shade-sidebar-stack-category').filter({ hasText: displayName })
+    const stackSidebar = page.locator('shade-accordion-item').filter({ hasText: displayName })
 
     // Navigate to repositories list
     await stackSidebar.locator('shade-sidebar-stack-link a', { hasText: 'Repositories' }).click()

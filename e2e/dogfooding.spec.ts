@@ -121,10 +121,8 @@ It is used to test the following features:
 
   // --- Add local .env file override ---
   await page.locator('button', { hasText: 'Add Local File' }).click()
-  await page.locator('input[placeholder="Relative path (e.g. .env.local)"]').fill('.env')
-  await page
-    .locator('textarea[placeholder="File content (secret)"]')
-    .fill('STACK_CRAFT_ENCRYPTION_KEY=e2e-dogfooding-test-key')
+  await page.locator('input[placeholder="Relative path (e.g. .env)"]').fill('.env')
+  await page.locator('textarea[placeholder="File content"]').fill('STACK_CRAFT_ENCRYPTION_KEY=e2e-dogfooding-test-key')
 
   // Add StackCraft GitHub repository inline
   await page.locator('button', { hasText: 'New' }).click()
