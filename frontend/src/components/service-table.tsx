@@ -88,7 +88,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
       const reconciled = currentSelection
         .map((s) => entryById.get(s.id))
         .filter((e): e is ServiceView => e !== undefined)
-      if (reconciled.length !== currentSelection.length || reconciled.some((e, i) => e !== currentSelection[i])) {
+      if (reconciled.length !== currentSelection.length || reconciled.some((e, i) => e.id !== currentSelection[i].id)) {
         collectionService.selection.setValue(reconciled)
       }
     }

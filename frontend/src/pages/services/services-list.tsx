@@ -187,12 +187,7 @@ export const ServicesList = Shade<ServicesListProps>({
           <ServiceTable
             services={services}
             onSelectionChange={(selected: ServiceView[]) => {
-              const newIds = selected.map((s) => s.id)
-              const changed =
-                newIds.length !== selectedServiceIds.length || newIds.some((id) => !selectedServiceIds.includes(id))
-              if (changed) {
-                setSelectedServiceIds(newIds)
-              }
+              setSelectedServiceIds(selected.map((s) => s.id))
             }}
           />
         )}
