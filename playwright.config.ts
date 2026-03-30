@@ -1,7 +1,15 @@
 import type { PlaywrightTestConfig } from '@playwright/test'
 import { devices } from '@playwright/test'
 
+try {
+  process.loadEnvFile()
+} catch {
+  // .env file is optional
+}
+
 const isInCi = !!process.env.CI
+const port = process.env.APP_SERVICE_PORT ?? '9090'
+const baseURL = `http://localhost:${port}`
 
 const config: PlaywrightTestConfig = {
   forbidOnly: isInCi,
@@ -18,11 +26,11 @@ const config: PlaywrightTestConfig = {
   },
   use: {
     trace: 'on-first-retry',
-    baseURL: 'http://localhost:9090',
+    baseURL,
   },
   webServer: {
     command: 'yarn start:service',
-    url: 'http://localhost:9090',
+    url: baseURL,
     reuseExistingServer: !isInCi,
   },
   projects: [
