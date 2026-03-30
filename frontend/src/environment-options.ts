@@ -1,4 +1,6 @@
+declare const __APP_SERVICE_PORT__: string
+
 export const environmentOptions = {
   repository: 'http://github.com/furystack/stack-craft',
-  serviceUrl: 'http://localhost:9090/api',
+  serviceUrl: `http://localhost:${__APP_SERVICE_PORT__}/api`,
 }
