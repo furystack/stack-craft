@@ -1,11 +1,10 @@
-import { addStore, InMemoryStore } from '@furystack/core'
-import { Injector } from '@furystack/inject'
-import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
+import type { Injector } from '@furystack/inject'
 import { getRepository } from '@furystack/repository'
-import { usingAsync } from '@furystack/utils'
 import { ServiceDefinition, ServiceStatus } from 'common'
 import { describe, expect, it, vi } from 'vitest'
 
+import { withTestInjector } from '../test-helpers.js'
+import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { GitHeadWatcher } from './git-head-watcher.js'
 import { GitWatcher } from './git-watcher.js'
 import { ServiceStatusManager } from './service-status-manager.js'
@@ -15,17 +14,7 @@ vi.mock('../utils/resolve-service-cwd.js', () => ({
   resolveServiceCwd: vi.fn().mockResolvedValue('/tmp/fake-cwd'),
 }))
 
-const setupReconcilerInjector = (injector: Injector) => {
-  useLogging(injector, VerboseConsoleLogger)
-
-  const statusStore = new InMemoryStore({ model: ServiceStatus, primaryKey: 'serviceId' })
-  addStore(injector, statusStore)
-  getRepository(injector).createDataSet(ServiceStatus, 'serviceId', {})
-
-  const svcDefStore = new InMemoryStore({ model: ServiceDefinition, primaryKey: 'id' })
-  addStore(injector, svcDefStore)
-  getRepository(injector).createDataSet(ServiceDefinition, 'id', {})
-
+const setupMocks = (injector: Injector) => {
   const mockStatusManager = { updateServiceStatus: vi.fn().mockResolvedValue(undefined) }
   injector.setExplicitInstance(mockStatusManager as unknown as ServiceStatusManager, ServiceStatusManager)
 
@@ -35,40 +24,50 @@ const setupReconcilerInjector = (injector: Injector) => {
   const mockGitWatcher = { startWatching: vi.fn().mockResolvedValue(undefined) }
   injector.setExplicitInstance(mockGitWatcher as unknown as GitWatcher, GitWatcher)
 
-  return { statusStore, svcDefStore, mockStatusManager, mockGitHeadWatcher, mockGitWatcher }
+  return { mockStatusManager, mockGitHeadWatcher, mockGitWatcher }
 }
 
-const addServiceStatus = async (
-  statusStore: InMemoryStore<ServiceStatus, 'serviceId'>,
-  overrides: Partial<ServiceStatus> & { serviceId: string },
-) => {
-  await statusStore.add({
-    cloneStatus: 'not-cloned',
-    installStatus: 'not-installed',
-    buildStatus: 'not-built',
-    runStatus: 'stopped',
-    updatedAt: new Date().toISOString(),
-    ...overrides,
-  } as ServiceStatus)
+const addServiceStatus = async (elevated: Injector, overrides: Partial<ServiceStatus> & { serviceId: string }) => {
+  await getRepository(elevated)
+    .getDataSetFor(ServiceStatus, 'serviceId')
+    .add(elevated, {
+      cloneStatus: 'not-cloned',
+      installStatus: 'not-installed',
+      buildStatus: 'not-built',
+      runStatus: 'stopped',
+      updatedAt: new Date().toISOString(),
+      ...overrides,
+    } as ServiceStatus)
 }
 
-const addServiceDefinition = async (svcDefStore: InMemoryStore<ServiceDefinition, 'id'>, id: string) => {
+const addServiceDefinition = async (elevated: Injector, id: string) => {
   const ts = new Date().toISOString()
-  await svcDefStore.add({
-    id,
-    stackName: 'test-stack',
-    displayName: `Service ${id}`,
-    runCommand: 'npm start',
-    createdAt: ts,
-    updatedAt: ts,
-  } as ServiceDefinition)
+  await getRepository(elevated)
+    .getDataSetFor(ServiceDefinition, 'id')
+    .add(elevated, {
+      id,
+      stackName: 'test-stack',
+      displayName: `Service ${id}`,
+      runCommand: 'npm start',
+      createdAt: ts,
+      updatedAt: ts,
+    } as ServiceDefinition)
 }
 
 describe('StaleStateReconciler', () => {
-  it('should reset stale runStatus from running to stopped', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { statusStore, mockStatusManager } = setupReconcilerInjector(injector)
-      await addServiceStatus(statusStore, { serviceId: 'svc-1', runStatus: 'running' })
+  it('does nothing when there are no statuses', () =>
+    withTestInjector(async ({ injector }) => {
+      const { mockStatusManager } = setupMocks(injector)
+      const reconciler = injector.getInstance(StaleStateReconciler)
+      await reconciler.reconcileStaleStates()
+
+      expect(mockStatusManager.updateServiceStatus).not.toHaveBeenCalled()
+    }))
+
+  it("resets 'running' runStatus to 'stopped'", () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      const { mockStatusManager } = setupMocks(injector)
+      await addServiceStatus(elevated, { serviceId: 'svc-1', runStatus: 'running' })
 
       const reconciler = injector.getInstance(StaleStateReconciler)
       await reconciler.reconcileStaleStates()
@@ -82,10 +81,10 @@ describe('StaleStateReconciler', () => {
       )
     }))
 
-  it('should reset stale runStatus from starting to stopped', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { statusStore, mockStatusManager } = setupReconcilerInjector(injector)
-      await addServiceStatus(statusStore, { serviceId: 'svc-2', runStatus: 'starting' })
+  it("resets 'starting' runStatus to 'stopped'", () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      const { mockStatusManager } = setupMocks(injector)
+      await addServiceStatus(elevated, { serviceId: 'svc-2', runStatus: 'starting' })
 
       const reconciler = injector.getInstance(StaleStateReconciler)
       await reconciler.reconcileStaleStates()
@@ -99,10 +98,27 @@ describe('StaleStateReconciler', () => {
       )
     }))
 
-  it('should reset stale installStatus from installing to not-installed', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { statusStore, mockStatusManager } = setupReconcilerInjector(injector)
-      await addServiceStatus(statusStore, { serviceId: 'svc-3', installStatus: 'installing' })
+  it("resets 'stopping' runStatus to 'stopped'", () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      const { mockStatusManager } = setupMocks(injector)
+      await addServiceStatus(elevated, { serviceId: 'svc-stop', runStatus: 'stopping' })
+
+      const reconciler = injector.getInstance(StaleStateReconciler)
+      await reconciler.reconcileStaleStates()
+
+      expect(mockStatusManager.updateServiceStatus).toHaveBeenCalledWith(
+        'svc-stop',
+        expect.objectContaining({ runStatus: 'stopped' }),
+        'state-reconciled',
+        expect.anything(),
+        expect.anything(),
+      )
+    }))
+
+  it("resets 'installing' installStatus to 'not-installed'", () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      const { mockStatusManager } = setupMocks(injector)
+      await addServiceStatus(elevated, { serviceId: 'svc-3', installStatus: 'installing' })
 
       const reconciler = injector.getInstance(StaleStateReconciler)
       await reconciler.reconcileStaleStates()
@@ -116,10 +132,10 @@ describe('StaleStateReconciler', () => {
       )
     }))
 
-  it('should reset stale buildStatus from building to not-built', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { statusStore, mockStatusManager } = setupReconcilerInjector(injector)
-      await addServiceStatus(statusStore, { serviceId: 'svc-4', buildStatus: 'building' })
+  it("resets 'building' buildStatus to 'not-built'", () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      const { mockStatusManager } = setupMocks(injector)
+      await addServiceStatus(elevated, { serviceId: 'svc-4', buildStatus: 'building' })
 
       const reconciler = injector.getInstance(StaleStateReconciler)
       await reconciler.reconcileStaleStates()
@@ -133,10 +149,10 @@ describe('StaleStateReconciler', () => {
       )
     }))
 
-  it('should reset stale cloneStatus from cloning to not-cloned', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { statusStore, mockStatusManager } = setupReconcilerInjector(injector)
-      await addServiceStatus(statusStore, { serviceId: 'svc-5', cloneStatus: 'cloning' })
+  it("resets 'cloning' cloneStatus to 'not-cloned'", () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      const { mockStatusManager } = setupMocks(injector)
+      await addServiceStatus(elevated, { serviceId: 'svc-5', cloneStatus: 'cloning' })
 
       const reconciler = injector.getInstance(StaleStateReconciler)
       await reconciler.reconcileStaleStates()
@@ -150,10 +166,16 @@ describe('StaleStateReconciler', () => {
       )
     }))
 
-  it('should not call updateServiceStatus for non-stale statuses', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { statusStore, mockStatusManager } = setupReconcilerInjector(injector)
-      await addServiceStatus(statusStore, { serviceId: 'svc-ok', runStatus: 'stopped', installStatus: 'installed' })
+  it('does not update already-stable statuses', () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      const { mockStatusManager } = setupMocks(injector)
+      await addServiceStatus(elevated, {
+        serviceId: 'svc-ok',
+        runStatus: 'stopped',
+        installStatus: 'installed',
+        buildStatus: 'built',
+        cloneStatus: 'not-cloned',
+      })
 
       const reconciler = injector.getInstance(StaleStateReconciler)
       await reconciler.reconcileStaleStates()
@@ -161,50 +183,25 @@ describe('StaleStateReconciler', () => {
       expect(mockStatusManager.updateServiceStatus).not.toHaveBeenCalled()
     }))
 
-  it('should start git watchers for cloned services', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { statusStore, svcDefStore, mockGitHeadWatcher, mockGitWatcher } = setupReconcilerInjector(injector)
-      await addServiceStatus(statusStore, { serviceId: 'svc-cloned', cloneStatus: 'cloned' })
-      await addServiceDefinition(svcDefStore, 'svc-cloned')
+  it("starts git watchers for 'cloned' services", () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      const { mockGitHeadWatcher, mockGitWatcher } = setupMocks(injector)
+      await addServiceStatus(elevated, { serviceId: 'svc-cloned', cloneStatus: 'cloned' })
+      await addServiceDefinition(elevated, 'svc-cloned')
 
       const reconciler = injector.getInstance(StaleStateReconciler)
       await reconciler.reconcileStaleStates()
 
+      expect(vi.mocked(resolveServiceCwd)).toHaveBeenCalled()
       expect(mockGitHeadWatcher.watch).toHaveBeenCalledWith('svc-cloned', '/tmp/fake-cwd')
       expect(mockGitWatcher.startWatching).toHaveBeenCalledWith('svc-cloned')
     }))
 
-  it('should handle multiple stale fields in one status', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { statusStore, mockStatusManager } = setupReconcilerInjector(injector)
-      await addServiceStatus(statusStore, {
-        serviceId: 'svc-multi',
-        runStatus: 'running',
-        buildStatus: 'building',
-        installStatus: 'installing',
-      })
-
-      const reconciler = injector.getInstance(StaleStateReconciler)
-      await reconciler.reconcileStaleStates()
-
-      expect(mockStatusManager.updateServiceStatus).toHaveBeenCalledWith(
-        'svc-multi',
-        expect.objectContaining({
-          runStatus: 'stopped',
-          buildStatus: 'not-built',
-          installStatus: 'not-installed',
-        }),
-        'state-reconciled',
-        expect.anything(),
-        expect.anything(),
-      )
-    }))
-
-  it('should gracefully handle git watcher errors for cloned services', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { statusStore, svcDefStore, mockGitHeadWatcher } = setupReconcilerInjector(injector)
-      await addServiceStatus(statusStore, { serviceId: 'svc-err', cloneStatus: 'cloned' })
-      await addServiceDefinition(svcDefStore, 'svc-err')
+  it('handles errors when starting git watchers gracefully', () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      const { mockGitHeadWatcher } = setupMocks(injector)
+      await addServiceStatus(elevated, { serviceId: 'svc-err', cloneStatus: 'cloned' })
+      await addServiceDefinition(elevated, 'svc-err')
 
       mockGitHeadWatcher.watch.mockRejectedValue(new Error('git not found'))
 

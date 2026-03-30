@@ -4,8 +4,8 @@ import '@furystack/repository'
 import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, useRestService, Validate } from '@furystack/rest-service'
-import type { ServicesApi, ServiceView } from 'common'
-import { ServiceConfig, ServiceDefinition, ServiceGitStatus, ServiceStatus } from 'common'
+import type { ServicesApi } from 'common'
+import { mergeServiceView, ServiceConfig, ServiceDefinition, ServiceGitStatus, ServiceStatus } from 'common'
 import servicesApiSchema from 'common/schemas/services-api.json' with { type: 'json' }
 import { randomUUID } from 'crypto'
 
@@ -26,37 +26,20 @@ import { ServiceHistoryAction } from './actions/service-history-action.js'
 import { ServiceLifecycleAction } from './actions/service-lifecycle-action.js'
 import { ServiceLogsAction } from './actions/service-logs-action.js'
 
-const mergeServiceView = (
+const mergeServiceViewMasked = (
   def: ServiceDefinition,
   config: ServiceConfig | undefined,
   status: ServiceStatus | undefined,
   gitStatus: ServiceGitStatus | undefined,
-  crypto?: CryptoService,
-): ServiceView => {
-  const merged: ServiceView = {
-    serviceId: def.id,
-    autoFetchEnabled: false,
-    autoFetchIntervalMinutes: 60,
-    autoRestartOnFetch: false,
-    environmentVariableOverrides: {},
-    localFiles: [],
-    cloneStatus: 'not-cloned',
-    installStatus: 'not-installed',
-    buildStatus: 'not-built',
-    runStatus: 'stopped',
-    ...def,
-    ...(config ?? {}),
-    ...(status ?? {}),
-    ...(gitStatus ?? {}),
-  }
-  if (crypto) {
-    merged.environmentVariableOverrides = maskSensitiveEnvValues(
-      crypto,
-      merged.environmentVariableOverrides,
-      SENSITIVE_VALUE_MASK,
-    )
-    merged.localFiles = maskLocalFiles(crypto, merged.localFiles)
-  }
+  crypto: CryptoService,
+) => {
+  const merged = mergeServiceView(def, config, status, gitStatus)
+  merged.environmentVariableOverrides = maskSensitiveEnvValues(
+    crypto,
+    merged.environmentVariableOverrides,
+    SENSITIVE_VALUE_MASK,
+  )
+  merged.localFiles = maskLocalFiles(crypto, merged.localFiles)
   return merged
 }
 
@@ -87,7 +70,13 @@ export const setupServicesRestApi = async (injector: Injector) => {
             const gitStatusMap = new Map(gitStatuses.map((g) => [g.serviceId, g]))
 
             const entries = defs.map((def) =>
-              mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id), gitStatusMap.get(def.id), crypto),
+              mergeServiceViewMasked(
+                def,
+                configMap.get(def.id),
+                statusMap.get(def.id),
+                gitStatusMap.get(def.id),
+                crypto,
+              ),
             )
             const count = await repo.getDataSetFor(ServiceDefinition, 'id').count(i, query.findOptions?.filter)
             return JsonResult({ count, entries })
@@ -114,7 +103,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
               .getDataSetFor(ServiceGitStatus, 'serviceId')
               .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
 
-            return JsonResult(mergeServiceView(def, configs[0], statuses[0], gitStatuses[0], crypto))
+            return JsonResult(mergeServiceViewMasked(def, configs[0], statuses[0], gitStatuses[0], crypto))
           },
         ),
         '/services/:id/logs': Validate({ schema: servicesApiSchema, schemaName: 'ServiceLogsEndpoint' })(
@@ -177,7 +166,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
             await repo.getDataSetFor(ServiceConfig, 'serviceId').add(i, config)
             await repo.getDataSetFor(ServiceStatus, 'serviceId').add(i, status)
 
-            return JsonResult(mergeServiceView(def, config, status, undefined, crypto))
+            return JsonResult(mergeServiceViewMasked(def, config, status, undefined, crypto))
           },
         ),
         '/services/:id/start': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(

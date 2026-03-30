@@ -1,12 +1,12 @@
 import { EntitySyncService } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 import { cssVariableTheme, NotyList, PageLayout, ThemeProviderService } from '@furystack/shades-common-components'
-import { environmentOptions } from '../environment-options.js'
-import { Init } from '../pages/init.js'
-import { Login } from '../pages/login.js'
-import { InstallService } from '../services/install-service.js'
-import { SessionService } from '../services/session.js'
-import { applyTheme, DEFAULT_THEME_KEY, THEME_STORAGE_KEY } from '../services/theme-registry.js'
+import { environmentOptions } from '../../environment-options.js'
+import { Init } from '../../pages/init.js'
+import { Login } from '../../pages/login.js'
+import { InstallService } from '../../services/install-service.js'
+import { SessionService } from '../../services/session.js'
+import { applyTheme, DEFAULT_THEME_KEY, THEME_STORAGE_KEY } from '../../services/theme-registry.js'
 import { Body } from './body.js'
 import { Header } from './header.js'
 import { Sidebar } from './sidebar.js'
@@ -156,7 +156,7 @@ const LazyInstallerPage = Shade({
     const [Component, setComponent] = useState<JSX.Element | null>('component', null)
 
     if (!loaded) {
-      void import('../pages/installer/index.js').then(({ InstallerPage }) => {
+      void import('../../pages/installer/index.js').then(({ InstallerPage }) => {
         setComponent(<InstallerPage />)
         setLoaded(true)
       })

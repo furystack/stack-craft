@@ -12,13 +12,15 @@ import {
   Icon,
   icons,
   MarkdownDisplay,
+  NotyService,
   SelectionCell,
 } from '@furystack/shades-common-components'
-import type { PrerequisiteCheckStatus, ServiceView } from 'common'
+import type { ServiceView } from 'common'
 import { PrerequisiteCheckResult } from 'common'
 
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
 import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
+import { getPrerequisiteSummary } from '../utils/prerequisite-summary.js'
 import { getPrimaryAction } from '../utils/service-pipeline.js'
 import { StackCraftNestedRouteLink } from './app-routes.js'
 import { BranchSelector } from './branch-selector.js'
@@ -40,6 +42,23 @@ export const ServiceTable = Shade<ServiceTableProps>({
   render: (options) => {
     const { props, injector, useDisposable, useObservable, useState } = options
     const api = injector.getInstance(ServicesApiClient)
+    const noty = injector.getInstance(NotyService)
+
+    const callServiceAction = (serviceId: string, action: string, actionLabel: string) => {
+      void api
+        .call({
+          method: 'POST',
+          action: `/services/:id/${action}` as '/services/:id/start',
+          url: { id: serviceId },
+        })
+        .catch((error: unknown) => {
+          noty.emit('onNotyAdded', {
+            title: `${actionLabel} failed`,
+            body: error instanceof Error ? error.message : `Failed to execute ${actionLabel}`,
+            type: 'error',
+          })
+        })
+    }
 
     const collectionService = useDisposable(
       'collectionService',
@@ -61,13 +80,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
         : []
     const checkResultMap = new Map(checkResults.map((r) => [r.prerequisiteId, r]))
 
-    const getPrereqSummary = (prereqIds: string[]) => {
-      if (prereqIds.length === 0) return null
-      const statuses = prereqIds.map((id): PrerequisiteCheckStatus => checkResultMap.get(id)?.status ?? 'unchecked')
-      const satisfiedCount = statuses.filter((s) => s === 'satisfied').length
-      const failedCount = statuses.filter((s) => s === 'failed').length
-      return { satisfiedCount, failedCount, total: prereqIds.length }
-    }
+    const getPrereqSummary = (prereqIds: string[]) => getPrerequisiteSummary(prereqIds, checkResultMap)
 
     const currentSelection = collectionService.selection.getValue()
     if (currentSelection.length > 0) {
@@ -158,13 +171,8 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     size="small"
                     color={primary.color === 'secondary' ? undefined : primary.color}
                     title={primary.label}
-                    onclick={() => {
-                      void api.call({
-                        method: 'POST',
-                        action: primary.apiAction as '/services/:id/start',
-                        url: { id: entry.id },
-                      })
-                    }}
+                    aria-label={primary.label}
+                    onclick={() => callServiceAction(entry.id, primary.apiAction.split('/').pop()!, primary.label)}
                     startIcon={<Icon icon={icons[primary.icon as keyof typeof icons] ?? icons.play} size="small" />}
                   />
                 ) : null}
@@ -175,9 +183,8 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     size="small"
                     color="warning"
                     title="Restart"
-                    onclick={() => {
-                      void api.call({ method: 'POST', action: '/services/:id/restart', url: { id: entry.id } })
-                    }}
+                    aria-label="Restart"
+                    onclick={() => callServiceAction(entry.id, 'restart', 'Restart')}
                     startIcon={<Icon icon={icons.refresh} size="small" />}
                   />
                 ) : null}
@@ -188,9 +195,8 @@ export const ServiceTable = Shade<ServiceTableProps>({
                       variant="text"
                       size="small"
                       title="Update: pull, install, build, and restart if running"
-                      onclick={() => {
-                        void api.call({ method: 'POST', action: '/services/:id/update', url: { id: entry.id } })
-                      }}
+                      aria-label="Update"
+                      onclick={() => callServiceAction(entry.id, 'update', 'Update')}
                       startIcon={<Icon icon={icons.download} size="small" />}
                     />
                     {entry.commitsBehind ? (
@@ -228,6 +234,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     variant="text"
                     size="small"
                     title="Logs"
+                    aria-label="Logs"
                     startIcon={<Icon icon={icons.fileText} size="small" />}
                   />
                 </StackCraftNestedRouteLink>
@@ -240,6 +247,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     variant="text"
                     size="small"
                     title="Details"
+                    aria-label="Details"
                     startIcon={<Icon icon={icons.eye} size="small" />}
                   />
                 </StackCraftNestedRouteLink>
@@ -248,6 +256,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                   variant="text"
                   size="small"
                   title="Edit"
+                  aria-label="Edit"
                   onclick={() =>
                     injector
                       .getInstance(LocationService)

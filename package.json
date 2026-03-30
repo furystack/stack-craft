@@ -2,7 +2,6 @@
   "name": "stack-craft",
   "version": "1.0.3",
   "description": "Example web app based on FuryStack",
-  "main": "service/src/index.ts",
   "repository": "https://github.com/furystack/stack-craft.git",
   "author": "Gallay Lajos <gallay.lajos@gmail.com>",
   "license": "GPL-2.0-only",

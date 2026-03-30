@@ -6,12 +6,13 @@ import type { StackView } from 'common'
 import { StackDefinition } from 'common'
 import { match } from 'path-to-regexp'
 
-import { StackCraftNestedRouteLink } from './app-routes.js'
+import { StackCraftNestedRouteLink } from '../app-routes.js'
 
 type SidebarStackLinkProps = {
   stackName: string
   subPath?: string
   label: string
+  icon: typeof icons.home
   currentUrl: string
 }
 
@@ -20,8 +21,10 @@ const SidebarStackLink = Shade<SidebarStackLinkProps>({
   css: {
     display: 'block',
     '& a': {
-      display: 'block',
-      padding: '7px 16px 7px 44px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '7px 12px 7px 40px',
       textDecoration: 'none',
       color: 'inherit',
       fontSize: '0.84rem',
@@ -39,6 +42,12 @@ const SidebarStackLink = Shade<SidebarStackLinkProps>({
       background: cssVariableTheme.action.hoverBackground,
       borderLeftColor: cssVariableTheme.palette.primary.main,
     },
+    '& .link-label': {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      minWidth: '0',
+    },
   },
   render: ({ props }) => {
     const compiledHref = `/stacks/${props.stackName}${props.subPath ? `/${props.subPath}` : ''}`
@@ -54,9 +63,11 @@ const SidebarStackLink = Shade<SidebarStackLinkProps>({
       <StackCraftNestedRouteLink
         href={href}
         params={{ stackName: props.stackName }}
+        title={props.label}
         {...(isActive ? { 'data-active': '' } : {})}
       >
-        {props.label}
+        <Icon icon={props.icon} size={14} style={{ flexShrink: '0' }} />
+        <span className="link-label">{props.label}</span>
       </StackCraftNestedRouteLink>
     )
   },
@@ -91,6 +102,13 @@ const SidebarStackCategory = Shade<SidebarStackCategoryProps>({
       fontFamily: 'inherit',
       width: 'calc(100% - 16px)',
       textAlign: 'left',
+      overflow: 'hidden',
+    },
+    '& .category-label': {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      minWidth: '0',
     },
     '& .category-header:hover': {
       background: cssVariableTheme.action.hoverBackground,
@@ -100,16 +118,29 @@ const SidebarStackCategory = Shade<SidebarStackCategoryProps>({
       fontWeight: '600',
     },
     '& .expand-arrow': {
-      fontSize: '0.55rem',
-      width: '12px',
-      textAlign: 'center',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '16px',
+      flexShrink: '0',
       transition: `transform ${cssVariableTheme.transitions.duration.normal} ease`,
-      display: 'inline-block',
     },
     '& .expand-arrow[data-expanded]': {
       transform: 'rotate(90deg)',
     },
+    '& .category-children-wrapper': {
+      display: 'grid',
+      gridTemplateRows: '0fr',
+      transition: `grid-template-rows ${cssVariableTheme.transitions.duration.normal} ease`,
+    },
+    '& .category-children-wrapper[data-expanded]': {
+      gridTemplateRows: '1fr',
+    },
     '& .category-children': {
+      overflow: 'hidden',
+      minHeight: '0',
+    },
+    '& .category-children-wrapper[data-expanded] .category-children': {
       paddingBottom: '4px',
     },
   },
@@ -133,40 +164,51 @@ const SidebarStackCategory = Shade<SidebarStackCategoryProps>({
           onclick={() => setIsExpanded(!isExpanded)}
         >
           <span className="expand-arrow" {...(isExpanded ? { 'data-expanded': '' } : {})}>
-            ▶
+            <Icon icon={icons.chevronRight} size={12} />
           </span>
           <Icon icon={icons.layers} size={16} />
-          <span>{props.stack.displayName}</span>
+          <span className="category-label" title={props.stack.displayName}>
+            {props.stack.displayName}
+          </span>
         </button>
-        {isExpanded ? (
+        <div className="category-children-wrapper" {...(isExpanded ? { 'data-expanded': '' } : {})}>
           <div className="category-children">
-            <SidebarStackLink stackName={props.stack.name} label="Overview" currentUrl={props.currentUrl} />
+            <SidebarStackLink
+              stackName={props.stack.name}
+              icon={icons.layers}
+              label="Overview"
+              currentUrl={props.currentUrl}
+            />
             <SidebarStackLink
               stackName={props.stack.name}
               subPath="services"
+              icon={icons.code}
               label="Services"
               currentUrl={props.currentUrl}
             />
             <SidebarStackLink
               stackName={props.stack.name}
               subPath="repositories"
+              icon={icons.link}
               label="Repositories"
               currentUrl={props.currentUrl}
             />
             <SidebarStackLink
               stackName={props.stack.name}
               subPath="prerequisites"
+              icon={icons.check}
               label="Prerequisites"
               currentUrl={props.currentUrl}
             />
             <SidebarStackLink
               stackName={props.stack.name}
               subPath="setup"
+              icon={icons.settings}
               label="Setup"
               currentUrl={props.currentUrl}
             />
           </div>
-        ) : null}
+        </div>
       </div>
     )
   },

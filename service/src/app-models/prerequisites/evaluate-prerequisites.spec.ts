@@ -1,11 +1,8 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
-import { Injector } from '@furystack/inject'
-import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { usingAsync } from '@furystack/utils'
 import { Prerequisite, PrerequisiteCheckResult, StackConfig } from 'common'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { withTestInjector } from '../../test-helpers.js'
 import { evaluatePrerequisites } from './evaluate-prerequisites.js'
 
 vi.mock('./actions/check-prerequisite-action.js', () => ({
@@ -15,35 +12,24 @@ vi.mock('./actions/check-prerequisite-action.js', () => ({
 const { runCheck } = await import('./actions/check-prerequisite-action.js')
 const mockRunCheck = runCheck as unknown as ReturnType<typeof vi.fn>
 
-const setupInjector = () => {
-  mockRunCheck.mockReset()
-  const injector = new Injector()
-  useLogging(injector, VerboseConsoleLogger)
-  addStore(injector, new InMemoryStore({ model: Prerequisite, primaryKey: 'id' }))
-    .addStore(new InMemoryStore({ model: PrerequisiteCheckResult, primaryKey: 'prerequisiteId' }))
-    .addStore(new InMemoryStore({ model: StackConfig, primaryKey: 'stackName' }))
-  getRepository(injector).createDataSet(Prerequisite, 'id', {})
-  getRepository(injector).createDataSet(PrerequisiteCheckResult, 'prerequisiteId', {})
-  getRepository(injector).createDataSet(StackConfig, 'stackName', {})
-  return injector
-}
-
 describe('evaluatePrerequisites', () => {
+  beforeEach(() => {
+    mockRunCheck.mockReset()
+  })
+
   it('should return early when no prerequisites exist', async () => {
-    await usingAsync(setupInjector(), async (injector) => {
+    await withTestInjector(async ({ injector }) => {
       await evaluatePrerequisites(injector)
       expect(mockRunCheck).not.toHaveBeenCalled()
     })
   })
 
   it('should seed unchecked results and update with check output', async () => {
-    await usingAsync(setupInjector(), async (injector) => {
+    await withTestInjector(async ({ injector, elevated }) => {
       mockRunCheck.mockResolvedValue({ satisfied: true, output: 'git version 2.43.0' })
 
-      const elevated = useSystemIdentityContext({ injector })
-      const repo = getRepository(elevated)
       const ts = new Date().toISOString()
-      await repo.getDataSetFor(Prerequisite, 'id').add(elevated, {
+      await getRepository(elevated).getDataSetFor(Prerequisite, 'id').add(elevated, {
         id: 'prereq-1',
         stackName: 'my-stack',
         name: 'Git',
@@ -67,10 +53,9 @@ describe('evaluatePrerequisites', () => {
   })
 
   it('should mark result as failed when check is not satisfied', async () => {
-    await usingAsync(setupInjector(), async (injector) => {
+    await withTestInjector(async ({ injector, elevated }) => {
       mockRunCheck.mockResolvedValue({ satisfied: false, output: 'Node.js 16.0.0 < 18.0.0' })
 
-      const elevated = useSystemIdentityContext({ injector })
       const ts = new Date().toISOString()
       await getRepository(elevated)
         .getDataSetFor(Prerequisite, 'id')
@@ -97,10 +82,9 @@ describe('evaluatePrerequisites', () => {
   })
 
   it('should mark result as failed when runCheck throws', async () => {
-    await usingAsync(setupInjector(), async (injector) => {
+    await withTestInjector(async ({ injector, elevated }) => {
       mockRunCheck.mockRejectedValue(new Error('command not found'))
 
-      const elevated = useSystemIdentityContext({ injector })
       const ts = new Date().toISOString()
       await getRepository(elevated).getDataSetFor(Prerequisite, 'id').add(elevated, {
         id: 'prereq-err',
@@ -125,10 +109,9 @@ describe('evaluatePrerequisites', () => {
   })
 
   it('should handle non-Error thrown values gracefully', async () => {
-    await usingAsync(setupInjector(), async (injector) => {
+    await withTestInjector(async ({ injector, elevated }) => {
       mockRunCheck.mockRejectedValue('unexpected')
 
-      const elevated = useSystemIdentityContext({ injector })
       const ts = new Date().toISOString()
       await getRepository(elevated).getDataSetFor(Prerequisite, 'id').add(elevated, {
         id: 'prereq-nonError',
@@ -153,31 +136,33 @@ describe('evaluatePrerequisites', () => {
   })
 
   it('should resolve env-variable config from stack config', async () => {
-    await usingAsync(setupInjector(), async (injector) => {
+    await withTestInjector(async ({ injector, elevated }) => {
       mockRunCheck.mockResolvedValue({ satisfied: true, output: 'MY_VAR is set' })
 
-      const elevated = useSystemIdentityContext({ injector })
-      const repo = getRepository(elevated)
       const ts = new Date().toISOString()
-      await repo.getDataSetFor(StackConfig, 'stackName').add(elevated, {
-        stackName: 'my-stack',
-        mainDirectory: '/tmp/stack',
-        environmentVariables: {
-          MY_VAR: { source: 'custom', customValue: 'secret' },
-        },
-        createdAt: ts,
-        updatedAt: ts,
-      })
-      await repo.getDataSetFor(Prerequisite, 'id').add(elevated, {
-        id: 'prereq-env',
-        stackName: 'my-stack',
-        name: 'MY_VAR',
-        type: 'env-variable',
-        config: { variableName: 'MY_VAR' },
-        installationHelp: '',
-        createdAt: ts,
-        updatedAt: ts,
-      })
+      await getRepository(elevated)
+        .getDataSetFor(StackConfig, 'stackName')
+        .add(elevated, {
+          stackName: 'my-stack',
+          mainDirectory: '/tmp/stack',
+          environmentVariables: {
+            MY_VAR: { source: 'custom', customValue: 'secret' },
+          },
+          createdAt: ts,
+          updatedAt: ts,
+        })
+      await getRepository(elevated)
+        .getDataSetFor(Prerequisite, 'id')
+        .add(elevated, {
+          id: 'prereq-env',
+          stackName: 'my-stack',
+          name: 'MY_VAR',
+          type: 'env-variable',
+          config: { variableName: 'MY_VAR' },
+          installationHelp: '',
+          createdAt: ts,
+          updatedAt: ts,
+        })
 
       await evaluatePrerequisites(injector)
 
@@ -190,10 +175,9 @@ describe('evaluatePrerequisites', () => {
   })
 
   it('should evaluate multiple prerequisites', async () => {
-    await usingAsync(setupInjector(), async (injector) => {
+    await withTestInjector(async ({ injector, elevated }) => {
       mockRunCheck.mockResolvedValue({ satisfied: true, output: 'ok' })
 
-      const elevated = useSystemIdentityContext({ injector })
       const ts = new Date().toISOString()
       const ds = getRepository(elevated).getDataSetFor(Prerequisite, 'id')
       await ds.add(elevated, {

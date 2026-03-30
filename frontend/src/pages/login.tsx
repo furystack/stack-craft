@@ -113,7 +113,7 @@ export const Login = Shade({
     return (
       <div>
         <div className="theme-toggle">
-          <ThemeSwitch variant="outlined" />
+          <ThemeSwitch variant="outlined" size="small" />
         </div>
         <div className="login-wrapper">
           <div className="login-branding">

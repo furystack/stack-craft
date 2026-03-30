@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { createComponent, Shade } from '@furystack/shades'
 import { getTextColor, ThemeProviderService } from '@furystack/shades-common-components'
-// @ts-ignore
+
 import ghLight from './gh-light.png'
-// @ts-ignore
 import ghDark from './gh-dark.png'
 
 type GithubLogoProps = Omit<Partial<HTMLImageElement>, 'style' | 'src' | 'alt'> & {

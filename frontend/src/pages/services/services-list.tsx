@@ -6,11 +6,12 @@ import {
   Icon,
   icons,
   Loader,
+  NotyService,
   PageContainer,
   PageHeader,
 } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
-import { ServiceConfig, ServiceDefinition, ServiceGitStatus, ServiceStatus } from 'common'
+import { mergeServiceView, ServiceConfig, ServiceDefinition, ServiceGitStatus, ServiceStatus } from 'common'
 
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { ServiceTable } from '../../components/service-table.js'
@@ -47,25 +48,13 @@ export const ServicesList = Shade<ServicesListProps>({
     const configMap = new Map(configs.map((c) => [c.serviceId, c]))
     const gitStatusMap = new Map(gitStatuses.map((g) => [g.serviceId, g]))
 
-    const services: ServiceView[] = defs.map((def) => ({
-      serviceId: def.id,
-      autoFetchEnabled: false,
-      autoFetchIntervalMinutes: 60,
-      autoRestartOnFetch: false,
-      environmentVariableOverrides: {},
-      localFiles: [],
-      cloneStatus: 'not-cloned' as const,
-      installStatus: 'not-installed' as const,
-      buildStatus: 'not-built' as const,
-      runStatus: 'stopped' as const,
-      ...def,
-      ...(configMap.get(def.id) ?? {}),
-      ...(statusMap.get(def.id) ?? {}),
-      ...(gitStatusMap.get(def.id) ?? {}),
-    }))
+    const services = defs.map((def) =>
+      mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id), gitStatusMap.get(def.id)),
+    )
 
     const isLoading = servicesState.status === 'connecting'
     const api = injector.getInstance(ServicesApiClient)
+    const noty = injector.getInstance(NotyService)
     const [selectedServiceIds, setSelectedServiceIds] = options.useState<string[]>('selectedServiceIds', [])
     const [isBulkLoading, setIsBulkLoading] = options.useState('isBulkLoading', false)
 
@@ -76,6 +65,7 @@ export const ServicesList = Shade<ServicesListProps>({
 
     const bulkAction = async (action: string) => {
       setIsBulkLoading(true)
+      const failures: string[] = []
       for (const svc of selectedServices) {
         try {
           await api.call({
@@ -84,8 +74,15 @@ export const ServicesList = Shade<ServicesListProps>({
             url: { id: svc.id },
           })
         } catch {
-          // Individual failures are handled by entity-sync status updates
+          failures.push(svc.displayName)
         }
+      }
+      if (failures.length > 0) {
+        noty.emit('onNotyAdded', {
+          title: `${action} failed`,
+          body: `Failed for: ${failures.join(', ')}`,
+          type: 'error',
+        })
       }
       setIsBulkLoading(false)
     }

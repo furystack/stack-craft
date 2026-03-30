@@ -374,7 +374,6 @@ Export pages from an index file:
 // frontend/src/pages/index.ts
 export * from './dashboard.js'
 export * from './login.js'
-export * from './hello-world.js'
 ```
 
 ## Application Entry Point

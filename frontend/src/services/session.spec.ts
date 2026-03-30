@@ -32,8 +32,31 @@ describe('SessionService', () => {
     service[Symbol.dispose]()
   })
 
-  it('should initialize with empty loginError', () => {
-    expect(service.loginError.getValue()).toBe('')
+  describe('initial state', () => {
+    it('should expose initializing state and null user until isAuthenticated responds', async () => {
+      const m = createMocks()
+      let resolveFirst!: (value: { result: { isAuthenticated: boolean } }) => void
+      const firstCall = new Promise<{ result: { isAuthenticated: boolean } }>((resolve) => {
+        resolveFirst = resolve
+      })
+      m.api.call.mockImplementationOnce(() => firstCall)
+
+      const { service: svc } = createService(m)
+
+      expect(svc.state.getValue()).toBe('initializing')
+      expect(svc.currentUser.getValue()).toBeNull()
+      expect(svc.loginError.getValue()).toBe('')
+      expect(svc.isOperationInProgress.getValue()).toBe(true)
+
+      resolveFirst({ result: { isAuthenticated: false } })
+      await vi.waitFor(() => expect(svc.state.getValue()).toBe('unauthenticated'))
+      expect(svc.isOperationInProgress.getValue()).toBe(false)
+      svc[Symbol.dispose]()
+    })
+
+    it('should have empty loginError after init completes', () => {
+      expect(service.loginError.getValue()).toBe('')
+    })
   })
 
   describe('isAuthenticated', () => {
@@ -107,6 +130,22 @@ describe('SessionService', () => {
   })
 
   describe('init', () => {
+    it('should call GET /isAuthenticated', async () => {
+      const m = createMocks()
+      m.api.call.mockResolvedValueOnce({ result: { isAuthenticated: false } })
+
+      const { service: svc } = createService(m)
+
+      await vi.waitFor(() => {
+        expect(svc.state.getValue()).toBe('unauthenticated')
+      })
+      expect(m.api.call).toHaveBeenCalledWith({
+        method: 'GET',
+        action: '/isAuthenticated',
+      })
+      svc[Symbol.dispose]()
+    })
+
     it('should set state to authenticated and fetch user', async () => {
       const user = { username: 'test', roles: [] }
       const m = createMocks()
@@ -173,6 +212,18 @@ describe('SessionService', () => {
       expect(service.state.getValue()).toBe('authenticated')
     })
 
+    it('should POST /login with username and password', async () => {
+      mocks.api.call.mockResolvedValueOnce({ result: { username: 'a', roles: [] } })
+
+      await service.login('a', 'secret')
+
+      expect(mocks.api.call).toHaveBeenCalledWith({
+        method: 'POST',
+        action: '/login',
+        body: { username: 'a', password: 'secret' },
+      })
+    })
+
     it('should emit a success notification on login', async () => {
       mocks.api.call.mockResolvedValueOnce({ result: { username: 'test', roles: [] } })
 
@@ -226,6 +277,17 @@ describe('SessionService', () => {
       expect(service.state.getValue()).toBe('unauthenticated')
     })
 
+    it('should POST /logout', async () => {
+      mocks.api.call.mockResolvedValueOnce({})
+
+      await service.logout()
+
+      expect(mocks.api.call).toHaveBeenCalledWith({
+        method: 'POST',
+        action: '/logout',
+      })
+    })
+
     it('should emit an info notification', async () => {
       mocks.api.call.mockResolvedValueOnce({})
 
@@ -240,6 +302,48 @@ describe('SessionService', () => {
       await service.logout()
 
       expect(service.isOperationInProgress.getValue()).toBe(false)
+    })
+  })
+
+  describe('state transitions', () => {
+    it('should go from offline to authenticated after successful login', async () => {
+      const m = createMocks()
+      m.api.call.mockRejectedValueOnce(new Error('Network error'))
+
+      const { service: svc } = createService(m)
+
+      await vi.waitFor(() => expect(svc.state.getValue()).toBe('offline'))
+
+      const user = { username: 'recovered', roles: ['user'] }
+      m.api.call.mockResolvedValueOnce({ result: user })
+      await svc.login('recovered', 'pw')
+
+      expect(svc.state.getValue()).toBe('authenticated')
+      expect(svc.currentUser.getValue()).toEqual(user)
+      expect(m.notys.emit).toHaveBeenCalledWith('onNotyAdded', expect.objectContaining({ type: 'success' }))
+      svc[Symbol.dispose]()
+    })
+
+    it('should go from authenticated to unauthenticated after logout', async () => {
+      const m = createMocks()
+      m.api.call.mockResolvedValueOnce({ result: { isAuthenticated: false } })
+
+      const { service: svc } = createService(m)
+
+      await vi.waitFor(() => expect(svc.state.getValue()).toBe('unauthenticated'))
+
+      const user = { username: 't', roles: [] }
+      m.api.call.mockResolvedValueOnce({ result: user })
+      await svc.login('t', 'p')
+      expect(svc.state.getValue()).toBe('authenticated')
+
+      m.api.call.mockResolvedValueOnce({})
+      await svc.logout()
+
+      expect(svc.state.getValue()).toBe('unauthenticated')
+      expect(svc.currentUser.getValue()).toBeNull()
+      expect(m.notys.emit).toHaveBeenCalledWith('onNotyAdded', expect.objectContaining({ type: 'info' }))
+      svc[Symbol.dispose]()
     })
   })
 

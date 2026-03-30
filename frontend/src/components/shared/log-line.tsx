@@ -1,8 +1,8 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { cssVariableTheme } from '@furystack/shades-common-components'
 
-import type { AnsiStyle } from '../utils/parse-ansi.js'
-import { parseAnsi } from '../utils/parse-ansi.js'
+import type { AnsiStyle } from '../../utils/parse-ansi.js'
+import { parseAnsi } from '../../utils/parse-ansi.js'
 
 const URL_REGEX = /(https?:\/\/[^\s)]+)/g
 

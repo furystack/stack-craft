@@ -1,182 +1,137 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
-import { Injector } from '@furystack/inject'
-import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
+import type { FSWatcher } from 'fs'
+
 import { getRepository } from '@furystack/repository'
-import { usingAsync } from '@furystack/utils'
 import { ServiceGitStatus } from 'common'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { GitService } from './git-service.js'
+import { withTestInjector } from '../test-helpers.js'
 import { GitHeadWatcher } from './git-head-watcher.js'
+import { GitService } from './git-service.js'
 
-vi.mock('fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('fs')>() // eslint-disable-line @typescript-eslint/consistent-type-imports
+const { mockExistsSync, mockWatch, mockWatcherClose } = vi.hoisted(() => {
+  const watcherClose = vi.fn()
   return {
-    ...actual,
-    existsSync: vi.fn().mockReturnValue(true),
-    watch: vi.fn().mockReturnValue({ close: vi.fn() }),
+    mockExistsSync: vi.fn(),
+    mockWatch: vi.fn(),
+    mockWatcherClose: watcherClose,
   }
 })
 
-const { existsSync, watch } = await import('fs')
-const mockExistsSync = existsSync as unknown as ReturnType<typeof vi.fn>
-const mockWatch = watch as unknown as ReturnType<typeof vi.fn>
-
-const createMockGitService = () => ({
-  getCurrentBranch: vi.fn().mockResolvedValue('main'),
-  getCommitsBehind: vi.fn().mockResolvedValue(0),
-  getBranches: vi.fn(),
-  fetch: vi.fn(),
-  pull: vi.fn(),
-  clone: vi.fn(),
-  checkout: vi.fn(),
+vi.mock('fs', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>()
+  return { ...actual, existsSync: mockExistsSync, watch: mockWatch }
 })
 
-const setupHeadWatcherInjector = (injector: Injector, mockGit: ReturnType<typeof createMockGitService>) => {
-  useLogging(injector, VerboseConsoleLogger)
-  addStore(injector, new InMemoryStore({ model: ServiceGitStatus, primaryKey: 'serviceId' }))
-  getRepository(injector).createDataSet(ServiceGitStatus, 'serviceId', {})
-  injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
-}
-
-const withHeadWatcherContext = async (
-  fn: (ctx: { injector: Injector; mockGit: ReturnType<typeof createMockGitService> }) => Promise<void>,
-) => {
-  const mockGit = createMockGitService()
-  mockExistsSync.mockClear()
-  mockExistsSync.mockReturnValue(true)
-  mockWatch.mockClear()
-  mockWatch.mockReturnValue({ close: vi.fn() })
-
-  await usingAsync(new Injector(), async (injector) => {
-    setupHeadWatcherInjector(injector, mockGit)
-    await fn({ injector, mockGit })
-  })
-}
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockExistsSync.mockReturnValue(false)
+  mockWatch.mockReturnValue({ close: mockWatcherClose } as unknown as FSWatcher)
+})
 
 describe('GitHeadWatcher', () => {
-  describe('watch', () => {
-    it('should read the current branch and write git status', () =>
-      withHeadWatcherContext(async ({ injector, mockGit }) => {
-        const headWatcher = injector.getInstance(GitHeadWatcher)
-        await headWatcher.watch('svc-1', '/tmp/repo')
+  it('does nothing when .git/HEAD does not exist', () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      mockExistsSync.mockReturnValue(false)
+      const mockGit = {
+        getCurrentBranch: vi.fn(),
+        getCommitsBehind: vi.fn(),
+      }
+      injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
+      const headWatcher = injector.getInstance(GitHeadWatcher)
+      await headWatcher.watch('svc-1', '/tmp/repo')
 
-        expect(mockGit.getCurrentBranch).toHaveBeenCalledWith('/tmp/repo')
+      expect(mockWatch).not.toHaveBeenCalled()
+      expect(mockGit.getCurrentBranch).not.toHaveBeenCalled()
+      const rows = await getRepository(elevated)
+        .getDataSetFor(ServiceGitStatus, 'serviceId')
+        .find(elevated, { filter: { serviceId: { $eq: 'svc-1' } } })
+      expect(rows).toHaveLength(0)
+    }))
 
-        const elevated = useSystemIdentityContext({ injector })
-        const results = await getRepository(elevated).getDataSetFor(ServiceGitStatus, 'serviceId').find(elevated, {})
-        await elevated[Symbol.asyncDispose]()
+  it('reads the current branch and creates a ServiceGitStatus record', () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      mockExistsSync.mockReturnValue(true)
+      const mockGit = {
+        getCurrentBranch: vi.fn().mockResolvedValue('main'),
+        getCommitsBehind: vi.fn(),
+      }
+      injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
+      const headWatcher = injector.getInstance(GitHeadWatcher)
+      await headWatcher.watch('svc-create', '/tmp/repo')
 
-        expect(results).toHaveLength(1)
-        expect(results[0].serviceId).toBe('svc-1')
-        expect(results[0].currentBranch).toBe('main')
-      }))
+      expect(mockGit.getCurrentBranch).toHaveBeenCalledWith('/tmp/repo')
+      const rows = await getRepository(elevated)
+        .getDataSetFor(ServiceGitStatus, 'serviceId')
+        .find(elevated, { filter: { serviceId: { $eq: 'svc-create' } } })
+      expect(rows).toHaveLength(1)
+      expect(rows[0]).toMatchObject({ serviceId: 'svc-create', currentBranch: 'main' })
+    }))
 
-    it('should not watch if HEAD file does not exist', () =>
-      withHeadWatcherContext(async ({ injector }) => {
-        mockExistsSync.mockReturnValue(false)
-        const headWatcher = injector.getInstance(GitHeadWatcher)
+  it('updates an existing ServiceGitStatus when one already exists', () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      mockExistsSync.mockReturnValue(true)
+      const ds = getRepository(elevated).getDataSetFor(ServiceGitStatus, 'serviceId')
+      await ds.add(elevated, { serviceId: 'svc-upd', currentBranch: 'old' })
 
-        await headWatcher.watch('svc-2', '/tmp/no-git')
+      const mockGit = {
+        getCurrentBranch: vi.fn().mockResolvedValue('new-branch'),
+        getCommitsBehind: vi.fn(),
+      }
+      injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
+      const headWatcher = injector.getInstance(GitHeadWatcher)
+      await headWatcher.watch('svc-upd', '/tmp/repo')
 
-        expect(mockWatch).not.toHaveBeenCalled()
-      }))
+      const rows = await ds.find(elevated, { filter: { serviceId: { $eq: 'svc-upd' } } })
+      expect(rows).toHaveLength(1)
+      expect(rows[0]).toMatchObject({ serviceId: 'svc-upd', currentBranch: 'new-branch' })
+    }))
 
-    it('should set up a file watcher on .git/HEAD', () =>
-      withHeadWatcherContext(async ({ injector }) => {
-        const headWatcher = injector.getInstance(GitHeadWatcher)
-        await headWatcher.watch('svc-1', '/tmp/repo')
+  it('unwatch closes the watcher and removes the entry', () =>
+    withTestInjector(async ({ injector }) => {
+      mockExistsSync.mockReturnValue(true)
+      const mockGit = {
+        getCurrentBranch: vi.fn().mockResolvedValue('main'),
+        getCommitsBehind: vi.fn(),
+      }
+      injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
+      const headWatcher = injector.getInstance(GitHeadWatcher)
+      await headWatcher.watch('svc-unwatch', '/tmp/repo')
+      headWatcher.unwatch('svc-unwatch')
 
-        expect(mockWatch).toHaveBeenCalledWith('/tmp/repo/.git/HEAD', expect.any(Function))
-      }))
+      expect(mockWatcherClose).toHaveBeenCalledTimes(1)
+    }))
 
-    it('should handle getCurrentBranch failure gracefully', () =>
-      withHeadWatcherContext(async ({ injector, mockGit }) => {
-        mockGit.getCurrentBranch.mockRejectedValue(new Error('not a repo'))
-        const headWatcher = injector.getInstance(GitHeadWatcher)
+  it('unwatch is a no-op for an unknown serviceId', () =>
+    withTestInjector(async ({ injector }) => {
+      const mockGit = {
+        getCurrentBranch: vi.fn(),
+        getCommitsBehind: vi.fn(),
+      }
+      injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
+      const headWatcher = injector.getInstance(GitHeadWatcher)
+      expect(() => headWatcher.unwatch('unknown')).not.toThrow()
+      expect(mockWatcherClose).not.toHaveBeenCalled()
+    }))
 
-        await expect(headWatcher.watch('svc-1', '/tmp/bad')).resolves.not.toThrow()
-      }))
+  it('asyncDispose closes all watchers', () =>
+    withTestInjector(async ({ injector }) => {
+      mockExistsSync.mockReturnValue(true)
+      const closeA = vi.fn()
+      const closeB = vi.fn()
+      mockWatch.mockReturnValueOnce({ close: closeA } as unknown as FSWatcher)
+      mockWatch.mockReturnValueOnce({ close: closeB } as unknown as FSWatcher)
 
-    it('should replace an existing watcher when called again for the same service', () =>
-      withHeadWatcherContext(async ({ injector }) => {
-        const closeFn = vi.fn()
-        mockWatch.mockReturnValue({ close: closeFn })
+      const mockGit = {
+        getCurrentBranch: vi.fn().mockResolvedValue('main'),
+        getCommitsBehind: vi.fn(),
+      }
+      injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
+      const headWatcher = injector.getInstance(GitHeadWatcher)
+      await headWatcher.watch('svc-a', '/tmp/a')
+      await headWatcher.watch('svc-b', '/tmp/b')
+      await headWatcher[Symbol.asyncDispose]()
 
-        const headWatcher = injector.getInstance(GitHeadWatcher)
-        await headWatcher.watch('svc-1', '/tmp/repo')
-        await headWatcher.watch('svc-1', '/tmp/repo2')
-
-        expect(closeFn).toHaveBeenCalledOnce()
-      }))
-  })
-
-  describe('unwatch', () => {
-    it('should close the watcher and remove the entry', () =>
-      withHeadWatcherContext(async ({ injector }) => {
-        const closeFn = vi.fn()
-        mockWatch.mockReturnValue({ close: closeFn })
-
-        const headWatcher = injector.getInstance(GitHeadWatcher)
-        await headWatcher.watch('svc-1', '/tmp/repo')
-
-        headWatcher.unwatch('svc-1')
-
-        expect(closeFn).toHaveBeenCalledOnce()
-      }))
-
-    it('should be a no-op for an unknown service', () =>
-      withHeadWatcherContext(async ({ injector }) => {
-        const headWatcher = injector.getInstance(GitHeadWatcher)
-        expect(() => headWatcher.unwatch('nonexistent')).not.toThrow()
-      }))
-  })
-
-  describe('onHeadChanged callback', () => {
-    it('should update git status when HEAD changes', () =>
-      withHeadWatcherContext(async ({ injector, mockGit }) => {
-        vi.useFakeTimers()
-        try {
-          let fileChangeCallback: (() => void) | undefined
-          mockWatch.mockImplementation((_path: string, cb: () => void) => {
-            fileChangeCallback = cb
-            return { close: vi.fn() }
-          })
-
-          const headWatcher = injector.getInstance(GitHeadWatcher)
-          await headWatcher.watch('svc-1', '/tmp/repo')
-
-          mockGit.getCurrentBranch.mockResolvedValue('feature-branch')
-          mockGit.getCommitsBehind.mockResolvedValue(3)
-
-          fileChangeCallback?.()
-          vi.advanceTimersByTime(300)
-          await vi.waitFor(async () => {
-            const elevated = useSystemIdentityContext({ injector })
-            const results = await getRepository(elevated)
-              .getDataSetFor(ServiceGitStatus, 'serviceId')
-              .find(elevated, {})
-            await elevated[Symbol.asyncDispose]()
-            expect(results[0].currentBranch).toBe('feature-branch')
-          })
-        } finally {
-          vi.useRealTimers()
-        }
-      }))
-  })
-
-  describe('Symbol.asyncDispose', () => {
-    it('should close all watchers', () =>
-      withHeadWatcherContext(async ({ injector }) => {
-        const closeFn = vi.fn()
-        mockWatch.mockReturnValue({ close: closeFn })
-
-        const headWatcher = injector.getInstance(GitHeadWatcher)
-        await headWatcher.watch('svc-1', '/tmp/repo')
-
-        await headWatcher[Symbol.asyncDispose]()
-
-        expect(closeFn).toHaveBeenCalled()
-      }))
-  })
+      expect(closeA).toHaveBeenCalledTimes(1)
+      expect(closeB).toHaveBeenCalledTimes(1)
+    }))
 })

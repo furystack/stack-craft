@@ -3,6 +3,7 @@ import type { Injector } from '@furystack/inject'
 import { Injector as InjectorImpl } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
+import { PasswordCredential, PasswordResetToken, usePasswordPolicy } from '@furystack/security'
 import {
   GitHubRepository,
   Prerequisite,
@@ -15,6 +16,7 @@ import {
   ServiceStatus,
   StackConfig,
   StackDefinition,
+  User,
 } from 'common'
 
 export const createTestInjector = () => {
@@ -32,6 +34,9 @@ export const createTestInjector = () => {
   addStore(injector, new InMemoryStore({ model: ServiceGitStatus, primaryKey: 'serviceId' }))
   addStore(injector, new InMemoryStore({ model: ServiceLogEntry, primaryKey: 'id' }))
   addStore(injector, new InMemoryStore({ model: ServiceStateHistory, primaryKey: 'id' }))
+  addStore(injector, new InMemoryStore({ model: User, primaryKey: 'username' }))
+  addStore(injector, new InMemoryStore({ model: PasswordCredential, primaryKey: 'userName' }))
+  addStore(injector, new InMemoryStore({ model: PasswordResetToken, primaryKey: 'token' }))
 
   getRepository(injector).createDataSet(StackDefinition, 'name', {})
   getRepository(injector).createDataSet(StackConfig, 'stackName', {})
@@ -44,6 +49,11 @@ export const createTestInjector = () => {
   getRepository(injector).createDataSet(ServiceGitStatus, 'serviceId', {})
   getRepository(injector).createDataSet(ServiceLogEntry, 'id', {})
   getRepository(injector).createDataSet(ServiceStateHistory, 'id', {})
+  getRepository(injector).createDataSet(User, 'username', {})
+  getRepository(injector).createDataSet(PasswordCredential, 'userName', {})
+  getRepository(injector).createDataSet(PasswordResetToken, 'token')
+
+  usePasswordPolicy(injector)
 
   const elevated = useSystemIdentityContext({ injector })
 

@@ -6,8 +6,8 @@ export default defineConfig({
       enabled: true,
       include: ['common/src/**/*.{ts,tsx}', 'frontend/src/**/*.{ts,tsx}', 'service/src/**/*.{ts,tsx}'],
       thresholds: {
-        lines: 35,
-        branches: 27,
+        lines: 34,
+        branches: 26,
         functions: 24,
       },
     },

@@ -3,7 +3,7 @@ import { createComponent, LocationService, Shade } from '@furystack/shades'
 import { cssVariableTheme } from '@furystack/shades-common-components'
 import { GitHubRepository as GitHubRepositoryModel, ServiceDefinition, StackDefinition } from 'common'
 
-import { StackCraftNestedRouteLink } from './app-routes.js'
+import { StackCraftNestedRouteLink } from '../app-routes.js'
 
 type BreadcrumbSegment = {
   label: string
@@ -103,12 +103,17 @@ type EntityNameResolverProps = {
 const EntityNameResolver = Shade<EntityNameResolverProps>({
   customElementName: 'shade-entity-name-resolver',
   css: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    fontSize: '13px',
-    color: cssVariableTheme.text.secondary,
-    flexWrap: 'wrap',
+    '& ol': {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      fontSize: '13px',
+      color: cssVariableTheme.text.secondary,
+      flexWrap: 'wrap',
+      listStyle: 'none',
+      margin: '0',
+      padding: '0',
+    },
     '& a': {
       color: cssVariableTheme.text.secondary,
       textDecoration: 'none',
@@ -151,21 +156,25 @@ const EntityNameResolver = Shade<EntityNameResolverProps>({
 
     return (
       <nav aria-label="Breadcrumb">
-        {resolved.map((segment, index) => {
-          const isLast = index === resolved.length - 1
-          return (
-            <span>
-              {index > 0 ? <span className="breadcrumb-separator"> / </span> : null}
-              {segment.href && !isLast ? (
-                <StackCraftNestedRouteLink href={segment.href} params={segment.params as Record<string, string>}>
-                  {segment.label}
-                </StackCraftNestedRouteLink>
-              ) : (
-                <span className={isLast ? 'breadcrumb-current' : ''}>{segment.label}</span>
-              )}
-            </span>
-          )
-        })}
+        <ol>
+          {resolved.map((segment, index) => {
+            const isLast = index === resolved.length - 1
+            return (
+              <li>
+                {index > 0 ? <span className="breadcrumb-separator"> / </span> : null}
+                {segment.href && !isLast ? (
+                  <StackCraftNestedRouteLink href={segment.href} params={segment.params as Record<string, string>}>
+                    {segment.label}
+                  </StackCraftNestedRouteLink>
+                ) : (
+                  <span className={isLast ? 'breadcrumb-current' : ''} {...(isLast ? { 'aria-current': 'page' } : {})}>
+                    {segment.label}
+                  </span>
+                )}
+              </li>
+            )
+          })}
+        </ol>
       </nav>
     )
   },

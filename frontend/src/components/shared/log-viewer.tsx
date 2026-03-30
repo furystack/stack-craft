@@ -5,6 +5,8 @@ import { ServiceLogEntry } from 'common'
 
 import { LogLine } from './log-line.js'
 
+const DEFAULT_LOG_LINES = 300
+
 type LogViewerProps = {
   serviceId: string
   processUid?: string
@@ -23,7 +25,7 @@ export const LogViewer = Shade<LogViewerProps>({
         ...(props.processUid ? { processUid: { $eq: props.processUid } } : {}),
       },
       order: { id: 'DESC' },
-      top: 300,
+      top: DEFAULT_LOG_LINES,
     })
 
     const isLoading = logsState.status === 'connecting'
@@ -50,7 +52,7 @@ export const LogViewer = Shade<LogViewerProps>({
             labelTitle="Search logs"
             value={filter}
             oninput={(ev) => setFilter((ev.target as HTMLInputElement).value)}
-            style={{ width: '300px' }}
+            style={{ width: '100%', maxWidth: '300px' }}
           />
         </div>
         <div
@@ -73,6 +75,7 @@ export const LogViewer = Shade<LogViewerProps>({
           ) : null}
           {filteredEntries.map((entry) => (
             <div
+              data-key={entry.id}
               style={{
                 color: entry.stream === 'stderr' ? cssVariableTheme.palette.error.main : cssVariableTheme.text.primary,
               }}

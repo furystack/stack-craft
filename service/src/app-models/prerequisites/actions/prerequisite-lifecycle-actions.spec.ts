@@ -1,11 +1,9 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
-import { Injector } from '@furystack/inject'
-import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { usingAsync } from '@furystack/utils'
+import { readPostBody } from '@furystack/rest-service'
 import { Prerequisite, PrerequisiteCheckResult } from 'common'
 import { describe, expect, it, vi } from 'vitest'
 
+import { createMockActionContext, withTestInjector } from '../../../test-helpers.js'
 import { CreatePrerequisiteAction, DeletePrerequisiteAction } from './prerequisite-lifecycle-actions.js'
 
 vi.mock('@furystack/rest-service', async () => {
@@ -16,31 +14,11 @@ vi.mock('@furystack/rest-service', async () => {
   }
 })
 
-import { readPostBody } from '@furystack/rest-service'
-
 const mockedReadPostBody = readPostBody as ReturnType<typeof vi.fn>
-
-const createSetup = () => {
-  const injector = new Injector()
-  useLogging(injector, VerboseConsoleLogger)
-
-  const prereqStore = new InMemoryStore({ model: Prerequisite, primaryKey: 'id' })
-  addStore(injector, prereqStore)
-  getRepository(injector).createDataSet(Prerequisite, 'id', {})
-
-  const checkResultStore = new InMemoryStore({ model: PrerequisiteCheckResult, primaryKey: 'prerequisiteId' })
-  addStore(injector, checkResultStore)
-  getRepository(injector).createDataSet(PrerequisiteCheckResult, 'prerequisiteId', {})
-
-  const elevated = useSystemIdentityContext({ injector })
-
-  return { injector, elevated, prereqStore, checkResultStore }
-}
 
 describe('CreatePrerequisiteAction', () => {
   it('should create a prerequisite and seed an unchecked check result', async () => {
-    const { injector, elevated, prereqStore, checkResultStore } = createSetup()
-    await usingAsync(injector, async () => {
+    await withTestInjector(async ({ elevated }) => {
       const body = {
         id: 'prereq-1',
         stackName: 'my-stack',
@@ -53,19 +31,19 @@ describe('CreatePrerequisiteAction', () => {
       mockedReadPostBody.mockResolvedValue(body)
 
       const result = await CreatePrerequisiteAction({
-        injector: elevated,
+        ...createMockActionContext({ injector: elevated }),
         request: {} as never,
-        getBody: vi.fn() as never,
-        response: {} as never,
       })
 
       expect(result.statusCode).toBe(201)
 
-      const storedPrereqs = await prereqStore.find({})
+      const storedPrereqs = await getRepository(elevated).getDataSetFor(Prerequisite, 'id').find(elevated, {})
       expect(storedPrereqs).toHaveLength(1)
       expect(storedPrereqs[0].name).toBe('Node.js >= 18')
 
-      const checkResults = await checkResultStore.find({})
+      const checkResults = await getRepository(elevated)
+        .getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId')
+        .find(elevated, {})
       expect(checkResults).toHaveLength(1)
       expect(checkResults[0].prerequisiteId).toBe('prereq-1')
       expect(checkResults[0].status).toBe('unchecked')
@@ -73,8 +51,7 @@ describe('CreatePrerequisiteAction', () => {
   })
 
   it('should throw 500 when prerequisite creation returns empty', async () => {
-    const { injector, elevated } = createSetup()
-    await usingAsync(injector, async () => {
+    await withTestInjector(async ({ elevated }) => {
       mockedReadPostBody.mockResolvedValue({
         id: 'prereq-2',
         stackName: 'my-stack',
@@ -93,10 +70,8 @@ describe('CreatePrerequisiteAction', () => {
 
       await expect(
         CreatePrerequisiteAction({
-          injector: elevated,
+          ...createMockActionContext({ injector: elevated }),
           request: {} as never,
-          getBody: vi.fn() as never,
-          response: {} as never,
         }),
       ).rejects.toThrow('Prerequisite not created')
     })
@@ -105,69 +80,67 @@ describe('CreatePrerequisiteAction', () => {
 
 describe('DeletePrerequisiteAction', () => {
   it('should delete prerequisite and its check result', async () => {
-    const { injector, elevated, prereqStore, checkResultStore } = createSetup()
-    await usingAsync(injector, async () => {
+    await withTestInjector(async ({ elevated }) => {
       const ts = new Date().toISOString()
-      await prereqStore.add({
-        id: 'prereq-del',
-        stackName: 'stack',
-        name: 'Node',
-        type: 'custom-script',
-        config: { script: 'node -v' },
-        installationHelp: '',
-        createdAt: ts,
-        updatedAt: ts,
-      } as Prerequisite)
+      await getRepository(elevated)
+        .getDataSetFor(Prerequisite, 'id')
+        .add(elevated, {
+          id: 'prereq-del',
+          stackName: 'stack',
+          name: 'Node',
+          type: 'custom-script',
+          config: { script: 'node -v' },
+          installationHelp: '',
+          createdAt: ts,
+          updatedAt: ts,
+        })
 
-      await checkResultStore.add({
+      await getRepository(elevated).getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId').add(elevated, {
         prerequisiteId: 'prereq-del',
         status: 'satisfied',
         output: 'v20.0.0',
         checkedAt: ts,
       })
 
-      const result = await DeletePrerequisiteAction({
-        injector: elevated,
-        getUrlParams: () => ({ id: 'prereq-del' }),
-        request: {} as never,
-        response: {} as never,
-      })
+      const result = await DeletePrerequisiteAction(
+        createMockActionContext({ injector: elevated, urlParams: { id: 'prereq-del' } }),
+      )
 
       expect(result.statusCode).toBe(204)
 
-      const remainingPrereqs = await prereqStore.find({})
+      const remainingPrereqs = await getRepository(elevated).getDataSetFor(Prerequisite, 'id').find(elevated, {})
       expect(remainingPrereqs).toHaveLength(0)
 
-      const remainingResults = await checkResultStore.find({})
+      const remainingResults = await getRepository(elevated)
+        .getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId')
+        .find(elevated, {})
       expect(remainingResults).toHaveLength(0)
     })
   })
 
   it('should delete prerequisite even when no check result exists', async () => {
-    const { injector, elevated, prereqStore } = createSetup()
-    await usingAsync(injector, async () => {
+    await withTestInjector(async ({ elevated }) => {
       const ts = new Date().toISOString()
-      await prereqStore.add({
-        id: 'prereq-no-result',
-        stackName: 'stack',
-        name: 'Docker',
-        type: 'custom-script',
-        config: { script: 'docker -v' },
-        installationHelp: '',
-        createdAt: ts,
-        updatedAt: ts,
-      } as Prerequisite)
+      await getRepository(elevated)
+        .getDataSetFor(Prerequisite, 'id')
+        .add(elevated, {
+          id: 'prereq-no-result',
+          stackName: 'stack',
+          name: 'Docker',
+          type: 'custom-script',
+          config: { script: 'docker -v' },
+          installationHelp: '',
+          createdAt: ts,
+          updatedAt: ts,
+        })
 
-      const result = await DeletePrerequisiteAction({
-        injector: elevated,
-        getUrlParams: () => ({ id: 'prereq-no-result' }),
-        request: {} as never,
-        response: {} as never,
-      })
+      const result = await DeletePrerequisiteAction(
+        createMockActionContext({ injector: elevated, urlParams: { id: 'prereq-no-result' } }),
+      )
 
       expect(result.statusCode).toBe(204)
 
-      const remainingPrereqs = await prereqStore.find({})
+      const remainingPrereqs = await getRepository(elevated).getDataSetFor(Prerequisite, 'id').find(elevated, {})
       expect(remainingPrereqs).toHaveLength(0)
     })
   })
