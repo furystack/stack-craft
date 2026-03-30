@@ -29,7 +29,8 @@
         }
       },
       "required": ["result", "body"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Creates a new API token and returns the plain-text value (shown only once)"
     },
     "PublicApiToken": {
       "type": "object",

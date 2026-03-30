@@ -32,12 +32,6 @@ export class ServiceDefinition {
   /** Optional FK to {@link GitHubRepository.id} */
   repositoryId?: string
 
-  /** IDs of {@link Prerequisite} entities required by this service */
-  prerequisiteIds: string[] = []
-
-  /** IDs of other {@link ServiceDefinition} entities that must be running first */
-  prerequisiteServiceIds: string[] = []
-
   /** Shell command to install dependencies (e.g. "npm install") */
   installCommand?: string
 

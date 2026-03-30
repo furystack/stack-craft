@@ -28,8 +28,6 @@ const createTestServiceDef = (overrides: Partial<ServiceDefinition> = {}): Servi
   stackName: 'test-stack',
   displayName: 'Test Service',
   description: '',
-  prerequisiteIds: [],
-  prerequisiteServiceIds: [],
   files: [],
   runCommand: 'npm start',
   createdAt: new Date().toISOString(),

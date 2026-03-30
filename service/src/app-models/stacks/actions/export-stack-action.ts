@@ -2,7 +2,14 @@ import { RequestError } from '@furystack/rest'
 import { getRepository } from '@furystack/repository'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ExportStackEndpoint } from 'common'
-import { GitHubRepository, Prerequisite, ServiceDefinition, StackDefinition } from 'common'
+import {
+  GitHubRepository,
+  Prerequisite,
+  ServiceDefinition,
+  ServiceDependencyLink,
+  ServicePrerequisiteLink,
+  StackDefinition,
+} from 'common'
 
 import { detectSecretsInServiceDefinition } from '../../../utils/secret-detector.js'
 
@@ -25,6 +32,22 @@ export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ in
   const repositories = await repoDs.find(injector, { filter: { stackName: { $eq: stackName } } })
   const prerequisites = await prereqDs.find(injector, { filter: { stackName: { $eq: stackName } } })
 
+  const prereqLinks = await repository.getDataSetFor(ServicePrerequisiteLink, 'id').find(injector, {})
+  const depLinks = await repository.getDataSetFor(ServiceDependencyLink, 'id').find(injector, {})
+
+  const prereqLinksByService = new Map<string, string[]>()
+  for (const link of prereqLinks) {
+    const ids = prereqLinksByService.get(link.serviceId) ?? []
+    ids.push(link.prerequisiteId)
+    prereqLinksByService.set(link.serviceId, ids)
+  }
+  const depLinksByService = new Map<string, string[]>()
+  for (const link of depLinks) {
+    const ids = depLinksByService.get(link.serviceId) ?? []
+    ids.push(link.dependsOnServiceId)
+    depLinksByService.set(link.serviceId, ids)
+  }
+
   const stripTimestamps = <T extends { createdAt?: string; updatedAt?: string }>({
     createdAt: _c,
     updatedAt: _u,
@@ -42,7 +65,11 @@ export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ in
 
   return JsonResult({
     stack: stripTimestamps(stack),
-    services: services.map(stripTimestamps),
+    services: services.map((svc) => ({
+      ...stripTimestamps(svc),
+      prerequisiteIds: prereqLinksByService.get(svc.id) ?? [],
+      prerequisiteServiceIds: depLinksByService.get(svc.id) ?? [],
+    })),
     repositories: repositories.map(stripTimestamps),
     prerequisites: prerequisites.map(stripTimestamps),
     ...(warnings.length > 0 ? { warnings } : {}),

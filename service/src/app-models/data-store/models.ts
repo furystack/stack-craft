@@ -9,7 +9,9 @@ import type {
   PrerequisiteType,
   ServiceConfig,
   ServiceDefinition,
+  ServiceDependencyLink,
   ServiceFile,
+  ServicePrerequisiteLink,
   ServiceStateHistory,
   ServiceStatus,
   StackConfig,
@@ -41,8 +43,6 @@ export class ServiceDefinitionModel extends Model<ServiceDefinition, ServiceDefi
   declare description: string
   declare workingDirectory: string | undefined
   declare repositoryId: string | undefined
-  declare prerequisiteIds: string[]
-  declare prerequisiteServiceIds: string[]
   declare installCommand: string | undefined
   declare buildCommand: string | undefined
   declare runCommand: string
@@ -149,4 +149,22 @@ export class PasswordResetTokenModel
   declare userName: string
   declare token: string
   declare createdAt: string
+}
+
+export class ServicePrerequisiteLinkModel
+  extends Model<ServicePrerequisiteLink, ServicePrerequisiteLink>
+  implements ServicePrerequisiteLink
+{
+  declare id: string
+  declare serviceId: string
+  declare prerequisiteId: string
+}
+
+export class ServiceDependencyLinkModel
+  extends Model<ServiceDependencyLink, ServiceDependencyLink>
+  implements ServiceDependencyLink
+{
+  declare id: string
+  declare serviceId: string
+  declare dependsOnServiceId: string
 }

@@ -3,7 +3,7 @@ import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
-import { Prerequisite, ServiceConfig, ServiceDefinition, StackConfig } from 'common'
+import { Prerequisite, ServiceConfig, ServiceDefinition, ServicePrerequisiteLink, StackConfig } from 'common'
 import { randomBytes } from 'crypto'
 import { describe, expect, it } from 'vitest'
 
@@ -19,8 +19,6 @@ const makeServiceDefinition = (
     displayName: overrides.id,
     description: '',
     runCommand: 'echo test',
-    prerequisiteIds: [],
-    prerequisiteServiceIds: [],
     files: [],
     createdAt: ts,
     updatedAt: ts,
@@ -45,6 +43,7 @@ const withEnvAndInjector = async (
     prereqStore: InMemoryStore<Prerequisite, 'id'>
     stackConfigStore: InMemoryStore<StackConfig, 'stackName'>
     svcConfigStore: InMemoryStore<ServiceConfig, 'serviceId'>
+    prereqLinkStore: InMemoryStore<ServicePrerequisiteLink, 'id'>
   }) => Promise<void>,
 ) => {
   const savedEncKey = process.env.STACK_CRAFT_ENCRYPTION_KEY
@@ -69,7 +68,11 @@ const withEnvAndInjector = async (
       addStore(injector, svcConfigStore)
       getRepository(injector).createDataSet(ServiceConfig, 'serviceId', {})
 
-      await fn({ injector, svcDefStore, prereqStore, stackConfigStore, svcConfigStore })
+      const prereqLinkStore = new InMemoryStore({ model: ServicePrerequisiteLink, primaryKey: 'id' })
+      addStore(injector, prereqLinkStore)
+      getRepository(injector).createDataSet(ServicePrerequisiteLink, 'id', {})
+
+      await fn({ injector, svcDefStore, prereqStore, stackConfigStore, svcConfigStore, prereqLinkStore })
     })
   } finally {
     if (savedEncKey === undefined) {
@@ -89,14 +92,14 @@ describe('ServiceEnvResolver', () => {
     }))
 
   it('should return empty object when service has no env-variable prerequisites', () =>
-    withEnvAndInjector(async ({ svcDefStore, prereqStore, injector }) => {
+    withEnvAndInjector(async ({ svcDefStore, prereqStore, prereqLinkStore, injector }) => {
       await svcDefStore.add(
         makeServiceDefinition({
           id: 'svc-1',
           stackName: 'stack-a',
-          prerequisiteIds: ['prereq-node'],
         }),
       )
+      await prereqLinkStore.add({ id: 'svc-1::prereq-node', serviceId: 'svc-1', prerequisiteId: 'prereq-node' })
       await prereqStore.add(
         makePrerequisite({
           id: 'prereq-node',
@@ -112,7 +115,7 @@ describe('ServiceEnvResolver', () => {
     }))
 
   it('should resolve env vars with inherit source from process.env', () =>
-    withEnvAndInjector(async ({ svcDefStore, prereqStore, stackConfigStore, injector }) => {
+    withEnvAndInjector(async ({ svcDefStore, prereqStore, stackConfigStore, prereqLinkStore, injector }) => {
       const varName = 'TEST_INHERIT_ENV_RESOLVER_12345'
       const original = process.env[varName]
       process.env[varName] = 'inherited-value'
@@ -122,9 +125,9 @@ describe('ServiceEnvResolver', () => {
           makeServiceDefinition({
             id: 'svc-2',
             stackName: 'stack-b',
-            prerequisiteIds: ['prereq-env-1'],
           }),
         )
+        await prereqLinkStore.add({ id: 'svc-2::prereq-env-1', serviceId: 'svc-2', prerequisiteId: 'prereq-env-1' })
         await prereqStore.add(
           makePrerequisite({
             id: 'prereq-env-1',
@@ -155,14 +158,14 @@ describe('ServiceEnvResolver', () => {
     }))
 
   it('should resolve env vars with custom source (plaintext)', () =>
-    withEnvAndInjector(async ({ svcDefStore, prereqStore, stackConfigStore, injector }) => {
+    withEnvAndInjector(async ({ svcDefStore, prereqStore, stackConfigStore, prereqLinkStore, injector }) => {
       await svcDefStore.add(
         makeServiceDefinition({
           id: 'svc-3',
           stackName: 'stack-c',
-          prerequisiteIds: ['prereq-env-2'],
         }),
       )
+      await prereqLinkStore.add({ id: 'svc-3::prereq-env-2', serviceId: 'svc-3', prerequisiteId: 'prereq-env-2' })
       await prereqStore.add(
         makePrerequisite({
           id: 'prereq-env-2',
@@ -186,7 +189,7 @@ describe('ServiceEnvResolver', () => {
     }))
 
   it('should resolve env vars with custom source (encrypted value)', () =>
-    withEnvAndInjector(async ({ svcDefStore, prereqStore, stackConfigStore, injector }) => {
+    withEnvAndInjector(async ({ svcDefStore, prereqStore, stackConfigStore, prereqLinkStore, injector }) => {
       const crypto = injector.getInstance(CryptoService)
       const encrypted = crypto.encrypt('super-secret')
 
@@ -194,9 +197,9 @@ describe('ServiceEnvResolver', () => {
         makeServiceDefinition({
           id: 'svc-4',
           stackName: 'stack-d',
-          prerequisiteIds: ['prereq-env-3'],
         }),
       )
+      await prereqLinkStore.add({ id: 'svc-4::prereq-env-3', serviceId: 'svc-4', prerequisiteId: 'prereq-env-3' })
       await prereqStore.add(
         makePrerequisite({
           id: 'prereq-env-3',
@@ -220,50 +223,52 @@ describe('ServiceEnvResolver', () => {
     }))
 
   it('should prefer service-level override over stack-level default', () =>
-    withEnvAndInjector(async ({ svcDefStore, prereqStore, stackConfigStore, svcConfigStore, injector }) => {
-      await svcDefStore.add(
-        makeServiceDefinition({
-          id: 'svc-5',
+    withEnvAndInjector(
+      async ({ svcDefStore, prereqStore, stackConfigStore, svcConfigStore, prereqLinkStore, injector }) => {
+        await svcDefStore.add(
+          makeServiceDefinition({
+            id: 'svc-5',
+            stackName: 'stack-e',
+          }),
+        )
+        await prereqLinkStore.add({ id: 'svc-5::prereq-env-4', serviceId: 'svc-5', prerequisiteId: 'prereq-env-4' })
+        await prereqStore.add(
+          makePrerequisite({
+            id: 'prereq-env-4',
+            stackName: 'stack-e',
+            config: { variableName: 'OVERRIDDEN_VAR' },
+          }),
+        )
+        await stackConfigStore.add({
           stackName: 'stack-e',
-          prerequisiteIds: ['prereq-env-4'],
-        }),
-      )
-      await prereqStore.add(
-        makePrerequisite({
-          id: 'prereq-env-4',
-          stackName: 'stack-e',
-          config: { variableName: 'OVERRIDDEN_VAR' },
-        }),
-      )
-      await stackConfigStore.add({
-        stackName: 'stack-e',
-        mainDirectory: '/tmp',
-        environmentVariables: {
-          OVERRIDDEN_VAR: { source: 'custom', customValue: 'stack-default' },
-        },
-        createdAt: ts,
-        updatedAt: ts,
-      } as StackConfig)
-      await svcConfigStore.add({
-        serviceId: 'svc-5',
-        autoFetchEnabled: false,
-        autoFetchIntervalMinutes: 60,
-        autoRestartOnFetch: false,
-        environmentVariableOverrides: {
-          OVERRIDDEN_VAR: { source: 'custom', customValue: 'service-override' },
-        },
-        localFiles: [],
-        createdAt: ts,
-        updatedAt: ts,
-      } as ServiceConfig)
+          mainDirectory: '/tmp',
+          environmentVariables: {
+            OVERRIDDEN_VAR: { source: 'custom', customValue: 'stack-default' },
+          },
+          createdAt: ts,
+          updatedAt: ts,
+        } as StackConfig)
+        await svcConfigStore.add({
+          serviceId: 'svc-5',
+          autoFetchEnabled: false,
+          autoFetchIntervalMinutes: 60,
+          autoRestartOnFetch: false,
+          environmentVariableOverrides: {
+            OVERRIDDEN_VAR: { source: 'custom', customValue: 'service-override' },
+          },
+          localFiles: [],
+          createdAt: ts,
+          updatedAt: ts,
+        } as ServiceConfig)
 
-      const resolver = injector.getInstance(ServiceEnvResolver)
-      const result = await resolver.resolveServiceEnvVars('svc-5')
-      expect(result).toEqual({ OVERRIDDEN_VAR: 'service-override' })
-    }))
+        const resolver = injector.getInstance(ServiceEnvResolver)
+        const result = await resolver.resolveServiceEnvVars('svc-5')
+        expect(result).toEqual({ OVERRIDDEN_VAR: 'service-override' })
+      },
+    ))
 
   it('should not include env var when inherit but process.env is unset', () =>
-    withEnvAndInjector(async ({ svcDefStore, prereqStore, stackConfigStore, injector }) => {
+    withEnvAndInjector(async ({ svcDefStore, prereqStore, stackConfigStore, prereqLinkStore, injector }) => {
       const varName = 'DEFINITELY_UNSET_VAR_ENV_RESOLVER_12345'
       delete process.env[varName]
 
@@ -271,9 +276,9 @@ describe('ServiceEnvResolver', () => {
         makeServiceDefinition({
           id: 'svc-6',
           stackName: 'stack-f',
-          prerequisiteIds: ['prereq-env-5'],
         }),
       )
+      await prereqLinkStore.add({ id: 'svc-6::prereq-env-5', serviceId: 'svc-6', prerequisiteId: 'prereq-env-5' })
       await prereqStore.add(
         makePrerequisite({
           id: 'prereq-env-5',

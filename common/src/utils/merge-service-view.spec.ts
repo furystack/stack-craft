@@ -12,8 +12,6 @@ const baseDef: ServiceDefinition = {
   displayName: 'Test Service',
   description: 'A test service',
   runCommand: 'npm start',
-  prerequisiteIds: [],
-  prerequisiteServiceIds: [],
   files: [],
   createdAt: '2024-01-01',
   updatedAt: '2024-01-01',

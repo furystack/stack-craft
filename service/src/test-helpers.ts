@@ -10,8 +10,10 @@ import {
   PrerequisiteCheckResult,
   ServiceConfig,
   ServiceDefinition,
+  ServiceDependencyLink,
   ServiceGitStatus,
   ServiceLogEntry,
+  ServicePrerequisiteLink,
   ServiceStateHistory,
   ServiceStatus,
   StackConfig,
@@ -34,6 +36,8 @@ export const createTestInjector = () => {
   addStore(injector, new InMemoryStore({ model: ServiceGitStatus, primaryKey: 'serviceId' }))
   addStore(injector, new InMemoryStore({ model: ServiceLogEntry, primaryKey: 'id' }))
   addStore(injector, new InMemoryStore({ model: ServiceStateHistory, primaryKey: 'id' }))
+  addStore(injector, new InMemoryStore({ model: ServicePrerequisiteLink, primaryKey: 'id' }))
+  addStore(injector, new InMemoryStore({ model: ServiceDependencyLink, primaryKey: 'id' }))
   addStore(injector, new InMemoryStore({ model: User, primaryKey: 'username' }))
   addStore(injector, new InMemoryStore({ model: PasswordCredential, primaryKey: 'userName' }))
   addStore(injector, new InMemoryStore({ model: PasswordResetToken, primaryKey: 'token' }))
@@ -49,6 +53,8 @@ export const createTestInjector = () => {
   getRepository(injector).createDataSet(ServiceGitStatus, 'serviceId', {})
   getRepository(injector).createDataSet(ServiceLogEntry, 'id', {})
   getRepository(injector).createDataSet(ServiceStateHistory, 'id', {})
+  getRepository(injector).createDataSet(ServicePrerequisiteLink, 'id', {})
+  getRepository(injector).createDataSet(ServiceDependencyLink, 'id', {})
   getRepository(injector).createDataSet(User, 'username', {})
   getRepository(injector).createDataSet(PasswordCredential, 'userName', {})
   getRepository(injector).createDataSet(PasswordResetToken, 'token')

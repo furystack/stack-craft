@@ -11,7 +11,15 @@ import {
   PageHeader,
 } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
-import { mergeServiceView, ServiceConfig, ServiceDefinition, ServiceGitStatus, ServiceStatus } from 'common'
+import {
+  mergeServiceView,
+  ServiceConfig,
+  ServiceDefinition,
+  ServiceDependencyLink,
+  ServiceGitStatus,
+  ServicePrerequisiteLink,
+  ServiceStatus,
+} from 'common'
 
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { ServiceTable } from '../../components/service-table.js'
@@ -44,13 +52,24 @@ export const ServicesList = Shade<ServicesListProps>({
     const gitStatuses =
       gitStatusState.status === 'synced' || gitStatusState.status === 'cached' ? gitStatusState.data.entries : []
 
+    const prereqLinksState = useCollectionSync(options, ServicePrerequisiteLink, {})
+    const prereqLinks =
+      prereqLinksState.status === 'synced' || prereqLinksState.status === 'cached' ? prereqLinksState.data.entries : []
+    const depLinksState = useCollectionSync(options, ServiceDependencyLink, {})
+    const depLinks =
+      depLinksState.status === 'synced' || depLinksState.status === 'cached' ? depLinksState.data.entries : []
+
     const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
     const configMap = new Map(configs.map((c) => [c.serviceId, c]))
     const gitStatusMap = new Map(gitStatuses.map((g) => [g.serviceId, g]))
 
-    const services = defs.map((def) =>
-      mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id), gitStatusMap.get(def.id)),
-    )
+    const services = defs.map((def) => {
+      const relations = {
+        prerequisiteIds: prereqLinks.filter((l) => l.serviceId === def.id).map((l) => l.prerequisiteId),
+        prerequisiteServiceIds: depLinks.filter((l) => l.serviceId === def.id).map((l) => l.dependsOnServiceId),
+      }
+      return mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id), gitStatusMap.get(def.id), relations)
+    })
 
     const isLoading = servicesState.status === 'connecting'
     const api = injector.getInstance(ServicesApiClient)

@@ -18,8 +18,6 @@ const makeServiceDefinition = (
     displayName: overrides.id,
     description: '',
     runCommand: 'echo test',
-    prerequisiteIds: [],
-    prerequisiteServiceIds: [],
     files: [],
     createdAt: ts,
     updatedAt: ts,

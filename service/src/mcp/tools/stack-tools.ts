@@ -7,6 +7,8 @@ import {
   Prerequisite,
   ServiceConfig,
   ServiceDefinition,
+  ServiceDependencyLink,
+  ServicePrerequisiteLink,
   ServiceStateHistory,
   ServiceStatus,
   StackConfig,
@@ -361,8 +363,6 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
       const svcDefs = services.map((svc) => ({
         ...svc,
         description: svc.description ?? '',
-        prerequisiteIds: svc.prerequisiteIds ?? [],
-        prerequisiteServiceIds: svc.prerequisiteServiceIds ?? [],
         files: svc.files ?? [],
         stackName,
         createdAt: now,
@@ -402,6 +402,25 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
         }
         if (svcDefs.length > 0) {
           await svcDefDs.add(elevated, ...svcDefs)
+        }
+
+        const prereqLinkDs = repository.getDataSetFor(ServicePrerequisiteLink, 'id')
+        const depLinkDs = repository.getDataSetFor(ServiceDependencyLink, 'id')
+        for (const svc of services) {
+          for (const prereqId of svc.prerequisiteIds ?? []) {
+            await prereqLinkDs.add(elevated, {
+              id: `${svc.id}::${prereqId}`,
+              serviceId: svc.id,
+              prerequisiteId: prereqId,
+            })
+          }
+          for (const depId of svc.prerequisiteServiceIds ?? []) {
+            await depLinkDs.add(elevated, {
+              id: `${svc.id}::${depId}`,
+              serviceId: svc.id,
+              dependsOnServiceId: depId,
+            })
+          }
         }
 
         for (const svcDef of svcDefs) {

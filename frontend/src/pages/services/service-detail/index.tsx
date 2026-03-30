@@ -10,7 +10,9 @@ import {
   PrerequisiteCheckResult,
   ServiceConfig,
   ServiceDefinition,
+  ServiceDependencyLink,
   ServiceGitStatus,
+  ServicePrerequisiteLink,
   ServiceStatus,
   StackConfig,
   StackDefinition,
@@ -86,7 +88,23 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
     const statusData = statusState.status === 'synced' ? statusState.data : undefined
     const configData = configState.status === 'synced' ? configState.data : undefined
     const gitStatusData = gitStatusState.status === 'synced' ? gitStatusState.data : undefined
-    const service = mergeServiceView(serviceData, configData, statusData, gitStatusData)
+
+    const prereqLinksState = useCollectionSync(options, ServicePrerequisiteLink, {
+      filter: { serviceId: { $eq: props.serviceId } },
+    })
+    const depLinksState = useCollectionSync(options, ServiceDependencyLink, {
+      filter: { serviceId: { $eq: props.serviceId } },
+    })
+    const prereqLinkEntries =
+      prereqLinksState.status === 'synced' || prereqLinksState.status === 'cached' ? prereqLinksState.data.entries : []
+    const depLinkEntries =
+      depLinksState.status === 'synced' || depLinksState.status === 'cached' ? depLinksState.data.entries : []
+    const relations = {
+      prerequisiteIds: prereqLinkEntries.map((l) => l.prerequisiteId),
+      prerequisiteServiceIds: depLinkEntries.map((l) => l.dependsOnServiceId),
+    }
+
+    const service = mergeServiceView(serviceData, configData, statusData, gitStatusData, relations)
 
     const stackState = useEntitySync(options, StackDefinition, service.stackName)
     const stackConfigState = useEntitySync(options, StackConfig, service.stackName)

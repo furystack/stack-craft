@@ -8,8 +8,10 @@ import {
   Prerequisite,
   ServiceConfig,
   ServiceDefinition,
+  ServiceDependencyLink,
   ServiceGitStatus,
   ServiceLogEntry,
+  ServicePrerequisiteLink,
   ServiceStateHistory,
   ServiceStatus,
   StackConfig,
@@ -34,8 +36,6 @@ const createTestServiceDefinition = (overrides: Partial<ServiceDefinition> = {})
   runCommand: 'echo hello',
   installCommand: 'echo install',
   buildCommand: 'echo build',
-  prerequisiteIds: [],
-  prerequisiteServiceIds: [],
   files: [],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -94,6 +94,8 @@ const setupPmInjector = async (injector: Injector) => {
   addStore(injector, new InMemoryStore({ model: ServiceLogEntry, primaryKey: 'id' }))
   addStore(injector, new InMemoryStore({ model: ServiceStateHistory, primaryKey: 'id' }))
   addStore(injector, new InMemoryStore({ model: ServiceGitStatus, primaryKey: 'serviceId' }))
+  addStore(injector, new InMemoryStore({ model: ServicePrerequisiteLink, primaryKey: 'id' }))
+  addStore(injector, new InMemoryStore({ model: ServiceDependencyLink, primaryKey: 'id' }))
 
   getRepository(injector).createDataSet(ServiceDefinition, 'id', {})
   getRepository(injector).createDataSet(ServiceConfig, 'serviceId', {})
@@ -104,6 +106,8 @@ const setupPmInjector = async (injector: Injector) => {
   getRepository(injector).createDataSet(Prerequisite, 'id', {})
   getRepository(injector).createDataSet(ServiceLogEntry, 'id', {})
   getRepository(injector).createDataSet(ServiceStateHistory, 'id', {})
+  getRepository(injector).createDataSet(ServicePrerequisiteLink, 'id', {})
+  getRepository(injector).createDataSet(ServiceDependencyLink, 'id', {})
 
   const mockGitHeadWatcher = { watch: vi.fn().mockResolvedValue(undefined), unwatch: vi.fn() }
   injector.setExplicitInstance(mockGitHeadWatcher as unknown as GitHeadWatcher, GitHeadWatcher)
@@ -488,14 +492,18 @@ describe('ProcessManager', () => {
           id: 'dep-parent',
           installCommand: 'echo parent',
           buildCommand: undefined,
-          prerequisiteServiceIds: [],
         })
         await seedService(injector, {
           id: 'dep-child',
           installCommand: 'echo child',
           buildCommand: undefined,
-          prerequisiteServiceIds: ['dep-parent'],
         })
+
+        const elevated = useSystemIdentityContext({ injector })
+        await getRepository(elevated)
+          .getDataSetFor(ServiceDependencyLink, 'id')
+          .add(elevated, { id: 'dep-child::dep-parent', serviceId: 'dep-child', dependsOnServiceId: 'dep-parent' })
+        await elevated[Symbol.asyncDispose]()
 
         await pm.setupServices(['dep-child', 'dep-parent'], testTrigger)
 

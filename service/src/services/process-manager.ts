@@ -3,7 +3,7 @@ import { Injectable, Injected, type Injector, getInjectorReference } from '@fury
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import type { RunStatus, ServiceStateEvent, TriggerSource } from 'common'
-import { ServiceConfig, ServiceDefinition, ServiceStatus } from 'common'
+import { ServiceConfig, ServiceDependencyLink, ServiceStatus } from 'common'
 import { randomUUID } from 'crypto'
 
 import { useSystemIdentityContext } from '@furystack/core'
@@ -341,12 +341,18 @@ export class ProcessManager {
    */
   public async setupServices(serviceIds: string[], trigger: TriggerContext): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const allServices = await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').find(elevated, {})
+    const repository = getRepository(elevated)
 
-    const serviceMap = new Map(allServices.map((s) => [s.id, s]))
+    const depLinks = await repository.getDataSetFor(ServiceDependencyLink, 'id').find(elevated, {})
+    const dependencyMap = new Map<string, string[]>()
+    for (const link of depLinks) {
+      const deps = dependencyMap.get(link.serviceId) ?? []
+      deps.push(link.dependsOnServiceId)
+      dependencyMap.set(link.serviceId, deps)
+    }
+
     const targetSet = new Set(serviceIds)
-
-    const levels = computeExecutionLevels(serviceIds, serviceMap, targetSet)
+    const levels = computeExecutionLevels(serviceIds, dependencyMap, targetSet)
 
     for (const level of levels) {
       const results = await Promise.allSettled(level.map((id) => this.setupService(id, trigger)))

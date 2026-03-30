@@ -8,6 +8,8 @@ import {
   Prerequisite,
   ServiceConfig,
   ServiceDefinition,
+  ServiceDependencyLink,
+  ServicePrerequisiteLink,
   ServiceStateHistory,
   ServiceStatus,
   StackConfig,
@@ -36,6 +38,8 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
   const svcConfigDs = repository.getDataSetFor(ServiceConfig, 'serviceId')
   const svcStatusDs = repository.getDataSetFor(ServiceStatus, 'serviceId')
   const historyDs = repository.getDataSetFor(ServiceStateHistory, 'id')
+  const prereqLinkDs = repository.getDataSetFor(ServicePrerequisiteLink, 'id')
+  const depLinkDs = repository.getDataSetFor(ServiceDependencyLink, 'id')
 
   const repositories = body.repositories.map((repo) => ({
     ...repo,
@@ -51,7 +55,7 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
     updatedAt: now,
   }))
 
-  const serviceDefinitions = body.services.map((svc) => ({
+  const serviceDefinitions = body.services.map(({ prerequisiteIds: _p, prerequisiteServiceIds: _ps, ...svc }) => ({
     ...svc,
     stackName,
     createdAt: now,
@@ -82,6 +86,15 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
     }
     if (serviceDefinitions.length > 0) {
       await svcDefDs.add(injector, ...serviceDefinitions)
+    }
+
+    for (const svc of body.services) {
+      for (const prereqId of svc.prerequisiteIds ?? []) {
+        await prereqLinkDs.add(injector, { id: `${svc.id}::${prereqId}`, serviceId: svc.id, prerequisiteId: prereqId })
+      }
+      for (const depId of svc.prerequisiteServiceIds ?? []) {
+        await depLinkDs.add(injector, { id: `${svc.id}::${depId}`, serviceId: svc.id, dependsOnServiceId: depId })
+      }
     }
 
     for (const svcDef of serviceDefinitions) {
@@ -138,6 +151,20 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
               data: { stackName, error: e },
             }),
         )
+      }
+    }
+    for (const svcId of svcIds) {
+      const pLinks = await prereqLinkDs
+        .find(injector, { filter: { serviceId: { $eq: svcId } } })
+        .catch(() => [] as ServicePrerequisiteLink[])
+      if (pLinks.length > 0) {
+        await prereqLinkDs.remove(injector, ...pLinks.map((l) => l.id)).catch(() => undefined)
+      }
+      const dLinks = await depLinkDs
+        .find(injector, { filter: { serviceId: { $eq: svcId } } })
+        .catch(() => [] as ServiceDependencyLink[])
+      if (dLinks.length > 0) {
+        await depLinkDs.remove(injector, ...dLinks.map((l) => l.id)).catch(() => undefined)
       }
     }
     if (svcIds.length > 0) {

@@ -12,7 +12,9 @@ import {
   PrerequisiteCheckResult,
   ServiceConfig,
   ServiceDefinition,
+  ServiceDependencyLink,
   ServiceGitStatus,
+  ServicePrerequisiteLink,
   ServiceStateHistory,
   ServiceStatus,
   StackConfig,
@@ -33,6 +35,8 @@ import {
   PrerequisiteModel,
   ServiceConfigModel,
   ServiceDefinitionModel,
+  ServiceDependencyLinkModel,
+  ServicePrerequisiteLinkModel,
   ServiceStateHistoryModel,
   ServiceStatusModel,
   StackConfigModel,
@@ -153,6 +157,22 @@ const registerSequelizeStores = (injector: Injector, dbOptions: ReturnType<typeo
     options: dbOptions,
     initModel: initOnce,
   })
+  useSequelize({
+    injector,
+    model: ServicePrerequisiteLink,
+    sequelizeModel: ServicePrerequisiteLinkModel,
+    primaryKey: 'id',
+    options: dbOptions,
+    initModel: initOnce,
+  })
+  useSequelize({
+    injector,
+    model: ServiceDependencyLink,
+    sequelizeModel: ServiceDependencyLinkModel,
+    primaryKey: 'id',
+    options: dbOptions,
+    initModel: initOnce,
+  })
 }
 
 const registerDataSets = (injector: Injector) => {
@@ -170,6 +190,8 @@ const registerDataSets = (injector: Injector) => {
   repo.createDataSet(ApiToken, 'id', { ...authorizedDataSet })
   repo.createDataSet(DefaultSession, 'sessionId')
   repo.createDataSet(PasswordResetToken, 'token')
+  repo.createDataSet(ServicePrerequisiteLink, 'id', { ...authorizedDataSet })
+  repo.createDataSet(ServiceDependencyLink, 'id', { ...authorizedDataSet })
   repo.createDataSet(PrerequisiteCheckResult, 'prerequisiteId', { ...authorizedDataSet })
 
   addStore(injector, new InMemoryStore({ model: ServiceGitStatus, primaryKey: 'serviceId' }))

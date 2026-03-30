@@ -1,7 +1,7 @@
 import { useSystemIdentityContext } from '@furystack/core'
 import { Injectable, type Injector, getInjectorReference } from '@furystack/inject'
 import { getRepository } from '@furystack/repository'
-import { Prerequisite, ServiceConfig, ServiceDefinition, StackConfig } from 'common'
+import { Prerequisite, ServiceConfig, ServiceDefinition, ServicePrerequisiteLink, StackConfig } from 'common'
 
 import { CryptoService } from '../utils/crypto-service.js'
 
@@ -31,10 +31,15 @@ export class ServiceEnvResolver {
     const svc = services[0]
     if (!svc) return {}
 
+    const prereqLinks = await repository
+      .getDataSetFor(ServicePrerequisiteLink, 'id')
+      .find(elevated, { filter: { serviceId: { $eq: serviceId } } })
+    const linkedPrereqIds = new Set(prereqLinks.map((l) => l.prerequisiteId))
+
     const allPrereqs = await repository
       .getDataSetFor(Prerequisite, 'id')
       .find(elevated, { filter: { stackName: { $eq: svc.stackName } } })
-    const envPrereqs = allPrereqs.filter((p) => p.type === 'env-variable' && svc.prerequisiteIds.includes(p.id))
+    const envPrereqs = allPrereqs.filter((p) => p.type === 'env-variable' && linkedPrereqIds.has(p.id))
     if (envPrereqs.length === 0) return {}
 
     const stackConfigs = await repository

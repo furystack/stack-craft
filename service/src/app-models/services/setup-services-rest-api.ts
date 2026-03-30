@@ -5,7 +5,16 @@ import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, useRestService, Validate } from '@furystack/rest-service'
 import type { ServicesApi } from 'common'
-import { mergeServiceView, ServiceConfig, ServiceDefinition, ServiceGitStatus, ServiceStatus } from 'common'
+import type { ServiceRelations } from 'common'
+import {
+  mergeServiceView,
+  ServiceConfig,
+  ServiceDefinition,
+  ServiceDependencyLink,
+  ServiceGitStatus,
+  ServicePrerequisiteLink,
+  ServiceStatus,
+} from 'common'
 import servicesApiSchema from 'common/schemas/services-api.json' with { type: 'json' }
 import { randomUUID } from 'crypto'
 
@@ -32,8 +41,9 @@ const mergeServiceViewMasked = (
   status: ServiceStatus | undefined,
   gitStatus: ServiceGitStatus | undefined,
   crypto: CryptoService,
+  relations?: ServiceRelations,
 ) => {
-  const merged = mergeServiceView(def, config, status, gitStatus)
+  const merged = mergeServiceView(def, config, status, gitStatus, relations)
   merged.environmentVariableOverrides = maskSensitiveEnvValues(
     crypto,
     merged.environmentVariableOverrides,
@@ -41,6 +51,81 @@ const mergeServiceViewMasked = (
   )
   merged.localFiles = maskLocalFiles(crypto, merged.localFiles)
   return merged
+}
+
+const resolveRelationsForServices = async (
+  injector: Injector,
+  serviceIds: string[],
+): Promise<Map<string, ServiceRelations>> => {
+  const repo = getRepository(injector)
+  const prereqLinks = await repo.getDataSetFor(ServicePrerequisiteLink, 'id').find(injector, {})
+  const depLinks = await repo.getDataSetFor(ServiceDependencyLink, 'id').find(injector, {})
+  const targetSet = new Set(serviceIds)
+
+  const relationsMap = new Map<string, ServiceRelations>()
+  for (const id of serviceIds) {
+    relationsMap.set(id, { prerequisiteIds: [], prerequisiteServiceIds: [] })
+  }
+  for (const link of prereqLinks) {
+    if (targetSet.has(link.serviceId)) {
+      relationsMap.get(link.serviceId)!.prerequisiteIds.push(link.prerequisiteId)
+    }
+  }
+  for (const link of depLinks) {
+    if (targetSet.has(link.serviceId)) {
+      relationsMap.get(link.serviceId)!.prerequisiteServiceIds.push(link.dependsOnServiceId)
+    }
+  }
+  return relationsMap
+}
+
+const setServiceLinks = async (
+  injector: Injector,
+  serviceId: string,
+  prerequisiteIds: string[],
+  prerequisiteServiceIds: string[],
+) => {
+  const repo = getRepository(injector)
+  const prereqDs = repo.getDataSetFor(ServicePrerequisiteLink, 'id')
+  const depDs = repo.getDataSetFor(ServiceDependencyLink, 'id')
+
+  for (const prereqId of prerequisiteIds) {
+    await prereqDs.add(injector, { id: `${serviceId}::${prereqId}`, serviceId, prerequisiteId: prereqId })
+  }
+  for (const depId of prerequisiteServiceIds) {
+    await depDs.add(injector, { id: `${serviceId}::${depId}`, serviceId, dependsOnServiceId: depId })
+  }
+}
+
+const replaceServiceLinks = async (
+  injector: Injector,
+  serviceId: string,
+  prerequisiteIds?: string[],
+  prerequisiteServiceIds?: string[],
+) => {
+  const repo = getRepository(injector)
+
+  if (prerequisiteIds !== undefined) {
+    const prereqDs = repo.getDataSetFor(ServicePrerequisiteLink, 'id')
+    const existing = await prereqDs.find(injector, { filter: { serviceId: { $eq: serviceId } } })
+    if (existing.length > 0) {
+      await prereqDs.remove(injector, ...existing.map((l) => l.id))
+    }
+    for (const prereqId of prerequisiteIds) {
+      await prereqDs.add(injector, { id: `${serviceId}::${prereqId}`, serviceId, prerequisiteId: prereqId })
+    }
+  }
+
+  if (prerequisiteServiceIds !== undefined) {
+    const depDs = repo.getDataSetFor(ServiceDependencyLink, 'id')
+    const existing = await depDs.find(injector, { filter: { serviceId: { $eq: serviceId } } })
+    if (existing.length > 0) {
+      await depDs.remove(injector, ...existing.map((l) => l.id))
+    }
+    for (const depId of prerequisiteServiceIds) {
+      await depDs.add(injector, { id: `${serviceId}::${depId}`, serviceId, dependsOnServiceId: depId })
+    }
+  }
 }
 
 export const setupServicesRestApi = async (injector: Injector) => {
@@ -68,6 +153,10 @@ export const setupServicesRestApi = async (injector: Injector) => {
             const configMap = new Map(configs.map((c) => [c.serviceId, c]))
             const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
             const gitStatusMap = new Map(gitStatuses.map((g) => [g.serviceId, g]))
+            const relationsMap = await resolveRelationsForServices(
+              i,
+              defs.map((d) => d.id),
+            )
 
             const entries = defs.map((def) =>
               mergeServiceViewMasked(
@@ -76,6 +165,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
                 statusMap.get(def.id),
                 gitStatusMap.get(def.id),
                 crypto,
+                relationsMap.get(def.id),
               ),
             )
             const count = await repo.getDataSetFor(ServiceDefinition, 'id').count(i, query.findOptions?.filter)
@@ -103,7 +193,10 @@ export const setupServicesRestApi = async (injector: Injector) => {
               .getDataSetFor(ServiceGitStatus, 'serviceId')
               .find(i, { filter: { serviceId: { $eq: id } }, top: 1 })
 
-            return JsonResult(mergeServiceViewMasked(def, configs[0], statuses[0], gitStatuses[0], crypto))
+            const relationsMap = await resolveRelationsForServices(i, [id])
+            return JsonResult(
+              mergeServiceViewMasked(def, configs[0], statuses[0], gitStatuses[0], crypto, relationsMap.get(id)),
+            )
           },
         ),
         '/services/:id/logs': Validate({ schema: servicesApiSchema, schemaName: 'ServiceLogsEndpoint' })(
@@ -125,6 +218,9 @@ export const setupServicesRestApi = async (injector: Injector) => {
             const now = new Date().toISOString()
             const id = body.id ?? randomUUID()
 
+            const prerequisiteIds = body.prerequisiteIds ?? []
+            const prerequisiteServiceIds = body.prerequisiteServiceIds ?? []
+
             const def = {
               id,
               stackName: body.stackName,
@@ -132,8 +228,6 @@ export const setupServicesRestApi = async (injector: Injector) => {
               description: body.description ?? '',
               workingDirectory: body.workingDirectory,
               repositoryId: body.repositoryId,
-              prerequisiteIds: body.prerequisiteIds ?? [],
-              prerequisiteServiceIds: body.prerequisiteServiceIds ?? [],
               installCommand: body.installCommand,
               buildCommand: body.buildCommand,
               runCommand: body.runCommand,
@@ -165,8 +259,10 @@ export const setupServicesRestApi = async (injector: Injector) => {
             await repo.getDataSetFor(ServiceDefinition, 'id').add(i, def)
             await repo.getDataSetFor(ServiceConfig, 'serviceId').add(i, config)
             await repo.getDataSetFor(ServiceStatus, 'serviceId').add(i, status)
+            await setServiceLinks(i, id, prerequisiteIds, prerequisiteServiceIds)
 
-            return JsonResult(mergeServiceViewMasked(def, config, status, undefined, crypto))
+            const relations = { prerequisiteIds, prerequisiteServiceIds }
+            return JsonResult(mergeServiceViewMasked(def, config, status, undefined, crypto, relations))
           },
         ),
         '/services/:id/start': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(
@@ -222,9 +318,6 @@ export const setupServicesRestApi = async (injector: Injector) => {
             if (body.description !== undefined) defFields.description = body.description
             if (body.workingDirectory !== undefined) defFields.workingDirectory = body.workingDirectory
             if (body.repositoryId !== undefined) defFields.repositoryId = body.repositoryId
-            if (body.prerequisiteIds !== undefined) defFields.prerequisiteIds = body.prerequisiteIds
-            if (body.prerequisiteServiceIds !== undefined)
-              defFields.prerequisiteServiceIds = body.prerequisiteServiceIds
             if (body.installCommand !== undefined) defFields.installCommand = body.installCommand
             if (body.buildCommand !== undefined) defFields.buildCommand = body.buildCommand
             if (body.runCommand !== undefined) defFields.runCommand = body.runCommand
@@ -264,6 +357,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
             if (Object.keys(configFields).length > 0) {
               await repo.getDataSetFor(ServiceConfig, 'serviceId').update(i, id, configFields)
             }
+            await replaceServiceLinks(i, id, body.prerequisiteIds, body.prerequisiteServiceIds)
 
             return JsonResult({})
           },

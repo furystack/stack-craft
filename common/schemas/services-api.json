@@ -28,20 +28,6 @@
           "type": "string",
           "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
-        "prerequisiteIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
-        },
-        "prerequisiteServiceIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
-        },
         "installCommand": {
           "type": "string",
           "description": "Shell command to install dependencies (e.g. \"npm install\")"
@@ -62,16 +48,7 @@
           "description": "Shared files placed relative to the service root"
         }
       },
-      "required": [
-        "id",
-        "stackName",
-        "displayName",
-        "description",
-        "prerequisiteIds",
-        "prerequisiteServiceIds",
-        "runCommand",
-        "files"
-      ],
+      "required": ["id", "stackName", "displayName", "description", "runCommand", "files"],
       "additionalProperties": false
     },
     "ServiceFile": {
@@ -159,6 +136,18 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "prerequisiteIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "autoFetchEnabled": {
           "type": "boolean",
           "description": "Whether automatic git fetch is enabled"
@@ -209,20 +198,6 @@
           "type": "string",
           "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
-        "prerequisiteIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
-        },
-        "prerequisiteServiceIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
-        },
         "installCommand": {
           "type": "string",
           "description": "Shell command to install dependencies (e.g. \"npm install\")"
@@ -253,8 +228,6 @@
         "files",
         "id",
         "localFiles",
-        "prerequisiteIds",
-        "prerequisiteServiceIds",
         "runCommand",
         "stackName"
       ]
@@ -277,6 +250,18 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "prerequisiteIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "serviceId": {
           "type": "string",
           "description": "FK to  {@link  ServiceDefinition.id  }"
@@ -371,20 +356,6 @@
           "type": "string",
           "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
-        "prerequisiteIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
-        },
-        "prerequisiteServiceIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
-        },
         "installCommand": {
           "type": "string",
           "description": "Shell command to install dependencies (e.g. \"npm install\")"
@@ -427,7 +398,7 @@
         "stackName",
         "updatedAt"
       ],
-      "description": "Full service view combining definition, config, status, and git state for API responses"
+      "description": "Full service view combining definition, config, status, git state, and relations for API responses"
     },
     "CloneStatus": {
       "type": "string",
@@ -473,20 +444,6 @@
           "type": "string",
           "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
-        "prerequisiteIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
-        },
-        "prerequisiteServiceIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
-        },
         "installCommand": {
           "type": "string",
           "description": "Shell command to install dependencies (e.g. \"npm install\")"
@@ -531,6 +488,18 @@
             "$ref": "#/definitions/ServiceFile"
           },
           "description": "Per-installation secret files, encrypted at rest. NOT included in exports. When a local file shares a `relativePath` with a shared file from  {@link  ServiceDefinition.files  } , the local file takes precedence at apply time."
+        },
+        "prerequisiteIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
@@ -542,8 +511,6 @@
         "environmentVariableOverrides",
         "files",
         "localFiles",
-        "prerequisiteIds",
-        "prerequisiteServiceIds",
         "runCommand",
         "stackName"
       ]
@@ -580,20 +547,6 @@
             "repositoryId": {
               "type": "string",
               "description": "Optional FK to  {@link  GitHubRepository.id  }"
-            },
-            "prerequisiteIds": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
-            },
-            "prerequisiteServiceIds": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
             },
             "installCommand": {
               "type": "string",
@@ -639,6 +592,18 @@
                 "$ref": "#/definitions/ServiceFile"
               },
               "description": "Per-installation secret files, encrypted at rest. NOT included in exports. When a local file shares a `relativePath` with a shared file from  {@link  ServiceDefinition.files  } , the local file takes precedence at apply time."
+            },
+            "prerequisiteIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "prerequisiteServiceIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           "additionalProperties": false
@@ -1307,7 +1272,7 @@
           "type": "object",
           "properties": {
             "findOptions": {
-              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22files%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22environmentVariableOverrides%22%7C%22localFiles%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22%7C%22currentBranch%22%7C%22commitsBehind%22)%5B%5D%3E"
+              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22files%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22environmentVariableOverrides%22%7C%22localFiles%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22%7C%22currentBranch%22%7C%22commitsBehind%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22)%5B%5D%3E"
             }
           },
           "additionalProperties": false
@@ -1320,7 +1285,7 @@
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
-    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"files\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"environmentVariableOverrides\"|\"localFiles\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\"|\"currentBranch\"|\"commitsBehind\")[]>": {
+    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"files\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"environmentVariableOverrides\"|\"localFiles\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\"|\"currentBranch\"|\"commitsBehind\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\")[]>": {
       "type": "object",
       "properties": {
         "top": {
@@ -1355,14 +1320,6 @@
               "enum": ["ASC", "DESC"]
             },
             "repositoryId": {
-              "type": "string",
-              "enum": ["ASC", "DESC"]
-            },
-            "prerequisiteIds": {
-              "type": "string",
-              "enum": ["ASC", "DESC"]
-            },
-            "prerequisiteServiceIds": {
               "type": "string",
               "enum": ["ASC", "DESC"]
             },
@@ -1457,6 +1414,14 @@
             "commitsBehind": {
               "type": "string",
               "enum": ["ASC", "DESC"]
+            },
+            "prerequisiteIds": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "prerequisiteServiceIds": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
             }
           },
           "additionalProperties": false,
@@ -1473,8 +1438,6 @@
               "description",
               "workingDirectory",
               "repositoryId",
-              "prerequisiteIds",
-              "prerequisiteServiceIds",
               "installCommand",
               "buildCommand",
               "runCommand",
@@ -1497,7 +1460,9 @@
               "lastStartedAt",
               "lastFetchedAt",
               "currentBranch",
-              "commitsBehind"
+              "commitsBehind",
+              "prerequisiteIds",
+              "prerequisiteServiceIds"
             ]
           },
           "description": "The result set will be limited to these fields"
@@ -1875,106 +1840,6 @@
                       }
                     ],
                     "description": "Optional FK to  {@link  GitHubRepository.id  }"
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
-        },
-        "prerequisiteIds": {
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "$eq": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
-                },
-                "$ne": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "$in": {
-                  "type": "array",
-                  "items": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
-                  }
-                },
-                "$nin": {
-                  "type": "array",
-                  "items": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
-        },
-        "prerequisiteServiceIds": {
-          "anyOf": [
-            {
-              "type": "object",
-              "properties": {
-                "$eq": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
-                },
-                "$ne": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "type": "object",
-              "properties": {
-                "$in": {
-                  "type": "array",
-                  "items": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
-                  }
-                },
-                "$nin": {
-                  "type": "array",
-                  "items": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
                   }
                 }
               },
@@ -3151,6 +3016,98 @@
               "additionalProperties": false
             }
           ]
+        },
+        "prerequisiteIds": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$ne": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "prerequisiteServiceIds": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "$ne": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
         }
       }
     },
@@ -3190,8 +3147,6 @@
                   "description",
                   "workingDirectory",
                   "repositoryId",
-                  "prerequisiteIds",
-                  "prerequisiteServiceIds",
                   "installCommand",
                   "buildCommand",
                   "runCommand",
@@ -3214,7 +3169,9 @@
                   "lastStartedAt",
                   "lastFetchedAt",
                   "currentBranch",
-                  "commitsBehind"
+                  "commitsBehind",
+                  "prerequisiteIds",
+                  "prerequisiteServiceIds"
                 ]
               },
               "description": "The list of fields to select"

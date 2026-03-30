@@ -8,7 +8,11 @@ import type { ServiceView } from '../models/views.js'
 
 export type ServiceDefinitionWritableFields = Omit<ServiceDefinition, 'createdAt' | 'updatedAt'>
 export type ServiceConfigWritableFields = Omit<ServiceConfig, 'createdAt' | 'updatedAt'>
-export type ServiceWritableFields = ServiceDefinitionWritableFields & Omit<ServiceConfigWritableFields, 'serviceId'>
+export type ServiceWritableFields = ServiceDefinitionWritableFields &
+  Omit<ServiceConfigWritableFields, 'serviceId'> & {
+    prerequisiteIds?: string[]
+    prerequisiteServiceIds?: string[]
+  }
 
 /** Creates a new service definition with optional configuration */
 export type PostServiceEndpoint = {

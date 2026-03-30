@@ -1,5 +1,3 @@
-import type { ServiceDefinition } from 'common'
-
 /**
  * Computes execution levels via topological sort with cycle resolution.
  * Returns an array of arrays: each inner array is a set of service IDs
@@ -7,10 +5,12 @@ import type { ServiceDefinition } from 'common'
  *
  * Circular dependencies are resolved by merging cycle members into the
  * same level so they run in parallel rather than deadlocking.
+ *
+ * @param dependencyMap Maps each serviceId to the IDs of services it depends on
  */
 export const computeExecutionLevels = (
   serviceIds: string[],
-  serviceMap: Map<string, ServiceDefinition>,
+  dependencyMap: Map<string, string[]>,
   targetSet: Set<string>,
 ): string[][] => {
   const inDegree = new Map<string, number>()
@@ -22,9 +22,8 @@ export const computeExecutionLevels = (
   }
 
   for (const id of serviceIds) {
-    const svc = serviceMap.get(id)
-    if (!svc) continue
-    for (const prereq of svc.prerequisiteServiceIds) {
+    const deps = dependencyMap.get(id) ?? []
+    for (const prereq of deps) {
       if (targetSet.has(prereq)) {
         inDegree.set(id, (inDegree.get(id) ?? 0) + 1)
         dependents.get(prereq)?.push(id)

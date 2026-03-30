@@ -24,7 +24,10 @@ export type PostStackEndpoint = { result: StackView; body: WithOptionalId<StackW
 export type PatchStackEndpoint = PatchEndpoint<StackWritableFields, 'name'>
 
 type ShareableStackDefinition = Omit<StackDefinition, 'createdAt' | 'updatedAt'>
-type ShareableServiceDefinition = Omit<ServiceDefinition, 'createdAt' | 'updatedAt'>
+type ShareableServiceDefinition = Omit<ServiceDefinition, 'createdAt' | 'updatedAt'> & {
+  prerequisiteIds: string[]
+  prerequisiteServiceIds: string[]
+}
 type ShareableGitHubRepository = Omit<GitHubRepository, 'createdAt' | 'updatedAt'>
 type ShareablePrerequisite = Omit<Prerequisite, 'createdAt' | 'updatedAt'>
 

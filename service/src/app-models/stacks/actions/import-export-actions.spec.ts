@@ -8,6 +8,8 @@ import {
   Prerequisite,
   ServiceConfig,
   ServiceDefinition,
+  ServiceDependencyLink,
+  ServicePrerequisiteLink,
   ServiceStateHistory,
   ServiceStatus,
   StackConfig,
@@ -67,6 +69,8 @@ const createSetup = () => {
     .addStore(repoStore)
     .addStore(prereqStore)
     .addStore(new AutoIncrementStore({ model: ServiceStateHistory, primaryKey: 'id' }))
+    .addStore(new InMemoryStore({ model: ServicePrerequisiteLink, primaryKey: 'id' }))
+    .addStore(new InMemoryStore({ model: ServiceDependencyLink, primaryKey: 'id' }))
 
   getRepository(injector).createDataSet(StackDefinition, 'name', {})
   getRepository(injector).createDataSet(StackConfig, 'stackName', {})
@@ -76,6 +80,8 @@ const createSetup = () => {
   getRepository(injector).createDataSet(GitHubRepository, 'id', {})
   getRepository(injector).createDataSet(Prerequisite, 'id', {})
   getRepository(injector).createDataSet(ServiceStateHistory, 'id', {})
+  getRepository(injector).createDataSet(ServicePrerequisiteLink, 'id', {})
+  getRepository(injector).createDataSet(ServiceDependencyLink, 'id', {})
 
   return {
     injector,
@@ -109,8 +115,6 @@ describe('Import/Export Stack Actions', () => {
           description: '',
           workingDirectory: 'svc1',
           runCommand: 'echo hello',
-          prerequisiteIds: [],
-          prerequisiteServiceIds: [],
           files: [],
           createdAt: ts,
           updatedAt: ts,
@@ -140,12 +144,7 @@ describe('Import/Export Stack Actions', () => {
           createMockActionContext({ injector: elevated, urlParams: { id: 'my-stack' } }),
         )
 
-        const body = result.chunk as {
-          stack: StackDefinition
-          services: ServiceDefinition[]
-          repositories: GitHubRepository[]
-          prerequisites: Prerequisite[]
-        }
+        const body = result.chunk
         expect(body.stack.name).toBe('my-stack')
         expect(body.services).toHaveLength(1)
         expect(body.services[0]?.displayName).toBe('Service 1')
@@ -170,8 +169,6 @@ describe('Import/Export Stack Actions', () => {
             description: '',
             workingDirectory: 'svc',
             runCommand: 'echo a',
-            prerequisiteIds: [],
-            prerequisiteServiceIds: [],
             files: [],
             createdAt: ts,
             updatedAt: ts,
@@ -183,8 +180,6 @@ describe('Import/Export Stack Actions', () => {
             description: '',
             workingDirectory: 'svc',
             runCommand: 'echo b',
-            prerequisiteIds: [],
-            prerequisiteServiceIds: [],
             files: [],
             createdAt: ts,
             updatedAt: ts,
@@ -196,7 +191,7 @@ describe('Import/Export Stack Actions', () => {
           createMockActionContext({ injector: elevated, urlParams: { id: 'stack-a' } }),
         )
 
-        const body = result.chunk as { services: Array<Omit<ServiceDefinition, 'createdAt' | 'updatedAt'>> }
+        const body = result.chunk
         expect(body.services).toHaveLength(1)
         expect(body.services[0]?.displayName).toBe('Service A')
       })

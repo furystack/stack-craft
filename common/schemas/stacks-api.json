@@ -63,7 +63,8 @@
         }
       },
       "required": ["result", "body"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Creates a new stack with optional configuration"
     },
     "StackView": {
       "type": "object",
@@ -219,7 +220,8 @@
         }
       },
       "required": ["line", "pattern", "snippet", "source"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "A warning about a potential secret detected during stack export"
     },
     "ExportStackEndpoint": {
       "type": "object",
@@ -260,7 +262,20 @@
               "type": "array",
               "items": {
                 "type": "object",
+                "additionalProperties": false,
                 "properties": {
+                  "prerequisiteIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "prerequisiteServiceIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
                   "id": {
                     "type": "string",
                     "description": "UUID primary key"
@@ -285,20 +300,6 @@
                     "type": "string",
                     "description": "Optional FK to  {@link  GitHubRepository.id  }"
                   },
-                  "prerequisiteIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
-                  },
-                  "prerequisiteServiceIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
-                  },
                   "installCommand": {
                     "type": "string",
                     "description": "Shell command to install dependencies (e.g. \"npm install\")"
@@ -320,16 +321,15 @@
                   }
                 },
                 "required": [
-                  "id",
-                  "stackName",
-                  "displayName",
                   "description",
+                  "displayName",
+                  "files",
+                  "id",
                   "prerequisiteIds",
                   "prerequisiteServiceIds",
                   "runCommand",
-                  "files"
-                ],
-                "additionalProperties": false
+                  "stackName"
+                ]
               }
             },
             "repositories": {
@@ -408,7 +408,8 @@
         }
       },
       "required": ["url", "result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Exports a stack and all its associated services, repositories, and prerequisites for sharing"
     },
     "ServiceFile": {
       "type": "object",
@@ -573,7 +574,20 @@
               "type": "array",
               "items": {
                 "type": "object",
+                "additionalProperties": false,
                 "properties": {
+                  "prerequisiteIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "prerequisiteServiceIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
                   "id": {
                     "type": "string",
                     "description": "UUID primary key"
@@ -598,20 +612,6 @@
                     "type": "string",
                     "description": "Optional FK to  {@link  GitHubRepository.id  }"
                   },
-                  "prerequisiteIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
-                  },
-                  "prerequisiteServiceIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
-                  },
                   "installCommand": {
                     "type": "string",
                     "description": "Shell command to install dependencies (e.g. \"npm install\")"
@@ -633,16 +633,15 @@
                   }
                 },
                 "required": [
-                  "id",
-                  "stackName",
-                  "displayName",
                   "description",
+                  "displayName",
+                  "files",
+                  "id",
                   "prerequisiteIds",
                   "prerequisiteServiceIds",
                   "runCommand",
-                  "files"
-                ],
-                "additionalProperties": false
+                  "stackName"
+                ]
               }
             },
             "repositories": {
@@ -764,7 +763,8 @@
         }
       },
       "required": ["result", "body"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Imports a previously exported stack, creating all associated entities and applying configuration overrides"
     },
     "StackSetupEndpoint": {
       "type": "object",
@@ -791,7 +791,8 @@
         }
       },
       "required": ["url", "result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Runs the setup pipeline (clone, install, build) for all services in a stack"
     },
     "StacksApi": {
       "type": "object",

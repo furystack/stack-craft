@@ -10,6 +10,8 @@ import {
   PrerequisiteModel,
   ServiceConfigModel,
   ServiceDefinitionModel,
+  ServiceDependencyLinkModel,
+  ServicePrerequisiteLinkModel,
   ServiceStateHistoryModel,
   ServiceStatusModel,
   StackConfigModel,
@@ -90,7 +92,10 @@ export async function initAllModels(sequelize: Sequelize): Promise<void> {
       createdAt: { type: DataTypes.DATE },
       updatedAt: { type: DataTypes.DATE },
     },
-    { sequelize, indexes: [{ fields: ['stackName'] }] },
+    {
+      sequelize,
+      indexes: [{ fields: ['stackName'] }, { fields: ['stackName', 'url'], unique: true }],
+    },
   )
 
   PrerequisiteModel.init(
@@ -130,16 +135,8 @@ export async function initAllModels(sequelize: Sequelize): Promise<void> {
         allowNull: true,
         references: { model: GitHubRepositoryModel, key: 'id' },
       },
-      prerequisiteIds: {
-        type: DataTypes.JSONB,
-        defaultValue: [],
-      },
-      prerequisiteServiceIds: {
-        type: DataTypes.JSONB,
-        defaultValue: [],
-      },
-      installCommand: { type: DataTypes.STRING, allowNull: true },
-      buildCommand: { type: DataTypes.STRING, allowNull: true },
+      installCommand: { type: DataTypes.TEXT, allowNull: true },
+      buildCommand: { type: DataTypes.TEXT, allowNull: true },
       runCommand: { type: DataTypes.STRING, allowNull: false },
       files: {
         type: DataTypes.JSONB,
@@ -148,7 +145,7 @@ export async function initAllModels(sequelize: Sequelize): Promise<void> {
       createdAt: { type: DataTypes.DATE },
       updatedAt: { type: DataTypes.DATE },
     },
-    { sequelize, indexes: [{ fields: ['stackName'] }] },
+    { sequelize, indexes: [{ fields: ['stackName'] }, { fields: ['repositoryId'] }] },
   )
 
   ServiceConfigModel.init(
@@ -182,10 +179,22 @@ export async function initAllModels(sequelize: Sequelize): Promise<void> {
         primaryKey: true,
         references: { model: ServiceDefinitionModel, key: 'id' },
       },
-      cloneStatus: { type: DataTypes.STRING, defaultValue: 'not-cloned' },
-      installStatus: { type: DataTypes.STRING, defaultValue: 'not-installed' },
-      buildStatus: { type: DataTypes.STRING, defaultValue: 'not-built' },
-      runStatus: { type: DataTypes.STRING, defaultValue: 'stopped' },
+      cloneStatus: {
+        type: DataTypes.ENUM('not-cloned', 'cloning', 'cloned', 'failed'),
+        defaultValue: 'not-cloned',
+      },
+      installStatus: {
+        type: DataTypes.ENUM('not-installed', 'installing', 'installed', 'failed'),
+        defaultValue: 'not-installed',
+      },
+      buildStatus: {
+        type: DataTypes.ENUM('not-built', 'building', 'built', 'failed'),
+        defaultValue: 'not-built',
+      },
+      runStatus: {
+        type: DataTypes.ENUM('stopped', 'starting', 'running', 'stopping', 'error'),
+        defaultValue: 'stopped',
+      },
       lastClonedAt: { type: DataTypes.DATE, allowNull: true },
       lastInstalledAt: { type: DataTypes.DATE, allowNull: true },
       lastBuiltAt: { type: DataTypes.DATE, allowNull: true },
@@ -204,11 +213,40 @@ export async function initAllModels(sequelize: Sequelize): Promise<void> {
         allowNull: false,
         references: { model: ServiceDefinitionModel, key: 'id' },
       },
-      event: { type: DataTypes.STRING, allowNull: false },
+      event: {
+        type: DataTypes.ENUM(
+          'clone-started',
+          'clone-completed',
+          'clone-failed',
+          'run-started',
+          'run-stopped',
+          'run-crashed',
+          'run-restarted',
+          'install-started',
+          'install-completed',
+          'install-failed',
+          'build-started',
+          'build-completed',
+          'build-failed',
+          'setup-started',
+          'setup-completed',
+          'setup-failed',
+          'update-started',
+          'update-completed',
+          'update-failed',
+          'pull-completed',
+          'imported',
+          'state-reconciled',
+        ),
+        allowNull: false,
+      },
       previousState: { type: DataTypes.TEXT, allowNull: true },
       newState: { type: DataTypes.TEXT, allowNull: true },
       triggeredBy: { type: DataTypes.STRING, allowNull: false },
-      triggerSource: { type: DataTypes.STRING, allowNull: false },
+      triggerSource: {
+        type: DataTypes.ENUM('api', 'mcp', 'auto-fetch', 'auto-restart', 'system'),
+        allowNull: false,
+      },
       metadata: { type: DataTypes.TEXT, allowNull: true },
       processUid: { type: DataTypes.STRING, allowNull: true },
       createdAt: { type: DataTypes.DATE },
@@ -233,7 +271,11 @@ export async function initAllModels(sequelize: Sequelize): Promise<void> {
       lastUsedAt: { type: DataTypes.DATE, allowNull: true },
       createdAt: { type: DataTypes.DATE },
     },
-    { sequelize, updatedAt: false },
+    {
+      sequelize,
+      updatedAt: false,
+      indexes: [{ fields: ['tokenHash'], unique: true }, { fields: ['username'] }],
+    },
   )
 
   DefaultSessionModel.init(
@@ -245,7 +287,7 @@ export async function initAllModels(sequelize: Sequelize): Promise<void> {
         references: { model: UserModel, key: 'username' },
       },
     },
-    { sequelize, timestamps: false },
+    { sequelize, timestamps: false, indexes: [{ fields: ['username'] }] },
   )
 
   PasswordResetTokenModel.init(
@@ -259,6 +301,48 @@ export async function initAllModels(sequelize: Sequelize): Promise<void> {
       createdAt: { type: DataTypes.DATE },
     },
     { sequelize, updatedAt: false },
+  )
+
+  ServicePrerequisiteLinkModel.init(
+    {
+      id: { type: DataTypes.STRING, primaryKey: true },
+      serviceId: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        references: { model: ServiceDefinitionModel, key: 'id' },
+      },
+      prerequisiteId: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        references: { model: PrerequisiteModel, key: 'id' },
+      },
+    },
+    {
+      sequelize,
+      timestamps: false,
+      indexes: [{ fields: ['serviceId', 'prerequisiteId'], unique: true }, { fields: ['prerequisiteId'] }],
+    },
+  )
+
+  ServiceDependencyLinkModel.init(
+    {
+      id: { type: DataTypes.STRING, primaryKey: true },
+      serviceId: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        references: { model: ServiceDefinitionModel, key: 'id' },
+      },
+      dependsOnServiceId: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        references: { model: ServiceDefinitionModel, key: 'id' },
+      },
+    },
+    {
+      sequelize,
+      timestamps: false,
+      indexes: [{ fields: ['serviceId', 'dependsOnServiceId'], unique: true }, { fields: ['dependsOnServiceId'] }],
+    },
   )
 
   // --- Associations ---
@@ -298,4 +382,24 @@ export async function initAllModels(sequelize: Sequelize): Promise<void> {
 
   ServiceDefinitionModel.hasMany(ServiceStateHistoryModel, { foreignKey: 'serviceId', onDelete: 'CASCADE' })
   ServiceStateHistoryModel.belongsTo(ServiceDefinitionModel, { foreignKey: 'serviceId' })
+
+  ServiceDefinitionModel.hasMany(ServicePrerequisiteLinkModel, { foreignKey: 'serviceId', onDelete: 'CASCADE' })
+  ServicePrerequisiteLinkModel.belongsTo(ServiceDefinitionModel, { foreignKey: 'serviceId' })
+
+  PrerequisiteModel.hasMany(ServicePrerequisiteLinkModel, { foreignKey: 'prerequisiteId', onDelete: 'CASCADE' })
+  ServicePrerequisiteLinkModel.belongsTo(PrerequisiteModel, { foreignKey: 'prerequisiteId' })
+
+  ServiceDefinitionModel.hasMany(ServiceDependencyLinkModel, {
+    foreignKey: 'serviceId',
+    as: 'dependencies',
+    onDelete: 'CASCADE',
+  })
+  ServiceDependencyLinkModel.belongsTo(ServiceDefinitionModel, { foreignKey: 'serviceId' })
+
+  ServiceDefinitionModel.hasMany(ServiceDependencyLinkModel, {
+    foreignKey: 'dependsOnServiceId',
+    as: 'dependents',
+    onDelete: 'CASCADE',
+  })
+  ServiceDependencyLinkModel.belongsTo(ServiceDefinitionModel, { foreignKey: 'dependsOnServiceId', as: 'dependency' })
 }
