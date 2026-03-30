@@ -10,6 +10,7 @@ import {
   PrerequisiteCheckResult,
   ServiceConfig,
   ServiceDefinition,
+  ServiceGitStatus,
   ServiceStatus,
   StackConfig,
   StackDefinition,
@@ -80,9 +81,12 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       )
     }
 
+    const gitStatusState = useEntitySync(options, ServiceGitStatus, props.serviceId)
+
     const statusData = statusState.status === 'synced' ? statusState.data : undefined
     const configData = configState.status === 'synced' ? configState.data : undefined
-    const service = mergeServiceView(serviceData, configData, statusData)
+    const gitStatusData = gitStatusState.status === 'synced' ? gitStatusState.data : undefined
+    const service = mergeServiceView(serviceData, configData, statusData, gitStatusData)
 
     const stackState = useEntitySync(options, StackDefinition, service.stackName)
     const stackConfigState = useEntitySync(options, StackConfig, service.stackName)

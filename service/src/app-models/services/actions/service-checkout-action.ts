@@ -3,6 +3,7 @@ import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ServiceCheckoutEndpoint } from 'common'
 import { ServiceDefinition, ServiceStatus } from 'common'
+import { GitHeadWatcher } from '../../../services/git-head-watcher.js'
 import { GitService } from '../../../services/git-service.js'
 import { resolveServiceCwd } from '../../../utils/resolve-service-cwd.js'
 
@@ -40,6 +41,8 @@ export const ServiceCheckoutAction: RequestAction<ServiceCheckoutEndpoint> = asy
     const message = error instanceof Error ? error.message : 'Checkout failed'
     throw new RequestError(`Failed to checkout branch "${localBranch}": ${message}`, 409)
   }
+
+  await injector.getInstance(GitHeadWatcher).watch(serviceId, cwd)
 
   return JsonResult({ success: true, serviceId })
 }
