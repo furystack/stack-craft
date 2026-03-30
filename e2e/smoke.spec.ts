@@ -34,8 +34,8 @@ test.describe.serial('App Flow', () => {
 
     await expect(page.getByTestId('page-header-title')).toContainText(displayName)
 
-    // Navigate to services list via the dashboard card
-    await page.locator('shade-dashboard a', { hasText: 'Services' }).click()
+    // Navigate to services list via the dashboard card's "View All" link
+    await page.locator('shade-dashboard a', { hasText: 'View All' }).first().click()
     await expect(page.locator('shade-services-list')).toBeVisible()
     await page.locator('button', { hasText: 'Create Service' }).first().click()
     await expect(page.locator('shade-create-service-wizard')).toBeVisible()
