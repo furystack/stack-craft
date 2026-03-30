@@ -3,7 +3,6 @@ import { createComponent, Shade } from '@furystack/shades'
 import { AppBar, AppBarLink, Button, DrawerToggleButton, Icon, icons } from '@furystack/shades-common-components'
 import { SessionService } from '../../services/session.js'
 import { Breadcrumbs } from './breadcrumbs.js'
-import { ThemeSwitch } from '../theme-switch/index.js'
 
 export type HeaderProps = {
   title: string
@@ -42,7 +41,6 @@ export const Header = Shade<HeaderProps>({
         {sessionState === 'authenticated' ? <Breadcrumbs /> : null}
         <div className="spacer" />
         <div className="actions">
-          <ThemeSwitch variant="outlined" size="small" />
           {sessionState === 'authenticated' ? (
             <Button
               variant="outlined"
