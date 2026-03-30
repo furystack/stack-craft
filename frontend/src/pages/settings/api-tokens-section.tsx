@@ -24,7 +24,7 @@ type CreateTokenPayload = {
   name: string
 }
 
-const isCreateTokenPayload = (data: unknown): data is CreateTokenPayload => {
+export const isCreateTokenPayload = (data: unknown): data is CreateTokenPayload => {
   const d = data as CreateTokenPayload
   return d.name?.length > 0
 }

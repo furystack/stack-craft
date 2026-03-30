@@ -11,7 +11,7 @@ type StackFormPayload = {
   mainDirectory: string
 }
 
-const isStackFormPayload = (data: unknown): data is StackFormPayload => {
+export const isStackFormPayload = (data: unknown): data is StackFormPayload => {
   const d = data as StackFormPayload
   return d.name?.length > 0 && d.displayName?.length > 0 && d.mainDirectory?.length > 0
 }

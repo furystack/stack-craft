@@ -1,14 +1,15 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, cssVariableTheme, Icon, icons, NotyService, Paper } from '@furystack/shades-common-components'
+import { cssVariableTheme, NotyService, Paper } from '@furystack/shades-common-components'
 import type { GitHubRepository, Prerequisite, ServiceView } from 'common'
 import { GitHubRepository as GitHubRepositoryModel, Prerequisite as PrerequisiteModel, ServiceDefinition } from 'common'
 
-import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/app-routes.js'
-import { ServiceForm } from '../../components/entity-forms/service-form.js'
-import { GitHubReposApiClient } from '../../services/api-clients/github-repos-api-client.js'
-import { PrerequisitesApiClient } from '../../services/api-clients/prerequisites-api-client.js'
-import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
+import { stackCraftNavigate } from '../../../components/app-routes.js'
+import { ServiceForm } from '../../../components/entity-forms/service-form/index.js'
+import { GitHubReposApiClient } from '../../../services/api-clients/github-repos-api-client.js'
+import { PrerequisitesApiClient } from '../../../services/api-clients/prerequisites-api-client.js'
+import { ServicesApiClient } from '../../../services/api-clients/services-api-client.js'
+import { SetupStep } from './setup-step.js'
 
 type CreateServiceWizardProps = {
   stackName: string
@@ -19,7 +20,6 @@ type WizardState = {
   createdServiceId: string | null
   createdServiceName: string | null
   hasSetupWork: boolean
-  setupStatus: 'idle' | 'running' | 'done' | 'failed'
 }
 
 export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
@@ -32,7 +32,6 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
       createdServiceId: null,
       createdServiceName: null,
       hasSetupWork: false,
-      setupStatus: 'idle',
     })
 
     const reposState = useCollectionSync(options, GitHubRepositoryModel, {
@@ -164,31 +163,6 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
       </div>
     )
 
-    const handleSetupNow = async () => {
-      if (!state.createdServiceId) return
-      setState({ ...state, setupStatus: 'running' })
-      try {
-        await servicesApi.call({
-          method: 'POST',
-          action: '/services/:id/setup',
-          url: { id: state.createdServiceId },
-        })
-        setState({ ...state, setupStatus: 'done' })
-        noty.emit('onNotyAdded', {
-          title: 'Setup complete',
-          body: `"${state.createdServiceName}" has been set up successfully.`,
-          type: 'success',
-        })
-      } catch (error) {
-        setState({ ...state, setupStatus: 'failed' })
-        noty.emit('onNotyAdded', {
-          title: 'Setup failed',
-          body: error instanceof Error ? error.message : 'Setup error',
-          type: 'error',
-        })
-      }
-    }
-
     if (state.step === 0) {
       return (
         <Paper style={{ maxWidth: '640px', margin: '32px auto', padding: '32px' }}>
@@ -214,103 +188,11 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
     return (
       <Paper style={{ maxWidth: '640px', margin: '32px auto', padding: '32px' }}>
         {stepIndicator}
-        <h2 style={{ margin: '0 0 4px 0' }}>Set Up Service</h2>
-        <p style={{ margin: '0 0 20px 0', opacity: '0.7', fontSize: '14px' }}>
-          Step 2 of 2: Clone the repository, install packages, and build "{state.createdServiceName}".
-        </p>
-
-        {state.setupStatus === 'idle' ? (
-          <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <p style={{ margin: '0 0 16px 0' }}>
-              This will clone the repository, install packages, and build the service.
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <Button
-                variant="contained"
-                onclick={() => void handleSetupNow()}
-                startIcon={<Icon icon={icons.settings} size="small" />}
-              >
-                Set Up Now
-              </Button>
-              <Button
-                variant="outlined"
-                onclick={() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: props.stackName })}
-                endIcon={<Icon icon={icons.chevronRight} size="small" />}
-              >
-                Skip
-              </Button>
-            </div>
-          </div>
-        ) : null}
-
-        {state.setupStatus === 'running' ? (
-          <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <p style={{ margin: '0 0 8px 0' }}>Setting up service...</p>
-            <p style={{ margin: '0', fontSize: '13px', opacity: '0.6' }}>
-              This may take a few minutes. You can view progress in the service logs.
-            </p>
-          </div>
-        ) : null}
-
-        {state.setupStatus === 'done' ? (
-          <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <p style={{ margin: '0 0 16px 0', color: cssVariableTheme.palette.success.main }}>
-              Service set up successfully!
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <Button
-                variant="contained"
-                color="success"
-                onclick={() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: props.stackName })}
-                startIcon={<Icon icon={icons.home} size="small" />}
-              >
-                Go to Dashboard
-              </Button>
-              {state.createdServiceId ? (
-                <StackCraftNestedRouteLink
-                  href="/stacks/:stackName/services/:serviceId"
-                  params={{ stackName: props.stackName, serviceId: state.createdServiceId }}
-                >
-                  <Button variant="outlined" startIcon={<Icon icon={icons.eye} size="small" />}>
-                    View Service
-                  </Button>
-                </StackCraftNestedRouteLink>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
-        {state.setupStatus === 'failed' ? (
-          <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <p style={{ margin: '0 0 16px 0', color: cssVariableTheme.palette.error.main }}>Setup failed.</p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <Button
-                variant="outlined"
-                onclick={() => setState({ ...state, setupStatus: 'idle' })}
-                startIcon={<Icon icon={icons.refresh} size="small" />}
-              >
-                Retry
-              </Button>
-              {state.createdServiceId ? (
-                <StackCraftNestedRouteLink
-                  href="/stacks/:stackName/services/:serviceId/logs"
-                  params={{ stackName: props.stackName, serviceId: state.createdServiceId }}
-                >
-                  <Button variant="outlined" startIcon={<Icon icon={icons.fileText} size="small" />}>
-                    View Logs
-                  </Button>
-                </StackCraftNestedRouteLink>
-              ) : null}
-              <Button
-                variant="outlined"
-                onclick={() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: props.stackName })}
-                startIcon={<Icon icon={icons.home} size="small" />}
-              >
-                Go to Dashboard
-              </Button>
-            </div>
-          </div>
-        ) : null}
+        <SetupStep
+          stackName={props.stackName}
+          serviceId={state.createdServiceId!}
+          serviceName={state.createdServiceName!}
+        />
       </Paper>
     )
   },

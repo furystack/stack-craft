@@ -1,12 +1,15 @@
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import type { Injector } from '@furystack/inject'
 import { createComponent, LocationService, Shade } from '@furystack/shades'
-import { cssVariableTheme, Divider, Icon, icons } from '@furystack/shades-common-components'
+import { Accordion, AccordionItem, cssVariableTheme, Divider, Icon, icons } from '@furystack/shades-common-components'
 import type { StackView } from 'common'
 import { StackDefinition } from 'common'
 import { match } from 'path-to-regexp'
 
 import { StackCraftNestedRouteLink } from '../app-routes.js'
+
+/** Latest remount phase map for location subscription merges (Shade useState has no functional updates). */
+const sidebarStackRemountScratch = { map: {} as Record<string, 0 | 1> }
 
 type SidebarStackLinkProps = {
   stackName: string
@@ -69,147 +72,6 @@ const SidebarStackLink = Shade<SidebarStackLinkProps>({
         <Icon icon={props.icon} size={14} style={{ flexShrink: '0' }} />
         <span className="link-label">{props.label}</span>
       </StackCraftNestedRouteLink>
-    )
-  },
-})
-
-type SidebarStackCategoryProps = {
-  stack: StackView
-  currentUrl: string
-}
-
-const SidebarStackCategory = Shade<SidebarStackCategoryProps>({
-  customElementName: 'shade-sidebar-stack-category',
-  css: {
-    display: 'block',
-    marginBottom: '2px',
-    '& .category-header': {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '8px 12px',
-      cursor: 'pointer',
-      fontSize: '0.82rem',
-      fontWeight: '500',
-      letterSpacing: '0.02em',
-      userSelect: 'none',
-      borderRadius: cssVariableTheme.shape.borderRadius.sm,
-      margin: '0 8px',
-      transition: `background ${cssVariableTheme.transitions.duration.fast} ease, color ${cssVariableTheme.transitions.duration.fast} ease`,
-      border: 'none',
-      background: 'none',
-      color: 'inherit',
-      fontFamily: 'inherit',
-      width: 'calc(100% - 16px)',
-      textAlign: 'left',
-      overflow: 'hidden',
-    },
-    '& .category-label': {
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
-      minWidth: '0',
-    },
-    '& .category-header:hover': {
-      background: cssVariableTheme.action.hoverBackground,
-    },
-    '& .category-header[data-active]': {
-      color: cssVariableTheme.palette.primary.main,
-      fontWeight: '600',
-    },
-    '& .expand-arrow': {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '16px',
-      flexShrink: '0',
-      transition: `transform ${cssVariableTheme.transitions.duration.normal} ease`,
-    },
-    '& .expand-arrow[data-expanded]': {
-      transform: 'rotate(90deg)',
-    },
-    '& .category-children-wrapper': {
-      display: 'grid',
-      gridTemplateRows: '0fr',
-      transition: `grid-template-rows ${cssVariableTheme.transitions.duration.normal} ease`,
-    },
-    '& .category-children-wrapper[data-expanded]': {
-      gridTemplateRows: '1fr',
-    },
-    '& .category-children': {
-      overflow: 'hidden',
-      minHeight: '0',
-    },
-    '& .category-children-wrapper[data-expanded] .category-children': {
-      paddingBottom: '4px',
-    },
-  },
-  render: ({ props, useState }) => {
-    const stackPrefix = `/stacks/${props.stack.name}`
-    const isCategoryActive = props.currentUrl === stackPrefix || props.currentUrl.startsWith(`${stackPrefix}/`)
-
-    const [isExpanded, setIsExpanded] = useState('isExpanded', isCategoryActive)
-
-    if (isCategoryActive && !isExpanded) {
-      setIsExpanded(true)
-    }
-
-    return (
-      <div>
-        <button
-          type="button"
-          className="category-header"
-          {...(isCategoryActive ? { 'data-active': '' } : {})}
-          aria-expanded={isExpanded}
-          onclick={() => setIsExpanded(!isExpanded)}
-        >
-          <span className="expand-arrow" {...(isExpanded ? { 'data-expanded': '' } : {})}>
-            <Icon icon={icons.chevronRight} size={12} />
-          </span>
-          <Icon icon={icons.layers} size={16} />
-          <span className="category-label" title={props.stack.displayName}>
-            {props.stack.displayName}
-          </span>
-        </button>
-        <div className="category-children-wrapper" {...(isExpanded ? { 'data-expanded': '' } : {})}>
-          <div className="category-children">
-            <SidebarStackLink
-              stackName={props.stack.name}
-              icon={icons.layers}
-              label="Overview"
-              currentUrl={props.currentUrl}
-            />
-            <SidebarStackLink
-              stackName={props.stack.name}
-              subPath="services"
-              icon={icons.code}
-              label="Services"
-              currentUrl={props.currentUrl}
-            />
-            <SidebarStackLink
-              stackName={props.stack.name}
-              subPath="repositories"
-              icon={icons.link}
-              label="Repositories"
-              currentUrl={props.currentUrl}
-            />
-            <SidebarStackLink
-              stackName={props.stack.name}
-              subPath="prerequisites"
-              icon={icons.check}
-              label="Prerequisites"
-              currentUrl={props.currentUrl}
-            />
-            <SidebarStackLink
-              stackName={props.stack.name}
-              subPath="setup"
-              icon={icons.settings}
-              label="Setup"
-              currentUrl={props.currentUrl}
-            />
-          </div>
-        </div>
-      </div>
     )
   },
 })
@@ -294,9 +156,16 @@ export const Sidebar = Shade<{ injector?: Injector }>({
       color: cssVariableTheme.text.secondary,
       userSelect: 'none',
     },
+    '& .sidebar-stacks-accordion': {
+      margin: '0 8px 4px',
+    },
+    '& .sidebar-stack-accordion-links': {
+      margin: '0 -12px 0 -8px',
+      paddingBottom: '4px',
+    },
   },
   render: (options) => {
-    const { injector, useObservable } = options
+    const { injector, useObservable, useState, useDisposable } = options
     const [currentUrl] = useObservable('locationChange', injector.getInstance(LocationService).onLocationPathChanged)
 
     const stacksState = useCollectionSync(options, StackDefinition, {})
@@ -304,14 +173,105 @@ export const Sidebar = Shade<{ injector?: Injector }>({
       stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data.entries : []
     ) as StackView[]
 
+    const stackIds = stacks.map((s) => s.name).join('\0')
+
+    const [remountPhaseByStack, setRemountPhaseByStack] = useState('remountPhaseByStack', {} as Record<string, 0 | 1>)
+    sidebarStackRemountScratch.map = remountPhaseByStack
+
+    useDisposable(
+      'sidebar-stack-accordion-sync',
+      () => {
+        const locationService = injector.getInstance(LocationService)
+        let lastUrl = locationService.onLocationPathChanged.getValue()
+        const observer = locationService.onLocationPathChanged.subscribe((url) => {
+          const nextPhase: Record<string, 0 | 1> = {}
+          for (const stack of stacks) {
+            const stackPrefix = `/stacks/${stack.name}`
+            const wasActive = lastUrl === stackPrefix || lastUrl.startsWith(`${stackPrefix}/`)
+            const nowActive = url === stackPrefix || url.startsWith(`${stackPrefix}/`)
+            if (wasActive !== nowActive) {
+              nextPhase[stack.name] = 1
+            }
+          }
+          lastUrl = url
+          if (Object.keys(nextPhase).length > 0) {
+            const merged = { ...sidebarStackRemountScratch.map, ...nextPhase }
+            setRemountPhaseByStack(merged)
+            queueMicrotask(() => {
+              const cleared = { ...merged }
+              for (const name of Object.keys(nextPhase)) {
+                cleared[name] = 0
+              }
+              setRemountPhaseByStack(cleared)
+            })
+          }
+        })
+        return observer
+      },
+      [stackIds],
+    )
+
     return (
       <nav aria-label="Main navigation" style={{ padding: '4px 0 8px' }}>
         <SidebarItem href="/" icon={icons.home} label="Dashboard" currentUrl={currentUrl} />
         <Divider />
         <div className="sidebar-section-label">Stacks</div>
-        {stacks.map((stack) => (
-          <SidebarStackCategory stack={stack} currentUrl={currentUrl} />
-        ))}
+        {stacks.length > 0 ? (
+          <Accordion className="sidebar-stacks-accordion" variant="outlined" navSection="sidebar-stacks">
+            {stacks.map((stack) => {
+              const stackPrefix = `/stacks/${stack.name}`
+              const isCategoryActive = currentUrl === stackPrefix || currentUrl.startsWith(`${stackPrefix}/`)
+              const showAccordion = (remountPhaseByStack[stack.name] ?? 0) === 0
+
+              return showAccordion ? (
+                <AccordionItem
+                  defaultExpanded={isCategoryActive}
+                  icon={<Icon icon={icons.layers} size={16} style={{ flexShrink: '0' }} />}
+                  title={stack.displayName}
+                >
+                  <div className="sidebar-stack-accordion-links">
+                    <SidebarStackLink
+                      stackName={stack.name}
+                      icon={icons.layers}
+                      label="Overview"
+                      currentUrl={currentUrl}
+                    />
+                    <SidebarStackLink
+                      stackName={stack.name}
+                      subPath="services"
+                      icon={icons.code}
+                      label="Services"
+                      currentUrl={currentUrl}
+                    />
+                    <SidebarStackLink
+                      stackName={stack.name}
+                      subPath="repositories"
+                      icon={icons.link}
+                      label="Repositories"
+                      currentUrl={currentUrl}
+                    />
+                    <SidebarStackLink
+                      stackName={stack.name}
+                      subPath="prerequisites"
+                      icon={icons.check}
+                      label="Prerequisites"
+                      currentUrl={currentUrl}
+                    />
+                    <SidebarStackLink
+                      stackName={stack.name}
+                      subPath="setup"
+                      icon={icons.settings}
+                      label="Setup"
+                      currentUrl={currentUrl}
+                    />
+                  </div>
+                </AccordionItem>
+              ) : (
+                <span style={{ display: 'none' }} aria-hidden="true" />
+              )
+            })}
+          </Accordion>
+        ) : null}
         <SidebarItem href="/stacks/create" icon={icons.plus} label="Create Stack" currentUrl={currentUrl} />
         <SidebarItem href="/stacks/import" icon={icons.upload} label="Import Stack" currentUrl={currentUrl} />
         <Divider />

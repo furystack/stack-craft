@@ -40,7 +40,7 @@ const columnFilters: { [K in ServiceColumn]?: ColumnFilterConfig } = {
 export const ServiceTable = Shade<ServiceTableProps>({
   customElementName: 'shade-service-table',
   render: (options) => {
-    const { props, injector, useDisposable, useObservable, useState } = options
+    const { props, injector, useDisposable, useState } = options
     const api = injector.getInstance(ServicesApiClient)
     const noty = injector.getInstance(NotyService)
 
@@ -93,8 +93,11 @@ export const ServiceTable = Shade<ServiceTableProps>({
       }
     }
 
-    const [selectedServices] = useObservable('selection', collectionService.selection)
-    props.onSelectionChange?.(selectedServices)
+    useDisposable('selectionSync', () =>
+      collectionService.selection.subscribe((newSelection) => {
+        props.onSelectionChange?.(newSelection)
+      }),
+    )
 
     return (
       <DataGrid<ServiceView, ServiceColumn>

@@ -10,7 +10,7 @@ type GitHubRepoFormPayload = {
   description: string
 }
 
-const isGitHubRepoFormPayload = (data: unknown): data is GitHubRepoFormPayload => {
+export const isGitHubRepoFormPayload = (data: unknown): data is GitHubRepoFormPayload => {
   const d = data as GitHubRepoFormPayload
   return d.url?.length > 0 && d.displayName?.length > 0
 }

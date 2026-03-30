@@ -12,7 +12,7 @@ import {
   PageContainer,
   PageHeader,
   Paper,
-  Select,
+  TextArea,
 } from '@furystack/shades-common-components'
 import type { EnvironmentVariableValue, ExportStackEndpoint } from 'common'
 
@@ -20,6 +20,8 @@ import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../components/
 import { prerequisiteTypeLabels } from '../../components/status-chips.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 import { SystemApiClient } from '../../services/api-clients/system-api-client.js'
+import { EnvVarConfigRow } from './env-var-config-row.js'
+import type { EnvVarEntry } from './env-var-config-row.js'
 
 type ParsedExport = ExportStackEndpoint['result']
 
@@ -30,15 +32,9 @@ type ImportConfigPayload = {
   [key: `envValue_${string}`]: string
 }
 
-const isImportConfigPayload = (data: unknown): data is ImportConfigPayload => {
+export const isImportConfigPayload = (data: unknown): data is ImportConfigPayload => {
   const d = data as ImportConfigPayload
   return d.mainDirectory?.length > 0
-}
-
-type EnvVarEntry = {
-  variableName: string
-  prerequisiteName: string
-  availableGlobally: boolean
 }
 
 export const ImportStack = Shade({
@@ -157,22 +153,22 @@ export const ImportStack = Shade({
         <Paper>
           {!parsed ? (
             <Paper elevation={1}>
-              <textarea
+              <TextArea
+                variant="outlined"
+                value={jsonInput}
+                placeholder="Paste exported stack JSON here..."
+                oninput={(ev) => {
+                  const el = ev.currentTarget as HTMLElement
+                  setJsonInput(el.innerText ?? el.textContent ?? '')
+                }}
                 style={{
                   width: '100%',
-                  height: '300px',
+                  minHeight: '300px',
                   fontFamily: 'monospace',
                   fontSize: '13px',
-                  padding: '12px',
-                  background: cssVariableTheme.background.default,
-                  color: cssVariableTheme.text.primary,
-                  border: `1px solid ${cssVariableTheme.divider}`,
-                  borderRadius: cssVariableTheme.shape.borderRadius.md,
                   resize: 'vertical',
                   boxSizing: 'border-box',
                 }}
-                placeholder="Paste exported stack JSON here..."
-                oninput={(ev) => setJsonInput((ev.target as HTMLTextAreaElement).value)}
               />
               {parseError && (
                 <div style={{ color: cssVariableTheme.palette.error.main, marginTop: '8px' }}>{parseError}</div>
@@ -273,87 +269,6 @@ export const ImportStack = Shade({
           )}
         </Paper>
       </PageContainer>
-    )
-  },
-})
-
-type EnvVarConfigRowProps = {
-  entry: EnvVarEntry
-}
-
-const EnvVarConfigRow = Shade<EnvVarConfigRowProps>({
-  customElementName: 'shade-env-var-config-row',
-  render: ({ props, useState }) => {
-    const { entry } = props
-    const defaultSource = entry.availableGlobally ? 'inherit' : 'custom'
-    const [source, setSource] = useState<'inherit' | 'custom'>('source', defaultSource)
-
-    return (
-      <Paper
-        elevation={0}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          padding: '12px',
-          border: `1px solid ${cssVariableTheme.divider}`,
-          borderRadius: cssVariableTheme.shape.borderRadius.md,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <strong style={{ fontFamily: 'monospace' }}>{entry.variableName}</strong>
-          <span style={{ opacity: '0.6', fontSize: '12px' }}>({entry.prerequisiteName})</span>
-          {entry.availableGlobally ? (
-            <span
-              style={{
-                fontSize: '11px',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                background: cssVariableTheme.palette.success.main,
-                color: cssVariableTheme.palette.success.mainContrast,
-              }}
-            >
-              Available in system
-            </span>
-          ) : (
-            <span
-              style={{
-                fontSize: '11px',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                background: cssVariableTheme.palette.warning.main,
-                color: cssVariableTheme.palette.warning.mainContrast,
-              }}
-            >
-              Not found in system
-            </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-          <Select
-            name={`envSource_${entry.variableName}`}
-            labelTitle="Source"
-            variant="outlined"
-            options={[
-              ...(entry.availableGlobally ? [{ value: 'inherit', label: 'Inherit from system' }] : []),
-              { value: 'custom', label: 'Custom value' },
-            ]}
-            value={defaultSource}
-            onchange={(ev) => {
-              setSource((ev.target as HTMLSelectElement).value as 'inherit' | 'custom')
-            }}
-          />
-          {source === 'custom' ? (
-            <Input
-              name={`envValue_${entry.variableName}`}
-              labelTitle="Value"
-              variant="outlined"
-              required
-              style={{ flex: '1' }}
-            />
-          ) : null}
-        </div>
-      </Paper>
     )
   },
 })

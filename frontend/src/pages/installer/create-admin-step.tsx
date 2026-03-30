@@ -8,7 +8,7 @@ type AdminPayload = {
   password: string
 }
 
-const isAdminPayload = (data: unknown): data is AdminPayload => {
+export const isAdminPayload = (data: unknown): data is AdminPayload => {
   const d = data as AdminPayload
   return d.username?.length > 0 && d.password?.length >= 4
 }

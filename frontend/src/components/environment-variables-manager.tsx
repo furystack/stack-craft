@@ -5,7 +5,7 @@ import { Button, cssVariableTheme, Icon, icons, Input, Paper, Select } from '@fu
 import type { EnvironmentVariableValue, Prerequisite } from 'common'
 import { Prerequisite as PrerequisiteModel } from 'common'
 
-import { SystemApiClient } from '../services/api-clients/system-api-client.js'
+import { EnvironmentVariableService } from '../services/environment-variable-service.js'
 
 type EnvironmentVariablesManagerProps = {
   stackName: string
@@ -37,13 +37,9 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
     if (envPrereqs.length > 0 && !hasChecked) {
       const varNames = envPrereqs.map((p) => (p.config as { variableName: string }).variableName)
       void injector
-        .getInstance(SystemApiClient)
-        .call({
-          method: 'POST',
-          action: '/system/check-env-availability',
-          body: { variableNames: varNames },
-        })
-        .then(({ result }) => {
+        .getInstance(EnvironmentVariableService)
+        .checkAvailability(varNames)
+        .then((result) => {
           setEnvAvailability(result)
           setHasChecked(true)
         })
@@ -64,14 +60,7 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
     const handleSave = async () => {
       setIsSaving(true)
       try {
-        const toSave: Record<string, EnvironmentVariableValue> = {}
-        for (const [key, val] of Object.entries(editState)) {
-          if (val.isSensitive && val.source === 'custom' && !touchedSensitive.has(key)) {
-            toSave[key] = { ...val, customValue: '__UNCHANGED__' }
-          } else {
-            toSave[key] = val
-          }
-        }
+        const toSave = injector.getInstance(EnvironmentVariableService).buildSavePayload(editState, touchedSensitive)
         props.onSave(toSave)
       } finally {
         setIsSaving(false)

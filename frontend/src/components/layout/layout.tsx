@@ -23,27 +23,19 @@ export const Layout = Shade({
     margin: '0',
     background: cssVariableTheme.background.default,
   },
-  render: ({ injector, useState, useObservable, useStoredState }) => {
+  render: ({ injector, useObservable, useStoredState }) => {
     const [themeKey] = useStoredState<string>(THEME_STORAGE_KEY, DEFAULT_THEME_KEY)
     const themeProvider = injector.getInstance(ThemeProviderService)
     void applyTheme(themeKey, themeProvider)
 
-    const [installState, setInstallState] = useState<'loading' | 'installed' | 'needsInstall' | 'error'>(
-      'installState',
-      'loading',
-    )
+    const installService = injector.getInstance(InstallService)
+    const [installStatus] = useObservable('installStatus', installService.getServiceStatusAsObservable())
 
-    if (installState === 'loading') {
-      void injector
-        .getInstance(InstallService)
-        .getServiceStatus()
-        .then((result) => setInstallState(result.state))
-        .catch(() => setInstallState('error'))
-
+    if (installStatus.status === 'loading') {
       return <Init />
     }
 
-    if (installState === 'error') {
+    if (installStatus.status === 'failed') {
       return (
         <div
           style={{
@@ -62,7 +54,7 @@ export const Layout = Shade({
           </p>
           <button
             onclick={() => {
-              setInstallState('loading')
+              void installService.getServiceStatus()
             }}
             style={{
               padding: '8px 24px',
@@ -80,7 +72,7 @@ export const Layout = Shade({
       )
     }
 
-    if (installState === 'needsInstall') {
+    if (installStatus.value.state === 'needsInstall') {
       return (
         <div>
           <NotyList style={{ zIndex: '2' }} />

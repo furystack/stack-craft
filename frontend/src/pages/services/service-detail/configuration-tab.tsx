@@ -3,7 +3,7 @@ import { Button, Chip, cssVariableTheme, Icon, icons, Paper } from '@furystack/s
 import type { ServiceView } from 'common'
 import type { GitHubRepository, Prerequisite, ServiceDefinition, StackConfig } from 'common'
 
-import { ServiceForm } from '../../../components/entity-forms/service-form.js'
+import { ServiceForm } from '../../../components/entity-forms/service-form/index.js'
 import { ServiceEnvOverrides } from '../../../components/service-env-overrides.js'
 
 /* ============================================
