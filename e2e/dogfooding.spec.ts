@@ -1,3 +1,5 @@
+import { randomBytes } from 'crypto'
+
 import { expect, test } from '@playwright/test'
 
 import {
@@ -94,7 +96,7 @@ It is used to test the following features:
       await page.locator('input[placeholder="Relative path (e.g. .env)"]').fill('.env')
       await page
         .locator('textarea[placeholder="File content"]')
-        .fill('STACK_CRAFT_ENCRYPTION_KEY=e2e-dogfooding-test-key')
+        .fill(`STACK_CRAFT_ENCRYPTION_KEY=${randomBytes(32).toString('base64')}`)
 
       // --- Add StackCraft GitHub repository inline ---
       await page.locator('button', { hasText: 'New' }).click()
