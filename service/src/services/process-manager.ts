@@ -472,8 +472,6 @@ export class ProcessManager {
   }
 
   public async [Symbol.asyncDispose]() {
-    await this.runner[Symbol.asyncDispose]()
-
     await this.logger.information({ message: 'Disposing ProcessManager, killing all child processes...' })
 
     const entries = [...this.runner.processes.entries()]
@@ -522,6 +520,8 @@ export class ProcessManager {
 
       this.runner.processes.clear()
     }
+
+    await this.runner[Symbol.asyncDispose]()
 
     try {
       await this.elevatedInjector?.[Symbol.asyncDispose]()
