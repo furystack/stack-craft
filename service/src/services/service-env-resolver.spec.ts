@@ -300,4 +300,132 @@ describe('ServiceEnvResolver', () => {
       const result = await resolver.resolveServiceEnvVars('svc-6')
       expect(result).toEqual({})
     }))
+
+  it('should resolve free-form stack-level env vars without prerequisites', () =>
+    withEnvAndInjector(async ({ svcDefStore, stackConfigStore, svcConfigStore, injector }) => {
+      await svcDefStore.add(makeServiceDefinition({ id: 'svc-7', stackName: 'stack-g' }))
+      await stackConfigStore.add({
+        stackName: 'stack-g',
+        mainDirectory: '/tmp',
+        environmentVariables: {
+          FREE_FORM_VAR: { source: 'custom', customValue: 'stack-free-form' },
+        },
+        createdAt: ts,
+        updatedAt: ts,
+      } as StackConfig)
+      await svcConfigStore.add({
+        serviceId: 'svc-7',
+        autoFetchEnabled: false,
+        autoFetchIntervalMinutes: 60,
+        autoRestartOnFetch: false,
+        environmentVariableOverrides: {},
+        localFiles: [],
+        createdAt: ts,
+        updatedAt: ts,
+      } as ServiceConfig)
+
+      const resolver = injector.getInstance(ServiceEnvResolver)
+      const result = await resolver.resolveServiceEnvVars('svc-7')
+      expect(result).toEqual({ FREE_FORM_VAR: 'stack-free-form' })
+    }))
+
+  it('should resolve free-form service-level override env vars without prerequisites', () =>
+    withEnvAndInjector(async ({ svcDefStore, stackConfigStore, svcConfigStore, injector }) => {
+      await svcDefStore.add(makeServiceDefinition({ id: 'svc-8', stackName: 'stack-h' }))
+      await stackConfigStore.add({
+        stackName: 'stack-h',
+        mainDirectory: '/tmp',
+        environmentVariables: {},
+        createdAt: ts,
+        updatedAt: ts,
+      } as StackConfig)
+      await svcConfigStore.add({
+        serviceId: 'svc-8',
+        autoFetchEnabled: false,
+        autoFetchIntervalMinutes: 60,
+        autoRestartOnFetch: false,
+        environmentVariableOverrides: {
+          SVC_ONLY_VAR: { source: 'custom', customValue: 'service-only-value' },
+        },
+        localFiles: [],
+        createdAt: ts,
+        updatedAt: ts,
+      } as ServiceConfig)
+
+      const resolver = injector.getInstance(ServiceEnvResolver)
+      const result = await resolver.resolveServiceEnvVars('svc-8')
+      expect(result).toEqual({ SVC_ONLY_VAR: 'service-only-value' })
+    }))
+
+  it('should resolve a mix of prerequisite-driven and free-form env vars', () =>
+    withEnvAndInjector(
+      async ({ svcDefStore, prereqStore, stackConfigStore, svcConfigStore, prereqLinkStore, injector }) => {
+        await svcDefStore.add(makeServiceDefinition({ id: 'svc-9', stackName: 'stack-i' }))
+        await prereqLinkStore.add({ id: 'svc-9::prereq-env-6', serviceId: 'svc-9', prerequisiteId: 'prereq-env-6' })
+        await prereqStore.add(
+          makePrerequisite({
+            id: 'prereq-env-6',
+            stackName: 'stack-i',
+            config: { variableName: 'PREREQ_VAR' },
+          }),
+        )
+        await stackConfigStore.add({
+          stackName: 'stack-i',
+          mainDirectory: '/tmp',
+          environmentVariables: {
+            PREREQ_VAR: { source: 'custom', customValue: 'from-prereq' },
+            FREE_VAR: { source: 'custom', customValue: 'from-free-form' },
+          },
+          createdAt: ts,
+          updatedAt: ts,
+        } as StackConfig)
+        await svcConfigStore.add({
+          serviceId: 'svc-9',
+          autoFetchEnabled: false,
+          autoFetchIntervalMinutes: 60,
+          autoRestartOnFetch: false,
+          environmentVariableOverrides: {},
+          localFiles: [],
+          createdAt: ts,
+          updatedAt: ts,
+        } as ServiceConfig)
+
+        const resolver = injector.getInstance(ServiceEnvResolver)
+        const result = await resolver.resolveServiceEnvVars('svc-9')
+        expect(result).toEqual({
+          PREREQ_VAR: 'from-prereq',
+          FREE_VAR: 'from-free-form',
+        })
+      },
+    ))
+
+  it('should prefer service override over stack default for free-form vars', () =>
+    withEnvAndInjector(async ({ svcDefStore, stackConfigStore, svcConfigStore, injector }) => {
+      await svcDefStore.add(makeServiceDefinition({ id: 'svc-10', stackName: 'stack-j' }))
+      await stackConfigStore.add({
+        stackName: 'stack-j',
+        mainDirectory: '/tmp',
+        environmentVariables: {
+          SHARED_FREE: { source: 'custom', customValue: 'stack-value' },
+        },
+        createdAt: ts,
+        updatedAt: ts,
+      } as StackConfig)
+      await svcConfigStore.add({
+        serviceId: 'svc-10',
+        autoFetchEnabled: false,
+        autoFetchIntervalMinutes: 60,
+        autoRestartOnFetch: false,
+        environmentVariableOverrides: {
+          SHARED_FREE: { source: 'custom', customValue: 'service-value' },
+        },
+        localFiles: [],
+        createdAt: ts,
+        updatedAt: ts,
+      } as ServiceConfig)
+
+      const resolver = injector.getInstance(ServiceEnvResolver)
+      const result = await resolver.resolveServiceEnvVars('svc-10')
+      expect(result).toEqual({ SHARED_FREE: 'service-value' })
+    }))
 })

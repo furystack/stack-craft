@@ -50,7 +50,7 @@ export const ApiTokensSection = Shade({
 
     const collectionService = useDisposable(
       'collectionService',
-      () => new CollectionService<PublicApiToken>({ searchField: 'name' }),
+      () => new CollectionService<PublicApiToken>({ searchField: 'name', idField: 'id' }),
     )
 
     const [findOptions, setFindOptions] = useState<FindOptions<PublicApiToken, Array<keyof PublicApiToken>>>(

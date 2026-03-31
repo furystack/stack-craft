@@ -106,9 +106,10 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
 
     const gitStatusState = useEntitySync(options, ServiceGitStatus, props.serviceId)
 
-    const statusData = statusState.status === 'synced' ? statusState.data : undefined
-    const configData = configState.status === 'synced' ? configState.data : undefined
-    const gitStatusData = gitStatusState.status === 'synced' ? gitStatusState.data : undefined
+    const statusData = statusState.status === 'synced' || statusState.status === 'cached' ? statusState.data : undefined
+    const configData = configState.status === 'synced' || configState.status === 'cached' ? configState.data : undefined
+    const gitStatusData =
+      gitStatusState.status === 'synced' || gitStatusState.status === 'cached' ? gitStatusState.data : undefined
 
     const prereqLinksState = useCollectionSync(options, ServicePrerequisiteLink, {
       filter: { serviceId: { $eq: props.serviceId } },
@@ -151,8 +152,9 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
         : []
     ).filter((s) => s.id !== service.id)
 
-    const stackDef = stackState.status === 'synced' ? stackState.data : undefined
-    const stackConfig = stackConfigState.status === 'synced' ? stackConfigState.data : undefined
+    const stackDef = stackState.status === 'synced' || stackState.status === 'cached' ? stackState.data : undefined
+    const stackConfig =
+      stackConfigState.status === 'synced' || stackConfigState.status === 'cached' ? stackConfigState.data : undefined
     const stack = stackDef
       ? ({
           ...stackDef,

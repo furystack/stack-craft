@@ -3,9 +3,9 @@ import type { SecretWarning } from '../apis/stacks.js'
 type SecretPatternMatch = Omit<SecretWarning, 'source'>
 
 const SECRET_PATTERNS: Array<{ regex: RegExp; label: string }> = [
-  { regex: /(?:password|passwd|pwd)\s*[=:]\s*\S+/i, label: 'password assignment' },
-  { regex: /(?:secret|api_?key|apikey|access_?key|auth_?token)\s*[=:]\s*\S+/i, label: 'secret/key assignment' },
-  { regex: /(?:token|bearer)\s*[=:]\s*\S+/i, label: 'token assignment' },
+  { regex: /(?:password|passwd|pwd)\s*[=:]\s*(?!\{\{)\S+/i, label: 'password assignment' },
+  { regex: /(?:secret|api_?key|apikey|access_?key|auth_?token)\s*[=:]\s*(?!\{\{)\S+/i, label: 'secret/key assignment' },
+  { regex: /(?:token|bearer)\s*[=:]\s*(?!\{\{)\S+/i, label: 'token assignment' },
   { regex: /-----BEGIN\s+[\w\s]*(?:PRIVATE|RSA|EC|DSA)\s+KEY-----/, label: 'private key header' },
   { regex: /(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{36,}/, label: 'GitHub token' },
   { regex: /sk-[A-Za-z0-9]{20,}/, label: 'OpenAI-style API key' },

@@ -47,6 +47,26 @@ describe('detectSecretPatterns', () => {
     expect(warnings).toHaveLength(0)
   })
 
+  it('should not flag {{VARIABLE}} template interpolation in assignments', () => {
+    const lines = [
+      'password={{POSTGRES_PASSWORD}}',
+      'API_KEY={{MY_API_KEY}}',
+      'TOKEN={{AUTH_TOKEN}}',
+      '"ProfileServiceEntities": "server={{POSTGRES_HOST}};database=ProfileService;uid={{POSTGRES_USER}};password={{POSTGRES_PASSWORD}};"',
+    ]
+    for (const line of lines) {
+      expect(detectSecretPatterns(line)).toHaveLength(0)
+    }
+  })
+
+  it('should still flag hard-coded values next to template variables on different lines', () => {
+    const content = 'password={{SAFE}}\ntoken=hard-coded-secret'
+    const warnings = detectSecretPatterns(content)
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0]?.line).toBe(2)
+    expect(warnings[0]?.pattern).toBe('token assignment')
+  })
+
   it('should report correct line numbers', () => {
     const content = 'line1\nline2\npassword=bad\nline4'
     const warnings = detectSecretPatterns(content)

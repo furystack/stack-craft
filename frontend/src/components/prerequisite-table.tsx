@@ -40,7 +40,7 @@ export const PrerequisiteTable = Shade<PrerequisiteTableProps>({
 
     const collectionService = useDisposable(
       'collectionService',
-      () => new CollectionService<Prerequisite>({ searchField: 'name' }),
+      () => new CollectionService<Prerequisite>({ searchField: 'name', idField: 'id' }),
     )
 
     const [findOptions, setFindOptions] = useState<FindOptions<Prerequisite, Array<keyof Prerequisite>>>(

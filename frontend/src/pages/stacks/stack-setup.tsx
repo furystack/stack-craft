@@ -68,7 +68,7 @@ export const StackSetup = Shade<StackSetupProps>({
 
     const collectionService = useDisposable(
       'stackSetupCollectionService',
-      () => new CollectionService<ServiceView>({ searchField: 'displayName' }),
+      () => new CollectionService<ServiceView>({ searchField: 'displayName', idField: 'id' }),
     )
 
     const [findOptions, setFindOptions] = useState<FindOptions<ServiceView, Array<keyof ServiceView>>>(

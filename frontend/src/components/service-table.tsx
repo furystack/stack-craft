@@ -58,7 +58,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
 
     const collectionService = useDisposable(
       'collectionService',
-      () => new CollectionService<ServiceView>({ searchField: 'displayName' }),
+      () => new CollectionService<ServiceView>({ searchField: 'displayName', idField: 'id' }),
     )
 
     const [findOptions, setFindOptions] = useState<FindOptions<ServiceView, Array<keyof ServiceView>>>(
@@ -68,17 +68,6 @@ export const ServiceTable = Shade<ServiceTableProps>({
 
     const { entries, count } = applyClientFindOptions(props.services, findOptions)
     collectionService.data.setValue({ entries, count })
-
-    const currentSelection = collectionService.selection.getValue()
-    if (currentSelection.length > 0) {
-      const entryById = new Map(entries.map((e) => [e.id, e]))
-      const reconciled = currentSelection
-        .map((s) => entryById.get(s.id))
-        .filter((e): e is ServiceView => e !== undefined)
-      if (reconciled.length !== currentSelection.length || reconciled.some((e, i) => e.id !== currentSelection[i].id)) {
-        collectionService.selection.setValue(reconciled)
-      }
-    }
 
     useDisposable('selectionSync', () =>
       collectionService.selection.subscribe((newSelection) => {

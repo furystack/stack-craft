@@ -34,7 +34,7 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
 
     const collectionService = useDisposable(
       'collectionService',
-      () => new CollectionService<GitHubRepository>({ searchField: 'displayName' }),
+      () => new CollectionService<GitHubRepository>({ searchField: 'displayName', idField: 'id' }),
     )
 
     const [findOptions, setFindOptions] = useState<FindOptions<GitHubRepository, Array<keyof GitHubRepository>>>(

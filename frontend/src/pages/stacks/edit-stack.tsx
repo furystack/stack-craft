@@ -42,16 +42,19 @@ export const EditStack = Shade<EditStackProps>({
       )
     }
 
-    if (stackState.status === 'error') {
+    if (stackState.status === 'error' || configState.status === 'error') {
+      const errorMsg =
+        stackState.status === 'error' ? stackState.error : configState.status === 'error' ? configState.error : ''
       return (
         <PageContainer>
-          <PageHeader title="Error loading stack" description={stackState.error} />
+          <PageHeader title="Error loading stack" description={errorMsg} />
         </PageContainer>
       )
     }
 
     const stackDef = stackState.data
-    const stackConfig = configState.status === 'synced' ? configState.data : undefined
+    const stackConfig =
+      configState.status === 'synced' || configState.status === 'cached' ? configState.data : undefined
     const stack = stackDef
       ? ({ ...stackDef, stackName: stackDef.name, mainDirectory: stackConfig?.mainDirectory ?? '' } as StackView)
       : undefined

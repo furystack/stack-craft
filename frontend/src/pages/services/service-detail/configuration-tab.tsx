@@ -48,13 +48,11 @@ export const ConfigurationTab = Shade<ConfigurationTabProps>({
         </Paper>
 
         {/* Environment variable overrides */}
-        {servicePrereqs.some((p) => p.type === 'env-variable') ? (
-          <ServiceEnvOverrides
-            service={service}
-            envPrereqs={servicePrereqs.filter((p) => p.type === 'env-variable')}
-            stackEnvVars={stackConfig?.environmentVariables ?? {}}
-          />
-        ) : null}
+        <ServiceEnvOverrides
+          service={service}
+          envPrereqs={servicePrereqs.filter((p) => p.type === 'env-variable')}
+          stackEnvVars={stackConfig?.environmentVariables ?? {}}
+        />
       </div>
     )
   },
