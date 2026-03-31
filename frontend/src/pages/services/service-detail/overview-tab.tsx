@@ -1,18 +1,11 @@
 import { createComponent, Shade } from '@furystack/shades'
-import {
-  Button,
-  Chip,
-  cssVariableTheme,
-  Icon,
-  icons,
-  MarkdownDisplay,
-  Paper,
-} from '@furystack/shades-common-components'
+import { Button, cssVariableTheme, Icon, icons, MarkdownDisplay, Paper } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
 import type { GitHubRepository, Prerequisite } from 'common'
 
 import { StackCraftNestedRouteLink } from '../../../components/app-routes.js'
 import { PrerequisiteList } from '../../../components/prerequisite-list.js'
+import { PrerequisiteSummaryChip } from '../../../components/prerequisite-summary-chip.js'
 import { ServicePipelineStepper } from '../../../components/service-pipeline-stepper.js'
 
 /* ============================================
@@ -24,8 +17,6 @@ type OverviewTabProps = {
   linkedRepo: GitHubRepository | undefined
   fullCwd: string | null
   servicePrereqs: Prerequisite[]
-  prereqSatisfiedCount: number
-  prereqFailedCount: number
   actionInProgress: string | null
   onAction: (apiAction: string) => void
   onViewLogs: () => void
@@ -34,7 +25,7 @@ type OverviewTabProps = {
 export const OverviewTab = Shade<OverviewTabProps>({
   customElementName: 'shade-service-overview-tab',
   render: ({ props }) => {
-    const { service, linkedRepo, fullCwd, servicePrereqs, prereqSatisfiedCount, prereqFailedCount } = props
+    const { service, linkedRepo, fullCwd, servicePrereqs } = props
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -117,19 +108,7 @@ export const OverviewTab = Shade<OverviewTabProps>({
           <Paper>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
               <h3 style={{ margin: '0' }}>Prerequisites</h3>
-              {prereqSatisfiedCount === servicePrereqs.length ? (
-                <Chip variant="outlined" color="success" size="small">
-                  ✓ All satisfied
-                </Chip>
-              ) : prereqFailedCount > 0 ? (
-                <Chip variant="outlined" color="error" size="small">
-                  {prereqSatisfiedCount}/{servicePrereqs.length} satisfied
-                </Chip>
-              ) : (
-                <Chip variant="outlined" color="secondary" size="small">
-                  {prereqSatisfiedCount}/{servicePrereqs.length} satisfied
-                </Chip>
-              )}
+              <PrerequisiteSummaryChip prerequisiteIds={servicePrereqs.map((p) => p.id)} />
             </div>
             <PrerequisiteList prerequisites={servicePrereqs} />
           </Paper>

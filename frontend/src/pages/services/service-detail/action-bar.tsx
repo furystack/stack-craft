@@ -1,19 +1,15 @@
 import { createComponent, Shade } from '@furystack/shades'
-import { Button, Chip, Icon, icons } from '@furystack/shades-common-components'
-import type { Prerequisite, ServiceView } from 'common'
+import type { MenuEntry } from '@furystack/shades-common-components'
+import { Button, ButtonGroup, Dropdown, Icon, icons } from '@furystack/shades-common-components'
+import type { ServiceView } from 'common'
 
 import { BranchSelector } from '../../../components/branch-selector.js'
-import { ServiceStatusIndicator } from '../../../components/service-status-indicator.js'
 import { getPrimaryAction, getSecondaryActions } from '../../../utils/service-pipeline.js'
-import type { TabId } from './index.js'
 
 type ServiceDetailActionBarProps = {
   service: ServiceView
-  servicePrereqs: Prerequisite[]
-  prereqSatisfiedCount: number
-  prereqFailedCount: number
   actionInProgress: string | null
-  activeTab: TabId
+  isEditing: boolean
   onRunAction: (apiAction: string) => void
   onEdit: () => void
   onDelete: () => void
@@ -22,85 +18,63 @@ type ServiceDetailActionBarProps = {
 export const ServiceDetailActionBar = Shade<ServiceDetailActionBarProps>({
   customElementName: 'shade-service-detail-action-bar',
   render: ({ props }) => {
-    const { service, servicePrereqs, prereqSatisfiedCount, prereqFailedCount, actionInProgress, activeTab } = props
+    const { service, actionInProgress, isEditing } = props
 
-    const isEditing = activeTab === 'configuration'
+    if (isEditing) return <div />
+
     const primary = getPrimaryAction(service)
     const secondaryActions = getSecondaryActions(service)
 
+    const dropdownItems: MenuEntry[] = [
+      ...secondaryActions.map((action) => ({
+        key: action.apiAction,
+        label: action.label,
+      })),
+      ...(secondaryActions.length > 0 ? [{ type: 'divider' as const, key: 'sep' }] : []),
+      { key: 'delete', label: 'Delete', icon: <Icon icon={icons.trash} size="small" /> },
+    ]
+
+    const handleDropdownSelect = (key: string) => {
+      if (key === 'delete') props.onDelete()
+      else props.onRunAction(key)
+    }
+
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-        <ServiceStatusIndicator service={service} />
-        {isEditing ? null : (
-          <>
-            {service.repositoryId ? (
-              <BranchSelector
-                serviceId={service.id}
-                currentBranch={service.currentBranch}
-                isCloned={service.cloneStatus === 'cloned'}
-              />
-            ) : null}
-            {servicePrereqs.length > 0 ? (
-              <Chip
-                variant="outlined"
-                size="small"
-                color={
-                  prereqFailedCount > 0
-                    ? 'error'
-                    : prereqSatisfiedCount === servicePrereqs.length
-                      ? 'success'
-                      : 'secondary'
-                }
-              >
-                {prereqSatisfiedCount === servicePrereqs.length
-                  ? '✓ Prerequisites OK'
-                  : `${prereqSatisfiedCount}/${servicePrereqs.length} prereqs`}
-              </Chip>
-            ) : null}
-            {primary.apiAction ? (
-              <Button
-                variant="contained"
-                size="small"
-                color={primary.color === 'secondary' ? undefined : primary.color}
-                loading={!!actionInProgress}
-                disabled={!!actionInProgress}
-                onclick={() => props.onRunAction(primary.apiAction)}
-              >
-                {primary.label}
-              </Button>
-            ) : null}
-            {secondaryActions.map((action) => (
-              <Button
-                variant="outlined"
-                size="small"
-                color={action.color === 'secondary' ? undefined : action.color}
-                title={action.tooltip}
-                loading={actionInProgress === action.apiAction}
-                disabled={!!actionInProgress}
-                onclick={() => props.onRunAction(action.apiAction)}
-              >
-                {action.label}
-              </Button>
-            ))}
+        {service.repositoryId ? (
+          <BranchSelector
+            serviceId={service.id}
+            currentBranch={service.currentBranch}
+            isCloned={service.cloneStatus === 'cloned'}
+          />
+        ) : null}
+        <ButtonGroup>
+          {primary.apiAction ? (
             <Button
-              variant="outlined"
+              variant="contained"
               size="small"
-              onclick={props.onEdit}
-              startIcon={<Icon icon={icons.edit} size="small" />}
+              color={primary.color === 'secondary' ? undefined : primary.color}
+              loading={!!actionInProgress}
+              disabled={!!actionInProgress}
+              onclick={() => props.onRunAction(primary.apiAction)}
             >
-              Edit
+              {primary.label}
             </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              color="error"
-              onclick={props.onDelete}
-              startIcon={<Icon icon={icons.trash} size="small" />}
-            >
-              Delete
-            </Button>
-          </>
-        )}
+          ) : null}
+          <Button
+            variant="outlined"
+            size="small"
+            onclick={props.onEdit}
+            startIcon={<Icon icon={icons.edit} size="small" />}
+          >
+            Edit
+          </Button>
+        </ButtonGroup>
+        <Dropdown items={dropdownItems} disabled={!!actionInProgress} onSelect={handleDropdownSelect}>
+          <Button variant="outlined" size="small" startIcon={<Icon icon={icons.moreVertical} size="small" />}>
+            More
+          </Button>
+        </Dropdown>
       </div>
     )
   },

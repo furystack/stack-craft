@@ -1,13 +1,21 @@
 import { useCollectionSync, useEntitySync } from '@furystack/entity-sync-client'
 import { createComponent, LocationService, Shade } from '@furystack/shades'
-import { ConfirmDialog, Loader, PageContainer, PageHeader, Tabs } from '@furystack/shades-common-components'
+import {
+  ConfirmDialog,
+  cssVariableTheme,
+  Loader,
+  PageContainer,
+  PageHeader,
+  Paper,
+  Tabs,
+  Typography,
+} from '@furystack/shades-common-components'
 import type { StackView } from 'common'
 import {
   getServiceCwd,
   GitHubRepository,
   mergeServiceView,
   Prerequisite,
-  PrerequisiteCheckResult,
   ServiceConfig,
   ServiceDefinition,
   ServiceDependencyLink,
@@ -18,7 +26,8 @@ import {
   StackDefinition,
 } from 'common'
 
-import { getPrerequisiteSummary } from '../../../utils/prerequisite-summary.js'
+import { PrerequisiteSummaryChip } from '../../../components/prerequisite-summary-chip.js'
+import { ServiceStatusIndicator } from '../../../components/service-status-indicator.js'
 import { ServiceDetailActionBar } from './action-bar.js'
 import { ConfigurationTab } from './configuration-tab.js'
 import { ServiceHistory } from './history-tab.js'
@@ -130,20 +139,6 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
       prereqsState.status === 'synced' || prereqsState.status === 'cached' ? prereqsState.data.entries : []
     const servicePrereqs = allPrereqs.filter((p) => service.prerequisiteIds.includes(p.id))
 
-    const checkResultsState = useCollectionSync(options, PrerequisiteCheckResult, {})
-    const checkResults =
-      checkResultsState.status === 'synced' || checkResultsState.status === 'cached'
-        ? checkResultsState.data.entries
-        : []
-    const checkResultMap = new Map(checkResults.map((r) => [r.prerequisiteId, r]))
-
-    const prereqSummary = getPrerequisiteSummary(
-      servicePrereqs.map((p) => p.id),
-      checkResultMap,
-    )
-    const prereqSatisfiedCount = prereqSummary?.satisfiedCount ?? 0
-    const prereqFailedCount = prereqSummary?.failedCount ?? 0
-
     const otherServicesState = useCollectionSync(options, ServiceDefinition, {
       filter: { stackName: { $eq: service.stackName } },
     })
@@ -168,22 +163,48 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
 
     return (
       <PageContainer>
-        <PageHeader
-          title={service.displayName}
-          actions={
+        <Paper
+          elevation={2}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: cssVariableTheme.spacing.md,
+            position: 'sticky',
+            top: '0',
+            zIndex: '1',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: cssVariableTheme.spacing.sm, flexWrap: 'wrap' }}>
+            <Typography
+              variant="h4"
+              style={{
+                margin: '0',
+                lineHeight: '100%',
+                marginRight: cssVariableTheme.spacing.lg,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {service.displayName}
+            </Typography>
+            <ServiceStatusIndicator service={service} />
+            {service.prerequisiteIds.length > 0 ? (
+              <PrerequisiteSummaryChip prerequisiteIds={service.prerequisiteIds} />
+            ) : null}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: cssVariableTheme.spacing.sm, flexShrink: '0' }}>
             <ServiceDetailActionBar
               service={service}
-              servicePrereqs={servicePrereqs}
-              prereqSatisfiedCount={prereqSatisfiedCount}
-              prereqFailedCount={prereqFailedCount}
               actionInProgress={actionInProgress}
-              activeTab={activeTab}
+              isEditing={activeTab === 'configuration'}
               onRunAction={(apiAction) => void runServiceAction(injector, service.id, apiAction, setActionInProgress)}
               onEdit={() => setActiveTab('configuration')}
               onDelete={() => setIsConfirmingDelete(true)}
             />
-          }
-        />
+          </div>
+        </Paper>
 
         <div data-testid="service-detail-tabs" style={{ display: 'contents' }}>
           <Tabs
@@ -199,8 +220,6 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                     linkedRepo={linkedRepo}
                     fullCwd={fullCwd}
                     servicePrereqs={servicePrereqs}
-                    prereqSatisfiedCount={prereqSatisfiedCount}
-                    prereqFailedCount={prereqFailedCount}
                     actionInProgress={actionInProgress}
                     onAction={(apiAction) =>
                       void runServiceAction(injector, service.id, apiAction, setActionInProgress)

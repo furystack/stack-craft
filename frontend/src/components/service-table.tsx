@@ -1,10 +1,8 @@
 import type { FindOptions } from '@furystack/core'
-import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, LocationService, Shade } from '@furystack/shades'
 import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {
   Button,
-  Chip,
   CollectionService,
   cssVariableTheme,
   DataGrid,
@@ -15,15 +13,14 @@ import {
   SelectionCell,
 } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
-import { PrerequisiteCheckResult } from 'common'
 
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
 import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
-import { getPrerequisiteSummary } from '../utils/prerequisite-summary.js'
 import { getPrimaryAction } from '../utils/service-pipeline.js'
 import { StackCraftNestedRouteLink } from './app-routes.js'
 import { BranchSelector } from './branch-selector.js'
 import { MiniPipelineDots } from './mini-pipeline-dots.js'
+import { PrerequisiteSummaryChip } from './prerequisite-summary-chip.js'
 
 type ServiceTableProps = {
   services: ServiceView[]
@@ -72,15 +69,6 @@ export const ServiceTable = Shade<ServiceTableProps>({
     const { entries, count } = applyClientFindOptions(props.services, findOptions)
     collectionService.data.setValue({ entries, count })
 
-    const checkResultsState = useCollectionSync(options, PrerequisiteCheckResult, {})
-    const checkResults =
-      checkResultsState.status === 'synced' || checkResultsState.status === 'cached'
-        ? checkResultsState.data.entries
-        : []
-    const checkResultMap = new Map(checkResults.map((r) => [r.prerequisiteId, r]))
-
-    const getPrereqSummary = (prereqIds: string[]) => getPrerequisiteSummary(prereqIds, checkResultMap)
-
     const currentSelection = collectionService.selection.getValue()
     if (currentSelection.length > 0) {
       const entryById = new Map(entries.map((e) => [e.id, e]))
@@ -115,39 +103,21 @@ export const ServiceTable = Shade<ServiceTableProps>({
         }}
         rowComponents={{
           selection: (entry) => <SelectionCell entry={entry} service={collectionService} />,
-          displayName: (entry) => {
-            const summary = getPrereqSummary(entry.prerequisiteIds)
-            return (
-              <span>
-                <strong>{entry.displayName}</strong>
-                {entry.description ? (
-                  <div style={{ fontSize: cssVariableTheme.typography.fontSize.sm, opacity: '0.6', marginTop: '2px' }}>
-                    <MarkdownDisplay content={entry.description} />
-                  </div>
-                ) : null}
-                {summary ? (
-                  <div style={{ marginTop: '4px' }}>
-                    <Chip
-                      variant="outlined"
-                      size="small"
-                      color={
-                        summary.failedCount > 0
-                          ? 'error'
-                          : summary.satisfiedCount === summary.total
-                            ? 'success'
-                            : 'secondary'
-                      }
-                      title={`${summary.satisfiedCount}/${summary.total} prerequisite(s) satisfied`}
-                    >
-                      {summary.satisfiedCount === summary.total
-                        ? `✓ ${summary.total} prereq`
-                        : `${summary.satisfiedCount}/${summary.total} prereq`}
-                    </Chip>
-                  </div>
-                ) : null}
-              </span>
-            )
-          },
+          displayName: (entry) => (
+            <span>
+              <strong>{entry.displayName}</strong>
+              {entry.description ? (
+                <div style={{ fontSize: cssVariableTheme.typography.fontSize.sm, opacity: '0.6', marginTop: '2px' }}>
+                  <MarkdownDisplay content={entry.description} />
+                </div>
+              ) : null}
+              {entry.prerequisiteIds.length > 0 ? (
+                <div style={{ marginTop: '4px' }}>
+                  <PrerequisiteSummaryChip prerequisiteIds={entry.prerequisiteIds} />
+                </div>
+              ) : null}
+            </span>
+          ),
           pipeline: (entry) => <MiniPipelineDots service={entry} />,
           branch: (entry) => (
             <div onclick={(e: MouseEvent) => e.stopPropagation()}>
