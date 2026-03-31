@@ -39,7 +39,8 @@
         }
       },
       "required": ["result", "body"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Registers a new GitHub repository"
     },
     "GitHubRepository": {
       "type": "object",
@@ -181,7 +182,8 @@
         }
       },
       "required": ["url", "result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Checks whether the repository is accessible (e.g. URL is valid and reachable)"
     },
     "GitHubRepositoriesApi": {
       "type": "object",

@@ -1,7 +1,7 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { Button, Icon, icons, NotyService, PageContainer, PageHeader, Paper } from '@furystack/shades-common-components'
 
-import { LogViewer } from '../../components/log-viewer.js'
+import { LogViewer } from '../../components/shared/log-viewer.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
 type ServiceLogsProps = {

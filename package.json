@@ -2,7 +2,6 @@
   "name": "stack-craft",
   "version": "1.0.3",
   "description": "Example web app based on FuryStack",
-  "main": "service/src/index.ts",
   "repository": "https://github.com/furystack/stack-craft.git",
   "author": "Gallay Lajos <gallay.lajos@gmail.com>",
   "license": "GPL-2.0-only",
@@ -11,6 +10,7 @@
     "packages": [
       "common",
       "frontend",
+      "monaco-mfe",
       "service"
     ]
   },
@@ -46,7 +46,8 @@
     ]
   },
   "scripts": {
-    "build": "tsc -b common service frontend && yarn workspace frontend build",
+    "build:monaco-mfe": "yarn workspace monaco-mfe build",
+    "build": "yarn build:monaco-mfe && tsc -b common service frontend && yarn workspace frontend build",
     "create-schemas": "yarn workspace common create-schemas",
     "test:e2e:install": "yarn playwright test installer.spec.ts --project chromium",
     "test:e2e": "yarn playwright test smoke.spec.ts dogfooding.spec.ts",
@@ -61,7 +62,7 @@
     "format:check": "prettier --check ."
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   },
   "packageManager": "yarn@4.13.0"
 }

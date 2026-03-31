@@ -8,6 +8,7 @@ import { ServiceLogEntry } from 'common'
 const MAX_ENTRIES_PER_SERVICE = 50_000
 const PRUNE_CHECK_INTERVAL = 1_000
 
+/** Persists and queries service process log entries, with automatic pruning to cap storage per service */
 @Injectable({ lifetime: 'singleton' })
 export class LogStorageService {
   private elevatedInjector?: Injector

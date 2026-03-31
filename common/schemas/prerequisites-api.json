@@ -145,7 +145,8 @@
         }
       },
       "required": ["result", "body"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Creates a new prerequisite definition"
     },
     "Prerequisite": {
       "type": "object",
@@ -299,7 +300,8 @@
         }
       },
       "required": ["url", "result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Executes the prerequisite's check command and returns whether it is satisfied"
     },
     "PrerequisitesApi": {
       "type": "object",

@@ -7,20 +7,24 @@ export const attachShutdownHandler = async (i: Injector) => {
 
   await logger.information({ message: '💤  Attaching shutdown handler...' })
 
-  const onExit = async ({ code, reason, error }: { code: number; reason: string; error?: any }) => {
-    process.removeAllListeners('exit')
+  let isShuttingDown = false
+
+  const onExit = async ({ code, reason, error }: { code: number; reason: string; error?: unknown }) => {
+    if (isShuttingDown) return
+    isShuttingDown = true
+
     try {
       if (code) {
+        const errorMessage = error instanceof Error ? error.message : undefined
+        const errorStack = error instanceof Error ? error.stack : undefined
         await logger.fatal({
           message: `Something bad happened, starting shutdown with code '${code}' due '${reason}'`,
           data: {
             code,
             reason,
             error,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            errorMessage: error?.message,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            errorStack: error?.stack,
+            errorMessage,
+            errorStack,
           },
         })
       } else {
@@ -38,13 +42,14 @@ export const attachShutdownHandler = async (i: Injector) => {
       }
       await i[Symbol.asyncDispose]()
     } catch (e) {
-      console.error('Error during shutdown', e)
+      await logger.fatal({ message: 'Error during shutdown', data: { error: e } }).catch(() => {
+        // Last resort: logger itself failed
+        console.error('Error during shutdown (logger unavailable)', e)
+      })
       process.exit(1)
     }
     process.exit(code)
   }
-
-  process.once('exit', () => void onExit({ code: 0, reason: 'exit' }))
 
   // catches ctrl+c event
   process.once('SIGINT', () => void onExit({ code: 0, reason: 'SIGINT' }))

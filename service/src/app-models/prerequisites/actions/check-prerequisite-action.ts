@@ -208,8 +208,11 @@ export const CheckPrerequisiteAction: RequestAction<CheckPrerequisiteEndpoint> =
 
   const checkResultDs = repository.getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId')
 
-  await checkResultDs.update(injector, id, { status: 'checking' }).catch(() => {
-    // Entry may not exist yet if the prerequisite was created after startup
+  await checkResultDs.update(injector, id, { status: 'checking' }).catch((e) => {
+    void logger.verbose({
+      message: 'Could not update check result to "checking" (entry may not exist yet)',
+      data: { prerequisiteId: id, error: e },
+    })
   })
 
   const crypto = injector.getInstance(CryptoService)

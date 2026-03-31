@@ -8,5 +8,11 @@ import type { ServiceStatus } from './service-status.js'
 /** Full stack view combining definition and config for API responses */
 export type StackView = StackDefinition & StackConfig
 
-/** Full service view combining definition, config, status, and git state for API responses */
-export type ServiceView = ServiceDefinition & ServiceConfig & ServiceStatus & ServiceGitStatus
+/** Prerequisite and dependency relationships resolved from join tables */
+export type ServiceRelations = {
+  prerequisiteIds: string[]
+  prerequisiteServiceIds: string[]
+}
+
+/** Full service view combining definition, config, status, git state, and relations for API responses */
+export type ServiceView = ServiceDefinition & ServiceConfig & ServiceStatus & ServiceGitStatus & ServiceRelations

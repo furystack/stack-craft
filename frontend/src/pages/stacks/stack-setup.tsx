@@ -1,9 +1,12 @@
+import type { FindOptions } from '@furystack/core'
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 
 import {
   Button,
+  CollectionService,
   cssVariableTheme,
+  DataGrid,
   Icon,
   icons,
   Loader,
@@ -13,16 +16,18 @@ import {
   Paper,
 } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
-import { ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
+import { mergeServiceView, ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
 
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
-import { BuildStatusChip, CloneStatusChip, InstallStatusChip } from '../../components/status-chips.js'
+import { BuildStatusChip, CloneStatusChip, InstallStatusChip, RunStatusChip } from '../../components/status-chips.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
 type StackSetupProps = {
   stackName: string
 }
+
+type StackSetupColumn = 'service' | 'clone' | 'install' | 'build' | 'run' | 'actions'
 
 const isServiceReady = (svc: ServiceView): boolean => {
   const cloneOk = !svc.repositoryId || svc.cloneStatus === 'cloned'
@@ -38,7 +43,7 @@ const isServiceInProgress = (svc: ServiceView): boolean => {
 export const StackSetup = Shade<StackSetupProps>({
   customElementName: 'shade-stack-setup',
   render: (options) => {
-    const { props, injector, useState } = options
+    const { props, injector, useDisposable, useState } = options
 
     const stacksState = useCollectionSync(options, StackDefinition, {
       filter: { name: { $eq: props.stackName } },
@@ -63,21 +68,21 @@ export const StackSetup = Shade<StackSetupProps>({
     const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
     const configMap = new Map(configs.map((c) => [c.serviceId, c]))
 
-    const services: ServiceView[] = defs.map((def) => ({
-      serviceId: def.id,
-      autoFetchEnabled: false,
-      autoFetchIntervalMinutes: 60,
-      autoRestartOnFetch: false,
-      environmentVariableOverrides: {},
-      localFiles: [],
-      cloneStatus: 'not-cloned' as const,
-      installStatus: 'not-installed' as const,
-      buildStatus: 'not-built' as const,
-      runStatus: 'stopped' as const,
-      ...def,
-      ...(configMap.get(def.id) ?? {}),
-      ...(statusMap.get(def.id) ?? {}),
-    }))
+    const services: ServiceView[] = defs.map((def) =>
+      mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id)),
+    )
+
+    const collectionService = useDisposable(
+      'stackSetupCollectionService',
+      () => new CollectionService<ServiceView>({ searchField: 'displayName' }),
+    )
+
+    const [findOptions, setFindOptions] = useState<FindOptions<ServiceView, Array<keyof ServiceView>>>(
+      'stackSetupFindOptions',
+      { top: Infinity },
+    )
+
+    collectionService.data.setValue({ entries: services, count: services.length })
 
     const isLoading = stacksState.status === 'connecting' || servicesState.status === 'connecting'
 
@@ -189,102 +194,104 @@ export const StackSetup = Shade<StackSetupProps>({
         />
 
         <Paper>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr
-                style={{
-                  textAlign: 'left',
-                  borderBottom: `1px solid ${cssVariableTheme.divider}`,
-                  fontSize: '13px',
-                  color: cssVariableTheme.text.secondary,
-                }}
-              >
-                <th style={{ padding: '8px 12px' }}>Service</th>
-                <th style={{ padding: '8px 12px', textAlign: 'center' }}>Clone</th>
-                <th style={{ padding: '8px 12px', textAlign: 'center' }}>Install</th>
-                <th style={{ padding: '8px 12px', textAlign: 'center' }}>Build</th>
-                <th style={{ padding: '8px 12px', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {services.map((svc) => {
-                const ready = isServiceReady(svc)
-                const inProgress = isServiceInProgress(svc) || setupTriggered.has(svc.id)
-
-                return (
-                  <tr
-                    style={{
-                      borderBottom: `1px solid ${cssVariableTheme.divider}`,
-                    }}
-                  >
-                    <td style={{ padding: '10px 12px' }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{svc.displayName}</div>
-                      {svc.description ? (
-                        <div style={{ fontSize: '12px', color: cssVariableTheme.text.secondary, marginTop: '2px' }}>
-                          {svc.description}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                      <CloneStatusChip status={svc.cloneStatus} />
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                      <InstallStatusChip status={svc.installStatus} />
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                      <BuildStatusChip status={svc.buildStatus} />
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                        {ready ? (
-                          <StackCraftNestedRouteLink
-                            href="/stacks/:stackName/services/:serviceId"
-                            params={{ stackName: props.stackName, serviceId: svc.id }}
-                          >
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              color="success"
-                              startIcon={<Icon icon={icons.checkCircle} size="small" />}
-                            >
-                              Ready
-                            </Button>
-                          </StackCraftNestedRouteLink>
-                        ) : (
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            loading={inProgress}
-                            onclick={() => void triggerSetup(svc.id)}
-                            startIcon={<Icon icon={icons.settings} size="small" />}
-                          >
-                            Set Up
-                          </Button>
-                        )}
+          {services.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px', color: cssVariableTheme.text.secondary }}>
+              No services in this stack.
+            </div>
+          ) : (
+            <DataGrid<ServiceView, StackSetupColumn>
+              columns={['service', 'clone', 'install', 'build', 'run', 'actions']}
+              findOptions={findOptions}
+              onFindOptionsChange={setFindOptions}
+              styles={undefined}
+              collectionService={collectionService}
+              paginationOptions={[Infinity]}
+              headerComponents={{
+                service: () => <span>Service</span>,
+                clone: () => <span style={{ display: 'block', textAlign: 'center', width: '100%' }}>Clone</span>,
+                install: () => <span style={{ display: 'block', textAlign: 'center', width: '100%' }}>Install</span>,
+                build: () => <span style={{ display: 'block', textAlign: 'center', width: '100%' }}>Build</span>,
+                run: () => <span style={{ display: 'block', textAlign: 'center', width: '100%' }}>Run</span>,
+                actions: () => <span style={{ display: 'block', textAlign: 'right', width: '100%' }}>Actions</span>,
+              }}
+              rowComponents={{
+                service: (svc) => (
+                  <div>
+                    <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{svc.displayName}</div>
+                    {svc.description ? (
+                      <div style={{ fontSize: '12px', color: cssVariableTheme.text.secondary, marginTop: '2px' }}>
+                        {svc.description}
+                      </div>
+                    ) : null}
+                  </div>
+                ),
+                clone: (svc) => (
+                  <div style={{ textAlign: 'center' }}>
+                    <CloneStatusChip status={svc.cloneStatus} />
+                  </div>
+                ),
+                install: (svc) => (
+                  <div style={{ textAlign: 'center' }}>
+                    <InstallStatusChip status={svc.installStatus} />
+                  </div>
+                ),
+                build: (svc) => (
+                  <div style={{ textAlign: 'center' }}>
+                    <BuildStatusChip status={svc.buildStatus} />
+                  </div>
+                ),
+                run: (svc) => (
+                  <div style={{ textAlign: 'center' }}>
+                    <RunStatusChip status={svc.runStatus} />
+                  </div>
+                ),
+                actions: (svc) => {
+                  const ready = isServiceReady(svc)
+                  const inProgress = isServiceInProgress(svc) || setupTriggered.has(svc.id)
+                  return (
+                    <div
+                      style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}
+                      onclick={(e: MouseEvent) => e.stopPropagation()}
+                    >
+                      {ready ? (
                         <StackCraftNestedRouteLink
-                          href="/stacks/:stackName/services/:serviceId/logs"
+                          href="/stacks/:stackName/services/:serviceId"
                           params={{ stackName: props.stackName, serviceId: svc.id }}
                         >
                           <Button
                             variant="outlined"
                             size="small"
-                            startIcon={<Icon icon={icons.fileText} size="small" />}
+                            color="success"
+                            startIcon={<Icon icon={icons.checkCircle} size="small" />}
                           >
-                            Logs
+                            Ready
                           </Button>
                         </StackCraftNestedRouteLink>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-          {services.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px', color: cssVariableTheme.text.secondary }}>
-              No services in this stack.
-            </div>
-          ) : null}
+                      ) : (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          loading={inProgress}
+                          onclick={() => void triggerSetup(svc.id)}
+                          startIcon={<Icon icon={icons.settings} size="small" />}
+                        >
+                          Set Up
+                        </Button>
+                      )}
+                      <StackCraftNestedRouteLink
+                        href="/stacks/:stackName/services/:serviceId/logs"
+                        params={{ stackName: props.stackName, serviceId: svc.id }}
+                      >
+                        <Button variant="outlined" size="small" startIcon={<Icon icon={icons.fileText} size="small" />}>
+                          Logs
+                        </Button>
+                      </StackCraftNestedRouteLink>
+                    </div>
+                  )
+                },
+              }}
+            />
+          )}
         </Paper>
       </PageContainer>
     )

@@ -2,7 +2,7 @@ import { createComponent, Shade } from '@furystack/shades'
 import { Button, Checkbox, Form, Icon, icons, Input, MarkdownEditor, Select } from '@furystack/shades-common-components'
 import type { Prerequisite, PrerequisiteConfig, PrerequisiteType } from 'common'
 
-type PrerequisiteFormPayload = {
+export type PrerequisiteFormPayload = {
   name: string
   type: PrerequisiteType
   minimumVersion?: string
@@ -18,7 +18,7 @@ type PrerequisiteFormPayload = {
 const TYPES_REQUIRING_MINIMUM_VERSION: PrerequisiteType[] = ['node', 'yarn']
 const TYPES_REQUIRING_VERSION: PrerequisiteType[] = ['dotnet-sdk', 'dotnet-runtime']
 
-const isPrerequisiteFormPayload = (data: unknown): data is PrerequisiteFormPayload => {
+export const isPrerequisiteFormPayload = (data: unknown): data is PrerequisiteFormPayload => {
   const d = data as PrerequisiteFormPayload
   if (!d.name || d.name.length === 0) return false
   if (!d.type || d.type.length === 0) return false
@@ -36,7 +36,7 @@ const isPrerequisiteFormPayload = (data: unknown): data is PrerequisiteFormPaylo
   return true
 }
 
-const buildConfig = (data: PrerequisiteFormPayload): PrerequisiteConfig => {
+export const buildConfig = (data: PrerequisiteFormPayload): PrerequisiteConfig => {
   switch (data.type) {
     case 'node':
     case 'yarn':

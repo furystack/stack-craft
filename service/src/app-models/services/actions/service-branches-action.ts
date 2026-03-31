@@ -24,7 +24,7 @@ export const ServiceBranchesAction: RequestAction<ServiceBranchesEndpoint> = asy
     throw new RequestError('Repository is not cloned yet', 400)
   }
 
-  const cwd = await resolveServiceCwd(injector, svc)
+  const cwd = await resolveServiceCwd(injector, svc, injector)
   const git = injector.getInstance(GitService)
 
   const [currentBranch, branches] = await Promise.all([git.getCurrentBranch(cwd), git.getBranches(cwd)])

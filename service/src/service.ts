@@ -1,6 +1,7 @@
 import { useSystemIdentityContext } from '@furystack/core'
+import { getLogger } from '@furystack/logging'
 import { usingAsync } from '@furystack/utils'
-import { useStaticFiles } from '@furystack/rest-service'
+import { ServerManager, useStaticFiles } from '@furystack/rest-service'
 import { injector } from './config.js'
 import { attachShutdownHandler } from './shutdown-handler.js'
 import { getPort } from './get-port.js'
@@ -19,6 +20,7 @@ import { ProcessManager } from './services/process-manager.js'
 import { WebsocketService } from './services/websocket-service.js'
 import { setupEntitySync } from './setup-entity-sync.js'
 import { setupMcp } from './mcp/setup-mcp.js'
+import { useRequestLogger } from './middleware/request-logger.js'
 import { encryptExistingSecrets } from './utils/encrypt-existing-secrets.js'
 
 const port = getPort()
@@ -51,6 +53,12 @@ const setupRestApis = async () => {
   void evaluatePrerequisites(injector)
 
   setupMcp(injector)
+
+  const logMiddleware = useRequestLogger(injector)
+  const serverManager = injector.getInstance(ServerManager)
+  for (const [, record] of serverManager.servers) {
+    record.server.on('request', (req, res) => logMiddleware(req, res, () => {}))
+  }
 }
 
 setupRestApis()
@@ -64,8 +72,11 @@ setupRestApis()
     }),
   )
   .catch((err) => {
-    console.error(err)
-    process.exit(1)
+    getLogger(injector)
+      .withScope('service')
+      .fatal({ message: 'Failed to start service', data: { error: err } })
+      .catch(() => console.error('Failed to start service (logger unavailable)', err))
+      .finally(() => process.exit(1))
   })
 
 void attachShutdownHandler(injector)

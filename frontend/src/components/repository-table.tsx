@@ -2,7 +2,15 @@ import type { FindOptions } from '@furystack/core'
 import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 import type { ColumnFilterConfig } from '@furystack/shades-common-components'
-import { Button, CollectionService, DataGrid, Icon, icons, Loader } from '@furystack/shades-common-components'
+import {
+  Button,
+  CollectionService,
+  cssVariableTheme,
+  DataGrid,
+  Icon,
+  icons,
+  Loader,
+} from '@furystack/shades-common-components'
 import { GitHubRepository } from 'common'
 
 import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
@@ -48,6 +56,24 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
       return (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
           <Loader />
+        </div>
+      )
+    }
+
+    if (allEntries.length === 0) {
+      return (
+        <div style={{ textAlign: 'center', padding: '24px', color: cssVariableTheme.text.secondary }}>
+          No repositories defined for this stack.
+          <div style={{ marginTop: '12px' }}>
+            <StackCraftNestedRouteLink
+              href="/stacks/:stackName/repositories/create"
+              params={{ stackName: props.stackName }}
+            >
+              <Button variant="outlined" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
+                Add Repository
+              </Button>
+            </StackCraftNestedRouteLink>
+          </div>
         </div>
       )
     }

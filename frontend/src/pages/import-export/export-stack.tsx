@@ -1,7 +1,6 @@
 import { createComponent, Shade } from '@furystack/shades'
 import {
   Button,
-  cssVariableTheme,
   Icon,
   icons,
   Loader,
@@ -9,6 +8,7 @@ import {
   PageContainer,
   PageHeader,
   Paper,
+  TextArea,
 } from '@furystack/shades-common-components'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 
@@ -18,12 +18,12 @@ type ExportStackProps = {
 
 export const ExportStack = Shade<ExportStackProps>({
   customElementName: 'shade-export-stack',
-  render: ({ props, injector, useState }) => {
+  render: ({ props, injector, useState, useDisposable }) => {
     const [jsonOutput, setJsonOutput] = useState('json', '')
     const [isLoading, setIsLoading] = useState('isLoading', true)
 
-    if (isLoading && !jsonOutput) {
-      injector
+    useDisposable('fetchExport', () => {
+      void injector
         .getInstance(StacksApiClient)
         .call({
           method: 'GET',
@@ -35,7 +35,8 @@ export const ExportStack = Shade<ExportStackProps>({
           setIsLoading(false)
         })
         .catch(() => setIsLoading(false))
-    }
+      return { [Symbol.dispose]() {} }
+    })
 
     return (
       <PageContainer>
@@ -51,22 +52,18 @@ export const ExportStack = Shade<ExportStackProps>({
             </div>
           ) : (
             <Paper elevation={1}>
-              <textarea
+              <TextArea
+                variant="outlined"
+                readOnly
+                value={jsonOutput}
                 style={{
                   width: '100%',
-                  height: '300px',
+                  minHeight: '300px',
                   fontFamily: 'monospace',
                   fontSize: '13px',
-                  padding: '12px',
-                  background: cssVariableTheme.background.default,
-                  color: cssVariableTheme.text.primary,
-                  border: `1px solid ${cssVariableTheme.divider}`,
-                  borderRadius: cssVariableTheme.shape.borderRadius.md,
                   resize: 'vertical',
                   boxSizing: 'border-box',
                 }}
-                readOnly
-                value={jsonOutput}
               />
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
                 <Button

@@ -1,7 +1,15 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Injector } from '@furystack/inject'
+import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { ServiceConfig, ServiceDefinition, ServiceStateHistory, ServiceStatus } from 'common'
+import {
+  ServiceConfig,
+  ServiceDefinition,
+  ServiceDependencyLink,
+  ServicePrerequisiteLink,
+  ServiceStateHistory,
+  ServiceStatus,
+} from 'common'
 import { randomUUID } from 'crypto'
 import { z } from 'zod'
 
@@ -19,6 +27,7 @@ import {
 
 export const registerServiceTools = (mcp: McpServer, injector: Injector, elevated: Injector) => {
   const repository = getRepository(elevated)
+  const logger = getLogger(elevated).withScope('MCP:ServiceTools')
 
   mcp.registerTool(
     'list_services',
@@ -149,6 +158,9 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
         const now = new Date().toISOString()
         const id = providedId ?? randomUUID()
 
+        const resolvedPrereqIds = prerequisiteIds ?? []
+        const resolvedDepIds = prerequisiteServiceIds ?? []
+
         const def = {
           id,
           stackName,
@@ -156,8 +168,6 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
           description: description ?? '',
           workingDirectory,
           repositoryId,
-          prerequisiteIds: prerequisiteIds ?? [],
-          prerequisiteServiceIds: prerequisiteServiceIds ?? [],
           installCommand,
           buildCommand,
           runCommand,
@@ -191,7 +201,28 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
         await repository.getDataSetFor(ServiceConfig, 'serviceId').add(elevated, config)
         await repository.getDataSetFor(ServiceStatus, 'serviceId').add(elevated, status)
 
-        return textResult(JSON.stringify({ ...def, ...config, ...status }, null, 2))
+        const prereqDs = repository.getDataSetFor(ServicePrerequisiteLink, 'id')
+        const depDs = repository.getDataSetFor(ServiceDependencyLink, 'id')
+        for (const prereqId of resolvedPrereqIds) {
+          await prereqDs.add(elevated, { id: `${id}::${prereqId}`, serviceId: id, prerequisiteId: prereqId })
+        }
+        for (const depId of resolvedDepIds) {
+          await depDs.add(elevated, { id: `${id}::${depId}`, serviceId: id, dependsOnServiceId: depId })
+        }
+
+        return textResult(
+          JSON.stringify(
+            {
+              ...def,
+              ...config,
+              ...status,
+              prerequisiteIds: resolvedPrereqIds,
+              prerequisiteServiceIds: resolvedDepIds,
+            },
+            null,
+            2,
+          ),
+        )
       } catch (error) {
         return errorResult(`Failed to create service: ${(error as Error).message}`)
       }
@@ -246,8 +277,6 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
         if (description !== undefined) defFields.description = description
         if (workingDirectory !== undefined) defFields.workingDirectory = workingDirectory
         if (repositoryId !== undefined) defFields.repositoryId = repositoryId
-        if (prerequisiteIds !== undefined) defFields.prerequisiteIds = prerequisiteIds
-        if (prerequisiteServiceIds !== undefined) defFields.prerequisiteServiceIds = prerequisiteServiceIds
         if (installCommand !== undefined) defFields.installCommand = installCommand
         if (buildCommand !== undefined) defFields.buildCommand = buildCommand
         if (runCommand !== undefined) defFields.runCommand = runCommand
@@ -278,6 +307,31 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
           await repository.getDataSetFor(ServiceConfig, 'serviceId').update(elevated, serviceId, configFields)
         }
 
+        if (prerequisiteIds !== undefined) {
+          const prereqDs = repository.getDataSetFor(ServicePrerequisiteLink, 'id')
+          const existing = await prereqDs.find(elevated, { filter: { serviceId: { $eq: serviceId } } })
+          if (existing.length > 0) await prereqDs.remove(elevated, ...existing.map((l) => l.id))
+          for (const prereqId of prerequisiteIds) {
+            await prereqDs.add(elevated, {
+              id: `${serviceId}::${prereqId}`,
+              serviceId,
+              prerequisiteId: prereqId,
+            })
+          }
+        }
+        if (prerequisiteServiceIds !== undefined) {
+          const depDs = repository.getDataSetFor(ServiceDependencyLink, 'id')
+          const existing = await depDs.find(elevated, { filter: { serviceId: { $eq: serviceId } } })
+          if (existing.length > 0) await depDs.remove(elevated, ...existing.map((l) => l.id))
+          for (const depId of prerequisiteServiceIds) {
+            await depDs.add(elevated, {
+              id: `${serviceId}::${depId}`,
+              serviceId,
+              dependsOnServiceId: depId,
+            })
+          }
+        }
+
         return textResult(`Service ${serviceId} updated`)
       } catch (error) {
         return errorResult(`Failed to edit service: ${(error as Error).message}`)
@@ -296,11 +350,23 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
         await repository
           .getDataSetFor(ServiceStatus, 'serviceId')
           .remove(elevated, serviceId)
-          .catch(() => {})
+          .catch(
+            (e) =>
+              void logger.warning({
+                message: 'Failed to remove service status during delete',
+                data: { serviceId, error: e },
+              }),
+          )
         await repository
           .getDataSetFor(ServiceConfig, 'serviceId')
           .remove(elevated, serviceId)
-          .catch(() => {})
+          .catch(
+            (e) =>
+              void logger.warning({
+                message: 'Failed to remove service config during delete',
+                data: { serviceId, error: e },
+              }),
+          )
         await repository.getDataSetFor(ServiceDefinition, 'id').remove(elevated, serviceId)
         return textResult(`Service ${serviceId} deleted`)
       } catch (error) {

@@ -120,20 +120,6 @@
           "type": "string",
           "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
-        "prerequisiteIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
-        },
-        "prerequisiteServiceIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
-        },
         "installCommand": {
           "type": "string",
           "description": "Shell command to install dependencies (e.g. \"npm install\")"
@@ -160,18 +146,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "stackName",
-        "displayName",
-        "description",
-        "prerequisiteIds",
-        "prerequisiteServiceIds",
-        "runCommand",
-        "files",
-        "createdAt",
-        "updatedAt"
-      ],
+      "required": ["id", "stackName", "displayName", "description", "runCommand", "files", "createdAt", "updatedAt"],
       "additionalProperties": false,
       "description": "Shareable service definition. Contains the immutable description of a service and its commands. Included in stack exports and shared between installations."
     },
@@ -355,10 +330,42 @@
       ],
       "description": "Full stack view combining definition and config for API responses"
     },
+    "ServiceRelations": {
+      "type": "object",
+      "properties": {
+        "prerequisiteIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["prerequisiteIds", "prerequisiteServiceIds"],
+      "additionalProperties": false,
+      "description": "Prerequisite and dependency relationships resolved from join tables"
+    },
     "ServiceView": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "prerequisiteIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prerequisiteServiceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "serviceId": {
           "type": "string",
           "description": "FK to  {@link  ServiceDefinition.id  }"
@@ -453,20 +460,6 @@
           "type": "string",
           "description": "Optional FK to  {@link  GitHubRepository.id  }"
         },
-        "prerequisiteIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "IDs of  {@link  Prerequisite  }  entities required by this service"
-        },
-        "prerequisiteServiceIds": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "IDs of other  {@link  ServiceDefinition }  entities that must be running first"
-        },
         "installCommand": {
           "type": "string",
           "description": "Shell command to install dependencies (e.g. \"npm install\")"
@@ -509,7 +502,7 @@
         "stackName",
         "updatedAt"
       ],
-      "description": "Full service view combining definition, config, status, and git state for API responses"
+      "description": "Full service view combining definition, config, status, git state, and relations for API responses"
     },
     "User": {
       "type": "object",
@@ -607,6 +600,26 @@
       "additionalProperties": false,
       "description": "Audit log entry for service state transitions. Records every lifecycle event (start, stop, crash, install, build, pull) with full context: who triggered it, how, and any relevant metadata. Entries are never deleted and not included in exports."
     },
+    "ServicePrerequisiteLink": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Deterministic PK: `${serviceId}::${prerequisiteId}`"
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "FK to  {@link  ServiceDefinition.id  }"
+        },
+        "prerequisiteId": {
+          "type": "string",
+          "description": "FK to  {@link  Prerequisite.id  }"
+        }
+      },
+      "required": ["id", "serviceId", "prerequisiteId"],
+      "additionalProperties": false,
+      "description": "Join table linking a  {@link  ServiceDefinition  }  to a  {@link  Prerequisite  }"
+    },
     "ServiceLogEntry": {
       "type": "object",
       "properties": {
@@ -632,6 +645,26 @@
       },
       "required": ["id", "serviceId", "processUid", "stream", "line", "createdAt"],
       "additionalProperties": false
+    },
+    "ServiceDependencyLink": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Deterministic PK: `${serviceId}::${dependsOnServiceId}`"
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "FK to  {@link  ServiceDefinition.id  }  -- the dependent service"
+        },
+        "dependsOnServiceId": {
+          "type": "string",
+          "description": "FK to  {@link  ServiceDefinition.id  }  -- the service that must run first"
+        }
+      },
+      "required": ["id", "serviceId", "dependsOnServiceId"],
+      "additionalProperties": false,
+      "description": "Join table linking a  {@link  ServiceDefinition  }  to another service it depends on"
     },
     "PublicApiToken": {
       "type": "object",

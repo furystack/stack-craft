@@ -23,7 +23,8 @@
         }
       },
       "required": ["result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Returns whether the application needs initial setup or is already installed"
     },
     "InstallAction": {
       "type": "object",
@@ -53,7 +54,8 @@
         }
       },
       "required": ["result", "body"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Performs initial application setup and creates the first admin user"
     },
     "InstallApi": {
       "type": "object",

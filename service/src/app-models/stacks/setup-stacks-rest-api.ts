@@ -1,4 +1,5 @@
 import type { Injector } from '@furystack/inject'
+import { getLogger } from '@furystack/logging'
 import '@furystack/repository'
 import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
@@ -191,23 +192,35 @@ export const setupStacksRestApi = async (injector: Injector) => {
             const svcDs = repo.getDataSetFor(ServiceDefinition, 'id')
             const svcs = await svcDs.find(i, { filter: { stackName: { $eq: id } }, select: ['id'] })
             const svcIds = svcs.map((svc) => svc.id)
+            const deleteLogger = getLogger(i).withScope('DeleteStack')
             if (svcIds.length > 0) {
-              // Cascade-delete child records; some may not exist
               await repo
                 .getDataSetFor(ServiceStatus, 'serviceId')
                 .remove(i, ...svcIds)
-                .catch(() => {
-                  /* Child records may not exist */
-                })
+                .catch(
+                  (e) =>
+                    void deleteLogger.warning({
+                      message: 'Failed to remove service statuses during stack delete',
+                      data: { stackName: id, error: e },
+                    }),
+                )
               await repo
                 .getDataSetFor(ServiceConfig, 'serviceId')
                 .remove(i, ...svcIds)
-                .catch(() => {
-                  /* Child records may not exist */
-                })
-              await svcDs.remove(i, ...svcIds).catch(() => {
-                /* Already removed */
-              })
+                .catch(
+                  (e) =>
+                    void deleteLogger.warning({
+                      message: 'Failed to remove service configs during stack delete',
+                      data: { stackName: id, error: e },
+                    }),
+                )
+              await svcDs.remove(i, ...svcIds).catch(
+                (e) =>
+                  void deleteLogger.warning({
+                    message: 'Failed to remove service definitions during stack delete',
+                    data: { stackName: id, error: e },
+                  }),
+              )
             }
 
             const repos = await repo
@@ -218,9 +231,13 @@ export const setupStacksRestApi = async (injector: Injector) => {
               await repo
                 .getDataSetFor(GitHubRepository, 'id')
                 .remove(i, ...repoIds)
-                .catch(() => {
-                  /* Already removed */
-                })
+                .catch(
+                  (e) =>
+                    void deleteLogger.warning({
+                      message: 'Failed to remove repositories during stack delete',
+                      data: { stackName: id, error: e },
+                    }),
+                )
             }
 
             const prereqs = await repo
@@ -231,17 +248,25 @@ export const setupStacksRestApi = async (injector: Injector) => {
               await repo
                 .getDataSetFor(Prerequisite, 'id')
                 .remove(i, ...prereqIds)
-                .catch(() => {
-                  /* Already removed */
-                })
+                .catch(
+                  (e) =>
+                    void deleteLogger.warning({
+                      message: 'Failed to remove prerequisites during stack delete',
+                      data: { stackName: id, error: e },
+                    }),
+                )
             }
 
             await repo
               .getDataSetFor(StackConfig, 'stackName')
               .remove(i, id)
-              .catch(() => {
-                /* Config may not exist */
-              })
+              .catch(
+                (e) =>
+                  void deleteLogger.warning({
+                    message: 'Failed to remove stack config during stack delete',
+                    data: { stackName: id, error: e },
+                  }),
+              )
             await repo.getDataSetFor(StackDefinition, 'name').remove(i, id)
 
             return JsonResult({})

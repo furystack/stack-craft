@@ -1,6 +1,5 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { Button, cssVariableTheme, Form, Icon, icons, Input, Paper } from '@furystack/shades-common-components'
-import { ThemeSwitch } from '../components/theme-switch/index.js'
 import { SessionService } from '../services/session.js'
 
 type LoginPayload = { userName: string; password: string }
@@ -112,9 +111,6 @@ export const Login = Shade({
 
     return (
       <div>
-        <div className="theme-toggle">
-          <ThemeSwitch variant="outlined" />
-        </div>
         <div className="login-wrapper">
           <div className="login-branding">
             <div className="login-logo">🔧</div>

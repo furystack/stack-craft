@@ -191,6 +191,56 @@ describe('ObservableValue', () => {
 })
 ```
 
+## Backend Service Testing with Test Helpers
+
+### Using `withTestInjector`
+
+For testing backend services and REST actions, use the shared test helpers:
+
+```typescript
+import { describe, it, expect, vi } from 'vitest'
+import { getRepository } from '@furystack/repository'
+import { ServiceDefinition, ServiceStatus } from 'common'
+
+import { withTestInjector, createMockActionContext } from '../test-helpers.js'
+
+describe('MyAction', () => {
+  it('should return data for valid request', () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      // Seed test data
+      await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').add(elevated, {
+        id: 'svc-1',
+        stackName: 'test-stack',
+        displayName: 'Test Service',
+        // ... other required fields
+      })
+
+      // Mock external services via setExplicitInstance
+      const mockService = { someMethod: vi.fn().mockResolvedValue('result') }
+      injector.setExplicitInstance(mockService as unknown as MyService, MyService)
+
+      // Create and execute action
+      const ctx = createMockActionContext({
+        injector: elevated,
+        urlParams: { id: 'svc-1' },
+      })
+      const result = await myAction(ctx)
+
+      // Assert
+      expect(result.chunk.status).toBe(200)
+    }),
+  )
+})
+```
+
+### Key patterns
+
+- `withTestInjector` provides an `injector` + `elevated` (system-level) context with all InMemoryStores pre-configured
+- `createMockActionContext` creates a typed request context for REST action testing
+- Use `getRepository(elevated).getDataSetFor(...)` to seed and verify data
+- Use `injector.setExplicitInstance(mock, ServiceClass)` for mocking DI services
+- Both injectors are automatically disposed after each test
+
 ## E2E Testing with Playwright
 
 ### Test File Location
@@ -278,9 +328,8 @@ test.describe('Authentication', () => {
     await page.locator('button', { hasText: 'Login' }).click()
 
     // Verify logged in state
-    const welcomeTitle = page.locator('hello-world div h2')
-    await expect(welcomeTitle).toBeVisible()
-    await expect(welcomeTitle).toHaveText('Hello, testuser !')
+    const dashboard = page.locator('page-dashboard')
+    await expect(dashboard).toBeVisible()
 
     // Logout
     const logoutButton = page.locator('shade-app-bar button >> text="Log Out"')

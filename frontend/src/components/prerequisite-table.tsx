@@ -12,12 +12,13 @@ import {
   Loader,
   NotyService,
 } from '@furystack/shades-common-components'
-import type { Prerequisite, PrerequisiteCheckStatus } from 'common'
-import { PrerequisiteCheckResult, Prerequisite as PrerequisiteModel } from 'common'
+import type { Prerequisite } from 'common'
+import { Prerequisite as PrerequisiteModel } from 'common'
 
 import { PrerequisitesApiClient } from '../services/api-clients/prerequisites-api-client.js'
 import { PrerequisiteForm } from './entity-forms/prerequisite-form.js'
-import { PrerequisiteCheckChip, PrerequisiteTypeChip } from './status-chips.js'
+import { PrerequisiteSummaryChip } from './prerequisite-summary-chip.js'
+import { PrerequisiteTypeChip } from './status-chips.js'
 
 type PrerequisiteTableProps = {
   stackName: string
@@ -33,7 +34,6 @@ export const PrerequisiteTable = Shade<PrerequisiteTableProps>({
     const api = injector.getInstance(PrerequisitesApiClient)
     const noty = injector.getInstance(NotyService)
 
-    const [checkingIds, setCheckingIds] = useState<Set<string>>('checkingIds', new Set())
     const [editingId, setEditingId] = useState<string | null>('editingId', null)
     const [isCreating, setIsCreating] = useState('isCreating', false)
     const [deletingId, setDeletingId] = useState<string | null>('deletingId', null)
@@ -61,35 +61,6 @@ export const PrerequisiteTable = Shade<PrerequisiteTableProps>({
     const count = prereqsState.status === 'synced' || prereqsState.status === 'cached' ? prereqsState.data.count : 0
 
     collectionService.data.setValue({ entries, count })
-
-    const checkResultsState = useCollectionSync(options, PrerequisiteCheckResult, {})
-    const checkResults =
-      checkResultsState.status === 'synced' || checkResultsState.status === 'cached'
-        ? checkResultsState.data.entries
-        : []
-    const checkResultMap = new Map(checkResults.map((r) => [r.prerequisiteId, r]))
-
-    const getStatus = (id: string): PrerequisiteCheckStatus => {
-      if (checkingIds.has(id)) return 'checking'
-      return checkResultMap.get(id)?.status ?? 'unchecked'
-    }
-
-    const runCheck = async (prereq: Prerequisite) => {
-      setCheckingIds(new Set([...checkingIds, prereq.id]))
-      try {
-        await api.call({
-          method: 'POST',
-          action: '/prerequisites/:id/check',
-          url: { id: prereq.id },
-        })
-      } catch {
-        // Error state arrives via entity sync
-      } finally {
-        const next = new Set(checkingIds)
-        next.delete(prereq.id)
-        setCheckingIds(next)
-      }
-    }
 
     const handleCreate = async (data: Partial<Prerequisite>) => {
       try {
@@ -235,20 +206,12 @@ export const PrerequisiteTable = Shade<PrerequisiteTableProps>({
           rowComponents={{
             name: (entry) => <strong>{entry.name}</strong>,
             type: (entry) => <PrerequisiteTypeChip type={entry.type} />,
-            status: (entry) => <PrerequisiteCheckChip status={getStatus(entry.id)} />,
+            status: (entry) => <PrerequisiteSummaryChip prerequisiteIds={[entry.id]} />,
             actions: (entry) => (
               <div
                 style={{ display: 'flex', gap: '2px', alignItems: 'center' }}
                 onclick={(e: MouseEvent) => e.stopPropagation()}
               >
-                <Button
-                  variant="text"
-                  size="small"
-                  title="Check"
-                  loading={getStatus(entry.id) === 'checking'}
-                  onclick={() => void runCheck(entry)}
-                  startIcon={<Icon icon={icons.check} size="small" />}
-                />
                 <Button
                   variant="text"
                   size="small"

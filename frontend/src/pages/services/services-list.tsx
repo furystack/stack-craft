@@ -6,11 +6,20 @@ import {
   Icon,
   icons,
   Loader,
+  NotyService,
   PageContainer,
   PageHeader,
 } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
-import { ServiceConfig, ServiceDefinition, ServiceGitStatus, ServiceStatus } from 'common'
+import {
+  mergeServiceView,
+  ServiceConfig,
+  ServiceDefinition,
+  ServiceDependencyLink,
+  ServiceGitStatus,
+  ServicePrerequisiteLink,
+  ServiceStatus,
+} from 'common'
 
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { ServiceTable } from '../../components/service-table.js'
@@ -43,29 +52,28 @@ export const ServicesList = Shade<ServicesListProps>({
     const gitStatuses =
       gitStatusState.status === 'synced' || gitStatusState.status === 'cached' ? gitStatusState.data.entries : []
 
+    const prereqLinksState = useCollectionSync(options, ServicePrerequisiteLink, {})
+    const prereqLinks =
+      prereqLinksState.status === 'synced' || prereqLinksState.status === 'cached' ? prereqLinksState.data.entries : []
+    const depLinksState = useCollectionSync(options, ServiceDependencyLink, {})
+    const depLinks =
+      depLinksState.status === 'synced' || depLinksState.status === 'cached' ? depLinksState.data.entries : []
+
     const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
     const configMap = new Map(configs.map((c) => [c.serviceId, c]))
     const gitStatusMap = new Map(gitStatuses.map((g) => [g.serviceId, g]))
 
-    const services: ServiceView[] = defs.map((def) => ({
-      serviceId: def.id,
-      autoFetchEnabled: false,
-      autoFetchIntervalMinutes: 60,
-      autoRestartOnFetch: false,
-      environmentVariableOverrides: {},
-      localFiles: [],
-      cloneStatus: 'not-cloned' as const,
-      installStatus: 'not-installed' as const,
-      buildStatus: 'not-built' as const,
-      runStatus: 'stopped' as const,
-      ...def,
-      ...(configMap.get(def.id) ?? {}),
-      ...(statusMap.get(def.id) ?? {}),
-      ...(gitStatusMap.get(def.id) ?? {}),
-    }))
+    const services = defs.map((def) => {
+      const relations = {
+        prerequisiteIds: prereqLinks.filter((l) => l.serviceId === def.id).map((l) => l.prerequisiteId),
+        prerequisiteServiceIds: depLinks.filter((l) => l.serviceId === def.id).map((l) => l.dependsOnServiceId),
+      }
+      return mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id), gitStatusMap.get(def.id), relations)
+    })
 
     const isLoading = servicesState.status === 'connecting'
     const api = injector.getInstance(ServicesApiClient)
+    const noty = injector.getInstance(NotyService)
     const [selectedServiceIds, setSelectedServiceIds] = options.useState<string[]>('selectedServiceIds', [])
     const [isBulkLoading, setIsBulkLoading] = options.useState('isBulkLoading', false)
 
@@ -76,6 +84,7 @@ export const ServicesList = Shade<ServicesListProps>({
 
     const bulkAction = async (action: string) => {
       setIsBulkLoading(true)
+      const failures: string[] = []
       for (const svc of selectedServices) {
         try {
           await api.call({
@@ -84,8 +93,15 @@ export const ServicesList = Shade<ServicesListProps>({
             url: { id: svc.id },
           })
         } catch {
-          // Individual failures are handled by entity-sync status updates
+          failures.push(svc.displayName)
         }
+      }
+      if (failures.length > 0) {
+        noty.emit('onNotyAdded', {
+          title: `${action} failed`,
+          body: `Failed for: ${failures.join(', ')}`,
+          type: 'error',
+        })
       }
       setIsBulkLoading(false)
     }
@@ -173,17 +189,24 @@ export const ServicesList = Shade<ServicesListProps>({
           }
         />
         {services.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px', opacity: '0.5' }}>No services in this stack yet.</div>
+          <div style={{ textAlign: 'center', padding: '32px', opacity: '0.7' }}>
+            No services in this stack yet.
+            <div style={{ marginTop: '12px' }}>
+              <StackCraftNestedRouteLink
+                href="/stacks/:stackName/services/wizard"
+                params={{ stackName: props.stackName }}
+              >
+                <Button variant="outlined" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
+                  Create Service
+                </Button>
+              </StackCraftNestedRouteLink>
+            </div>
+          </div>
         ) : (
           <ServiceTable
             services={services}
             onSelectionChange={(selected: ServiceView[]) => {
-              const newIds = selected.map((s) => s.id)
-              const changed =
-                newIds.length !== selectedServiceIds.length || newIds.some((id) => !selectedServiceIds.includes(id))
-              if (changed) {
-                setSelectedServiceIds(newIds)
-              }
+              setSelectedServiceIds(selected.map((s) => s.id))
             }}
           />
         )}

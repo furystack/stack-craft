@@ -1,21 +1,18 @@
 import type { FindOptions } from '@furystack/core'
-import { useCollectionSync } from '@furystack/entity-sync-client'
-import { serializeToQueryString } from '@furystack/rest'
 import { createComponent, LocationService, Shade } from '@furystack/shades'
 import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {
   Button,
-  Chip,
   CollectionService,
   cssVariableTheme,
   DataGrid,
   Icon,
   icons,
   MarkdownDisplay,
+  NotyService,
   SelectionCell,
 } from '@furystack/shades-common-components'
-import type { PrerequisiteCheckStatus, ServiceView } from 'common'
-import { PrerequisiteCheckResult } from 'common'
+import type { ServiceView } from 'common'
 
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
 import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
@@ -23,6 +20,7 @@ import { getPrimaryAction } from '../utils/service-pipeline.js'
 import { StackCraftNestedRouteLink } from './app-routes.js'
 import { BranchSelector } from './branch-selector.js'
 import { MiniPipelineDots } from './mini-pipeline-dots.js'
+import { PrerequisiteSummaryChip } from './prerequisite-summary-chip.js'
 
 type ServiceTableProps = {
   services: ServiceView[]
@@ -38,8 +36,25 @@ const columnFilters: { [K in ServiceColumn]?: ColumnFilterConfig } = {
 export const ServiceTable = Shade<ServiceTableProps>({
   customElementName: 'shade-service-table',
   render: (options) => {
-    const { props, injector, useDisposable, useObservable, useState } = options
+    const { props, injector, useDisposable, useState } = options
     const api = injector.getInstance(ServicesApiClient)
+    const noty = injector.getInstance(NotyService)
+
+    const callServiceAction = (serviceId: string, action: string, actionLabel: string) => {
+      void api
+        .call({
+          method: 'POST',
+          action: `/services/:id/${action}` as '/services/:id/start',
+          url: { id: serviceId },
+        })
+        .catch((error: unknown) => {
+          noty.emit('onNotyAdded', {
+            title: `${actionLabel} failed`,
+            body: error instanceof Error ? error.message : `Failed to execute ${actionLabel}`,
+            type: 'error',
+          })
+        })
+    }
 
     const collectionService = useDisposable(
       'collectionService',
@@ -54,34 +69,22 @@ export const ServiceTable = Shade<ServiceTableProps>({
     const { entries, count } = applyClientFindOptions(props.services, findOptions)
     collectionService.data.setValue({ entries, count })
 
-    const checkResultsState = useCollectionSync(options, PrerequisiteCheckResult, {})
-    const checkResults =
-      checkResultsState.status === 'synced' || checkResultsState.status === 'cached'
-        ? checkResultsState.data.entries
-        : []
-    const checkResultMap = new Map(checkResults.map((r) => [r.prerequisiteId, r]))
-
-    const getPrereqSummary = (prereqIds: string[]) => {
-      if (prereqIds.length === 0) return null
-      const statuses = prereqIds.map((id): PrerequisiteCheckStatus => checkResultMap.get(id)?.status ?? 'unchecked')
-      const satisfiedCount = statuses.filter((s) => s === 'satisfied').length
-      const failedCount = statuses.filter((s) => s === 'failed').length
-      return { satisfiedCount, failedCount, total: prereqIds.length }
-    }
-
     const currentSelection = collectionService.selection.getValue()
     if (currentSelection.length > 0) {
       const entryById = new Map(entries.map((e) => [e.id, e]))
       const reconciled = currentSelection
         .map((s) => entryById.get(s.id))
         .filter((e): e is ServiceView => e !== undefined)
-      if (reconciled.length !== currentSelection.length || reconciled.some((e, i) => e !== currentSelection[i])) {
+      if (reconciled.length !== currentSelection.length || reconciled.some((e, i) => e.id !== currentSelection[i].id)) {
         collectionService.selection.setValue(reconciled)
       }
     }
 
-    const [selectedServices] = useObservable('selection', collectionService.selection)
-    props.onSelectionChange?.(selectedServices)
+    useDisposable('selectionSync', () =>
+      collectionService.selection.subscribe((newSelection) => {
+        props.onSelectionChange?.(newSelection)
+      }),
+    )
 
     return (
       <DataGrid<ServiceView, ServiceColumn>
@@ -100,39 +103,21 @@ export const ServiceTable = Shade<ServiceTableProps>({
         }}
         rowComponents={{
           selection: (entry) => <SelectionCell entry={entry} service={collectionService} />,
-          displayName: (entry) => {
-            const summary = getPrereqSummary(entry.prerequisiteIds)
-            return (
-              <span>
-                <strong>{entry.displayName}</strong>
-                {entry.description ? (
-                  <div style={{ fontSize: cssVariableTheme.typography.fontSize.sm, opacity: '0.6', marginTop: '2px' }}>
-                    <MarkdownDisplay content={entry.description} />
-                  </div>
-                ) : null}
-                {summary ? (
-                  <div style={{ marginTop: '4px' }}>
-                    <Chip
-                      variant="outlined"
-                      size="small"
-                      color={
-                        summary.failedCount > 0
-                          ? 'error'
-                          : summary.satisfiedCount === summary.total
-                            ? 'success'
-                            : 'secondary'
-                      }
-                      title={`${summary.satisfiedCount}/${summary.total} prerequisite(s) satisfied`}
-                    >
-                      {summary.satisfiedCount === summary.total
-                        ? `✓ ${summary.total} prereq`
-                        : `${summary.satisfiedCount}/${summary.total} prereq`}
-                    </Chip>
-                  </div>
-                ) : null}
-              </span>
-            )
-          },
+          displayName: (entry) => (
+            <span>
+              <strong>{entry.displayName}</strong>
+              {entry.description ? (
+                <div style={{ fontSize: cssVariableTheme.typography.fontSize.sm, opacity: '0.6', marginTop: '2px' }}>
+                  <MarkdownDisplay content={entry.description} />
+                </div>
+              ) : null}
+              {entry.prerequisiteIds.length > 0 ? (
+                <div style={{ marginTop: '4px' }}>
+                  <PrerequisiteSummaryChip prerequisiteIds={entry.prerequisiteIds} />
+                </div>
+              ) : null}
+            </span>
+          ),
           pipeline: (entry) => <MiniPipelineDots service={entry} />,
           branch: (entry) => (
             <div onclick={(e: MouseEvent) => e.stopPropagation()}>
@@ -158,14 +143,9 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     size="small"
                     color={primary.color === 'secondary' ? undefined : primary.color}
                     title={primary.label}
-                    onclick={() => {
-                      void api.call({
-                        method: 'POST',
-                        action: primary.apiAction as '/services/:id/start',
-                        url: { id: entry.id },
-                      })
-                    }}
-                    startIcon={<Icon icon={icons[primary.icon as keyof typeof icons] ?? icons.play} size="small" />}
+                    aria-label={primary.label}
+                    onclick={() => callServiceAction(entry.id, primary.apiAction.split('/').pop()!, primary.label)}
+                    startIcon={primary.icon || <Icon icon={icons.play} size="small" />}
                   />
                 ) : null}
                 {/* Restart (when running) */}
@@ -175,9 +155,8 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     size="small"
                     color="warning"
                     title="Restart"
-                    onclick={() => {
-                      void api.call({ method: 'POST', action: '/services/:id/restart', url: { id: entry.id } })
-                    }}
+                    aria-label="Restart"
+                    onclick={() => callServiceAction(entry.id, 'restart', 'Restart')}
                     startIcon={<Icon icon={icons.refresh} size="small" />}
                   />
                 ) : null}
@@ -188,9 +167,8 @@ export const ServiceTable = Shade<ServiceTableProps>({
                       variant="text"
                       size="small"
                       title="Update: pull, install, build, and restart if running"
-                      onclick={() => {
-                        void api.call({ method: 'POST', action: '/services/:id/update', url: { id: entry.id } })
-                      }}
+                      aria-label="Update"
+                      onclick={() => callServiceAction(entry.id, 'update', 'Update')}
                       startIcon={<Icon icon={icons.download} size="small" />}
                     />
                     {entry.commitsBehind ? (
@@ -228,6 +206,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     variant="text"
                     size="small"
                     title="Logs"
+                    aria-label="Logs"
                     startIcon={<Icon icon={icons.fileText} size="small" />}
                   />
                 </StackCraftNestedRouteLink>
@@ -240,6 +219,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     variant="text"
                     size="small"
                     title="Details"
+                    aria-label="Details"
                     startIcon={<Icon icon={icons.eye} size="small" />}
                   />
                 </StackCraftNestedRouteLink>
@@ -248,12 +228,11 @@ export const ServiceTable = Shade<ServiceTableProps>({
                   variant="text"
                   size="small"
                   title="Edit"
+                  aria-label="Edit"
                   onclick={() =>
                     injector
                       .getInstance(LocationService)
-                      .navigate(
-                        `/stacks/${entry.stackName}/services/${entry.id}?${serializeToQueryString({ edit: true })}`,
-                      )
+                      .navigate(`/stacks/${entry.stackName}/services/${entry.id}#configuration`)
                   }
                   startIcon={<Icon icon={icons.edit} size="small" />}
                 />

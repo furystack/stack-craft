@@ -16,7 +16,8 @@
         }
       },
       "required": ["result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Checks whether the current session is authenticated"
     },
     "GetCurrentUserAction": {
       "type": "object",
@@ -26,7 +27,8 @@
         }
       },
       "required": ["result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Returns the currently authenticated user's profile"
     },
     "User": {
       "type": "object",
@@ -65,7 +67,8 @@
         }
       },
       "required": ["result", "body"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Authenticates with username/password and returns the user profile"
     },
     "LogoutAction": {
       "type": "object",
@@ -73,7 +76,8 @@
         "result": {}
       },
       "required": ["result"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Ends the current session"
     },
     "PasswordResetAction": {
       "type": "object",
@@ -103,7 +107,8 @@
         }
       },
       "required": ["result", "body"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Changes the current user's password"
     },
     "IdentityApi": {
       "type": "object",

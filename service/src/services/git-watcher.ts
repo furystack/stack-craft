@@ -16,6 +16,7 @@ type WatchEntry = {
   isFetching: boolean
 }
 
+/** Periodically fetches remote changes for watched services and optionally auto-restarts on new commits */
 @Injectable({ lifetime: 'singleton' })
 export class GitWatcher {
   private watchers = new Map<string, WatchEntry>()

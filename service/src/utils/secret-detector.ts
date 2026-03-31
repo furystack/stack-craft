@@ -1,9 +1,6 @@
-export type SecretWarning = {
-  line: number
-  pattern: string
-  snippet: string
-  suggestion?: string
-}
+import type { SecretWarning } from 'common'
+
+type SecretPatternMatch = Omit<SecretWarning, 'source'>
 
 const SECRET_PATTERNS: Array<{ regex: RegExp; label: string }> = [
   { regex: /(?:password|passwd|pwd)\s*[=:]\s*\S+/i, label: 'password assignment' },
@@ -23,9 +20,9 @@ const MAX_SNIPPET_LENGTH = 80
  * Returns warnings with line numbers, the matched pattern name, and a
  * truncated snippet of the matching line.
  */
-export const detectSecretPatterns = (text: string): SecretWarning[] => {
+export const detectSecretPatterns = (text: string): SecretPatternMatch[] => {
   const lines = text.split('\n')
-  const warnings: SecretWarning[] = []
+  const warnings: SecretPatternMatch[] = []
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
@@ -52,8 +49,8 @@ export const detectSecretsInServiceDefinition = (opts: {
   runCommand?: string
   installCommand?: string
   buildCommand?: string
-}): Array<SecretWarning & { source: string }> => {
-  const results: Array<SecretWarning & { source: string }> = []
+}): SecretWarning[] => {
+  const results: SecretWarning[] = []
 
   for (const file of opts.files ?? []) {
     for (const warning of detectSecretPatterns(file.content)) {

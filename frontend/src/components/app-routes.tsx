@@ -7,15 +7,14 @@ import { PrerequisitesList } from '../pages/prerequisites/prerequisites-list.js'
 import { CreateRepository } from '../pages/repositories/create-repository.js'
 import { EditRepository } from '../pages/repositories/edit-repository.js'
 import { RepositoriesList } from '../pages/repositories/repositories-list.js'
-import { CreateService } from '../pages/services/create-service.js'
-import { ServiceDetail } from '../pages/services/service-detail.js'
+import { ServiceDetail } from '../pages/services/service-detail/index.js'
 import { ServiceLogs } from '../pages/services/service-logs.js'
 import { ServicesList } from '../pages/services/services-list.js'
 import { UserSettings } from '../pages/settings/user-settings.js'
 import { CreateStack } from '../pages/stacks/create-stack.js'
 import { EditStack } from '../pages/stacks/edit-stack.js'
 import { StackSetup } from '../pages/stacks/stack-setup.js'
-import { CreateServiceWizard } from '../pages/wizards/create-service-wizard.js'
+import { CreateServiceWizard } from '../pages/wizards/create-service-wizard/index.js'
 
 export const appRoutes = {
   '/': {
@@ -53,11 +52,6 @@ export const appRoutes = {
   '/stacks/:stackName/services': {
     component: ({ match }: { match: MatchResult<{ stackName: string }> }) => (
       <ServicesList stackName={match.params.stackName} />
-    ),
-  },
-  '/stacks/:stackName/services/create': {
-    component: ({ match }: { match: MatchResult<{ stackName: string }> }) => (
-      <CreateService stackName={match.params.stackName} />
     ),
   },
   '/stacks/:stackName/services/wizard': {
@@ -104,7 +98,7 @@ export const appRoutes = {
       <PrerequisitesList stackName={match.params.stackName} />
     ),
   },
-} as const satisfies Record<string, NestedRoute<any>>
+} as const satisfies Record<string, NestedRoute<any>> // NestedRouterProps requires `any` for heterogeneous route params
 
 export const StackCraftNestedRouteLink = createNestedRouteLink<typeof appRoutes>()
 

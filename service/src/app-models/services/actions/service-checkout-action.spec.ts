@@ -1,128 +1,156 @@
-import { addStore, InMemoryStore } from '@furystack/core'
-import { Injector } from '@furystack/inject'
-import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
-import { GitHubRepository, ServiceDefinition, ServiceStatus, StackConfig } from 'common'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
+import type { Injector } from '@furystack/inject'
+import { GitHeadWatcher } from '../../../services/git-head-watcher.js'
 import { GitService } from '../../../services/git-service.js'
+import { createMockActionContext, withTestInjector } from '../../../test-helpers.js'
 import { ServiceCheckoutAction } from './service-checkout-action.js'
 
-const createMockActionContext = (options: {
-  injector: Injector
-  urlParams?: Record<string, string>
-  body?: { branch: string }
-}) => ({
-  injector: options.injector,
-  getBody: () => Promise.resolve(options.body ?? { branch: 'dev' }),
-  getUrlParams: () => (options.urlParams ?? {}) as { id: string },
-  getQuery: () => ({}) as never,
-  request: {} as never,
-  response: {} as never,
-})
+const seedClonedService = async (elevated: Injector) => {
+  const repo = getRepository(elevated)
+  await repo.getDataSetFor((await import('common')).StackConfig, 'stackName').add(elevated, {
+    stackName: 'stack-1',
+    mainDirectory: '/tmp/stacks',
+    environmentVariables: {},
+    createdAt: '',
+    updatedAt: '',
+  })
+  await repo.getDataSetFor((await import('common')).ServiceDefinition, 'id').add(elevated, {
+    id: 'svc-1',
+    stackName: 'stack-1',
+    displayName: 'Test',
+    description: '',
+    runCommand: 'npm start',
+    files: [],
+    createdAt: '',
+    updatedAt: '',
+  })
+  await repo.getDataSetFor((await import('common')).ServiceStatus, 'serviceId').add(elevated, {
+    serviceId: 'svc-1',
+    cloneStatus: 'cloned',
+    installStatus: 'not-installed',
+    buildStatus: 'not-built',
+    runStatus: 'stopped',
+    updatedAt: '',
+  })
+}
 
 describe('ServiceCheckoutAction', () => {
-  let injector: Injector
-  let mockGit: { checkout: ReturnType<typeof vi.fn>; getCurrentBranch: ReturnType<typeof vi.fn> }
+  it('should throw 404 when service not found', () =>
+    withTestInjector(async ({ elevated }) => {
+      const ctx = createMockActionContext({
+        injector: elevated,
+        urlParams: { id: 'nonexistent' },
+        body: { branch: 'dev' },
+      })
+      await expect(ServiceCheckoutAction(ctx)).rejects.toThrow(RequestError)
+    }))
 
-  beforeEach(async () => {
-    injector = new Injector()
-    useLogging(injector, VerboseConsoleLogger)
+  it('should throw 400 when not cloned', () =>
+    withTestInjector(async ({ elevated }) => {
+      const repo = getRepository(elevated)
+      await repo.getDataSetFor((await import('common')).ServiceDefinition, 'id').add(elevated, {
+        id: 'svc-1',
+        stackName: 'stack-1',
+        displayName: 'Test',
+        description: '',
+        runCommand: 'npm start',
+        files: [],
+        createdAt: '',
+        updatedAt: '',
+      })
+      await repo.getDataSetFor((await import('common')).ServiceStatus, 'serviceId').add(elevated, {
+        serviceId: 'svc-1',
+        cloneStatus: 'not-cloned',
+        installStatus: 'not-installed',
+        buildStatus: 'not-built',
+        runStatus: 'stopped',
+        updatedAt: '',
+      })
 
-    addStore(injector, new InMemoryStore({ model: ServiceDefinition, primaryKey: 'id' }))
-    addStore(injector, new InMemoryStore({ model: ServiceStatus, primaryKey: 'serviceId' }))
-    addStore(injector, new InMemoryStore({ model: StackConfig, primaryKey: 'stackName' }))
-    addStore(injector, new InMemoryStore({ model: GitHubRepository, primaryKey: 'id' }))
+      const ctx = createMockActionContext({
+        injector: elevated,
+        urlParams: { id: 'svc-1' },
+        body: { branch: 'dev' },
+      })
+      await expect(ServiceCheckoutAction(ctx)).rejects.toThrow('Repository is not cloned yet')
+    }))
 
-    const repo = getRepository(injector)
-    repo.createDataSet(ServiceDefinition, 'id')
-    repo.createDataSet(ServiceStatus, 'serviceId')
-    repo.createDataSet(StackConfig, 'stackName')
-    repo.createDataSet(GitHubRepository, 'id')
+  it('should checkout branch and refresh git status', () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      const mockGit = {
+        checkout: vi.fn().mockResolvedValue(undefined),
+        getCurrentBranch: vi.fn().mockResolvedValue('dev'),
+        getCommitsBehind: vi.fn().mockResolvedValue(0),
+      }
+      injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
 
-    mockGit = {
-      checkout: vi.fn().mockResolvedValue(undefined),
-      getCurrentBranch: vi.fn().mockResolvedValue('dev'),
-    }
-    injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
-  })
+      const mockHeadWatcher = { watch: vi.fn().mockResolvedValue(undefined) }
+      injector.setExplicitInstance(mockHeadWatcher as unknown as GitHeadWatcher, GitHeadWatcher)
 
-  afterEach(async () => {
-    await injector[Symbol.asyncDispose]()
-  })
+      await seedClonedService(elevated)
 
-  it('should throw 404 when service not found', async () => {
-    const ctx = createMockActionContext({ injector, urlParams: { id: 'nonexistent' } })
-    await expect(ServiceCheckoutAction(ctx)).rejects.toThrow(RequestError)
-  })
+      const ctx = createMockActionContext({
+        injector: elevated,
+        urlParams: { id: 'svc-1' },
+        body: { branch: 'dev' },
+      })
+      const result = await ServiceCheckoutAction(ctx)
+      const body = result.chunk as { success: boolean; serviceId: string }
 
-  it('should throw 400 when not cloned', async () => {
-    const ds = getRepository(injector).getDataSetFor(ServiceDefinition, 'id')
-    await ds.add(injector, {
-      id: 'svc-1',
-      stackName: 'stack-1',
-      displayName: 'Test',
-      description: '',
-      runCommand: 'npm start',
-      prerequisiteIds: [],
-      prerequisiteServiceIds: [],
-      files: [],
-      createdAt: '',
-      updatedAt: '',
-    })
-    const statusDs = getRepository(injector).getDataSetFor(ServiceStatus, 'serviceId')
-    await statusDs.add(injector, {
-      serviceId: 'svc-1',
-      cloneStatus: 'not-cloned',
-      installStatus: 'not-installed',
-      buildStatus: 'not-built',
-      runStatus: 'stopped',
-      updatedAt: '',
-    })
+      expect(body.success).toBe(true)
+      expect(body.serviceId).toBe('svc-1')
+      expect(mockGit.checkout).toHaveBeenCalledWith(expect.any(String), 'dev')
+      expect(mockHeadWatcher.watch).toHaveBeenCalledWith('svc-1', expect.any(String))
+    }))
 
-    const ctx = createMockActionContext({ injector, urlParams: { id: 'svc-1' } })
-    await expect(ServiceCheckoutAction(ctx)).rejects.toThrow('Repository is not cloned yet')
-  })
+  it('should strip origin/ prefix from remote branch names', () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      const mockGit = {
+        checkout: vi.fn().mockResolvedValue(undefined),
+        getCurrentBranch: vi.fn().mockResolvedValue('feature/new'),
+        getCommitsBehind: vi.fn().mockResolvedValue(0),
+      }
+      injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
 
-  it('should checkout branch and update status when cloned', async () => {
-    const repo = getRepository(injector)
-    await repo.getDataSetFor(StackConfig, 'stackName').add(injector, {
-      stackName: 'stack-1',
-      mainDirectory: '/tmp/stacks',
-      environmentVariables: {},
-      createdAt: '',
-      updatedAt: '',
-    })
-    const ds = repo.getDataSetFor(ServiceDefinition, 'id')
-    await ds.add(injector, {
-      id: 'svc-1',
-      stackName: 'stack-1',
-      displayName: 'Test',
-      description: '',
-      runCommand: 'npm start',
-      prerequisiteIds: [],
-      prerequisiteServiceIds: [],
-      files: [],
-      createdAt: '',
-      updatedAt: '',
-    })
-    const statusDs = repo.getDataSetFor(ServiceStatus, 'serviceId')
-    await statusDs.add(injector, {
-      serviceId: 'svc-1',
-      cloneStatus: 'cloned',
-      installStatus: 'not-installed',
-      buildStatus: 'not-built',
-      runStatus: 'stopped',
-      updatedAt: '',
-    })
+      const mockHeadWatcher = { watch: vi.fn().mockResolvedValue(undefined) }
+      injector.setExplicitInstance(mockHeadWatcher as unknown as GitHeadWatcher, GitHeadWatcher)
 
-    const ctx = createMockActionContext({ injector, urlParams: { id: 'svc-1' }, body: { branch: 'dev' } })
-    const result = await ServiceCheckoutAction(ctx)
-    const body = result.chunk as { success: boolean; serviceId: string }
+      await seedClonedService(elevated)
 
-    expect(body.success).toBe(true)
-    expect(body.serviceId).toBe('svc-1')
-    expect(mockGit.checkout).toHaveBeenCalledWith(expect.any(String), 'dev')
-  })
+      const ctx = createMockActionContext({
+        injector: elevated,
+        urlParams: { id: 'svc-1' },
+        body: { branch: 'origin/feature/new' },
+      })
+      await ServiceCheckoutAction(ctx)
+
+      expect(mockGit.checkout).toHaveBeenCalledWith(expect.any(String), 'feature/new')
+      expect(mockHeadWatcher.watch).toHaveBeenCalledWith('svc-1', expect.any(String))
+    }))
+
+  it('should not refresh git status when checkout fails', () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      const mockGit = {
+        checkout: vi.fn().mockRejectedValue(new Error('conflict')),
+        getCurrentBranch: vi.fn().mockResolvedValue('main'),
+        getCommitsBehind: vi.fn().mockResolvedValue(0),
+      }
+      injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
+
+      const mockHeadWatcher = { watch: vi.fn().mockResolvedValue(undefined) }
+      injector.setExplicitInstance(mockHeadWatcher as unknown as GitHeadWatcher, GitHeadWatcher)
+
+      await seedClonedService(elevated)
+
+      const ctx = createMockActionContext({
+        injector: elevated,
+        urlParams: { id: 'svc-1' },
+        body: { branch: 'broken-branch' },
+      })
+      await expect(ServiceCheckoutAction(ctx)).rejects.toThrow('Failed to checkout branch')
+      expect(mockHeadWatcher.watch).not.toHaveBeenCalled()
+    }))
 })

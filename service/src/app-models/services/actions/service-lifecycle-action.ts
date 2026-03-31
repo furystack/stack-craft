@@ -4,6 +4,7 @@ import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ServiceActionEndpoint } from 'common'
 import { ProcessManager } from '../../../services/process-manager.js'
+import { DomainError } from '../../../utils/domain-error.js'
 
 type LifecycleAction = 'start' | 'stop' | 'restart' | 'install' | 'build' | 'pull' | 'setup' | 'update'
 
@@ -58,7 +59,8 @@ export const ServiceLifecycleAction =
     } catch (error) {
       if (error instanceof RequestError) throw error
       const message = error instanceof Error ? error.message : 'Unknown error'
-      throw new RequestError(message, 500)
+      const statusCode = error instanceof DomainError ? error.statusCode : 500
+      throw new RequestError(message, statusCode)
     }
 
     return JsonResult({ success: true, serviceId })

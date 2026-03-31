@@ -1,6 +1,39 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
+    "HealthCheckResult": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["ok", "degraded"]
+        },
+        "uptime": {
+          "type": "number"
+        },
+        "version": {
+          "type": "string"
+        },
+        "database": {
+          "type": "string",
+          "enum": ["connected", "disconnected"]
+        }
+      },
+      "required": ["status", "uptime", "version", "database"],
+      "additionalProperties": false,
+      "description": "Backend health status including uptime and database connectivity"
+    },
+    "HealthCheckEndpoint": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/HealthCheckResult"
+        }
+      },
+      "required": ["result"],
+      "additionalProperties": false,
+      "description": "Returns the current health status of the service"
+    },
     "CheckEnvAvailabilityEndpoint": {
       "type": "object",
       "properties": {
@@ -25,40 +58,21 @@
         }
       },
       "required": ["result", "body"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Checks whether the specified environment variables are set on the host system"
     },
     "SystemApi": {
       "type": "object",
       "properties": {
         "GET": {
           "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "properties": {
-              "result": {},
-              "url": {},
-              "query": {},
-              "body": {},
-              "headers": {},
-              "tags": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "deprecated": {
-                "type": "boolean"
-              },
-              "summary": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              }
-            },
-            "required": ["result"],
-            "additionalProperties": false
-          }
+          "properties": {
+            "/system/health": {
+              "$ref": "#/definitions/HealthCheckEndpoint"
+            }
+          },
+          "required": ["/system/health"],
+          "additionalProperties": false
         },
         "POST": {
           "type": "object",
@@ -281,7 +295,7 @@
           }
         }
       },
-      "required": ["POST"],
+      "required": ["GET", "POST"],
       "additionalProperties": false
     }
   }

@@ -9,7 +9,7 @@ type PasswordChangePayload = {
   confirmNewPassword: string
 }
 
-const isPasswordChangePayload = (data: unknown): data is PasswordChangePayload => {
+export const isPasswordChangePayload = (data: unknown): data is PasswordChangePayload => {
   const d = data as PasswordChangePayload
   return d.currentPassword?.length > 0 && d.newPassword?.length >= 4 && d.confirmNewPassword === d.newPassword
 }

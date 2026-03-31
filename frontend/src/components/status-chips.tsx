@@ -1,14 +1,7 @@
 import { createComponent, Shade } from '@furystack/shades'
 import type { Palette } from '@furystack/shades-common-components'
 import { Chip } from '@furystack/shades-common-components'
-import type {
-  BuildStatus,
-  CloneStatus,
-  InstallStatus,
-  PrerequisiteCheckStatus,
-  PrerequisiteType,
-  RunStatus,
-} from 'common'
+import type { BuildStatus, CloneStatus, InstallStatus, PrerequisiteType, RunStatus } from 'common'
 
 type StatusMapping<T extends string> = Record<T, { label: string; color: keyof Palette; icon: string }>
 
@@ -81,25 +74,6 @@ export const RunStatusChip = Shade<{ status: RunStatus }>({
   customElementName: 'shade-run-status-chip',
   render: ({ props }) => {
     const { label, color, icon } = runStatusMap[props.status]
-    return (
-      <Chip variant="outlined" color={color} size="small">
-        {icon} {label}
-      </Chip>
-    )
-  },
-})
-
-const prereqCheckStatusMap: StatusMapping<PrerequisiteCheckStatus> = {
-  unchecked: { label: 'Not Checked', color: 'secondary', icon: '·' },
-  checking: { label: 'Checking', color: 'warning', icon: '⏳' },
-  satisfied: { label: 'Satisfied', color: 'success', icon: '✓' },
-  failed: { label: 'Failed', color: 'error', icon: '✗' },
-}
-
-export const PrerequisiteCheckChip = Shade<{ status: PrerequisiteCheckStatus }>({
-  customElementName: 'shade-prereq-check-chip',
-  render: ({ props }) => {
-    const { label, color, icon } = prereqCheckStatusMap[props.status]
     return (
       <Chip variant="outlined" color={color} size="small">
         {icon} {label}

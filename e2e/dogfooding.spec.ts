@@ -1,5 +1,18 @@
+import { randomBytes } from 'crypto'
+
 import { expect, test } from '@playwright/test'
-import { login } from './helpers.js'
+
+import {
+  addPrerequisite,
+  createStack,
+  deleteStack,
+  expectNotification,
+  fillServiceForm,
+  getAvailablePort,
+  login,
+  navigateToCreateService,
+  submitServiceForm,
+} from './helpers/index.js'
 
 test('DOG FOODING TIME - Create a service that uses the StackCraft GitHub repository. Clone, install, build and run the service', async ({
   page,
@@ -8,104 +21,185 @@ test('DOG FOODING TIME - Create a service that uses the StackCraft GitHub reposi
   const uuid = crypto.randomUUID()
 
   const stackName = `e2e-dog-fooding-time-${uuid}`
-  const displayName = `E2E DOG FOODING Stack - ${browserName} - ${uuid}`
+  const displayName = `Dog Fooding - ${browserName} - ${uuid}`
   const description = `
-### 🐶🦴 E2E - IT'S DOG FOODING TIME 🐶🦴
+##### 🐶🦴 E2E - IT'S DOG FOODING TIME 🐶🦴
 
 This stack is used to test the dogfooding of the StackCraft application.
 It is used to test the following features:
   - Creating a stack
+  - Adding realistic prerequisites (Node.js, Yarn, Git, environment variables)
+  - Configuring environment variables (plain text + confidential)
+  - Adding a local .env file override
   - Creating a service that uses the StackCraft GitHub repository
   - Cloning, installing, building and running the service
 
-### Test Steps
+##### Test Steps
 
   1. Create a stack
-  2. Create a service that uses the StackCraft GitHub repository
+  2. Create a service with prerequisites, env vars, file overrides, and the StackCraft GitHub repository
   3. Clone, install, build and run the service
-  4. Verify that the service is running
-  5. Verify that the service is logging to the console
-  6. Verify that the service is accessible via the browser
-  7. Verify that the service is accessible via the API
-  8. Remove the service
-  9. Remove the stack
-  10. Verify that the stack and service are removed
-  11. The dog has eaten the food. Woof woof!
+  4. Verify that the first start fails (port already in use)
+  5. Override APP_SERVICE_PORT to a unique port and restart
+  6. Verify that the service is running and reachable via HTTP
+  7. Stop the service and remove the stack
 
   `
 
+  const dogfoodingPort = await getAvailablePort()
+  const mcpPort = await getAvailablePort()
   const workingDirectory = `/tmp/e2e-dog-fooding-time-${uuid}`
 
   await page.goto('/')
   await login(page)
 
-  // Create stack
-  await page.locator('button, a', { hasText: 'Create Stack' }).first().click()
-  await expect(page.locator('shade-create-stack')).toBeVisible()
+  try {
+    await test.step('Create stack', async () => {
+      await createStack(page, {
+        name: stackName,
+        displayName,
+        description,
+        mainDirectory: '/tmp/e2e-test',
+      })
+    })
 
-  await page.locator('input[name="name"]').fill(stackName)
-  await page.locator('input[name="displayName"]').fill(displayName)
-  await page.locator('textarea[name="description"]').fill(description)
-  await page.locator('input[name="mainDirectory"]').fill('/tmp/e2e-test')
-  await page.locator('button', { hasText: 'Create' }).click()
+    await test.step('Configure and create service', async () => {
+      await navigateToCreateService(page, displayName)
 
-  await expect(page.locator('shade-noty-list')).toContainText(`Stack "${displayName}" was created successfully.`)
+      await fillServiceForm(page, {
+        displayName: 'StackCraft DOG FOODING TIME!',
+        workingDirectory,
+        runCommand: 'yarn start:service',
+      })
 
-  await expect(page.locator('shade-dashboard')).toBeVisible()
+      // --- Add realistic prerequisites ---
+      await addPrerequisite(page, { name: 'Node.js >= 22', type: 'Node.js', minimumVersion: '22.0.0' })
+      await addPrerequisite(page, { name: 'Yarn >= 4', type: 'Yarn', minimumVersion: '4.0.0' })
+      await addPrerequisite(page, { name: 'Git', type: 'Git' })
+      await addPrerequisite(page, { name: 'Mock API Key', type: 'Environment Variable', variableName: 'MOCK_API_KEY' })
+      await addPrerequisite(page, {
+        name: 'Encryption Key',
+        type: 'Environment Variable',
+        variableName: 'STACK_CRAFT_ENCRYPTION_KEY',
+        isSensitive: true,
+      })
+      await addPrerequisite(page, { name: 'Database URL', type: 'Environment Variable', variableName: 'DATABASE_URL' })
+      await addPrerequisite(page, {
+        name: 'Service Port',
+        type: 'Environment Variable',
+        variableName: 'APP_SERVICE_PORT',
+      })
+      await addPrerequisite(page, { name: 'MCP Port', type: 'Environment Variable', variableName: 'MCP_PORT' })
 
-  await expect(page.getByTestId('page-header-title')).toContainText(displayName)
+      // --- Add local .env file override ---
+      await page.locator('button', { hasText: 'Add Local File' }).click()
+      await page.locator('input[placeholder="Relative path (e.g. .env)"]').fill('.env')
+      await page
+        .locator('textarea[placeholder="File content"]')
+        .fill(`STACK_CRAFT_ENCRYPTION_KEY=${randomBytes(32).toString('base64')}`)
 
-  // Navigate to services list via the dashboard card
-  await page.locator('shade-dashboard a', { hasText: 'Services' }).click()
-  await expect(page.locator('shade-services-list')).toBeVisible()
-  await page.locator('button', { hasText: 'Create Service' }).first().click()
-  await expect(page.locator('shade-create-service-wizard')).toBeVisible()
+      // --- Add StackCraft GitHub repository inline ---
+      await page.locator('button', { hasText: 'New' }).click()
+      const repoForm = page.locator('shade-github-repo-form')
+      await expect(repoForm).toBeVisible()
+      await repoForm.locator('input[name="url"]').fill('https://github.com/furystack/stack-craft')
+      await repoForm.locator('input[name="displayName"]').fill('StackCraft')
+      await repoForm.locator('button', { hasText: 'Add' }).click()
+      await expectNotification(page, '"StackCraft" was added.')
 
-  await page.locator('input[name="displayName"]').fill('StackCraft DOG FOODING TIME!')
-  await page.locator('input[name="workingDirectory"]').fill(workingDirectory)
-  await page.locator('input[name="runCommand"]').fill('yarn start:service')
+      // Select the newly created repository
+      const repoSelect = page.locator('shade-select').filter({ has: page.locator('input[name="repositoryId"]') })
+      await repoSelect.locator('.select-trigger').click()
+      await repoSelect.locator('.dropdown-item', { hasText: 'StackCraft' }).click()
 
-  // Add StackCraft GitHub repository inline
-  await page.locator('button', { hasText: 'New' }).click()
-  const repoForm = page.locator('shade-github-repo-form')
-  await expect(repoForm).toBeVisible()
-  await repoForm.locator('input[name="url"]').fill('https://github.com/furystack/stack-craft')
-  await repoForm.locator('input[name="displayName"]').fill('StackCraft')
-  await repoForm.locator('button', { hasText: 'Add' }).click()
-  await expect(page.locator('shade-noty-list')).toContainText('"StackCraft" was added.')
+      await page.locator('input[name="installCommand"]').fill('yarn install')
+      await page.locator('input[name="buildCommand"]').fill('yarn build')
+      await page.locator('input[name="runCommand"]').fill('yarn start:service')
 
-  // Select the newly created repository
-  const repoSelect = page.locator('shade-select').filter({ has: page.locator('input[name="repositoryId"]') })
-  await repoSelect.locator('.select-trigger').click()
-  await repoSelect.locator('.dropdown-item', { hasText: 'StackCraft' }).click()
+      await submitServiceForm(page)
+    })
 
-  await page.locator('input[name="installCommand"]').fill('yarn install')
-  await page.locator('input[name="buildCommand"]').fill('yarn build')
-  await page.locator('input[name="runCommand"]').fill('yarn start:service')
+    await test.step('Set up service (clone, install, build)', async () => {
+      await page.locator('button', { hasText: 'Set up now' }).click()
 
-  await page.locator('button', { hasText: 'Create' }).click()
+      // Clone + install + build may take several minutes
+      await expect(page.getByText('Service set up successfully!')).toBeVisible({ timeout: 10 * 60 * 1000 })
 
-  // Step 2: Set up the service (clone, install, build)
-  await page.locator('button', { hasText: 'Set up now' }).click()
+      await page.locator('button', { hasText: 'View Service' }).click()
+      await expect(page.locator('shade-service-detail')).toBeVisible()
+    })
 
-  // Clone + install + build may take several minutes
-  await expect(page.getByText('Service set up successfully!')).toBeVisible({ timeout: 10 * 60 * 1000 })
+    await test.step('First start attempt — expect failure (port already in use)', async () => {
+      await page.getByTestId('service-detail-action-bar').getByRole('button', { name: 'Start' }).click()
 
-  // Navigate to the service detail
-  await page.locator('button', { hasText: 'View Service' }).click()
-  await expect(page.locator('shade-service-detail')).toBeVisible()
+      // The spawned service will try to bind to port 9090 (default), which is
+      // already occupied by the test host. Expect status to transition to Error.
+      await expect(page.getByTestId('service-status-indicator')).toContainText('Error', { timeout: 60_000 })
 
-  // Start the service (click the primary action in the header, not the stepper)
-  await page.getByTestId('page-header-actions').getByRole('button', { name: 'Start' }).click()
+      await page.getByTestId('service-detail-tabs').getByRole('tab', { name: 'Logs' }).click()
+      await expect(page.locator('shade-service-logs-tab')).toBeVisible()
 
-  // Wait for the service to reach running state
-  await expect(page.locator('shade-service-status-indicator')).toContainText('Running')
+      const logViewer = page.locator('shade-service-logs-tab shade-log-viewer')
+      await expect(logViewer).toBeVisible()
+      await expect(logViewer).toContainText(/EADDRINUSE|address already in use/, { timeout: 10_000 })
+    })
 
-  // Navigate to the Logs tab via the tab bar
-  await page.getByTestId('service-detail-tabs').getByRole('button', { name: 'Logs' }).click()
-  await expect(page.locator('shade-service-logs-tab')).toBeVisible()
+    await test.step('Override APP_SERVICE_PORT and MCP_PORT, then restart', async () => {
+      await page.getByTestId('service-detail-tabs').getByRole('tab', { name: 'Configuration' }).click()
+      await expect(page.locator('shade-service-config-tab')).toBeVisible()
 
-  // Verify that the log viewer is present with entries
-  await expect(page.locator('shade-service-logs-tab shade-log-viewer')).toBeVisible()
-  await expect(page.locator('shade-service-logs-tab shade-log-viewer')).not.toContainText('No log output yet.')
+      // Set APP_SERVICE_PORT override to a unique port per browser
+      const portOverride = page.getByTestId('env-override-APP_SERVICE_PORT')
+      await expect(portOverride).toBeVisible()
+
+      const portSourceSelect = portOverride.locator('shade-select').first()
+      await portSourceSelect.locator('.select-trigger').click()
+      await portSourceSelect.locator('.dropdown-item', { hasText: 'Custom value' }).click()
+      await portOverride.locator('shade-input input').fill(String(dogfoodingPort))
+
+      // Set MCP_PORT override to avoid conflict with the test host's MCP server
+      const mcpOverride = page.getByTestId('env-override-MCP_PORT')
+      await expect(mcpOverride).toBeVisible()
+
+      const mcpSourceSelect = mcpOverride.locator('shade-select').first()
+      await mcpSourceSelect.locator('.select-trigger').click()
+      await mcpSourceSelect.locator('.dropdown-item', { hasText: 'Custom value' }).click()
+      await mcpOverride.locator('shade-input input').fill(String(mcpPort))
+
+      // Save the overrides and wait for the save to complete
+      const saveButton = page.getByTestId('save-env-overrides')
+      await saveButton.click()
+      await expect(saveButton).not.toHaveAttribute('loading', { timeout: 10_000 })
+
+      // Navigate back to the Overview tab and start the service again
+      await page.getByTestId('service-detail-tabs').getByRole('tab', { name: 'Overview' }).click()
+      await page.getByTestId('service-detail-action-bar').getByRole('button', { name: 'Start' }).click()
+
+      await expect(page.getByTestId('service-status-indicator')).toContainText('Running', { timeout: 60_000 })
+    })
+
+    await test.step('Verify logs and HTTP reachability', async () => {
+      await page.getByTestId('service-detail-tabs').getByRole('tab', { name: 'Logs' }).click()
+      await expect(page.locator('shade-service-logs-tab')).toBeVisible()
+
+      const successLogViewer = page.locator('shade-service-logs-tab shade-log-viewer')
+      await expect(successLogViewer).toBeVisible()
+      await expect(successLogViewer).not.toContainText('No log output yet.')
+
+      await expect(async () => {
+        const response = await page.request.get(`http://localhost:${dogfoodingPort}`)
+        expect(response.status()).toBe(200)
+      }).toPass({ timeout: 60_000 })
+    })
+
+    await test.step('Stop the service', async () => {
+      // SIGTERM may cause non-zero exit → "Error" or clean → "Stopped"
+      await page.getByTestId('service-detail-action-bar').getByRole('button', { name: 'Stop' }).click()
+      await expect(page.getByTestId('service-status-indicator')).toContainText(/Stopped|Error/, { timeout: 30_000 })
+    })
+  } finally {
+    await test.step('Clean up stack', async () => {
+      await deleteStack(page, displayName)
+    })
+  }
 })

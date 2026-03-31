@@ -1,9 +1,15 @@
+/**
+ * REST API type definitions for GitHub repository management.
+ * Repositories are linked to services and used for cloning, fetching, and branch tracking.
+ */
+
 import type { WithOptionalId } from '@furystack/core'
 import type { DeleteEndpoint, GetCollectionEndpoint, GetEntityEndpoint, PatchEndpoint, RestApi } from '@furystack/rest'
 import type { GitHubRepository } from '../models/github-repository.js'
 
 export type GitHubRepoWritableFields = Omit<GitHubRepository, 'createdAt' | 'updatedAt'>
 
+/** Registers a new GitHub repository */
 export type PostGitHubRepoEndpoint = {
   result: GitHubRepository
   body: WithOptionalId<GitHubRepoWritableFields, 'id'>
@@ -11,6 +17,7 @@ export type PostGitHubRepoEndpoint = {
 
 export type PatchGitHubRepoEndpoint = PatchEndpoint<GitHubRepoWritableFields, 'id'>
 
+/** Checks whether the repository is accessible (e.g. URL is valid and reachable) */
 export type ValidateRepoEndpoint = {
   url: { id: string }
   result: { accessible: boolean; message?: string }

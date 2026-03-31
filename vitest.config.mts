@@ -4,7 +4,12 @@ export default defineConfig({
   test: {
     coverage: {
       enabled: true,
-      include: ['common/src/**/*.ts', 'frontend/src/**/*.ts', 'service/src/**/*.ts'],
+      include: ['common/src/**/*.{ts,tsx}', 'frontend/src/**/*.{ts,tsx}', 'service/src/**/*.{ts,tsx}'],
+      thresholds: {
+        lines: 34,
+        branches: 26,
+        functions: 24,
+      },
     },
     projects: [
       {
@@ -24,6 +29,9 @@ export default defineConfig({
           name: 'Frontend',
           environment: 'jsdom',
           include: ['frontend/src/**/*.spec.(ts|tsx)'],
+        },
+        define: {
+          __APP_SERVICE_PORT__: JSON.stringify('9090'),
         },
       },
     ],

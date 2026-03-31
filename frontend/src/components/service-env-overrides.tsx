@@ -4,7 +4,7 @@ import { Button, cssVariableTheme, Icon, icons, Input, Paper, Select } from '@fu
 import type { EnvironmentVariableValue, Prerequisite, ServiceView } from 'common'
 
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
-import { SystemApiClient } from '../services/api-clients/system-api-client.js'
+import { EnvironmentVariableService } from '../services/environment-variable-service.js'
 
 type ServiceEnvOverridesProps = {
   service: ServiceView
@@ -31,13 +31,9 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
     if (!hasChecked) {
       const varNames = envPrereqs.map((p) => (p.config as { variableName: string }).variableName)
       void injector
-        .getInstance(SystemApiClient)
-        .call({
-          method: 'POST',
-          action: '/system/check-env-availability',
-          body: { variableNames: varNames },
-        })
-        .then(({ result }) => {
+        .getInstance(EnvironmentVariableService)
+        .checkAvailability(varNames)
+        .then((result) => {
           setEnvAvailability(result)
           setHasChecked(true)
         })
@@ -47,14 +43,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
     const handleSave = async () => {
       setIsSaving(true)
       try {
-        const toSave: Record<string, EnvironmentVariableValue> = {}
-        for (const [key, val] of Object.entries(editState)) {
-          if (val.isSensitive && val.source === 'custom' && !touchedSensitive.has(key)) {
-            toSave[key] = { ...val, customValue: '__UNCHANGED__' }
-          } else {
-            toSave[key] = val
-          }
-        }
+        const toSave = injector.getInstance(EnvironmentVariableService).buildSavePayload(editState, touchedSensitive)
         await injector.getInstance(ServicesApiClient).call({
           method: 'PATCH',
           action: '/services/:id',
@@ -90,6 +79,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
           return (
             <Paper
               elevation={0}
+              data-testid={`env-override-${varName}`}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -142,8 +132,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
                     ...(isGloballyAvailable ? [{ value: 'inherit', label: 'Inherit from system' }] : []),
                     { value: 'custom', label: 'Custom value' },
                   ]}
-                  onchange={(ev) => {
-                    const val = (ev.target as HTMLSelectElement).value
+                  onValueChange={(val) => {
                     if (val === '') {
                       const next = { ...editState }
                       delete next[varName]
@@ -190,6 +179,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Button
             variant="contained"
+            data-testid="save-env-overrides"
             loading={isSaving}
             onclick={() => void handleSave()}
             startIcon={<Icon icon={icons.check} size="small" />}
