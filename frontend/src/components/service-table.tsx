@@ -145,7 +145,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     title={primary.label}
                     aria-label={primary.label}
                     onclick={() => callServiceAction(entry.id, primary.apiAction.split('/').pop()!, primary.label)}
-                    startIcon={<Icon icon={icons[primary.icon as keyof typeof icons] ?? icons.play} size="small" />}
+                    startIcon={primary.icon || <Icon icon={icons.play} size="small" />}
                   />
                 ) : null}
                 {/* Restart (when running) */}

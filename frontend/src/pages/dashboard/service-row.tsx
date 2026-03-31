@@ -101,7 +101,7 @@ export const ServiceRow = Shade<ServiceRowProps>({
               color={primary.color === 'secondary' ? undefined : primary.color}
               title={primary.label}
               onclick={() => callServiceAction(svc.id, primary.apiAction.split('/').pop()!, primary.label)}
-              startIcon={<Icon icon={icons[primary.icon as keyof typeof icons] ?? icons.play} size="small" />}
+              startIcon={primary.icon ?? <Icon icon={icons.play} size="small" />}
             />
           ) : null}
           {svc.runStatus === 'running' ? (
