@@ -30,6 +30,7 @@ import { PrerequisiteSummaryChip } from '../../../components/prerequisite-summar
 import { ServiceStatusIndicator } from '../../../components/service-status-indicator.js'
 import { ServiceDetailActionBar } from './action-bar.js'
 import { ConfigurationTab } from './configuration-tab.js'
+import { FilesTab } from './files-tab.js'
 import { ServiceHistory } from './history-tab.js'
 import { LogsTab } from './logs-tab.js'
 import { OverviewTab } from './overview-tab.js'
@@ -42,7 +43,7 @@ import {
   saveService,
 } from './utils.js'
 
-export type TabId = 'overview' | 'logs' | 'history' | 'configuration'
+export type TabId = 'overview' | 'logs' | 'history' | 'files' | 'configuration'
 
 type ServiceDetailProps = {
   stackName: string
@@ -54,7 +55,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
   render: (options) => {
     const { props, injector, useState } = options
     const locationService = injector.getInstance(LocationService)
-    const validTabs: TabId[] = ['overview', 'logs', 'history', 'configuration']
+    const validTabs: TabId[] = ['overview', 'logs', 'history', 'files', 'configuration']
     const hashValue = locationService.onLocationHashChanged.getValue().replace('#', '')
     const searchState = locationService.onDeserializedLocationSearchChanged.getValue()
     const initialTab: TabId = validTabs.includes(hashValue as TabId)
@@ -239,6 +240,22 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                 component: <ServiceHistory serviceId={service.id} stackName={service.stackName} />,
               },
               {
+                header: <span>Files</span>,
+                hash: 'files',
+                component: (
+                  <FilesTab
+                    service={service}
+                    actionInProgress={actionInProgress}
+                    onSaveFiles={async (files, localFiles) => {
+                      await saveService(injector, service.id, { files, localFiles }, service.displayName)
+                    }}
+                    onApplyFiles={(relativePath) =>
+                      applyServiceFiles(injector, service.id, setActionInProgress, relativePath)
+                    }
+                  />
+                ),
+              },
+              {
                 header: <span>Configuration</span>,
                 hash: 'configuration',
                 component: (
@@ -249,7 +266,6 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                     otherServices={otherServices}
                     servicePrereqs={servicePrereqs}
                     stackConfig={stackConfig}
-                    actionInProgress={actionInProgress}
                     onSave={(data) => {
                       void saveService(injector, service.id, data, service.displayName).then((ok) => {
                         if (ok) setActiveTab('overview')
@@ -258,9 +274,6 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                     onCancel={() => setActiveTab('overview')}
                     onCreatePrerequisite={(data) => createPrerequisite(injector, service.stackName, data)}
                     onCreateRepository={(data) => createRepository(injector, service.stackName, data)}
-                    onApplyFiles={(relativePath) =>
-                      applyServiceFiles(injector, service.id, setActionInProgress, relativePath)
-                    }
                   />
                 ),
               },
