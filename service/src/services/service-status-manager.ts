@@ -5,7 +5,7 @@ import { getRepository } from '@furystack/repository'
 import type { BuildStatus, CloneStatus, InstallStatus, RunStatus, ServiceStateEvent } from 'common'
 import { ServiceStateHistory, ServiceStatus } from 'common'
 
-import type { TriggerContext } from './process-manager.js'
+import type { TriggerContext } from './trigger-context.js'
 
 const MAX_HISTORY_PER_SERVICE = 10_000
 const HISTORY_PRUNE_CHECK_INTERVAL = 100

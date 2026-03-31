@@ -7,7 +7,7 @@ import { ServiceDefinition, ServiceStatus } from 'common'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { GitHeadWatcher } from './git-head-watcher.js'
 import { GitWatcher } from './git-watcher.js'
-import type { TriggerContext } from './process-manager.js'
+import type { TriggerContext } from './trigger-context.js'
 import { ServiceStatusManager } from './service-status-manager.js'
 
 /** Detects and resets stale in-progress states on startup (e.g. services left as "running" after a crash) */

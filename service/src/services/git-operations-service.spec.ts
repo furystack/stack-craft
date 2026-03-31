@@ -9,7 +9,7 @@ import { GitHeadWatcher } from './git-head-watcher.js'
 import { GitOperationsService } from './git-operations-service.js'
 import { GitService } from './git-service.js'
 import { GitWatcher } from './git-watcher.js'
-import type { TriggerContext } from './process-manager.js'
+import type { TriggerContext } from './trigger-context.js'
 import { ServiceEnvResolver } from './service-env-resolver.js'
 import { ServiceStatusManager } from './service-status-manager.js'
 
