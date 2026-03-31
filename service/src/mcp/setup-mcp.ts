@@ -10,14 +10,15 @@ import { createMcpRequestHandler, McpSessionManager } from './mcp-server.js'
 export class McpHttpServer {
   private server: Server | null = null
   private sessionManager: McpSessionManager | null = null
-  private elevatedInjector: Injector | null = null
+  /** System-level injector used only for Bearer token resolution in {@link resolveTokenUser}. */
+  private authInjector: Injector | null = null
 
   public listen(injector: Injector, port: number, host: string) {
     const logger = getLogger(injector).withScope('MCP')
 
-    this.elevatedInjector = useSystemIdentityContext({ injector })
+    this.authInjector = useSystemIdentityContext({ injector })
     this.sessionManager = new McpSessionManager()
-    const handleRequest = createMcpRequestHandler(injector, this.sessionManager, this.elevatedInjector)
+    const handleRequest = createMcpRequestHandler(injector, this.sessionManager, this.authInjector)
 
     this.server = createServer((req, res) => {
       if (req.url === '/mcp' || req.url?.startsWith('/mcp?')) {
@@ -46,8 +47,8 @@ export class McpHttpServer {
       await new Promise<void>((resolve) => this.server!.close(() => resolve()))
       this.server = null
     }
-    await this.elevatedInjector?.[Symbol.asyncDispose]()
-    this.elevatedInjector = null
+    await this.authInjector?.[Symbol.asyncDispose]()
+    this.authInjector = null
   }
 }
 
