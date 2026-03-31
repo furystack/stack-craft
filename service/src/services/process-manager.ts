@@ -112,9 +112,11 @@ export class ProcessManager {
       })
 
       child.on('exit', (code) => {
+        const managed = this.runner.processes.get(serviceId)
+        const isGracefulStop = code === 0 || managed?.stopping === true
         void this.logger.information({ message: `Service exited: ${svc.displayName} (code ${code})` })
-        const newStatus: RunStatus = code === 0 ? 'stopped' : 'error'
-        const event: ServiceStateEvent = code === 0 ? 'run-stopped' : 'run-crashed'
+        const newStatus: RunStatus = isGracefulStop ? 'stopped' : 'error'
+        const event: ServiceStateEvent = isGracefulStop ? 'run-stopped' : 'run-crashed'
         void this.statusManager.updateServiceStatus(
           serviceId,
           { runStatus: newStatus },
@@ -150,6 +152,7 @@ export class ProcessManager {
     }
 
     await this.logger.information({ message: `Stopping service: ${serviceId}` })
+    managed.stopping = true
     await this.statusManager.updateServiceStatus(
       serviceId,
       { runStatus: 'stopping' },

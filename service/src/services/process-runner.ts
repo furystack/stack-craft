@@ -8,6 +8,7 @@ export type ManagedProcess = {
   process: ChildProcess
   purpose: 'run' | 'install' | 'build'
   processUid: string
+  stopping?: boolean
 }
 
 /**
