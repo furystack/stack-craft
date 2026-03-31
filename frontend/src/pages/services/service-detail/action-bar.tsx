@@ -41,7 +41,10 @@ export const ServiceDetailActionBar = Shade<ServiceDetailActionBarProps>({
     }
 
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
+        data-testid="service-detail-action-bar"
+      >
         {service.repositoryId ? (
           <BranchSelector
             serviceId={service.id}

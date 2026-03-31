@@ -126,7 +126,7 @@ It is used to test the following features:
     })
 
     await test.step('First start attempt — expect failure (port already in use)', async () => {
-      await page.getByTestId('page-header-actions').getByRole('button', { name: 'Start' }).click()
+      await page.getByTestId('service-detail-action-bar').getByRole('button', { name: 'Start' }).click()
 
       // The spawned service will try to bind to port 9090 (default), which is
       // already occupied by the test host. Expect status to transition to Error.
@@ -169,7 +169,7 @@ It is used to test the following features:
 
       // Navigate back to the Overview tab and start the service again
       await page.getByTestId('service-detail-tabs').getByRole('tab', { name: 'Overview' }).click()
-      await page.getByTestId('page-header-actions').getByRole('button', { name: 'Start' }).click()
+      await page.getByTestId('service-detail-action-bar').getByRole('button', { name: 'Start' }).click()
 
       await expect(page.getByTestId('service-status-indicator')).toContainText('Running', { timeout: 60_000 })
     })
@@ -190,7 +190,7 @@ It is used to test the following features:
 
     await test.step('Stop the service', async () => {
       // SIGTERM may cause non-zero exit → "Error" or clean → "Stopped"
-      await page.getByTestId('page-header-actions').getByRole('button', { name: 'Stop' }).click()
+      await page.getByTestId('service-detail-action-bar').getByRole('button', { name: 'Stop' }).click()
       await expect(page.getByTestId('service-status-indicator')).toContainText(/Stopped|Error/, { timeout: 30_000 })
     })
   } finally {
