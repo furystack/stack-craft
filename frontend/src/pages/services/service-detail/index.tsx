@@ -12,6 +12,7 @@ import {
 } from '@furystack/shades-common-components'
 import type { StackView } from 'common'
 import {
+  detectSecretsInServiceDefinition,
   getServiceCwd,
   GitHubRepository,
   mergeServiceView,
@@ -27,6 +28,7 @@ import {
 } from 'common'
 
 import { PrerequisiteSummaryChip } from '../../../components/prerequisite-summary-chip.js'
+import { SecretWarningsCard } from '../../../components/secret-warnings-card.js'
 import { ServiceStatusIndicator } from '../../../components/service-status-indicator.js'
 import { ServiceDetailActionBar } from './action-bar.js'
 import { ConfigurationTab } from './configuration-tab.js'
@@ -206,6 +208,28 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
             />
           </div>
         </Paper>
+
+        {(() => {
+          const serviceWarnings = detectSecretsInServiceDefinition({
+            files: serviceData.files,
+            runCommand: serviceData.runCommand,
+            installCommand: serviceData.installCommand,
+            buildCommand: serviceData.buildCommand,
+          })
+          if (serviceWarnings.length === 0) return null
+          return (
+            <SecretWarningsCard
+              warningGroups={[
+                {
+                  serviceId: service.id,
+                  serviceName: service.displayName,
+                  stackName: service.stackName,
+                  warnings: serviceWarnings,
+                },
+              ]}
+            />
+          )
+        })()}
 
         <div data-testid="service-detail-tabs" style={{ display: 'contents' }}>
           <Tabs

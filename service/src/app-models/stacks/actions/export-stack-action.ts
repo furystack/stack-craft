@@ -3,6 +3,7 @@ import { getRepository } from '@furystack/repository'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ExportStackEndpoint } from 'common'
 import {
+  detectSecretsInServiceDefinition,
   GitHubRepository,
   Prerequisite,
   ServiceDefinition,
@@ -10,8 +11,6 @@ import {
   ServicePrerequisiteLink,
   StackDefinition,
 } from 'common'
-
-import { detectSecretsInServiceDefinition } from '../../../utils/secret-detector.js'
 
 export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ injector, getUrlParams }) => {
   const { id: stackName } = getUrlParams()
@@ -54,6 +53,9 @@ export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ in
     ...rest
   }: T) => rest
 
+  const stripNullish = <T extends Record<string, unknown>>(obj: T): T =>
+    Object.fromEntries(Object.entries(obj).filter(([, v]) => v != null)) as T
+
   const warnings = services.flatMap((svc) =>
     detectSecretsInServiceDefinition({
       files: svc.files,
@@ -64,14 +66,14 @@ export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ in
   )
 
   return JsonResult({
-    stack: stripTimestamps(stack),
+    stack: stripNullish(stripTimestamps(stack)),
     services: services.map((svc) => ({
-      ...stripTimestamps(svc),
+      ...stripNullish(stripTimestamps(svc)),
       prerequisiteIds: prereqLinksByService.get(svc.id) ?? [],
       prerequisiteServiceIds: depLinksByService.get(svc.id) ?? [],
     })),
-    repositories: repositories.map(stripTimestamps),
-    prerequisites: prerequisites.map(stripTimestamps),
+    repositories: repositories.map((r) => stripNullish(stripTimestamps(r))),
+    prerequisites: prerequisites.map((p) => stripNullish(stripTimestamps(p))),
     ...(warnings.length > 0 ? { warnings } : {}),
   })
 }

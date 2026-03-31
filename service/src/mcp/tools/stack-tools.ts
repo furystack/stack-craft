@@ -266,13 +266,16 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
         ...rest
       }: T) => rest
 
+      const stripNullish = <T extends Record<string, unknown>>(obj: T): T =>
+        Object.fromEntries(Object.entries(obj).filter(([, v]) => v != null)) as T
+
       return textResult(
         JSON.stringify(
           {
-            stack: stripTimestamps(stack),
-            services: services.map(stripTimestamps),
-            repositories: repos.map(stripTimestamps),
-            prerequisites: prereqs.map(stripTimestamps),
+            stack: stripNullish(stripTimestamps(stack)),
+            services: services.map((s) => stripNullish(stripTimestamps(s))),
+            repositories: repos.map((r) => stripNullish(stripTimestamps(r))),
+            prerequisites: prereqs.map((p) => stripNullish(stripTimestamps(p))),
           },
           null,
           2,

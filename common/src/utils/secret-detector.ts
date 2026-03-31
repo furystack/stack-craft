@@ -1,4 +1,4 @@
-import type { SecretWarning } from 'common'
+import type { SecretWarning } from '../apis/stacks.js'
 
 type SecretPatternMatch = Omit<SecretWarning, 'source'>
 
@@ -57,7 +57,7 @@ export const detectSecretsInServiceDefinition = (opts: {
       results.push({
         ...warning,
         source: `file: ${file.relativePath}`,
-        suggestion: 'Move this value to a local file or use {{VARIABLE_NAME}} template interpolation',
+        suggestion: 'Move this value to a local file and use {{VARIABLE_NAME}} template interpolation',
       })
     }
   }

@@ -20,6 +20,7 @@ import {
 } from '@furystack/shades-common-components'
 import type { PrerequisiteCheckStatus, ServiceView, StackDefinition } from 'common'
 import {
+  detectSecretsInServiceDefinition,
   GitHubRepository,
   mergeServiceView,
   Prerequisite,
@@ -31,6 +32,7 @@ import {
 } from 'common'
 
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
+import { SecretWarningsCard } from '../../components/secret-warnings-card.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 import { isServiceReady } from '../../utils/is-service-ready.js'
 import { ServiceRow } from './service-row.js'
@@ -248,6 +250,27 @@ export const StackDashboard = Shade<StackDashboardProps>({
             <MarkdownDisplay content={currentStack.description} />
           </Paper>
         ) : null}
+
+        {(() => {
+          const warningGroups = defs
+            .map((def) => {
+              const warnings = detectSecretsInServiceDefinition({
+                files: def.files,
+                runCommand: def.runCommand,
+                installCommand: def.installCommand,
+                buildCommand: def.buildCommand,
+              })
+              return {
+                serviceId: def.id,
+                serviceName: def.displayName,
+                stackName,
+                warnings,
+              }
+            })
+            .filter((g) => g.warnings.length > 0)
+
+          return warningGroups.length > 0 ? <SecretWarningsCard warningGroups={warningGroups} /> : null
+        })()}
 
         {services.length === 0 ? (
           <Card variant="outlined">
