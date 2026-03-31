@@ -1,4 +1,5 @@
 import { Injector } from '@furystack/inject'
+import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { usingAsync } from '@furystack/utils'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -10,10 +11,16 @@ const callAction = (injector: Injector, body: { variableNames: string[] }) =>
     getBody: vi.fn().mockResolvedValue(body),
   } as unknown as Parameters<typeof CheckEnvAvailabilityAction>[0])
 
+const createInjector = () => {
+  const injector = new Injector()
+  useLogging(injector, VerboseConsoleLogger)
+  return injector
+}
+
 describe('CheckEnvAvailabilityAction', () => {
   it('should return true for variables that exist in process.env', async () => {
     process.env.TEST_VAR_EXISTS = 'some-value'
-    await usingAsync(new Injector(), async (injector) => {
+    await usingAsync(createInjector(), async (injector) => {
       const result = await callAction(injector, { variableNames: ['TEST_VAR_EXISTS', 'TEST_VAR_MISSING'] })
 
       const body = JSON.parse(JSON.stringify(result.chunk)) as Record<string, boolean>
@@ -24,7 +31,7 @@ describe('CheckEnvAvailabilityAction', () => {
   })
 
   it('should return false for all when no variables match', async () => {
-    await usingAsync(new Injector(), async (injector) => {
+    await usingAsync(createInjector(), async (injector) => {
       const result = await callAction(injector, { variableNames: ['DEFINITELY_NOT_SET_1', 'DEFINITELY_NOT_SET_2'] })
 
       const body = JSON.parse(JSON.stringify(result.chunk)) as Record<string, boolean>
@@ -34,7 +41,7 @@ describe('CheckEnvAvailabilityAction', () => {
   })
 
   it('should handle an empty array', async () => {
-    await usingAsync(new Injector(), async (injector) => {
+    await usingAsync(createInjector(), async (injector) => {
       const result = await callAction(injector, { variableNames: [] })
 
       const body = JSON.parse(JSON.stringify(result.chunk)) as Record<string, boolean>

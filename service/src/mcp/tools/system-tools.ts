@@ -1,10 +1,13 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Injector } from '@furystack/inject'
+import { getLogger } from '@furystack/logging'
 import { z } from 'zod'
 
 import { textResult } from './mcp-helpers.js'
 
-export const registerSystemTools = (mcp: McpServer, _injector: Injector, _elevated: Injector) => {
+export const registerSystemTools = (mcp: McpServer, injector: Injector, _elevated: Injector) => {
+  const logger = getLogger(injector).withScope('McpSystemTools')
+
   mcp.registerTool(
     'check_env_availability',
     {
@@ -14,6 +17,10 @@ export const registerSystemTools = (mcp: McpServer, _injector: Injector, _elevat
       },
     },
     async ({ variableNames }) => {
+      await logger.verbose({
+        message: 'check_env_availability called',
+        data: { variableNames },
+      })
       const result: Record<string, boolean> = {}
       for (const name of variableNames) {
         result[name] = process.env[name] !== undefined

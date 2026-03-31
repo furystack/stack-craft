@@ -1,3 +1,5 @@
+import { Injector } from '@furystack/inject'
+import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 
 import { textResult } from './mcp-helpers.js'
@@ -13,7 +15,8 @@ describe('registerSystemTools', () => {
   const setup = () => {
     const registerTool = vi.fn()
     const mcp = { registerTool } as unknown as Parameters<typeof registerSystemTools>[0]
-    const injector = {} as unknown as Parameters<typeof registerSystemTools>[1]
+    const injector = new Injector()
+    useLogging(injector, VerboseConsoleLogger)
     const elevated = {} as unknown as Parameters<typeof registerSystemTools>[2]
 
     registerSystemTools(mcp, injector, elevated)
