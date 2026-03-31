@@ -18,7 +18,6 @@ import {
   StackDefinition,
 } from 'common'
 
-import { stackCraftNavigate } from '../../../components/app-routes.js'
 import { getPrerequisiteSummary } from '../../../utils/prerequisite-summary.js'
 import { ServiceDetailActionBar } from './action-bar.js'
 import { ConfigurationTab } from './configuration-tab.js'
@@ -46,11 +45,21 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
   render: (options) => {
     const { props, injector, useState } = options
     const locationService = injector.getInstance(LocationService)
+    const validTabs: TabId[] = ['overview', 'logs', 'history', 'configuration']
+    const hashValue = locationService.onLocationHashChanged.getValue().replace('#', '')
     const searchState = locationService.onDeserializedLocationSearchChanged.getValue()
-    const hasEditParam = searchState.edit === true
-    const initialTab: TabId = hasEditParam ? 'configuration' : 'overview'
-    const [activeTab, setActiveTab] = useState<TabId>('activeTab', initialTab)
+    const initialTab: TabId = validTabs.includes(hashValue as TabId)
+      ? (hashValue as TabId)
+      : searchState.edit === true
+        ? 'configuration'
+        : 'overview'
+    const [activeTab, setActiveTabState] = useState<TabId>('activeTab', initialTab)
     const [isConfirmingDelete, setIsConfirmingDelete] = useState('isConfirmingDelete', false)
+
+    const setActiveTab = (tab: TabId) => {
+      locationService.replace(`${window.location.pathname}#${tab}`)
+      setActiveTabState(tab)
+    }
 
     const serviceState = useEntitySync(options, ServiceDefinition, props.serviceId)
     const statusState = useEntitySync(options, ServiceStatus, props.serviceId)
@@ -168,7 +177,9 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
               prereqSatisfiedCount={prereqSatisfiedCount}
               prereqFailedCount={prereqFailedCount}
               actionInProgress={actionInProgress}
+              activeTab={activeTab}
               onRunAction={(apiAction) => void runServiceAction(injector, service.id, apiAction, setActionInProgress)}
+              onEdit={() => setActiveTab('configuration')}
               onDelete={() => setIsConfirmingDelete(true)}
             />
           }
@@ -194,12 +205,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                     onAction={(apiAction) =>
                       void runServiceAction(injector, service.id, apiAction, setActionInProgress)
                     }
-                    onViewLogs={() =>
-                      stackCraftNavigate(injector, '/stacks/:stackName/services/:serviceId/logs', {
-                        stackName: service.stackName,
-                        serviceId: service.id,
-                      })
-                    }
+                    onViewLogs={() => setActiveTab('logs')}
                   />
                 ),
               },

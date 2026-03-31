@@ -12,7 +12,6 @@ import type { ServiceView } from 'common'
 import type { GitHubRepository, Prerequisite } from 'common'
 
 import { StackCraftNestedRouteLink } from '../../../components/app-routes.js'
-import { BranchSelector } from '../../../components/branch-selector.js'
 import { PrerequisiteList } from '../../../components/prerequisite-list.js'
 import { ServicePipelineStepper } from '../../../components/service-pipeline-stepper.js'
 
@@ -29,7 +28,7 @@ type OverviewTabProps = {
   prereqFailedCount: number
   actionInProgress: string | null
   onAction: (apiAction: string) => void
-  onViewLogs: (stageId: string) => void
+  onViewLogs: () => void
 }
 
 export const OverviewTab = Shade<OverviewTabProps>({
@@ -88,19 +87,6 @@ export const OverviewTab = Shade<OverviewTabProps>({
                     </a>
                   ) : null}
                 </span>
-              </div>
-            ) : null}
-            {service.repositoryId ? (
-              <div style={{ display: 'contents' }}>
-                <strong>Branch</strong>
-                <span>
-                  <BranchSelector
-                    serviceId={service.id}
-                    currentBranch={service.currentBranch}
-                    isCloned={service.cloneStatus === 'cloned'}
-                  />
-                </span>
-                <span />
               </div>
             ) : null}
             <strong>Working Directory</strong>

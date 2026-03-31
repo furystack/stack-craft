@@ -1,6 +1,5 @@
 import type { FindOptions } from '@furystack/core'
 import { useCollectionSync } from '@furystack/entity-sync-client'
-import { serializeToQueryString } from '@furystack/rest'
 import { createComponent, LocationService, Shade } from '@furystack/shades'
 import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {
@@ -263,9 +262,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                   onclick={() =>
                     injector
                       .getInstance(LocationService)
-                      .navigate(
-                        `/stacks/${entry.stackName}/services/${entry.id}?${serializeToQueryString({ edit: true })}`,
-                      )
+                      .navigate(`/stacks/${entry.stackName}/services/${entry.id}#configuration`)
                   }
                   startIcon={<Icon icon={icons.edit} size="small" />}
                 />

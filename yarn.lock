@@ -535,9 +535,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@furystack/shades-common-components@npm:^15.0.4":
-  version: 15.0.4
-  resolution: "@furystack/shades-common-components@npm:15.0.4"
+"@furystack/shades-common-components@npm:^15.1.0":
+  version: 15.1.0
+  resolution: "@furystack/shades-common-components@npm:15.1.0"
   dependencies:
     "@furystack/cache": "npm:^6.1.4"
     "@furystack/core": "npm:^16.0.3"
@@ -545,11 +545,11 @@ __metadata:
     "@furystack/shades": "npm:^13.2.1"
     "@furystack/utils": "npm:^8.2.4"
     path-to-regexp: "npm:^8.4.0"
-  checksum: 10c0/f790266ef0c475b41ac605755d0badb042181b567e45ad3e7d3235fcf7342194c5017f8e948dbbfa7ff3efe64e6451423ec1b2a1d569d88f70af473e7d946e7d
+  checksum: 10c0/02529fc3a89b037ba36161362fba17716d604d7447e7b5eae60d170f624aae08d75725b24650bbd62006cd160f27d6a21c1882a4c6021641489ac9f1d955205c
   languageName: node
   linkType: hard
 
-"@furystack/shades-mfe@npm:^3.0.3":
+"@furystack/shades-mfe@npm:^3.0.5":
   version: 3.0.5
   resolution: "@furystack/shades-mfe@npm:3.0.5"
   dependencies:
@@ -680,9 +680,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/sdk@npm:1.28.0":
-  version: 1.28.0
-  resolution: "@modelcontextprotocol/sdk@npm:1.28.0"
+"@modelcontextprotocol/sdk@npm:1.29.0":
+  version: 1.29.0
+  resolution: "@modelcontextprotocol/sdk@npm:1.29.0"
   dependencies:
     "@hono/node-server": "npm:^1.19.9"
     ajv: "npm:^8.17.1"
@@ -709,7 +709,7 @@ __metadata:
       optional: true
     zod:
       optional: false
-  checksum: 10c0/eff999884bea7302b42832b7fe172a53c83ee0afd6fa42dcda29dd503d72b6f67f3d45e9eebbcecbe52e1ee418c14574b6d30ce5a0b10f947a2a680f8bb8c8c3
+  checksum: 10c0/7c4bc339205b1652330cd4e6b121cc859079655f2b9c0506bbb15563ba0d07924bda3d949705530532db7f4d2cb86d633dc8f92bc32803d97c7bece2ac63e29f
   languageName: node
   linkType: hard
 
@@ -2764,8 +2764,8 @@ __metadata:
     "@furystack/logging": "npm:^8.1.4"
     "@furystack/rest-client-fetch": "npm:^8.1.6"
     "@furystack/shades": "npm:^13.2.1"
-    "@furystack/shades-common-components": "npm:^15.0.4"
-    "@furystack/shades-mfe": "npm:^3.0.3"
+    "@furystack/shades-common-components": "npm:^15.1.0"
+    "@furystack/shades-mfe": "npm:^3.0.5"
     "@furystack/utils": "npm:^8.2.4"
     "@types/node": "npm:^25.5.0"
     common: "workspace:^"
@@ -5073,7 +5073,7 @@ __metadata:
     "@furystack/security": "npm:^7.0.8"
     "@furystack/sequelize-store": "npm:^6.0.48"
     "@furystack/websocket-api": "npm:^13.2.6"
-    "@modelcontextprotocol/sdk": "npm:1.28.0"
+    "@modelcontextprotocol/sdk": "npm:1.29.0"
     "@types/node": "npm:^25.5.0"
     common: "workspace:^"
     pg: "npm:^8.20.0"
