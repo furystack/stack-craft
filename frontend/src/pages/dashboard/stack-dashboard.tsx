@@ -32,6 +32,7 @@ import {
 
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
+import { isServiceReady } from '../../utils/is-service-ready.js'
 import { ServiceRow } from './service-row.js'
 
 const prereqStatusColor: Record<PrerequisiteCheckStatus, keyof Palette> = {
@@ -39,13 +40,6 @@ const prereqStatusColor: Record<PrerequisiteCheckStatus, keyof Palette> = {
   checking: 'warning',
   satisfied: 'success',
   failed: 'error',
-}
-
-const isServiceReady = (svc: ServiceView): boolean => {
-  const cloneOk = !svc.repositoryId || svc.cloneStatus === 'cloned'
-  const installOk = !svc.installCommand || svc.installStatus === 'installed'
-  const buildOk = !svc.buildCommand || svc.buildStatus === 'built'
-  return cloneOk && installOk && buildOk
 }
 
 type StackDashboardProps = {

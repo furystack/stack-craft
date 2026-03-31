@@ -1,6 +1,6 @@
 /**
  * REST API type definitions for API token management.
- * Tokens are used to authenticate external clients (e.g. MCP) against the Stack Craft API.
+ * Tokens are used to authenticate external clients (e.g. MCP) against the StackCraft API.
  */
 
 import type { DeleteEndpoint, GetCollectionEndpoint, RestApi } from '@furystack/rest'

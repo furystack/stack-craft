@@ -1,6 +1,6 @@
-# Stack Craft Frontend
+# StackCraft Frontend
 
-Shades-based single page application for Stack Craft.
+Shades-based single page application for StackCraft.
 
 ## Tech Stack
 

@@ -1,4 +1,4 @@
-# Contributing to Stack Craft
+# Contributing to StackCraft
 
 ## Development Setup
 

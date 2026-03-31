@@ -50,7 +50,7 @@
 
 **Cause:** The backend was restarted while a service operation was in progress. The state was persisted but the process no longer exists.
 
-**Resolution:** On startup, Stack Craft automatically reconciles stale states. Restart the Stack Craft backend and the stuck service should return to a normal state.
+**Resolution:** On startup, StackCraft automatically reconciles stale states. Restart the StackCraft backend and the stuck service should return to a normal state.
 
 ### Clone/Pull Fails
 
@@ -97,9 +97,9 @@ Service stdout/stderr is captured in-memory and available via:
 - **API:** `GET /api/services/:id/logs?lines=300&search=error`
 - **MCP:** Use the `get_service_logs` tool
 
-**Note:** Service logs are stored in-memory with a limit of 50,000 entries per service. Logs are lost when the Stack Craft backend restarts.
+**Note:** Service logs are stored in-memory with a limit of 50,000 entries per service. Logs are lost when the StackCraft backend restarts.
 
-### Application Logs (Stack Craft Backend)
+### Application Logs (StackCraft Backend)
 
 The backend logs to stdout via the FuryStack `VerboseConsoleLogger`. Log verbosity can be configured via the `LOG_LEVEL` environment variable (default: `verbose`). Available levels: `verbose`, `debug`, `information`, `warning`, `error`, `fatal`. In production, pipe stdout to your preferred log aggregator:
 
@@ -144,7 +144,7 @@ curl http://localhost:9090/api/system/health
 
 **Causes:**
 
-- The Stack Craft service is not running
+- The StackCraft service is not running
 - The MCP server is configured on a different port
 
 **Resolution:**
@@ -161,7 +161,7 @@ curl http://localhost:9090/api/system/health
 
 **Resolution:**
 
-1. Open the Stack Craft UI and navigate to **User Settings**
+1. Open the StackCraft UI and navigate to **User Settings**
 2. Create a new API token
 3. Configure your MCP client with the token as a Bearer token in the `Authorization` header
 
@@ -210,14 +210,14 @@ A `405` response confirms the MCP server is running and reachable. Any other res
 
 To rotate the encryption key:
 
-1. Stop the Stack Craft service
+1. Stop the StackCraft service
 2. Update `STACK_CRAFT_ENCRYPTION_KEY` in your `.env` file with a new base64-encoded 256-bit key
 3. Start the service
 4. Re-enter all sensitive values (environment secrets, tokens) — they must be re-encrypted with the new key
 
 ### Key File Location
 
-If the `STACK_CRAFT_ENCRYPTION_KEY` environment variable is not set, Stack Craft auto-generates a key file at:
+If the `STACK_CRAFT_ENCRYPTION_KEY` environment variable is not set, StackCraft auto-generates a key file at:
 
 ```
 ~/.stack-craft/encryption.key
@@ -242,7 +242,7 @@ This file is created on first startup and reused on subsequent runs. Back up thi
 
 ### Port Mapping
 
-Stack Craft exposes two ports that both need to be mapped:
+StackCraft exposes two ports that both need to be mapped:
 
 | Port   | Protocol       | Purpose               |
 | ------ | -------------- | --------------------- |

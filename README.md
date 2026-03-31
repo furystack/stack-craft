@@ -1,4 +1,4 @@
-# Stack Craft
+# StackCraft
 
 A web application for managing development stacks, services, prerequisites, and repositories. Built with a [FuryStack](https://github.com/furystack/furystack) backend and a [Shades](https://github.com/furystack/furystack/tree/develop/packages/shades)-based single page application.
 
@@ -10,7 +10,18 @@ A web application for managing development stacks, services, prerequisites, and 
 - **Repository integration** -- clone and manage GitHub repositories with branch switching
 - **Environment variables** -- manage per-stack and per-service environment configuration with encrypted secrets
 - **Import / Export** -- share stack configurations across environments
-- **MCP server** -- interact with Stack Craft via [Model Context Protocol](https://modelcontextprotocol.io/) for AI assistant integration
+- **MCP server** -- interact with StackCraft via [Model Context Protocol](https://modelcontextprotocol.io/) for AI assistant integration
+
+## Concepts
+
+StackCraft organizes your development environment around four building blocks:
+
+- **Stack** -- A top-level grouping that ties together services, repositories, and prerequisites. Create a stack for each project or product you work on.
+- **Service** -- A runnable process (e.g. an API server or frontend dev server) that belongs to a stack. Each service defines install, build, and run commands and can be linked to a repository and prerequisites.
+- **Repository** -- A GitHub repository associated with a stack. StackCraft can clone, pull, and switch branches for it.
+- **Prerequisite** -- A system requirement (Node.js version, environment variable, custom script, etc.) that must be satisfied before a stack's services can run. Failed checks include help text for resolution.
+
+A typical workflow: create a stack, add its repositories, define prerequisites, then configure services that reference them.
 
 ## Prerequisites
 
@@ -126,7 +137,7 @@ yarn test:e2e
 
 ## MCP Server
 
-Stack Craft includes a [Model Context Protocol](https://modelcontextprotocol.io/) server for AI assistant integration. It runs on a separate port (default `9091`) and provides tools for managing stacks, services, repositories, prerequisites, and environment variables.
+StackCraft includes a [Model Context Protocol](https://modelcontextprotocol.io/) server for AI assistant integration. It runs on a separate port (default `9091`) and provides tools for managing stacks, services, repositories, prerequisites, and environment variables.
 
 **Connecting:** Point your MCP client to `http://localhost:9091/mcp` using Streamable HTTP transport with a Bearer token for authentication. Create API tokens via the UI under User Settings.
 
