@@ -1,4 +1,5 @@
-import type { Palette } from '@furystack/shades-common-components'
+import { createComponent } from '@furystack/shades'
+import { CircularProgress, Icon, icons, type Palette } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
 
 export type PipelineStageId = 'clone' | 'install' | 'build' | 'run'
@@ -15,7 +16,7 @@ export type ServiceAction = {
   label: string
   apiAction: string
   color: keyof Palette
-  icon: string
+  icon: JSX.Element
   tooltip?: string
 }
 
@@ -96,46 +97,86 @@ const stageActionMap: Record<PipelineStageId, { label: string; retryLabel: strin
 
 export const getPrimaryAction = (service: ServiceView): ServiceAction => {
   if (service.runStatus === 'running') {
-    return { label: 'Stop', apiAction: '/services/:id/stop', color: 'error', icon: 'stopCircle' }
+    return {
+      label: 'Stop',
+      apiAction: '/services/:id/stop',
+      color: 'error',
+      icon: <Icon icon={icons.stopCircle} size="small" />,
+    }
   }
   if (service.runStatus === 'starting' || service.runStatus === 'stopping') {
-    return { label: 'Stop', apiAction: '/services/:id/stop', color: 'warning', icon: 'stopCircle' }
+    return {
+      label: 'Stop',
+      apiAction: '/services/:id/stop',
+      color: 'warning',
+      icon: <Icon icon={icons.stopCircle} size="small" />,
+    }
   }
 
   const stages = getPipelineStages(service)
   const failedStage = stages.find((s) => s.status === 'failed')
   if (failedStage) {
     const map = stageActionMap[failedStage.id]
-    return { label: map.retryLabel, apiAction: map.apiAction, color: 'error', icon: 'refresh' }
+    return {
+      label: map.retryLabel,
+      apiAction: map.apiAction,
+      color: 'error',
+      icon: <Icon icon={icons.refresh} size="small" />,
+    }
   }
 
   const inProgressStage = stages.find((s) => s.status === 'in-progress')
   if (inProgressStage) {
-    return { label: `${inProgressStage.label}ing...`, apiAction: '', color: 'warning', icon: 'loader' }
+    return {
+      label: `${inProgressStage.label}ing...`,
+      apiAction: '',
+      color: 'warning',
+      icon: <CircularProgress size={12} thickness={2.5} />,
+    }
   }
 
   const pendingStage = stages.find((s) => s.status === 'pending')
   if (pendingStage) {
     if (pendingStage.id === 'run') {
-      return { label: 'Start', apiAction: '/services/:id/start', color: 'success', icon: 'play' }
+      return {
+        label: 'Start',
+        apiAction: '/services/:id/start',
+        color: 'success',
+        icon: <Icon icon={icons.play} size="small" />,
+      }
     }
     const map = stageActionMap[pendingStage.id]
-    return { label: map.label, apiAction: map.apiAction, color: 'primary', icon: 'settings' }
+    return {
+      label: map.label,
+      apiAction: map.apiAction,
+      color: 'primary',
+      icon: <Icon icon={icons.settings} size="small" />,
+    }
   }
 
-  return { label: 'Start', apiAction: '/services/:id/start', color: 'success', icon: 'play' }
+  return {
+    label: 'Start',
+    apiAction: '/services/:id/start',
+    color: 'success',
+    icon: <Icon icon={icons.play} size="small" />,
+  }
 }
 
 export const getSecondaryActions = (service: ServiceView): ServiceAction[] => {
   const actions: ServiceAction[] = []
 
   if (service.runStatus === 'running') {
-    actions.push({ label: 'Restart', apiAction: '/services/:id/restart', color: 'warning', icon: 'refresh' })
+    actions.push({
+      label: 'Restart',
+      apiAction: '/services/:id/restart',
+      color: 'warning',
+      icon: <Icon icon={icons.refresh} size="small" />,
+    })
     actions.push({
       label: 'Update',
       apiAction: '/services/:id/update',
       color: 'primary',
-      icon: 'download',
+      icon: <Icon icon={icons.refresh} size="small" />,
       tooltip: 'Pull, install, build, and restart if running',
     })
   }
@@ -147,7 +188,7 @@ export const getSecondaryActions = (service: ServiceView): ServiceAction[] => {
       label: 'Set Up All',
       apiAction: '/services/:id/setup',
       color: 'primary',
-      icon: 'settings',
+      icon: <Icon icon={icons.settings} size="small" />,
       tooltip: 'Clone, install, and build (initial provisioning)',
     })
   }
@@ -158,7 +199,7 @@ export const getSecondaryActions = (service: ServiceView): ServiceAction[] => {
         label: 'Update',
         apiAction: '/services/:id/update',
         color: 'primary',
-        icon: 'download',
+        icon: <Icon icon={icons.refresh} size="small" />,
         tooltip: 'Pull, install, build, and restart if running',
       })
     }

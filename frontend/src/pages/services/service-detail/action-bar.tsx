@@ -29,6 +29,7 @@ export const ServiceDetailActionBar = Shade<ServiceDetailActionBarProps>({
       ...secondaryActions.map((action) => ({
         key: action.apiAction,
         label: action.label,
+        icon: action.icon,
       })),
       ...(secondaryActions.length > 0 ? [{ type: 'divider' as const, key: 'sep' }] : []),
       { key: 'delete', label: 'Delete', icon: <Icon icon={icons.trash} size="small" /> },
@@ -54,6 +55,7 @@ export const ServiceDetailActionBar = Shade<ServiceDetailActionBarProps>({
               variant="contained"
               size="small"
               color={primary.color === 'secondary' ? undefined : primary.color}
+              startIcon={primary.icon}
               loading={!!actionInProgress}
               disabled={!!actionInProgress}
               onclick={() => props.onRunAction(primary.apiAction)}
