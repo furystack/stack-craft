@@ -6,6 +6,7 @@ import {
   deleteStack,
   expectNotification,
   fillServiceForm,
+  getAvailablePort,
   login,
   navigateToCreateService,
   submitServiceForm,
@@ -43,7 +44,8 @@ It is used to test the following features:
 
   `
 
-  const dogfoodingPort = browserName === 'chromium' ? 19090 : 19091
+  const dogfoodingPort = await getAvailablePort()
+  const mcpPort = await getAvailablePort()
   const workingDirectory = `/tmp/e2e-dog-fooding-time-${uuid}`
 
   await page.goto('/')
@@ -160,7 +162,7 @@ It is used to test the following features:
       const mcpSourceSelect = mcpOverride.locator('shade-select').first()
       await mcpSourceSelect.locator('.select-trigger').click()
       await mcpSourceSelect.locator('.dropdown-item', { hasText: 'Custom value' }).click()
-      await mcpOverride.locator('shade-input input').fill(String(dogfoodingPort + 1))
+      await mcpOverride.locator('shade-input input').fill(String(mcpPort))
 
       // Save the overrides and wait for the save to complete
       const saveButton = page.getByTestId('save-env-overrides')

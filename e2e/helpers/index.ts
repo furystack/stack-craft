@@ -1,3 +1,4 @@
+export { getAvailablePort } from './get-available-port.js'
 export { login } from './login.js'
 export { expectNotification } from './notification.js'
 export { addPrerequisite, type PrerequisiteParams } from './prerequisite.js'
