@@ -20,6 +20,7 @@ import { randomUUID } from 'crypto'
 import { getCurrentUser } from '@furystack/core'
 
 import { getCorsOptions } from '../../get-cors-options.js'
+import { getHost } from '../../get-host.js'
 import { getPort } from '../../get-port.js'
 import { ProcessManager } from '../../services/process-manager.js'
 import { CryptoService, SENSITIVE_VALUE_MASK } from '../../utils/crypto-service.js'
@@ -31,6 +32,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
   await useRestService<StacksApi>({
     injector,
     root: 'api/stacks',
+    hostName: getHost(),
     port: getPort(),
     cors: getCorsOptions(),
     api: {

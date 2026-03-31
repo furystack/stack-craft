@@ -14,6 +14,7 @@ import { GitHubRepository } from 'common'
 import githubReposApiSchema from 'common/schemas/github-repositories-api.json' with { type: 'json' }
 
 import { getCorsOptions } from '../../get-cors-options.js'
+import { getHost } from '../../get-host.js'
 import { getPort } from '../../get-port.js'
 import { ValidateRepoAction } from './actions/validate-repo-action.js'
 
@@ -21,6 +22,7 @@ export const setupGitHubReposRestApi = async (injector: Injector) => {
   await useRestService<GitHubRepositoriesApi>({
     injector,
     root: 'api/github-repositories',
+    hostName: getHost(),
     port: getPort(),
     cors: getCorsOptions(),
     api: {

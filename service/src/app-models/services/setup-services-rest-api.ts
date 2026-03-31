@@ -19,6 +19,7 @@ import servicesApiSchema from 'common/schemas/services-api.json' with { type: 'j
 import { randomUUID } from 'crypto'
 
 import { getCorsOptions } from '../../get-cors-options.js'
+import { getHost } from '../../get-host.js'
 import { getPort } from '../../get-port.js'
 import { ProcessManager } from '../../services/process-manager.js'
 import { CryptoService, SENSITIVE_VALUE_MASK } from '../../utils/crypto-service.js'
@@ -132,6 +133,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
   await useRestService<ServicesApi>({
     injector,
     root: 'api/services',
+    hostName: getHost(),
     port: getPort(),
     cors: getCorsOptions(),
     api: {

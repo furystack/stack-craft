@@ -13,6 +13,7 @@ import { User } from 'common'
 import identityApiSchema from 'common/schemas/identity-api.json' with { type: 'json' }
 
 import { getCorsOptions } from '../../get-cors-options.js'
+import { getHost } from '../../get-host.js'
 import { getPort } from '../../get-port.js'
 import { PasswordResetAction } from './actions/password-reset-action.js'
 
@@ -22,6 +23,7 @@ export const setupIdentityRestApi = async (injector: Injector) => {
   await useRestService<IdentityApi>({
     injector,
     root: 'api/identity',
+    hostName: getHost(),
     port: getPort(),
     name: 'StackCraft Service',
     version: '1.0.0',

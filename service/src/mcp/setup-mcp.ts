@@ -12,7 +12,7 @@ export class McpHttpServer {
   private sessionManager: McpSessionManager | null = null
   private elevatedInjector: Injector | null = null
 
-  public listen(injector: Injector, port: number) {
+  public listen(injector: Injector, port: number, host: string) {
     const logger = getLogger(injector).withScope('MCP')
 
     this.elevatedInjector = useSystemIdentityContext({ injector })
@@ -34,8 +34,8 @@ export class McpHttpServer {
       }
     })
 
-    this.server.listen(port, () => {
-      void logger.information({ message: `MCP server listening on port ${port}` })
+    this.server.listen(port, host, () => {
+      void logger.information({ message: `MCP server listening on ${host}:${port}` })
     })
   }
 
@@ -53,12 +53,15 @@ export class McpHttpServer {
 
 export const getMcpPort = (env = process.env) => parseInt(env.MCP_PORT as string, 10) || 9091
 
+export const getMcpHost = (env = process.env) => env.MCP_HOST || '127.0.0.1'
+
 /**
  * Sets up the MCP endpoint on a separate port.
  * MCP clients connect to this endpoint using Streamable HTTP transport.
  */
 export const setupMcp = (injector: Injector) => {
   const port = getMcpPort()
+  const host = getMcpHost()
   const mcpServer = injector.getInstance(McpHttpServer)
-  mcpServer.listen(injector, port)
+  mcpServer.listen(injector, port, host)
 }
