@@ -15,12 +15,14 @@ export const registerEnvVariableTools = (mcp: McpServer, _injector: Injector, el
   mcp.registerTool(
     'set_stack_env_variable',
     {
-      description: 'Set or update a single environment variable on a stack',
+      description:
+        'Set or update a single stack-level environment variable. Stack env variables are inherited by all services unless overridden per-service.',
       inputSchema: {
-        stackName: z.string(),
-        variableName: z.string(),
-        value: environmentVariableValueSchema,
+        stackName: z.string().describe('Name of the stack'),
+        variableName: z.string().describe('Environment variable name (e.g. "DATABASE_URL")'),
+        value: environmentVariableValueSchema.describe('How the variable value is resolved'),
       },
+      annotations: { idempotentHint: true },
     },
     async ({ stackName, variableName, value }) => {
       try {
@@ -48,11 +50,13 @@ export const registerEnvVariableTools = (mcp: McpServer, _injector: Injector, el
   mcp.registerTool(
     'remove_stack_env_variable',
     {
-      description: 'Remove a single environment variable from a stack',
+      description:
+        'Remove a single environment variable from a stack. Services that relied on this variable will no longer receive it unless they have their own override.',
       inputSchema: {
-        stackName: z.string(),
-        variableName: z.string(),
+        stackName: z.string().describe('Name of the stack'),
+        variableName: z.string().describe('Environment variable name to remove'),
       },
+      annotations: { destructiveHint: true },
     },
     async ({ stackName, variableName }) => {
       try {
@@ -76,12 +80,14 @@ export const registerEnvVariableTools = (mcp: McpServer, _injector: Injector, el
   mcp.registerTool(
     'set_service_env_override',
     {
-      description: 'Set or update a single environment variable override on a service',
+      description:
+        'Set or update a per-service environment variable override. Overrides the stack-level default for this variable on this service only.',
       inputSchema: {
-        serviceId: z.string(),
-        variableName: z.string(),
-        value: environmentVariableValueSchema,
+        serviceId: z.string().describe('UUID of the service'),
+        variableName: z.string().describe('Environment variable name (e.g. "PORT")'),
+        value: environmentVariableValueSchema.describe('How the variable value is resolved'),
       },
+      annotations: { idempotentHint: true },
     },
     async ({ serviceId, variableName, value }) => {
       try {
@@ -109,11 +115,13 @@ export const registerEnvVariableTools = (mcp: McpServer, _injector: Injector, el
   mcp.registerTool(
     'remove_service_env_override',
     {
-      description: 'Remove a single environment variable override from a service',
+      description:
+        'Remove a per-service environment variable override. The service will fall back to the stack-level default for this variable.',
       inputSchema: {
-        serviceId: z.string(),
-        variableName: z.string(),
+        serviceId: z.string().describe('UUID of the service'),
+        variableName: z.string().describe('Environment variable name to remove the override for'),
       },
+      annotations: { destructiveHint: true },
     },
     async ({ serviceId, variableName }) => {
       try {

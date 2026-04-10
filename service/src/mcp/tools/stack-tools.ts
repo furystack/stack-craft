@@ -26,19 +26,27 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
   const repository = getRepository(elevated)
   const logger = getLogger(elevated).withScope('MCP:StackTools')
 
-  mcp.registerTool('list_stacks', { description: 'List all stacks' }, async () => {
-    const defs = await repository.getDataSetFor(StackDefinition, 'name').find(elevated, {})
-    const configs = await repository.getDataSetFor(StackConfig, 'stackName').find(elevated, {})
-    const configMap = new Map(configs.map((c) => [c.stackName, c]))
-    const stacks = defs.map((d) => ({ ...d, ...configMap.get(d.name) }))
-    return textResult(JSON.stringify(stacks, null, 2))
-  })
+  mcp.registerTool(
+    'list_stacks',
+    {
+      description: 'List all stacks with their definitions and configuration (mainDirectory, environment variables).',
+      annotations: { readOnlyHint: true },
+    },
+    async () => {
+      const defs = await repository.getDataSetFor(StackDefinition, 'name').find(elevated, {})
+      const configs = await repository.getDataSetFor(StackConfig, 'stackName').find(elevated, {})
+      const configMap = new Map(configs.map((c) => [c.stackName, c]))
+      const stacks = defs.map((d) => ({ ...d, ...configMap.get(d.name) }))
+      return textResult(JSON.stringify(stacks, null, 2))
+    },
+  )
 
   mcp.registerTool(
     'get_stack',
     {
-      description: 'Get a full stack definition with services, repositories, and prerequisites',
-      inputSchema: { stackName: z.string() },
+      description: 'Get a full stack definition including its config, all services, repositories, and prerequisites.',
+      inputSchema: { stackName: z.string().describe('Unique name (kebab-case identifier) of the stack') },
+      annotations: { readOnlyHint: true },
     },
     async ({ stackName }) => {
       const defs = await repository
@@ -74,13 +82,24 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
   mcp.registerTool(
     'create_stack',
     {
-      description: 'Create a new stack with its configuration',
+      description:
+        'Create a new stack with its configuration. A stack is a logical grouping of services, repositories, and prerequisites.',
       inputSchema: {
-        name: z.string().optional().describe('Kebab-case identifier. Auto-generated UUID if omitted.'),
-        displayName: z.string().describe('Human-readable name'),
+        name: z
+          .string()
+          .optional()
+          .describe('Kebab-case identifier used as the primary key. Auto-generated UUID if omitted.'),
+        displayName: z.string().describe('Human-readable name shown in the UI'),
         description: z.string().optional().describe('What this stack does'),
-        mainDirectory: z.string().describe('Absolute path to the root directory for services'),
-        environmentVariables: z.record(z.string(), environmentVariableValueSchema).optional(),
+        mainDirectory: z
+          .string()
+          .describe('Absolute path to the root directory where service repositories will be cloned'),
+        environmentVariables: z
+          .record(z.string(), environmentVariableValueSchema)
+          .optional()
+          .describe(
+            'Stack-level environment variables, keyed by variable name. Services inherit these unless overridden.',
+          ),
       },
     },
     async ({ name, displayName, description, mainDirectory, environmentVariables }) => {
@@ -113,14 +132,22 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
   mcp.registerTool(
     'update_stack',
     {
-      description: 'Update a stack definition and/or configuration fields',
+      description:
+        'Update a stack definition and/or configuration fields. Uses PATCH semantics: only provided fields are updated. For fine-grained env variable management, use set_stack_env_variable / remove_stack_env_variable instead.',
       inputSchema: {
         stackName: z.string().describe('Name of the stack to update'),
-        displayName: z.string().optional(),
-        description: z.string().optional(),
-        mainDirectory: z.string().optional(),
-        environmentVariables: z.record(z.string(), environmentVariableValueSchema).optional(),
+        displayName: z.string().optional().describe('Human-readable name shown in the UI'),
+        description: z.string().optional().describe('What this stack does'),
+        mainDirectory: z
+          .string()
+          .optional()
+          .describe('Absolute path to the root directory where service repositories will be cloned'),
+        environmentVariables: z
+          .record(z.string(), environmentVariableValueSchema)
+          .optional()
+          .describe('Fully replaces all stack-level environment variables when provided.'),
       },
+      annotations: { idempotentHint: true },
     },
     async ({ stackName, displayName, description, mainDirectory, environmentVariables }) => {
       try {
@@ -148,8 +175,10 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
   mcp.registerTool(
     'delete_stack',
     {
-      description: 'Delete a stack and all its services, repositories, and prerequisites',
-      inputSchema: { stackName: z.string() },
+      description:
+        'Delete a stack and all its associated data: services (with their configs and statuses), repositories, and prerequisites. Does not remove cloned files from disk.',
+      inputSchema: { stackName: z.string().describe('Name of the stack to delete') },
+      annotations: { destructiveHint: true },
     },
     async ({ stackName }) => {
       try {
@@ -240,8 +269,10 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
   mcp.registerTool(
     'export_stack',
     {
-      description: 'Export a stack definition as shareable JSON (without timestamps)',
-      inputSchema: { stackName: z.string() },
+      description:
+        'Export a stack definition as shareable JSON. Includes the stack definition, services, repositories, and prerequisites. Strips timestamps and nullish fields. Does not include user-specific config (mainDirectory, env variable values, local files).',
+      inputSchema: { stackName: z.string().describe('Name of the stack to export') },
+      annotations: { readOnlyHint: true },
     },
     async ({ stackName }) => {
       const defs = await repository
@@ -288,55 +319,81 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
     'import_stack',
     {
       description:
-        'Import a stack from an export payload. Provide the stack definition, services, repositories, prerequisites, and local config.',
+        'Import a stack from an export payload. Creates all entities (stack, services, repositories, prerequisites) and initializes each service in not-cloned/not-installed/not-built/stopped state. Rolls back on failure.',
       inputSchema: {
-        stack: z.object({
-          name: z.string(),
-          displayName: z.string(),
-          description: z.string().optional(),
-        }),
-        services: z.array(
-          z.object({
-            id: z.string(),
-            stackName: z.string(),
-            displayName: z.string(),
-            description: z.string().optional(),
-            workingDirectory: z.string().optional(),
-            repositoryId: z.string().optional(),
-            prerequisiteIds: z.array(z.string()).optional(),
-            prerequisiteServiceIds: z.array(z.string()).optional(),
-            installCommand: z.string().optional(),
-            buildCommand: z.string().optional(),
-            runCommand: z.string(),
-            files: z
-              .array(z.object({ relativePath: z.string(), content: z.string() }))
+        stack: z
+          .object({
+            name: z.string().describe('Kebab-case stack identifier'),
+            displayName: z.string().describe('Human-readable name'),
+            description: z.string().optional().describe('What this stack does'),
+          })
+          .describe('Stack definition (from export_stack output)'),
+        services: z
+          .array(
+            z.object({
+              id: z.string().describe('UUID, must match IDs used in prerequisiteServiceIds references'),
+              stackName: z.string().describe('Must match stack.name'),
+              displayName: z.string().describe('Human-readable name'),
+              description: z.string().optional(),
+              workingDirectory: z.string().optional().describe('Relative path within the stack mainDirectory'),
+              repositoryId: z.string().optional().describe('UUID of a repository entry in the repositories array'),
+              prerequisiteIds: z
+                .array(z.string())
+                .optional()
+                .describe('UUIDs of prerequisite entries in the prerequisites array'),
+              prerequisiteServiceIds: z
+                .array(z.string())
+                .optional()
+                .describe('UUIDs of other services in this array that must be set up first'),
+              installCommand: z.string().optional().describe('Shell command to install dependencies'),
+              buildCommand: z.string().optional().describe('Shell command to build the service'),
+              runCommand: z.string().describe('Shell command to start the service'),
+              files: z
+                .array(
+                  z.object({
+                    relativePath: z.string().describe('Path relative to the service working directory'),
+                    content: z.string().describe('File content'),
+                  }),
+                )
+                .optional()
+                .describe('Shared files placed relative to the service root'),
+            }),
+          )
+          .describe('Service definitions (from export_stack output)'),
+        repositories: z
+          .array(
+            z.object({
+              id: z.string().describe('UUID, referenced by services via repositoryId'),
+              stackName: z.string().describe('Must match stack.name'),
+              url: z.string().describe('Full git URL (e.g. "https://github.com/user/repo")'),
+              displayName: z.string().describe('Human-readable name'),
+              description: z.string().optional(),
+            }),
+          )
+          .describe('GitHub repository entries (from export_stack output)'),
+        prerequisites: z
+          .array(
+            z.object({
+              id: z.string().describe('UUID, referenced by services via prerequisiteIds'),
+              stackName: z.string().describe('Must match stack.name'),
+              name: z.string().describe('Human-readable name (e.g. "Node.js >= 18")'),
+              type: z.string().describe('Prerequisite type (e.g. "node", "git", "env-variable", "custom-script")'),
+              config: z.record(z.string(), z.unknown()).describe('Type-specific configuration'),
+              installationHelp: z.string().optional().describe('Help text shown when the check fails'),
+            }),
+          )
+          .describe('Prerequisite entries (from export_stack output)'),
+        config: z
+          .object({
+            mainDirectory: z
+              .string()
+              .describe('Absolute path to the root directory where service repositories will be cloned'),
+            environmentVariables: z
+              .record(z.string(), environmentVariableValueSchema)
               .optional()
-              .describe('Shared files placed relative to the service root'),
-          }),
-        ),
-        repositories: z.array(
-          z.object({
-            id: z.string(),
-            stackName: z.string(),
-            url: z.string(),
-            displayName: z.string(),
-            description: z.string().optional(),
-          }),
-        ),
-        prerequisites: z.array(
-          z.object({
-            id: z.string(),
-            stackName: z.string(),
-            name: z.string(),
-            type: z.string(),
-            config: z.record(z.string(), z.unknown()),
-            installationHelp: z.string().optional(),
-          }),
-        ),
-        config: z.object({
-          mainDirectory: z.string(),
-          environmentVariables: z.record(z.string(), environmentVariableValueSchema).optional(),
-        }),
+              .describe('Stack-level environment variables for this installation'),
+          })
+          .describe('Installation-specific configuration (not present in export, must be provided by the user)'),
       },
     },
     async ({ stack, services, repositories, prerequisites, config }) => {
@@ -544,8 +601,10 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
   mcp.registerTool(
     'setup_stack',
     {
-      description: 'Set up all services in a stack: clone, install, build',
-      inputSchema: { stackName: z.string() },
+      description:
+        'Run the full setup pipeline for all services in a stack: clone, install, build. Services are executed in dependency order based on prerequisiteServiceIds (topological sort). Circular dependencies are run in parallel.',
+      inputSchema: { stackName: z.string().describe('Name of the stack to set up') },
+      annotations: { openWorldHint: true },
     },
     async ({ stackName }) => {
       try {

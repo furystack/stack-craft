@@ -24,8 +24,10 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
   mcp.registerTool(
     'list_service_files',
     {
-      description: 'List shared files for a service',
-      inputSchema: { serviceId: z.string() },
+      description:
+        'List shared files for a service. Shared files are included in exports and placed relative to the service working directory.',
+      inputSchema: { serviceId: z.string().describe('UUID of the service') },
+      annotations: { readOnlyHint: true },
     },
     async ({ serviceId }) => {
       const svc = await getService(serviceId)
@@ -37,11 +39,12 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
   mcp.registerTool(
     'read_service_file',
     {
-      description: 'Read the content of a specific shared file by relative path',
+      description: 'Read the content of a specific shared file by its relative path.',
       inputSchema: {
-        serviceId: z.string(),
-        relativePath: z.string().describe('Relative path of the file to read'),
+        serviceId: z.string().describe('UUID of the service'),
+        relativePath: z.string().describe('Relative path of the file to read (e.g. ".env", "config/app.json")'),
       },
+      annotations: { readOnlyHint: true },
     },
     async ({ serviceId, relativePath }) => {
       const svc = await getService(serviceId)
@@ -56,9 +59,10 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
   mcp.registerTool(
     'add_service_file',
     {
-      description: 'Add a shared file to a service. Errors if a file with the same path already exists.',
+      description:
+        'Add a shared file to a service. Shared files are included in exports. Errors if a file with the same path already exists (use update_service_file to modify). Use add_local_file for secrets that should not be exported.',
       inputSchema: {
-        serviceId: z.string(),
+        serviceId: z.string().describe('UUID of the service'),
         relativePath: z.string().describe('Relative path from the service root (e.g. ".env", "config/app.json")'),
         content: z.string().describe('File content (plain text)'),
       },
@@ -85,12 +89,13 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
   mcp.registerTool(
     'update_service_file',
     {
-      description: 'Update the content of an existing shared file',
+      description: 'Update the content of an existing shared file. Errors if the file does not exist.',
       inputSchema: {
-        serviceId: z.string(),
+        serviceId: z.string().describe('UUID of the service'),
         relativePath: z.string().describe('Relative path of the file to update'),
-        content: z.string().describe('New file content'),
+        content: z.string().describe('New file content (replaces existing content entirely)'),
       },
+      annotations: { idempotentHint: true },
     },
     async ({ serviceId, relativePath, content }) => {
       try {
@@ -113,11 +118,12 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
   mcp.registerTool(
     'remove_service_file',
     {
-      description: 'Remove a shared file from a service',
+      description: 'Remove a shared file from a service. Does not delete the file from disk if already applied.',
       inputSchema: {
-        serviceId: z.string(),
+        serviceId: z.string().describe('UUID of the service'),
         relativePath: z.string().describe('Relative path of the file to remove'),
       },
+      annotations: { destructiveHint: true },
     },
     async ({ serviceId, relativePath }) => {
       try {
@@ -140,8 +146,9 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
   mcp.registerTool(
     'apply_service_files',
     {
-      description: 'Write all shared files to disk in the service working directory',
-      inputSchema: { serviceId: z.string() },
+      description:
+        'Write all shared and local files to disk in the service working directory. Local files take precedence over shared files when they share the same relativePath.',
+      inputSchema: { serviceId: z.string().describe('UUID of the service') },
     },
     async ({ serviceId }) => {
       try {
@@ -157,10 +164,11 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
   mcp.registerTool(
     'apply_service_file',
     {
-      description: 'Write a single shared file to disk in the service working directory',
+      description:
+        'Write a single file to disk in the service working directory. If a local file exists at the same path, it takes precedence over the shared file.',
       inputSchema: {
-        serviceId: z.string(),
-        relativePath: z.string().describe('Relative path of the file to apply'),
+        serviceId: z.string().describe('UUID of the service'),
+        relativePath: z.string().describe('Relative path of the file to write to disk'),
       },
     },
     async ({ serviceId, relativePath }) => {
@@ -182,8 +190,10 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
   mcp.registerTool(
     'list_local_files',
     {
-      description: 'List local (secret) files for a service. Content is shown decrypted.',
-      inputSchema: { serviceId: z.string() },
+      description:
+        'List local (secret) files for a service. Local files are encrypted at rest, never included in exports, and override shared files with the same path at apply time. Returns paths and content lengths (not content).',
+      inputSchema: { serviceId: z.string().describe('UUID of the service') },
+      annotations: { readOnlyHint: true },
     },
     async ({ serviceId }) => {
       const config = await getServiceConfig(serviceId)
@@ -202,11 +212,13 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
   mcp.registerTool(
     'read_local_file',
     {
-      description: 'Read the content of a specific local (secret) file. Content is returned decrypted.',
+      description:
+        'Read the content of a specific local (secret) file. Content is returned decrypted. Local files are encrypted at rest and never exported.',
       inputSchema: {
-        serviceId: z.string(),
-        relativePath: z.string().describe('Relative path of the local file to read'),
+        serviceId: z.string().describe('UUID of the service'),
+        relativePath: z.string().describe('Relative path of the local file to read (e.g. ".env.local")'),
       },
+      annotations: { readOnlyHint: true },
     },
     async ({ serviceId, relativePath }) => {
       const config = await getServiceConfig(serviceId)
@@ -221,9 +233,10 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
   mcp.registerTool(
     'add_local_file',
     {
-      description: 'Add a local (secret) file to a service. Encrypted at rest, never exported.',
+      description:
+        'Add a local (secret) file to a service. Encrypted at rest and never included in exports. Overrides shared files with the same path at apply time. Use for secrets like .env.local files.',
       inputSchema: {
-        serviceId: z.string(),
+        serviceId: z.string().describe('UUID of the service'),
         relativePath: z.string().describe('Relative path (e.g. ".env.local", "secrets/config.json")'),
         content: z.string().describe('File content (will be encrypted at rest)'),
       },
@@ -250,12 +263,13 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
   mcp.registerTool(
     'update_local_file',
     {
-      description: 'Update the content of an existing local (secret) file',
+      description: 'Update the content of an existing local (secret) file. Errors if the file does not exist.',
       inputSchema: {
-        serviceId: z.string(),
+        serviceId: z.string().describe('UUID of the service'),
         relativePath: z.string().describe('Relative path of the local file to update'),
-        content: z.string().describe('New file content (will be encrypted at rest)'),
+        content: z.string().describe('New file content (replaces existing content, will be encrypted at rest)'),
       },
+      annotations: { idempotentHint: true },
     },
     async ({ serviceId, relativePath, content }) => {
       try {
@@ -278,11 +292,13 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
   mcp.registerTool(
     'remove_local_file',
     {
-      description: 'Remove a local (secret) file from a service',
+      description:
+        'Remove a local (secret) file from a service. Does not delete the file from disk if already applied.',
       inputSchema: {
-        serviceId: z.string(),
+        serviceId: z.string().describe('UUID of the service'),
         relativePath: z.string().describe('Relative path of the local file to remove'),
       },
+      annotations: { destructiveHint: true },
     },
     async ({ serviceId, relativePath }) => {
       try {

@@ -13,10 +13,12 @@ export const registerPrerequisiteTools = (mcp: McpServer, _injector: Injector, e
   mcp.registerTool(
     'list_prerequisites',
     {
-      description: 'List prerequisites, optionally filtered by stack name',
+      description:
+        'List prerequisites (external requirements like Node.js, git, env variables). Optionally filtered by stack name.',
       inputSchema: {
-        stackName: z.string().optional().describe('Filter by stack name'),
+        stackName: z.string().optional().describe('Filter by stack name. Returns all prerequisites if omitted.'),
       },
+      annotations: { readOnlyHint: true },
     },
     async ({ stackName }) => {
       const filter = stackName ? { stackName: { $eq: stackName } } : undefined
@@ -27,7 +29,12 @@ export const registerPrerequisiteTools = (mcp: McpServer, _injector: Injector, e
 
   mcp.registerTool(
     'check_prerequisite',
-    { description: 'Check if a prerequisite is satisfied', inputSchema: { prerequisiteId: z.string() } },
+    {
+      description:
+        'Run a live check to determine if a prerequisite is satisfied on the host system (e.g. check Node.js version, verify env variable exists). Returns the check result and installation help if not satisfied.',
+      inputSchema: { prerequisiteId: z.string().describe('UUID of the prerequisite to check') },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
     async ({ prerequisiteId }) => {
       const prereqs = await repository
         .getDataSetFor(Prerequisite, 'id')
@@ -51,11 +58,12 @@ export const registerPrerequisiteTools = (mcp: McpServer, _injector: Injector, e
   mcp.registerTool(
     'create_prerequisite',
     {
-      description: 'Create a new prerequisite for a stack',
+      description:
+        'Create a new prerequisite for a stack. Prerequisites describe external requirements that must be satisfied before services can run.',
       inputSchema: {
-        id: z.string().optional().describe('UUID. Auto-generated if omitted.'),
-        stackName: z.string(),
-        name: z.string().describe('Human-readable name, e.g. "Node.js >= 18"'),
+        id: z.string().optional().describe('UUID primary key. Auto-generated if omitted.'),
+        stackName: z.string().describe('Name of the stack this prerequisite belongs to'),
+        name: z.string().describe('Human-readable name shown in the UI (e.g. "Node.js >= 18")'),
         type: z
           .enum([
             'node',
@@ -68,9 +76,16 @@ export const registerPrerequisiteTools = (mcp: McpServer, _injector: Injector, e
             'env-variable',
             'custom-script',
           ])
-          .describe('Prerequisite type'),
-        config: z.record(z.string(), z.unknown()).describe('Type-specific config (e.g. { minimumVersion: "18.0.0" })'),
-        installationHelp: z.string().optional().describe('Help text shown when check fails'),
+          .describe('Determines the check logic and the expected shape of config'),
+        config: z
+          .record(z.string(), z.unknown())
+          .describe(
+            'Type-specific configuration. Examples: { minimumVersion: "18.0.0" } for node/yarn, { version: "8.0" } for dotnet-sdk/dotnet-runtime, { feedUrl: "...", feedName?: "..." } for nuget-feed, { variableName: "...", isSensitive?: true } for env-variable, { script: "..." } for custom-script. Empty {} for git/github-cli.',
+          ),
+        installationHelp: z
+          .string()
+          .optional()
+          .describe('Help text shown to the user when the prerequisite check fails (e.g. installation instructions)'),
       },
     },
     async ({ id: providedId, stackName, name, type, config, installationHelp }) => {
@@ -98,10 +113,11 @@ export const registerPrerequisiteTools = (mcp: McpServer, _injector: Injector, e
   mcp.registerTool(
     'update_prerequisite',
     {
-      description: 'Update a prerequisite (PATCH semantics)',
+      description:
+        'Update a prerequisite. Uses PATCH semantics: only provided fields are updated, others are left unchanged.',
       inputSchema: {
-        prerequisiteId: z.string(),
-        name: z.string().optional(),
+        prerequisiteId: z.string().describe('UUID of the prerequisite to update'),
+        name: z.string().optional().describe('Human-readable name shown in the UI'),
         type: z
           .enum([
             'node',
@@ -114,10 +130,18 @@ export const registerPrerequisiteTools = (mcp: McpServer, _injector: Injector, e
             'env-variable',
             'custom-script',
           ])
-          .optional(),
-        config: z.record(z.string(), z.unknown()).optional(),
-        installationHelp: z.string().optional(),
+          .optional()
+          .describe('Determines the check logic and the expected shape of config'),
+        config: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe('Type-specific configuration. Must match the expected shape for the prerequisite type.'),
+        installationHelp: z
+          .string()
+          .optional()
+          .describe('Help text shown to the user when the prerequisite check fails'),
       },
+      annotations: { idempotentHint: true },
     },
     async ({ prerequisiteId, name, type, config, installationHelp }) => {
       try {
@@ -140,8 +164,9 @@ export const registerPrerequisiteTools = (mcp: McpServer, _injector: Injector, e
   mcp.registerTool(
     'delete_prerequisite',
     {
-      description: 'Delete a prerequisite',
-      inputSchema: { prerequisiteId: z.string() },
+      description: 'Delete a prerequisite. Also removes any service-prerequisite links that reference it.',
+      inputSchema: { prerequisiteId: z.string().describe('UUID of the prerequisite to delete') },
+      annotations: { destructiveHint: true },
     },
     async ({ prerequisiteId }) => {
       try {

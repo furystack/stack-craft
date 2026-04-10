@@ -17,10 +17,12 @@ export const registerRepositoryTools = (mcp: McpServer, _injector: Injector, ele
   mcp.registerTool(
     'list_repositories',
     {
-      description: 'List GitHub repositories, optionally filtered by stack name',
+      description:
+        'List GitHub repository entries. Each repository links a git URL to a stack and can be referenced by services via repositoryId.',
       inputSchema: {
-        stackName: z.string().optional().describe('Filter by stack name'),
+        stackName: z.string().optional().describe('Filter by stack name. Returns all repositories if omitted.'),
       },
+      annotations: { readOnlyHint: true },
     },
     async ({ stackName }) => {
       const filter = stackName ? { stackName: { $eq: stackName } } : undefined
@@ -32,8 +34,9 @@ export const registerRepositoryTools = (mcp: McpServer, _injector: Injector, ele
   mcp.registerTool(
     'get_repository',
     {
-      description: 'Get a single GitHub repository by ID',
-      inputSchema: { repositoryId: z.string() },
+      description: 'Get a single GitHub repository entry by ID.',
+      inputSchema: { repositoryId: z.string().describe('UUID of the repository to retrieve') },
+      annotations: { readOnlyHint: true },
     },
     async ({ repositoryId }) => {
       const results = await repository
@@ -48,13 +51,14 @@ export const registerRepositoryTools = (mcp: McpServer, _injector: Injector, ele
   mcp.registerTool(
     'create_repository',
     {
-      description: 'Create a new GitHub repository entry for a stack',
+      description:
+        'Create a new GitHub repository entry for a stack. Services reference repositories via repositoryId to know which repo to clone.',
       inputSchema: {
-        id: z.string().optional().describe('UUID. Auto-generated if omitted.'),
-        stackName: z.string(),
-        url: z.string().describe('Full URL to the git repository'),
-        displayName: z.string(),
-        description: z.string().optional(),
+        id: z.string().optional().describe('UUID primary key. Auto-generated if omitted.'),
+        stackName: z.string().describe('Name of the stack this repository belongs to'),
+        url: z.string().describe('Full git URL (e.g. "https://github.com/user/repo")'),
+        displayName: z.string().describe('Human-readable name shown in the UI'),
+        description: z.string().optional().describe('What this repository contains'),
       },
     },
     async ({ id: providedId, stackName, url, displayName, description }) => {
@@ -81,13 +85,14 @@ export const registerRepositoryTools = (mcp: McpServer, _injector: Injector, ele
   mcp.registerTool(
     'update_repository',
     {
-      description: 'Update a GitHub repository entry (PATCH semantics)',
+      description: 'Update a GitHub repository entry. Uses PATCH semantics: only provided fields are updated.',
       inputSchema: {
-        repositoryId: z.string(),
-        url: z.string().optional(),
-        displayName: z.string().optional(),
-        description: z.string().optional(),
+        repositoryId: z.string().describe('UUID of the repository to update'),
+        url: z.string().optional().describe('Full git URL (e.g. "https://github.com/user/repo")'),
+        displayName: z.string().optional().describe('Human-readable name shown in the UI'),
+        description: z.string().optional().describe('What this repository contains'),
       },
+      annotations: { idempotentHint: true },
     },
     async ({ repositoryId, url, displayName, description }) => {
       try {
@@ -109,8 +114,10 @@ export const registerRepositoryTools = (mcp: McpServer, _injector: Injector, ele
   mcp.registerTool(
     'delete_repository',
     {
-      description: 'Delete a GitHub repository entry',
-      inputSchema: { repositoryId: z.string() },
+      description:
+        'Delete a GitHub repository entry. Does not remove cloned files from disk or affect services that reference it.',
+      inputSchema: { repositoryId: z.string().describe('UUID of the repository to delete') },
+      annotations: { destructiveHint: true },
     },
     async ({ repositoryId }) => {
       try {
@@ -125,8 +132,10 @@ export const registerRepositoryTools = (mcp: McpServer, _injector: Injector, ele
   mcp.registerTool(
     'validate_repository',
     {
-      description: 'Check if a GitHub repository is accessible via git ls-remote',
-      inputSchema: { repositoryId: z.string() },
+      description:
+        'Check if a GitHub repository is accessible by running git ls-remote against its URL. Useful for verifying credentials and network access before cloning.',
+      inputSchema: { repositoryId: z.string().describe('UUID of the repository to validate') },
+      annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async ({ repositoryId }) => {
       const results = await repository
