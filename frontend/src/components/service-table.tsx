@@ -83,7 +83,27 @@ export const ServiceTable = Shade<ServiceTableProps>({
         collectionService={collectionService}
         headerComponents={{
           selection: () => <span />,
-          displayName: () => <span>Service</span>,
+          displayName: () => {
+            const order = findOptions.order as Record<string, 'ASC' | 'DESC'> | undefined
+            const currentDir = order?.displayName
+            const nextDir = currentDir === 'ASC' ? 'DESC' : 'ASC'
+
+            return (
+              <span
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', userSelect: 'none' }}
+                onclick={() => setFindOptions({ ...findOptions, order: { displayName: nextDir } })}
+              >
+                Service
+                <Icon
+                  icon={
+                    currentDir === 'ASC' ? icons.arrowDown : currentDir === 'DESC' ? icons.arrowUp : icons.arrowUpDown
+                  }
+                  size={14}
+                  style={{ opacity: currentDir ? '1' : '0.4' }}
+                />
+              </span>
+            )
+          },
           pipeline: () => <span>Status</span>,
           branch: () => <span>Branch</span>,
           actions: () => <span style={{ paddingLeft: '1em' }}>Actions</span>,
