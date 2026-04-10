@@ -23,14 +23,14 @@ export const BulkActionBar = Shade<BulkActionBarProps>({
     const hasRunning = selection.some((s) => s.runStatus === 'running')
     const hasStopped = selection.some((s) => s.runStatus !== 'running')
 
-    const bulkAction = async (action: string) => {
+    const bulkAction = async (action: 'start' | 'stop' | 'restart' | 'setup' | 'update') => {
       setIsBulkLoading(true)
       const failures: string[] = []
       for (const svc of selection) {
         try {
           await api.call({
             method: 'POST',
-            action: `/services/:id/${action}` as '/services/:id/start',
+            action: `/services/:id/${action}`,
             url: { id: svc.id },
           })
         } catch {
