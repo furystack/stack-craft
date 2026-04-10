@@ -22,7 +22,9 @@ import {
 
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { BulkActionBar } from '../../components/bulk-action-bar.js'
+import { ServiceFilters } from '../../components/service-filters.js'
 import { ServiceTable } from '../../components/service-table.js'
+import { getServiceSummaryStatus } from '../../utils/service-pipeline.js'
 
 type ServicesListProps = {
   stackName: string
@@ -77,6 +79,34 @@ export const ServicesList = Shade<ServicesListProps>({
 
     const isLoading = servicesState.status === 'connecting'
 
+    const [searchText, setSearchText] = options.useState('searchText', '')
+    const [statusFilter, setStatusFilter] = options.useState('statusFilter', '')
+
+    const filteredServices = services.filter((s) => {
+      if (searchText) {
+        const term = searchText.toLowerCase()
+        const matchesText =
+          s.displayName.toLowerCase().includes(term) ||
+          (s.description?.toLowerCase().includes(term) ?? false) ||
+          (s.currentBranch?.toLowerCase().includes(term) ?? false)
+        if (!matchesText) return false
+      }
+      if (statusFilter) {
+        if (getServiceSummaryStatus(s) !== statusFilter) return false
+      }
+      return true
+    })
+
+    const isFiltered = searchText !== '' || statusFilter !== ''
+    const title = isFiltered
+      ? `Services (${filteredServices.length} / ${services.length})`
+      : `Services (${services.length})`
+
+    const clearFilters = () => {
+      setSearchText('')
+      setStatusFilter('')
+    }
+
     if (isLoading) {
       return (
         <PageContainer>
@@ -91,9 +121,18 @@ export const ServicesList = Shade<ServicesListProps>({
       <PageContainer>
         <PageHeader
           icon={<Icon icon={icons.code} />}
-          title={`Services (${services.length})`}
+          title={title}
           actions={
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {services.length > 0 ? (
+                <ServiceFilters
+                  filteredServices={filteredServices}
+                  searchText={searchText}
+                  onSearchTextChange={setSearchText}
+                  statusFilter={statusFilter}
+                  onStatusFilterChange={setStatusFilter}
+                />
+              ) : null}
               <BulkActionBar collectionService={collectionService} />
               <StackCraftNestedRouteLink
                 href="/stacks/:stackName/services/wizard"
@@ -120,8 +159,17 @@ export const ServicesList = Shade<ServicesListProps>({
               </StackCraftNestedRouteLink>
             </div>
           </div>
+        ) : filteredServices.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px', opacity: '0.7' }}>
+            No matching services.
+            <div style={{ marginTop: '12px' }}>
+              <Button variant="outlined" size="small" onclick={clearFilters}>
+                Clear Filters
+              </Button>
+            </div>
+          </div>
         ) : (
-          <ServiceTable services={services} collectionService={collectionService} />
+          <ServiceTable services={filteredServices} collectionService={collectionService} />
         )}
       </PageContainer>
     )

@@ -1,6 +1,5 @@
 import type { FindOptions } from '@furystack/core'
 import { createComponent, LocationService, Shade } from '@furystack/shades'
-import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {
   Button,
   type CollectionService,
@@ -28,10 +27,6 @@ type ServiceTableProps = {
 }
 
 type ServiceColumn = 'selection' | 'displayName' | 'pipeline' | 'branch' | 'actions'
-
-const columnFilters: { [K in ServiceColumn]?: ColumnFilterConfig } = {
-  displayName: { type: 'string' },
-}
 
 export const ServiceTable = Shade<ServiceTableProps>({
   customElementName: 'shade-service-table',
@@ -86,7 +81,6 @@ export const ServiceTable = Shade<ServiceTableProps>({
         onFindOptionsChange={setFindOptions}
         styles={undefined}
         collectionService={collectionService}
-        columnFilters={columnFilters}
         headerComponents={{
           selection: () => <span />,
           displayName: () => <span>Service</span>,
