@@ -2,11 +2,10 @@ import { useCollectionSync } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 import {
   Button,
-  ButtonGroup,
+  CollectionService,
   Icon,
   icons,
   Loader,
-  NotyService,
   PageContainer,
   PageHeader,
 } from '@furystack/shades-common-components'
@@ -22,8 +21,8 @@ import {
 } from 'common'
 
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
+import { BulkActionBar } from '../../components/bulk-action-bar.js'
 import { ServiceTable } from '../../components/service-table.js'
-import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 
 type ServicesListProps = {
   stackName: string
@@ -32,7 +31,12 @@ type ServicesListProps = {
 export const ServicesList = Shade<ServicesListProps>({
   customElementName: 'shade-services-list',
   render: (options) => {
-    const { props, injector } = options
+    const { props, useDisposable } = options
+
+    const collectionService = useDisposable(
+      'collectionService',
+      () => new CollectionService<ServiceView>({ searchField: 'displayName', idField: 'id' }),
+    )
 
     const servicesState = useCollectionSync(options, ServiceDefinition, {
       filter: { stackName: { $eq: props.stackName } },
@@ -72,39 +76,6 @@ export const ServicesList = Shade<ServicesListProps>({
     })
 
     const isLoading = servicesState.status === 'connecting'
-    const api = injector.getInstance(ServicesApiClient)
-    const noty = injector.getInstance(NotyService)
-    const [selectedServiceIds, setSelectedServiceIds] = options.useState<string[]>('selectedServiceIds', [])
-    const [isBulkLoading, setIsBulkLoading] = options.useState('isBulkLoading', false)
-
-    const selectedServices = services.filter((s) => selectedServiceIds.includes(s.id))
-    const hasRunning = selectedServices.some((s) => s.runStatus === 'running')
-    const hasStopped = selectedServices.some((s) => s.runStatus !== 'running')
-    const hasSelection = selectedServices.length > 0
-
-    const bulkAction = async (action: string) => {
-      setIsBulkLoading(true)
-      const failures: string[] = []
-      for (const svc of selectedServices) {
-        try {
-          await api.call({
-            method: 'POST',
-            action: `/services/:id/${action}` as '/services/:id/start',
-            url: { id: svc.id },
-          })
-        } catch {
-          failures.push(svc.displayName)
-        }
-      }
-      if (failures.length > 0) {
-        noty.emit('onNotyAdded', {
-          title: `${action} failed`,
-          body: `Failed for: ${failures.join(', ')}`,
-          type: 'error',
-        })
-      }
-      setIsBulkLoading(false)
-    }
 
     if (isLoading) {
       return (
@@ -123,60 +94,7 @@ export const ServicesList = Shade<ServicesListProps>({
           title={`Services (${services.length})`}
           actions={
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {hasSelection ? (
-                <ButtonGroup variant="outlined">
-                  {hasStopped ? (
-                    <Button
-                      size="small"
-                      color="success"
-                      loading={isBulkLoading}
-                      onclick={() => void bulkAction('start')}
-                      startIcon={<Icon icon={icons.play} size="small" />}
-                    >
-                      Start
-                    </Button>
-                  ) : null}
-                  {hasRunning ? (
-                    <Button
-                      size="small"
-                      loading={isBulkLoading}
-                      onclick={() => void bulkAction('stop')}
-                      startIcon={<Icon icon={icons.stopCircle} size="small" />}
-                    >
-                      Stop
-                    </Button>
-                  ) : null}
-                  <Button
-                    size="small"
-                    loading={isBulkLoading}
-                    title="Clone, install, and build (initial provisioning)"
-                    onclick={() => void bulkAction('setup')}
-                    startIcon={<Icon icon={icons.settings} size="small" />}
-                  >
-                    Set Up
-                  </Button>
-                  {hasRunning ? (
-                    <Button
-                      size="small"
-                      color="warning"
-                      loading={isBulkLoading}
-                      onclick={() => void bulkAction('restart')}
-                      startIcon={<Icon icon={icons.refresh} size="small" />}
-                    >
-                      Restart
-                    </Button>
-                  ) : null}
-                  <Button
-                    size="small"
-                    loading={isBulkLoading}
-                    title="Pull, install, build, and restart if running"
-                    onclick={() => void bulkAction('update')}
-                    startIcon={<Icon icon={icons.download} size="small" />}
-                  >
-                    Update
-                  </Button>
-                </ButtonGroup>
-              ) : null}
+              <BulkActionBar collectionService={collectionService} />
               <StackCraftNestedRouteLink
                 href="/stacks/:stackName/services/wizard"
                 params={{ stackName: props.stackName }}
@@ -203,12 +121,7 @@ export const ServicesList = Shade<ServicesListProps>({
             </div>
           </div>
         ) : (
-          <ServiceTable
-            services={services}
-            onSelectionChange={(selected: ServiceView[]) => {
-              setSelectedServiceIds(selected.map((s) => s.id))
-            }}
-          />
+          <ServiceTable services={services} collectionService={collectionService} />
         )}
       </PageContainer>
     )

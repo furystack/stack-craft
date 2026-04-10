@@ -3,7 +3,7 @@ import { createComponent, LocationService, Shade } from '@furystack/shades'
 import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {
   Button,
-  CollectionService,
+  type CollectionService,
   cssVariableTheme,
   DataGrid,
   Icon,
@@ -24,7 +24,7 @@ import { PrerequisiteSummaryChip } from './prerequisite-summary-chip.js'
 
 type ServiceTableProps = {
   services: ServiceView[]
-  onSelectionChange?: (selected: ServiceView[]) => void
+  collectionService: CollectionService<ServiceView>
 }
 
 type ServiceColumn = 'selection' | 'displayName' | 'pipeline' | 'branch' | 'actions'
@@ -36,9 +36,10 @@ const columnFilters: { [K in ServiceColumn]?: ColumnFilterConfig } = {
 export const ServiceTable = Shade<ServiceTableProps>({
   customElementName: 'shade-service-table',
   render: (options) => {
-    const { props, injector, useDisposable, useState } = options
+    const { props, injector, useState } = options
     const api = injector.getInstance(ServicesApiClient)
     const noty = injector.getInstance(NotyService)
+    const { collectionService } = props
 
     const callServiceAction = (serviceId: string, action: string, actionLabel: string) => {
       void api
@@ -56,24 +57,27 @@ export const ServiceTable = Shade<ServiceTableProps>({
         })
     }
 
-    const collectionService = useDisposable(
-      'collectionService',
-      () => new CollectionService<ServiceView>({ searchField: 'displayName', idField: 'id' }),
-    )
-
     const [findOptions, setFindOptions] = useState<FindOptions<ServiceView, Array<keyof ServiceView>>>(
       'findOptionsObservable',
       { top: 25 },
     )
 
     const { entries, count } = applyClientFindOptions(props.services, findOptions)
-    collectionService.data.setValue({ entries, count })
 
-    useDisposable('selectionSync', () =>
-      collectionService.selection.subscribe((newSelection) => {
-        props.onSelectionChange?.(newSelection)
-      }),
-    )
+    const currentData = collectionService.data.getValue()
+    const currentEntryById = new Map(currentData.entries.map((e) => [e.id, e]))
+    const stableEntries = entries.map((entry) => {
+      const existing = currentEntryById.get(entry.id)
+      if (existing && JSON.stringify(existing) === JSON.stringify(entry)) return existing
+      return entry
+    })
+
+    if (
+      stableEntries.length !== currentData.entries.length ||
+      stableEntries.some((e, i) => e !== currentData.entries[i])
+    ) {
+      collectionService.data.setValue({ entries: stableEntries, count })
+    }
 
     return (
       <DataGrid<ServiceView, ServiceColumn>
