@@ -54,9 +54,9 @@ export class McpSessionManager {
     const now = Date.now()
     for (const [id, entry] of this.transports) {
       if (now - entry.lastActivityAt > SESSION_TTL_MS) {
-        void entry.transport.close?.()
-        void entry.userInjector[Symbol.asyncDispose]()
         this.transports.delete(id)
+        void entry.transport.close?.()
+        void entry.userInjector[Symbol.asyncDispose]().catch(() => {})
       }
     }
   }
@@ -68,8 +68,11 @@ export class McpSessionManager {
   public register(sessionId: string, transport: StreamableHTTPServerTransport, userInjector: Injector) {
     this.transports.set(sessionId, { transport, userInjector, lastActivityAt: Date.now() })
     transport.onclose = () => {
-      void this.transports.get(sessionId)?.userInjector[Symbol.asyncDispose]()
-      this.transports.delete(sessionId)
+      const existing = this.transports.get(sessionId)
+      if (existing) {
+        this.transports.delete(sessionId)
+        void existing.userInjector[Symbol.asyncDispose]().catch(() => {})
+      }
     }
   }
 
@@ -81,7 +84,7 @@ export class McpSessionManager {
     clearInterval(this.sweepInterval)
     for (const [, entry] of this.transports) {
       void entry.transport.close?.()
-      void entry.userInjector[Symbol.asyncDispose]()
+      void entry.userInjector[Symbol.asyncDispose]().catch(() => {})
     }
     this.transports.clear()
   }
