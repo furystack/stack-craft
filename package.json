@@ -54,7 +54,7 @@
     "test": "vitest",
     "start:service": "yarn workspace service start",
     "start:frontend": "yarn workspace frontend start",
-    "clean": "rimraf service/dist frontend/dist **/tsconfig.tsbuildinfo tsconfig.tsbuildinfo common/dist",
+    "clean": "rimraf service/dist frontend/dist **/tsconfig.tsbuildinfo tsconfig.tsbuildinfo common/dist monaco-mfe/dist",
     "lint": "eslint .",
     "bumpVersions": "yarn version check --interactive",
     "applyReleaseChanges": "yarn version apply --all && yarn changelog apply && yarn format",
