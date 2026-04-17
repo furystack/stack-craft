@@ -28,13 +28,7 @@ import {
 
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
-
-const isServiceReady = (svc: ServiceView): boolean => {
-  const cloneOk = !svc.repositoryId || svc.cloneStatus === 'cloned'
-  const installOk = !svc.installCommand || svc.installStatus === 'installed'
-  const buildOk = !svc.buildCommand || svc.buildStatus === 'built'
-  return cloneOk && installOk && buildOk
-}
+import { isServiceReady } from '../../utils/is-service-ready.js'
 
 type StackListDashboardProps = {
   stacks: StackDefinition[]

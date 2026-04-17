@@ -35,6 +35,13 @@ const applyApiUpdate = (newApi: MonacoEditorMfeApi, previousApi: MonacoEditorMfe
     editorInstance.updateOptions({ readOnly: newApi.readOnly })
   }
 
+  if (newApi.language !== previousApi.language) {
+    const model = editorInstance.getModel()
+    if (model) {
+      editor.setModelLanguage(model, newApi.language)
+    }
+  }
+
   if (newApi.value !== previousApi.value) {
     const currentValue = editorInstance.getValue()
     if (newApi.value !== currentValue) {

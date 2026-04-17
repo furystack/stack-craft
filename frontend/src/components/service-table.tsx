@@ -1,9 +1,8 @@
 import type { FindOptions } from '@furystack/core'
 import { createComponent, LocationService, Shade } from '@furystack/shades'
-import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {
   Button,
-  CollectionService,
+  type CollectionService,
   cssVariableTheme,
   DataGrid,
   Icon,
@@ -24,21 +23,18 @@ import { PrerequisiteSummaryChip } from './prerequisite-summary-chip.js'
 
 type ServiceTableProps = {
   services: ServiceView[]
-  onSelectionChange?: (selected: ServiceView[]) => void
+  collectionService: CollectionService<ServiceView>
 }
 
 type ServiceColumn = 'selection' | 'displayName' | 'pipeline' | 'branch' | 'actions'
 
-const columnFilters: { [K in ServiceColumn]?: ColumnFilterConfig } = {
-  displayName: { type: 'string' },
-}
-
 export const ServiceTable = Shade<ServiceTableProps>({
   customElementName: 'shade-service-table',
   render: (options) => {
-    const { props, injector, useDisposable, useState } = options
+    const { props, injector, useState } = options
     const api = injector.getInstance(ServicesApiClient)
     const noty = injector.getInstance(NotyService)
+    const { collectionService } = props
 
     const callServiceAction = (serviceId: string, action: string, actionLabel: string) => {
       void api
@@ -56,35 +52,27 @@ export const ServiceTable = Shade<ServiceTableProps>({
         })
     }
 
-    const collectionService = useDisposable(
-      'collectionService',
-      () => new CollectionService<ServiceView>({ searchField: 'displayName' }),
-    )
-
     const [findOptions, setFindOptions] = useState<FindOptions<ServiceView, Array<keyof ServiceView>>>(
       'findOptionsObservable',
       { top: 25 },
     )
 
     const { entries, count } = applyClientFindOptions(props.services, findOptions)
-    collectionService.data.setValue({ entries, count })
 
-    const currentSelection = collectionService.selection.getValue()
-    if (currentSelection.length > 0) {
-      const entryById = new Map(entries.map((e) => [e.id, e]))
-      const reconciled = currentSelection
-        .map((s) => entryById.get(s.id))
-        .filter((e): e is ServiceView => e !== undefined)
-      if (reconciled.length !== currentSelection.length || reconciled.some((e, i) => e.id !== currentSelection[i].id)) {
-        collectionService.selection.setValue(reconciled)
-      }
+    const currentData = collectionService.data.getValue()
+    const currentEntryById = new Map(currentData.entries.map((e) => [e.id, e]))
+    const stableEntries = entries.map((entry) => {
+      const existing = currentEntryById.get(entry.id)
+      if (existing && JSON.stringify(existing) === JSON.stringify(entry)) return existing
+      return entry
+    })
+
+    if (
+      stableEntries.length !== currentData.entries.length ||
+      stableEntries.some((e, i) => e !== currentData.entries[i])
+    ) {
+      collectionService.data.setValue({ entries: stableEntries, count })
     }
-
-    useDisposable('selectionSync', () =>
-      collectionService.selection.subscribe((newSelection) => {
-        props.onSelectionChange?.(newSelection)
-      }),
-    )
 
     return (
       <DataGrid<ServiceView, ServiceColumn>
@@ -93,10 +81,29 @@ export const ServiceTable = Shade<ServiceTableProps>({
         onFindOptionsChange={setFindOptions}
         styles={undefined}
         collectionService={collectionService}
-        columnFilters={columnFilters}
         headerComponents={{
           selection: () => <span />,
-          displayName: () => <span>Service</span>,
+          displayName: () => {
+            const order = findOptions.order as Record<string, 'ASC' | 'DESC'> | undefined
+            const currentDir = order?.displayName
+            const nextDir = currentDir === 'ASC' ? 'DESC' : 'ASC'
+
+            return (
+              <span
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', userSelect: 'none' }}
+                onclick={() => setFindOptions({ ...findOptions, order: { displayName: nextDir } })}
+              >
+                Service
+                <Icon
+                  icon={
+                    currentDir === 'ASC' ? icons.arrowDown : currentDir === 'DESC' ? icons.arrowUp : icons.arrowUpDown
+                  }
+                  size={14}
+                  style={{ opacity: currentDir ? '1' : '0.4' }}
+                />
+              </span>
+            )
+          },
           pipeline: () => <span>Status</span>,
           branch: () => <span>Branch</span>,
           actions: () => <span style={{ paddingLeft: '1em' }}>Actions</span>,

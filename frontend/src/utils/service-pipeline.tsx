@@ -208,6 +208,20 @@ export const getSecondaryActions = (service: ServiceView): ServiceAction[] => {
   return actions
 }
 
+export type ServiceSummaryStatus = 'error' | 'in-progress' | 'running' | 'pending'
+
+/**
+ * Derives a single summary status for a service from all its pipeline stages.
+ * Priority: error > in-progress > running > pending.
+ */
+export const getServiceSummaryStatus = (service: ServiceView): ServiceSummaryStatus => {
+  const stages = getPipelineStages(service)
+  if (stages.some((s) => s.status === 'failed')) return 'error'
+  if (stages.some((s) => s.status === 'in-progress')) return 'in-progress'
+  if (service.runStatus === 'running') return 'running'
+  return 'pending'
+}
+
 export const needsSetup = (service: ServiceView): boolean => {
   if (service.repositoryId && service.cloneStatus !== 'cloned') return true
   if (service.installCommand && service.installStatus !== 'installed') return true

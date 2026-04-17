@@ -11,20 +11,20 @@
     "build": "tsc -b"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.6.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.4"
   },
   "dependencies": {
-    "@furystack/core": "^16.0.3",
-    "@furystack/entity-sync-service": "^1.0.11",
-    "@furystack/inject": "^12.0.35",
-    "@furystack/logging": "^8.1.4",
-    "@furystack/repository": "^10.1.10",
-    "@furystack/rest-service": "^12.3.4",
-    "@furystack/security": "^7.0.8",
-    "@furystack/sequelize-store": "^6.0.48",
-    "@furystack/websocket-api": "^13.2.6",
+    "@furystack/core": "^16.0.4",
+    "@furystack/entity-sync-service": "^1.0.12",
+    "@furystack/inject": "^12.0.36",
+    "@furystack/logging": "^8.1.5",
+    "@furystack/repository": "^10.1.11",
+    "@furystack/rest-service": "^12.3.5",
+    "@furystack/security": "^7.0.9",
+    "@furystack/sequelize-store": "^6.0.49",
+    "@furystack/websocket-api": "^13.2.7",
     "@modelcontextprotocol/sdk": "1.29.0",
     "common": "workspace:^",
     "pg": "^8.20.0",

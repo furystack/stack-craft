@@ -50,7 +50,7 @@ export const Layout = Shade({
         >
           <h2 style={{ margin: '0' }}>Unable to Connect</h2>
           <p style={{ color: cssVariableTheme.text.secondary, maxWidth: '400px', textAlign: 'center' }}>
-            Could not reach the Stack Craft service. Please check that the backend is running and try again.
+            Could not reach the StackCraft service. Please check that the backend is running and try again.
           </p>
           <button
             onclick={() => {

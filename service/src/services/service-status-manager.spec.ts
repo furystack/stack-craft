@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { TriggerSource } from 'common'
 
-import type { TriggerContext } from './process-manager.js'
+import type { TriggerContext } from './trigger-context.js'
 import { ServiceStatusManager } from './service-status-manager.js'
 
 const testTrigger: TriggerContext = { triggeredBy: 'test-user', triggerSource: 'api' as TriggerSource }

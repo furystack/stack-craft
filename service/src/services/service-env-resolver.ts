@@ -1,6 +1,7 @@
 import { useSystemIdentityContext } from '@furystack/core'
 import { Injectable, type Injector, getInjectorReference } from '@furystack/inject'
 import { getRepository } from '@furystack/repository'
+import type { EnvironmentVariableValue } from 'common'
 import { Prerequisite, ServiceConfig, ServiceDefinition, ServicePrerequisiteLink, StackConfig } from 'common'
 
 import { CryptoService } from '../utils/crypto-service.js'
@@ -19,6 +20,24 @@ export class ServiceEnvResolver {
       this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
     }
     return this.elevatedInjector
+  }
+
+  private resolveEnvValue(
+    varName: string,
+    config: EnvironmentVariableValue | undefined,
+    resolved: Record<string, string>,
+  ): void {
+    if (config?.source === 'custom' && config.customValue !== undefined) {
+      const crypto = this.getElevatedInjector().getInstance(CryptoService)
+      resolved[varName] = crypto.isEncrypted(config.customValue)
+        ? crypto.decrypt(config.customValue)
+        : config.customValue
+    } else if (config?.source === 'inherit' || !config) {
+      const globalValue = process.env[varName]
+      if (globalValue !== undefined) {
+        resolved[varName] = globalValue
+      }
+    }
   }
 
   public async resolveServiceEnvVars(serviceId: string): Promise<Record<string, string>> {
@@ -40,7 +59,6 @@ export class ServiceEnvResolver {
       .getDataSetFor(Prerequisite, 'id')
       .find(elevated, { filter: { stackName: { $eq: svc.stackName } } })
     const envPrereqs = allPrereqs.filter((p) => p.type === 'env-variable' && linkedPrereqIds.has(p.id))
-    if (envPrereqs.length === 0) return {}
 
     const stackConfigs = await repository
       .getDataSetFor(StackConfig, 'stackName')
@@ -53,24 +71,26 @@ export class ServiceEnvResolver {
     const svcConfig = svcConfigs[0]
 
     const resolved: Record<string, string> = {}
+
     for (const prereq of envPrereqs) {
       const varName = (prereq.config as { variableName: string }).variableName
       const override = svcConfig?.environmentVariableOverrides?.[varName]
       const stackDefault = stackConfig?.environmentVariables?.[varName]
-      const config = override ?? stackDefault
-
-      if (config?.source === 'custom' && config.customValue !== undefined) {
-        const crypto = this.getElevatedInjector().getInstance(CryptoService)
-        resolved[varName] = crypto.isEncrypted(config.customValue)
-          ? crypto.decrypt(config.customValue)
-          : config.customValue
-      } else if (config?.source === 'inherit' || !config) {
-        const globalValue = process.env[varName]
-        if (globalValue !== undefined) {
-          resolved[varName] = globalValue
-        }
-      }
+      this.resolveEnvValue(varName, override ?? stackDefault, resolved)
     }
+
+    const resolvedKeys = new Set(Object.keys(resolved))
+    const freeFormKeys = new Set([
+      ...Object.keys(stackConfig?.environmentVariables ?? {}),
+      ...Object.keys(svcConfig?.environmentVariableOverrides ?? {}),
+    ])
+    for (const varName of freeFormKeys) {
+      if (resolvedKeys.has(varName)) continue
+      const override = svcConfig?.environmentVariableOverrides?.[varName]
+      const stackDefault = stackConfig?.environmentVariables?.[varName]
+      this.resolveEnvValue(varName, override ?? stackDefault, resolved)
+    }
+
     return resolved
   }
 

@@ -22,19 +22,13 @@ import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { BuildStatusChip, CloneStatusChip, InstallStatusChip, RunStatusChip } from '../../components/status-chips.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
+import { isServiceReady } from '../../utils/is-service-ready.js'
 
 type StackSetupProps = {
   stackName: string
 }
 
 type StackSetupColumn = 'service' | 'clone' | 'install' | 'build' | 'run' | 'actions'
-
-const isServiceReady = (svc: ServiceView): boolean => {
-  const cloneOk = !svc.repositoryId || svc.cloneStatus === 'cloned'
-  const installOk = !svc.installCommand || svc.installStatus === 'installed'
-  const buildOk = !svc.buildCommand || svc.buildStatus === 'built'
-  return cloneOk && installOk && buildOk
-}
 
 const isServiceInProgress = (svc: ServiceView): boolean => {
   return svc.cloneStatus === 'cloning' || svc.installStatus === 'installing' || svc.buildStatus === 'building'
@@ -74,7 +68,7 @@ export const StackSetup = Shade<StackSetupProps>({
 
     const collectionService = useDisposable(
       'stackSetupCollectionService',
-      () => new CollectionService<ServiceView>({ searchField: 'displayName' }),
+      () => new CollectionService<ServiceView>({ searchField: 'displayName', idField: 'id' }),
     )
 
     const [findOptions, setFindOptions] = useState<FindOptions<ServiceView, Array<keyof ServiceView>>>(

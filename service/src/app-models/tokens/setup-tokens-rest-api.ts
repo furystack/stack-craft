@@ -11,6 +11,7 @@ import { randomBytes, createHash } from 'crypto'
 
 import { useSystemIdentityContext } from '@furystack/core'
 import { getCorsOptions } from '../../get-cors-options.js'
+import { getHost } from '../../get-host.js'
 import { getPort } from '../../get-port.js'
 
 export const CreateTokenAction: RequestAction<CreateTokenEndpoint> = async ({ injector, getBody }) => {
@@ -112,6 +113,7 @@ export const setupTokensRestApi = async (injector: Injector) => {
   await useRestService<TokensApi>({
     injector,
     root: 'api/tokens',
+    hostName: getHost(),
     port: getPort(),
     cors: getCorsOptions(),
     api: {

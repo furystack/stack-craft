@@ -12,6 +12,7 @@ import { Prerequisite } from 'common'
 import prerequisitesApiSchema from 'common/schemas/prerequisites-api.json' with { type: 'json' }
 
 import { getCorsOptions } from '../../get-cors-options.js'
+import { getHost } from '../../get-host.js'
 import { getPort } from '../../get-port.js'
 import { CheckPrerequisiteAction } from './actions/check-prerequisite-action.js'
 import { CreatePrerequisiteAction, DeletePrerequisiteAction } from './actions/prerequisite-lifecycle-actions.js'
@@ -20,6 +21,7 @@ export const setupPrerequisitesRestApi = async (injector: Injector) => {
   await useRestService<PrerequisitesApi>({
     injector,
     root: 'api/prerequisites',
+    hostName: getHost(),
     port: getPort(),
     cors: getCorsOptions(),
     api: {

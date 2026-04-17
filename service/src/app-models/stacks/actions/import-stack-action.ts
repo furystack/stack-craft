@@ -4,6 +4,7 @@ import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ImportStackEndpoint } from 'common'
 import {
+  detectSecretsInServiceDefinition,
   GitHubRepository,
   Prerequisite,
   ServiceConfig,
@@ -18,7 +19,6 @@ import {
 
 import { CryptoService } from '../../../utils/crypto-service.js'
 import { encryptEnvValues, encryptLocalFiles } from '../../../utils/env-encryption-helpers.js'
-import { detectSecretsInServiceDefinition } from '../../../utils/secret-detector.js'
 
 export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ injector, getBody }) => {
   const logger = getLogger(injector).withScope('ImportStack')

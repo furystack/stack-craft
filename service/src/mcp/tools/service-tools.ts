@@ -31,7 +31,12 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
 
   mcp.registerTool(
     'list_services',
-    { description: 'List services in a stack with status', inputSchema: { stackName: z.string() } },
+    {
+      description:
+        'List all services in a stack with their current status. Returns id, displayName, cloneStatus, runStatus, installStatus, and buildStatus for each service.',
+      inputSchema: { stackName: z.string().describe('Name of the stack to list services for') },
+      annotations: { readOnlyHint: true },
+    },
     async ({ stackName }) => {
       const services = await repository
         .getDataSetFor(ServiceDefinition, 'id')
@@ -54,22 +59,51 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
     },
   )
 
-  registerServiceAction(mcp, 'start_service', 'Start a service', injector, 'startService', 'started')
-  registerServiceAction(mcp, 'stop_service', 'Stop a service', injector, 'stopService', 'stopped')
-  registerServiceAction(mcp, 'restart_service', 'Restart a service', injector, 'restartService', 'restarted')
+  registerServiceAction(
+    mcp,
+    'start_service',
+    'Start a service by running its configured runCommand. Fails if the service is already running.',
+    injector,
+    'startService',
+    'started',
+  )
+  registerServiceAction(
+    mcp,
+    'stop_service',
+    'Stop a running service process. No-op if the service is already stopped.',
+    injector,
+    'stopService',
+    'stopped',
+    { idempotentHint: true },
+  )
+  registerServiceAction(
+    mcp,
+    'restart_service',
+    'Restart a service: stops the current process and starts it again. If the service is not running, starts it.',
+    injector,
+    'restartService',
+    'restarted',
+  )
   registerServiceAction(
     mcp,
     'install_service',
-    'Install dependencies for a service',
+    'Run the service installCommand (e.g. "npm install"). Requires the repository to be cloned first.',
     injector,
     'installService',
     'installed',
   )
-  registerServiceAction(mcp, 'build_service', 'Build a service', injector, 'buildService', 'built')
+  registerServiceAction(
+    mcp,
+    'build_service',
+    'Run the service buildCommand (e.g. "npm run build"). Requires dependencies to be installed first.',
+    injector,
+    'buildService',
+    'built',
+  )
   registerServiceAction(
     mcp,
     'setup_service',
-    'Set up a service: clone repository, install dependencies, build. Runs the full setup pipeline.',
+    'Full setup pipeline for a single service: clone repository, install dependencies, build. Each step is skipped if already completed.',
     injector,
     'setupService',
     'set up',
@@ -77,17 +111,23 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
   registerServiceAction(
     mcp,
     'update_service',
-    'Update a service: pull latest changes, reinstall, rebuild, restart if it was running.',
+    'Update a service: pull latest changes from git, reinstall dependencies, rebuild, and restart if the service was previously running.',
     injector,
     'updateService',
     'updated',
+    { openWorldHint: true },
   )
 
   mcp.registerTool(
     'get_service_logs',
     {
-      description: 'Get recent log output for a service',
-      inputSchema: { serviceId: z.string(), lines: z.number().optional().default(100) },
+      description:
+        'Get recent stdout/stderr log output for a service process. Returns the most recent lines in chronological order.',
+      inputSchema: {
+        serviceId: z.string().describe('UUID of the service to get logs for'),
+        lines: z.number().optional().default(100).describe('Number of recent log lines to return (default: 100)'),
+      },
+      annotations: { readOnlyHint: true },
     },
     async ({ serviceId, lines }) => {
       const entries = await injector.getInstance(LogStorageService).getEntries(serviceId, { limit: lines })
@@ -98,7 +138,12 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
 
   mcp.registerTool(
     'pull_service',
-    { description: 'Git clone or pull for a service', inputSchema: { serviceId: z.string() } },
+    {
+      description:
+        'Clone the git repository if not yet cloned, or pull latest changes if already cloned. Requires the service to have an associated repository.',
+      inputSchema: { serviceId: z.string().describe('UUID of the service whose repository to clone or pull') },
+      annotations: { openWorldHint: true },
+    },
     async ({ serviceId }) => {
       try {
         const result = await injector.getInstance(ProcessManager).cloneOrPullService(serviceId, mcpTrigger)
@@ -113,27 +158,59 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
   mcp.registerTool(
     'create_service',
     {
-      description: 'Create a new service in a stack',
+      description:
+        'Create a new service in a stack. Creates the service definition, configuration, and an initial status record. The service starts in not-cloned/not-installed/not-built/stopped state.',
       inputSchema: {
-        id: z.string().optional().describe('UUID. Auto-generated if omitted.'),
-        stackName: z.string(),
-        displayName: z.string(),
-        description: z.string().optional(),
-        workingDirectory: z.string().optional().describe('Relative path within the stack directory'),
-        repositoryId: z.string().optional().describe('FK to a GitHub repository'),
-        prerequisiteIds: z.array(z.string()).optional(),
-        prerequisiteServiceIds: z.array(z.string()).optional().describe('IDs of services that must run first'),
-        installCommand: z.string().optional().describe('e.g. "npm install"'),
-        buildCommand: z.string().optional().describe('e.g. "npm run build"'),
-        runCommand: z.string().describe('e.g. "npm start"'),
-        files: z
-          .array(z.object({ relativePath: z.string(), content: z.string() }))
+        id: z.string().optional().describe('UUID primary key. Auto-generated if omitted.'),
+        stackName: z.string().describe('Name of the stack this service belongs to'),
+        displayName: z.string().describe('Human-readable name shown in the UI'),
+        description: z.string().optional().describe('What this service does'),
+        workingDirectory: z
+          .string()
           .optional()
-          .describe('Shared files placed relative to the service root'),
-        autoFetchEnabled: z.boolean().optional(),
-        autoFetchIntervalMinutes: z.number().optional(),
-        autoRestartOnFetch: z.boolean().optional(),
-        environmentVariableOverrides: z.record(z.string(), environmentVariableValueSchema).optional(),
+          .describe('Relative path within the stack mainDirectory (e.g. "frontends/public"). Used for grouping.'),
+        repositoryId: z.string().optional().describe('UUID of a GitHubRepository entry to clone for this service'),
+        prerequisiteIds: z
+          .array(z.string())
+          .optional()
+          .describe(
+            'UUIDs of Prerequisite entries (e.g. Node.js version, env variable checks) that must be satisfied before this service can run',
+          ),
+        prerequisiteServiceIds: z
+          .array(z.string())
+          .optional()
+          .describe(
+            'UUIDs of other services that must be set up before this one during batch setup. Used for topological ordering. Circular dependencies are allowed and result in parallel execution.',
+          ),
+        installCommand: z.string().optional().describe('Shell command to install dependencies (e.g. "npm install")'),
+        buildCommand: z.string().optional().describe('Shell command to build the service (e.g. "npm run build")'),
+        runCommand: z.string().describe('Shell command to start the service (e.g. "npm start")'),
+        files: z
+          .array(
+            z.object({
+              relativePath: z.string().describe('Path relative to the service working directory'),
+              content: z.string().describe('File content (plain text)'),
+            }),
+          )
+          .optional()
+          .describe(
+            'Shared files placed relative to the service root. Included in exports. Use local files (via add_local_file) for secrets.',
+          ),
+        autoFetchEnabled: z
+          .boolean()
+          .optional()
+          .describe('Enable periodic git fetch in the background (default: false)'),
+        autoFetchIntervalMinutes: z.number().optional().describe('Minutes between automatic git fetches (default: 60)'),
+        autoRestartOnFetch: z
+          .boolean()
+          .optional()
+          .describe('Automatically restart the service when new commits are fetched (default: false)'),
+        environmentVariableOverrides: z
+          .record(z.string(), environmentVariableValueSchema)
+          .optional()
+          .describe(
+            'Per-service environment variable overrides, keyed by variable name. Overrides stack-level defaults for this service.',
+          ),
       },
     },
     async ({
@@ -232,27 +309,53 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
   mcp.registerTool(
     'edit_service',
     {
-      description: 'Edit a service definition and/or configuration fields (PATCH semantics)',
+      description:
+        'Update a service definition and/or configuration fields. Uses PATCH semantics: only provided fields are updated, others are left unchanged. When prerequisiteIds or prerequisiteServiceIds are provided, they fully replace the existing set.',
       inputSchema: {
-        serviceId: z.string(),
-        displayName: z.string().optional(),
-        description: z.string().optional(),
-        workingDirectory: z.string().optional(),
-        repositoryId: z.string().optional(),
-        prerequisiteIds: z.array(z.string()).optional(),
-        prerequisiteServiceIds: z.array(z.string()).optional(),
-        installCommand: z.string().optional(),
-        buildCommand: z.string().optional(),
-        runCommand: z.string().optional(),
-        files: z
-          .array(z.object({ relativePath: z.string(), content: z.string() }))
+        serviceId: z.string().describe('UUID of the service to edit'),
+        displayName: z.string().optional().describe('Human-readable name shown in the UI'),
+        description: z.string().optional().describe('What this service does'),
+        workingDirectory: z
+          .string()
           .optional()
-          .describe('Replace all shared files for this service'),
-        autoFetchEnabled: z.boolean().optional(),
-        autoFetchIntervalMinutes: z.number().optional(),
-        autoRestartOnFetch: z.boolean().optional(),
-        environmentVariableOverrides: z.record(z.string(), environmentVariableValueSchema).optional(),
+          .describe('Relative path within the stack mainDirectory (e.g. "frontends/public")'),
+        repositoryId: z.string().optional().describe('UUID of a GitHubRepository entry to clone for this service'),
+        prerequisiteIds: z
+          .array(z.string())
+          .optional()
+          .describe(
+            'Full replacement set of Prerequisite UUIDs. Existing links are removed and replaced with this list.',
+          ),
+        prerequisiteServiceIds: z
+          .array(z.string())
+          .optional()
+          .describe(
+            'Full replacement set of service dependency UUIDs. Controls batch setup ordering. Circular dependencies are allowed and result in parallel execution.',
+          ),
+        installCommand: z.string().optional().describe('Shell command to install dependencies (e.g. "npm install")'),
+        buildCommand: z.string().optional().describe('Shell command to build the service (e.g. "npm run build")'),
+        runCommand: z.string().optional().describe('Shell command to start the service (e.g. "npm start")'),
+        files: z
+          .array(
+            z.object({
+              relativePath: z.string().describe('Path relative to the service working directory'),
+              content: z.string().describe('File content (plain text)'),
+            }),
+          )
+          .optional()
+          .describe('Full replacement set of shared files. All existing shared files are replaced.'),
+        autoFetchEnabled: z.boolean().optional().describe('Enable periodic git fetch in the background'),
+        autoFetchIntervalMinutes: z.number().optional().describe('Minutes between automatic git fetches'),
+        autoRestartOnFetch: z
+          .boolean()
+          .optional()
+          .describe('Automatically restart the service when new commits are fetched'),
+        environmentVariableOverrides: z
+          .record(z.string(), environmentVariableValueSchema)
+          .optional()
+          .describe('Per-service environment variable overrides. Fully replaces existing overrides when provided.'),
       },
+      annotations: { idempotentHint: true },
     },
     async ({
       serviceId,
@@ -342,8 +445,10 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
   mcp.registerTool(
     'delete_service',
     {
-      description: 'Delete a service and its associated config and status',
-      inputSchema: { serviceId: z.string() },
+      description:
+        'Delete a service and all its associated data (config, status records). Does not remove cloned files from disk.',
+      inputSchema: { serviceId: z.string().describe('UUID of the service to delete') },
+      annotations: { destructiveHint: true },
     },
     async ({ serviceId }) => {
       try {
@@ -378,11 +483,13 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
   mcp.registerTool(
     'get_service_history',
     {
-      description: 'Get state change history for a service',
+      description:
+        'Get the audit log of state transitions for a service (start, stop, crash, install, build, clone, etc.). Includes who triggered each event and how.',
       inputSchema: {
-        serviceId: z.string(),
-        limit: z.number().optional().default(50),
+        serviceId: z.string().describe('UUID of the service to get history for'),
+        limit: z.number().optional().default(50).describe('Maximum number of history entries to return (default: 50)'),
       },
+      annotations: { readOnlyHint: true },
     },
     async ({ serviceId, limit }) => {
       const entries = await repository.getDataSetFor(ServiceStateHistory, 'id').find(elevated, {

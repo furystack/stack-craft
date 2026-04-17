@@ -13,6 +13,7 @@ import { registerServiceFileTools } from './tools/service-file-tools.js'
 import { registerServiceTools } from './tools/service-tools.js'
 import { registerStackTools } from './tools/stack-tools.js'
 import { registerSystemTools } from './tools/system-tools.js'
+import { useUserIdentityContext } from './user-identity-context.js'
 
 export const createMcpServer = (injector: Injector, elevated: Injector) => {
   const mcp = new McpServer({ name: 'stackcraft', version: '1.0.0' }, { capabilities: { tools: {} } })
@@ -33,6 +34,7 @@ const MAX_SESSIONS = parseInt(process.env.MCP_MAX_SESSIONS as string, 10) || 50
 
 type TransportEntry = {
   transport: StreamableHTTPServerTransport
+  userInjector: Injector
   lastActivityAt: number
 }
 
@@ -52,8 +54,9 @@ export class McpSessionManager {
     const now = Date.now()
     for (const [id, entry] of this.transports) {
       if (now - entry.lastActivityAt > SESSION_TTL_MS) {
-        void entry.transport.close?.()
         this.transports.delete(id)
+        void entry.transport.close?.()
+        void entry.userInjector[Symbol.asyncDispose]().catch(() => {})
       }
     }
   }
@@ -62,9 +65,15 @@ export class McpSessionManager {
     return this.transports.size
   }
 
-  public register(sessionId: string, transport: StreamableHTTPServerTransport) {
-    this.transports.set(sessionId, { transport, lastActivityAt: Date.now() })
-    transport.onclose = () => this.transports.delete(sessionId)
+  public register(sessionId: string, transport: StreamableHTTPServerTransport, userInjector: Injector) {
+    this.transports.set(sessionId, { transport, userInjector, lastActivityAt: Date.now() })
+    transport.onclose = () => {
+      const existing = this.transports.get(sessionId)
+      if (existing) {
+        this.transports.delete(sessionId)
+        void existing.userInjector[Symbol.asyncDispose]().catch(() => {})
+      }
+    }
   }
 
   public get(sessionId: string): TransportEntry | undefined {
@@ -75,18 +84,28 @@ export class McpSessionManager {
     clearInterval(this.sweepInterval)
     for (const [, entry] of this.transports) {
       void entry.transport.close?.()
+      void entry.userInjector[Symbol.asyncDispose]().catch(() => {})
     }
     this.transports.clear()
   }
 }
 
-export const createMcpRequestHandler = (injector: Injector, sessionManager: McpSessionManager, elevated: Injector) => {
+/**
+ * Creates an HTTP request handler for MCP sessions.
+ * The `authInjector` is a system-level injector used only for Bearer token resolution.
+ * Each new session gets its own user-scoped injector derived from the authenticated user.
+ */
+export const createMcpRequestHandler = (
+  injector: Injector,
+  sessionManager: McpSessionManager,
+  authInjector: Injector,
+) => {
   const logger = getLogger(injector).withScope('McpRequestHandler')
 
   return async (req: IncomingMessage, res: ServerResponse) => {
     try {
       const authHeader = req.headers.authorization
-      const user = await resolveTokenUser(injector, authHeader, elevated)
+      const user = await resolveTokenUser(injector, authHeader, authInjector)
       if (!user) {
         res.writeHead(401, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: 'Unauthorized. Provide a valid Bearer token.' }))
@@ -106,13 +125,16 @@ export const createMcpRequestHandler = (injector: Injector, sessionManager: McpS
           sessionIdGenerator: () => randomUUID(),
         })
 
-        const mcp = createMcpServer(injector, elevated)
+        const userInjector = useUserIdentityContext({ injector, user })
+        const mcp = createMcpServer(injector, userInjector)
         await mcp.connect(transport)
 
         await transport.handleRequest(req, res)
 
         if (transport.sessionId) {
-          sessionManager.register(transport.sessionId, transport)
+          sessionManager.register(transport.sessionId, transport, userInjector)
+        } else {
+          await userInjector[Symbol.asyncDispose]()
         }
         return
       }

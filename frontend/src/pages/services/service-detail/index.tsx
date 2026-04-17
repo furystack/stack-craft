@@ -12,6 +12,7 @@ import {
 } from '@furystack/shades-common-components'
 import type { StackView } from 'common'
 import {
+  detectSecretsInServiceDefinition,
   getServiceCwd,
   GitHubRepository,
   mergeServiceView,
@@ -27,9 +28,11 @@ import {
 } from 'common'
 
 import { PrerequisiteSummaryChip } from '../../../components/prerequisite-summary-chip.js'
+import { SecretWarningsCard } from '../../../components/secret-warnings-card.js'
 import { ServiceStatusIndicator } from '../../../components/service-status-indicator.js'
 import { ServiceDetailActionBar } from './action-bar.js'
 import { ConfigurationTab } from './configuration-tab.js'
+import { FilesTab } from './files-tab.js'
 import { ServiceHistory } from './history-tab.js'
 import { LogsTab } from './logs-tab.js'
 import { OverviewTab } from './overview-tab.js'
@@ -42,7 +45,7 @@ import {
   saveService,
 } from './utils.js'
 
-export type TabId = 'overview' | 'logs' | 'history' | 'configuration'
+export type TabId = 'overview' | 'logs' | 'history' | 'files' | 'configuration'
 
 type ServiceDetailProps = {
   stackName: string
@@ -54,7 +57,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
   render: (options) => {
     const { props, injector, useState } = options
     const locationService = injector.getInstance(LocationService)
-    const validTabs: TabId[] = ['overview', 'logs', 'history', 'configuration']
+    const validTabs: TabId[] = ['overview', 'logs', 'history', 'files', 'configuration']
     const hashValue = locationService.onLocationHashChanged.getValue().replace('#', '')
     const searchState = locationService.onDeserializedLocationSearchChanged.getValue()
     const initialTab: TabId = validTabs.includes(hashValue as TabId)
@@ -103,9 +106,10 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
 
     const gitStatusState = useEntitySync(options, ServiceGitStatus, props.serviceId)
 
-    const statusData = statusState.status === 'synced' ? statusState.data : undefined
-    const configData = configState.status === 'synced' ? configState.data : undefined
-    const gitStatusData = gitStatusState.status === 'synced' ? gitStatusState.data : undefined
+    const statusData = statusState.status === 'synced' || statusState.status === 'cached' ? statusState.data : undefined
+    const configData = configState.status === 'synced' || configState.status === 'cached' ? configState.data : undefined
+    const gitStatusData =
+      gitStatusState.status === 'synced' || gitStatusState.status === 'cached' ? gitStatusState.data : undefined
 
     const prereqLinksState = useCollectionSync(options, ServicePrerequisiteLink, {
       filter: { serviceId: { $eq: props.serviceId } },
@@ -148,8 +152,9 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
         : []
     ).filter((s) => s.id !== service.id)
 
-    const stackDef = stackState.status === 'synced' ? stackState.data : undefined
-    const stackConfig = stackConfigState.status === 'synced' ? stackConfigState.data : undefined
+    const stackDef = stackState.status === 'synced' || stackState.status === 'cached' ? stackState.data : undefined
+    const stackConfig =
+      stackConfigState.status === 'synced' || stackConfigState.status === 'cached' ? stackConfigState.data : undefined
     const stack = stackDef
       ? ({
           ...stackDef,
@@ -206,6 +211,28 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           </div>
         </Paper>
 
+        {(() => {
+          const serviceWarnings = detectSecretsInServiceDefinition({
+            files: serviceData.files,
+            runCommand: serviceData.runCommand,
+            installCommand: serviceData.installCommand,
+            buildCommand: serviceData.buildCommand,
+          })
+          if (serviceWarnings.length === 0) return null
+          return (
+            <SecretWarningsCard
+              warningGroups={[
+                {
+                  serviceId: service.id,
+                  serviceName: service.displayName,
+                  stackName: service.stackName,
+                  warnings: serviceWarnings,
+                },
+              ]}
+            />
+          )
+        })()}
+
         <div data-testid="service-detail-tabs" style={{ display: 'contents' }}>
           <Tabs
             activeKey={activeTab}
@@ -239,6 +266,22 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                 component: <ServiceHistory serviceId={service.id} stackName={service.stackName} />,
               },
               {
+                header: <span>Files</span>,
+                hash: 'files',
+                component: (
+                  <FilesTab
+                    service={service}
+                    actionInProgress={actionInProgress}
+                    onSaveFiles={async (files, localFiles) => {
+                      await saveService(injector, service.id, { files, localFiles }, service.displayName)
+                    }}
+                    onApplyFiles={(relativePath) =>
+                      applyServiceFiles(injector, service.id, setActionInProgress, relativePath)
+                    }
+                  />
+                ),
+              },
+              {
                 header: <span>Configuration</span>,
                 hash: 'configuration',
                 component: (
@@ -249,7 +292,6 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                     otherServices={otherServices}
                     servicePrereqs={servicePrereqs}
                     stackConfig={stackConfig}
-                    actionInProgress={actionInProgress}
                     onSave={(data) => {
                       void saveService(injector, service.id, data, service.displayName).then((ok) => {
                         if (ok) setActiveTab('overview')
@@ -258,9 +300,6 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
                     onCancel={() => setActiveTab('overview')}
                     onCreatePrerequisite={(data) => createPrerequisite(injector, service.stackName, data)}
                     onCreateRepository={(data) => createRepository(injector, service.stackName, data)}
-                    onApplyFiles={(relativePath) =>
-                      applyServiceFiles(injector, service.id, setActionInProgress, relativePath)
-                    }
                   />
                 ),
               },

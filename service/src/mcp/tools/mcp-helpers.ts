@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
 import type { Injector } from '@furystack/inject'
 import { z } from 'zod'
 
@@ -12,9 +13,14 @@ export const errorResult = (text: string): TextResult => ({ content: [{ type: 't
 export const mcpTrigger = { triggeredBy: 'mcp-user', triggerSource: 'mcp' as const }
 
 export const environmentVariableValueSchema = z.object({
-  source: z.enum(['inherit', 'custom']),
-  customValue: z.string().optional(),
-  isSensitive: z.boolean().optional(),
+  source: z
+    .enum(['inherit', 'custom'])
+    .describe("'inherit' uses the value from the host system environment; 'custom' uses the provided customValue"),
+  customValue: z
+    .string()
+    .optional()
+    .describe("The value to use when source is 'custom'. Ignored when source is 'inherit'."),
+  isSensitive: z.boolean().optional().describe('When true, the value is encrypted at rest and masked in API responses'),
 })
 
 export const registerServiceAction = (
@@ -33,13 +39,22 @@ export const registerServiceAction = (
     | 'updateService'
   >,
   pastTense: string,
+  annotations?: ToolAnnotations,
 ) => {
-  mcp.registerTool(name, { description, inputSchema: { serviceId: z.string() } }, async ({ serviceId }) => {
-    try {
-      await injector.getInstance(ProcessManager)[method](serviceId, mcpTrigger)
-      return textResult(`Service ${serviceId} ${pastTense}`)
-    } catch (error) {
-      return errorResult(`Failed: ${(error as Error).message}`)
-    }
-  })
+  mcp.registerTool(
+    name,
+    {
+      description,
+      inputSchema: { serviceId: z.string().describe('UUID of the target service') },
+      annotations,
+    },
+    async ({ serviceId }) => {
+      try {
+        await injector.getInstance(ProcessManager)[method](serviceId, mcpTrigger)
+        return textResult(`Service ${serviceId} ${pastTense}`)
+      } catch (error) {
+        return errorResult(`Failed: ${(error as Error).message}`)
+      }
+    },
+  )
 }

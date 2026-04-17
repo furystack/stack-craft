@@ -74,7 +74,7 @@ export const ServiceHistory = Shade<ServiceHistoryProps>({
 
     const collectionService = useDisposable(
       'collectionService',
-      () => new CollectionService<ServiceStateHistory>({ searchField: 'event' }),
+      () => new CollectionService<ServiceStateHistory>({ searchField: 'event', idField: 'id' }),
     )
 
     const [findOptions, setFindOptions] = useState<FindOptions<ServiceStateHistory, Array<keyof ServiceStateHistory>>>(

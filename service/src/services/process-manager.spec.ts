@@ -131,20 +131,14 @@ const setupPmInjector = async (injector: Injector) => {
   await seedService(injector)
   const pm = injector.getInstance(ProcessManager)
 
-  return { pm, mockLogStorage }
+  return { pm }
 }
 
-const withPmContext = async (
-  fn: (ctx: {
-    injector: Injector
-    pm: ProcessManager
-    mockLogStorage: { addEntry: ReturnType<typeof vi.fn>; getEntries: ReturnType<typeof vi.fn> }
-  }) => Promise<void>,
-) => {
+const withPmContext = async (fn: (ctx: { injector: Injector; pm: ProcessManager }) => Promise<void>) => {
   const injector = new Injector()
-  const { pm, mockLogStorage } = await setupPmInjector(injector)
+  const { pm } = await setupPmInjector(injector)
   try {
-    await fn({ injector, pm, mockLogStorage })
+    await fn({ injector, pm })
   } finally {
     await pm[Symbol.asyncDispose]()
     await new Promise((r) => setTimeout(r, 50))
@@ -301,30 +295,16 @@ describe('ProcessManager - Store Operations', () => {
   })
 })
 
-describe('ProcessManager', () => {
-  it('should throw when starting a non-existent service', () =>
-    withPmContext(async ({ pm }) => {
-      await expect(pm.startService('nonexistent', testTrigger)).rejects.toThrow('Service not found')
-    }))
-
-  it('should throw when stopping a service that is not running', () =>
-    withPmContext(async ({ pm }) => {
-      await expect(pm.stopService('svc-1', testTrigger)).rejects.toThrow('No running process')
-    }))
-
-  it('should throw when installCommand is missing', () =>
+describe('ProcessManager (facade)', () => {
+  it('should delegate startService to ServiceLifecycleManager', () =>
     withPmContext(async ({ injector, pm }) => {
-      await seedService(injector, { id: 'no-install', installCommand: undefined })
-      await expect(pm.installService('no-install', testTrigger)).rejects.toThrow('No install command')
+      await seedService(injector, { id: 'long-svc', runCommand: 'sleep 60' })
+      await pm.startService('long-svc', testTrigger)
+      await new Promise((r) => setTimeout(r, 200))
+      await pm.stopService('long-svc', testTrigger)
     }))
 
-  it('should throw when buildCommand is missing', () =>
-    withPmContext(async ({ injector, pm }) => {
-      await seedService(injector, { id: 'no-build', buildCommand: undefined })
-      await expect(pm.buildService('no-build', testTrigger)).rejects.toThrow('No build command')
-    }))
-
-  it('should run installService successfully', () =>
+  it('should delegate installService to OneShotCommandRunner', () =>
     withPmContext(async ({ injector, pm }) => {
       await pm.installService('svc-1', testTrigger)
 
@@ -335,10 +315,9 @@ describe('ProcessManager', () => {
       await elevated[Symbol.asyncDispose]()
 
       expect(status?.installStatus).toBe('installed')
-      expect(status?.lastInstalledAt).toBeDefined()
     }))
 
-  it('should run buildService successfully', () =>
+  it('should delegate buildService to OneShotCommandRunner', () =>
     withPmContext(async ({ injector, pm }) => {
       await pm.buildService('svc-1', testTrigger)
 
@@ -349,167 +328,18 @@ describe('ProcessManager', () => {
       await elevated[Symbol.asyncDispose]()
 
       expect(status?.buildStatus).toBe('built')
-      expect(status?.lastBuiltAt).toBeDefined()
     }))
 
-  it('should reject when a one-shot command fails', () =>
-    withPmContext(async ({ injector, pm }) => {
-      await seedService(injector, { id: 'fail-svc', installCommand: 'exit 1' })
-      await expect(pm.installService('fail-svc', testTrigger)).rejects.toThrow('exited with code 1')
-
-      const elevated = useSystemIdentityContext({ injector })
-      const [status] = await getRepository(elevated)
-        .getDataSetFor(ServiceStatus, 'serviceId')
-        .find(elevated, { filter: { serviceId: { $eq: 'fail-svc' } }, top: 1 })
-      await elevated[Symbol.asyncDispose]()
-
-      expect(status?.installStatus).toBe('failed')
+  it('should throw for non-existent service via startService', () =>
+    withPmContext(async ({ pm }) => {
+      await expect(pm.startService('nonexistent', testTrigger)).rejects.toThrow('Service not found')
     }))
 
-  it('should delegate log lines to LogStorageService', () =>
-    withPmContext(async ({ pm, mockLogStorage }) => {
-      await pm.installService('svc-1', testTrigger)
-      await new Promise((r) => setTimeout(r, 100))
-      expect(mockLogStorage.addEntry).toHaveBeenCalled()
-    }))
-
-  it('should start a long-running service and stop it', () =>
-    withPmContext(async ({ injector, pm }) => {
-      await seedService(injector, { id: 'long-svc', runCommand: 'sleep 60' })
-      await pm.startService('long-svc', testTrigger)
-
-      await new Promise((r) => setTimeout(r, 200))
-      await pm.stopService('long-svc', testTrigger)
-    }))
-
-  it('should prevent double-starting a service', () =>
-    withPmContext(async ({ injector, pm }) => {
-      await seedService(injector, { id: 'double-svc', runCommand: 'sleep 60' })
-      await pm.startService('double-svc', testTrigger)
-      await new Promise((r) => setTimeout(r, 100))
-      await expect(pm.startService('double-svc', testTrigger)).rejects.toThrow('already has a running process')
-      await pm.stopService('double-svc', testTrigger)
-    }))
-
-  it('should dispose and kill all running processes', () =>
+  it('should dispose gracefully', () =>
     withPmContext(async ({ injector, pm }) => {
       await seedService(injector, { id: 'dispose-svc', runCommand: 'sleep 60' })
       await pm.startService('dispose-svc', testTrigger)
       await new Promise((r) => setTimeout(r, 200))
+      // withPmContext calls pm[Symbol.asyncDispose]() in finally
     }))
-
-  it('should prevent one-shot when a process is already running', () =>
-    withPmContext(async ({ injector, pm }) => {
-      await seedService(injector, { id: 'busy-svc', runCommand: 'sleep 60' })
-      await pm.startService('busy-svc', testTrigger)
-      await new Promise((r) => setTimeout(r, 100))
-      await expect(pm.installService('busy-svc', testTrigger)).rejects.toThrow('already has a')
-      await pm.stopService('busy-svc', testTrigger)
-    }))
-
-  describe('setupService', () => {
-    it('should run install and build when no repo is linked', () =>
-      withPmContext(async ({ injector, pm }) => {
-        await seedService(injector, { id: 'setup-no-repo', installCommand: 'echo install', buildCommand: 'echo build' })
-        await pm.setupService('setup-no-repo', testTrigger)
-
-        const elevated = useSystemIdentityContext({ injector })
-        const [status] = await getRepository(elevated)
-          .getDataSetFor(ServiceStatus, 'serviceId')
-          .find(elevated, { filter: { serviceId: { $eq: 'setup-no-repo' } }, top: 1 })
-        await elevated[Symbol.asyncDispose]()
-
-        expect(status?.installStatus).toBe('installed')
-        expect(status?.buildStatus).toBe('built')
-      }))
-
-    it('should skip install when no installCommand', () =>
-      withPmContext(async ({ injector, pm }) => {
-        await seedService(injector, { id: 'setup-no-install', installCommand: undefined, buildCommand: 'echo build' })
-        await pm.setupService('setup-no-install', testTrigger)
-
-        const elevated = useSystemIdentityContext({ injector })
-        const [status] = await getRepository(elevated)
-          .getDataSetFor(ServiceStatus, 'serviceId')
-          .find(elevated, { filter: { serviceId: { $eq: 'setup-no-install' } }, top: 1 })
-        await elevated[Symbol.asyncDispose]()
-
-        expect(status?.installStatus).toBe('not-installed')
-        expect(status?.buildStatus).toBe('built')
-      }))
-
-    it('should skip build when no buildCommand', () =>
-      withPmContext(async ({ injector, pm }) => {
-        await seedService(injector, { id: 'setup-no-build', installCommand: 'echo install', buildCommand: undefined })
-        await pm.setupService('setup-no-build', testTrigger)
-
-        const elevated = useSystemIdentityContext({ injector })
-        const [status] = await getRepository(elevated)
-          .getDataSetFor(ServiceStatus, 'serviceId')
-          .find(elevated, { filter: { serviceId: { $eq: 'setup-no-build' } }, top: 1 })
-        await elevated[Symbol.asyncDispose]()
-
-        expect(status?.installStatus).toBe('installed')
-        expect(status?.buildStatus).toBe('not-built')
-      }))
-
-    it('should throw for non-existent service', () =>
-      withPmContext(async ({ pm }) => {
-        await expect(pm.setupService('nonexistent', testTrigger)).rejects.toThrow('Service not found')
-      }))
-  })
-
-  describe('setupServices (batch)', () => {
-    it('should set up multiple independent services', () =>
-      withPmContext(async ({ injector, pm }) => {
-        await seedService(injector, { id: 'batch-a', installCommand: 'echo a', buildCommand: undefined })
-        await seedService(injector, { id: 'batch-b', installCommand: 'echo b', buildCommand: undefined })
-        await pm.setupServices(['batch-a', 'batch-b'], testTrigger)
-
-        const elevated = useSystemIdentityContext({ injector })
-        const [statusA] = await getRepository(elevated)
-          .getDataSetFor(ServiceStatus, 'serviceId')
-          .find(elevated, { filter: { serviceId: { $eq: 'batch-a' } }, top: 1 })
-        const [statusB] = await getRepository(elevated)
-          .getDataSetFor(ServiceStatus, 'serviceId')
-          .find(elevated, { filter: { serviceId: { $eq: 'batch-b' } }, top: 1 })
-        await elevated[Symbol.asyncDispose]()
-
-        expect(statusA?.installStatus).toBe('installed')
-        expect(statusB?.installStatus).toBe('installed')
-      }))
-
-    it('should respect prerequisite ordering', () =>
-      withPmContext(async ({ injector, pm }) => {
-        const order: string[] = []
-        const origSetup = pm.setupService.bind(pm)
-        vi.spyOn(pm, 'setupService').mockImplementation(async (id, trigger) => {
-          order.push(id)
-          return origSetup(id, trigger)
-        })
-
-        await seedService(injector, {
-          id: 'dep-parent',
-          installCommand: 'echo parent',
-          buildCommand: undefined,
-        })
-        await seedService(injector, {
-          id: 'dep-child',
-          installCommand: 'echo child',
-          buildCommand: undefined,
-        })
-
-        const elevated = useSystemIdentityContext({ injector })
-        await getRepository(elevated)
-          .getDataSetFor(ServiceDependencyLink, 'id')
-          .add(elevated, { id: 'dep-child::dep-parent', serviceId: 'dep-child', dependsOnServiceId: 'dep-parent' })
-        await elevated[Symbol.asyncDispose]()
-
-        await pm.setupServices(['dep-child', 'dep-parent'], testTrigger)
-
-        const parentIdx = order.indexOf('dep-parent')
-        const childIdx = order.indexOf('dep-child')
-        expect(parentIdx).toBeLessThan(childIdx)
-      }))
-  })
 })

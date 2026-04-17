@@ -4,6 +4,7 @@ import type { SystemApi } from 'common'
 import systemApiSchema from 'common/schemas/system-api.json' with { type: 'json' }
 
 import { getCorsOptions } from '../../get-cors-options.js'
+import { getHost } from '../../get-host.js'
 import { getPort } from '../../get-port.js'
 import { CheckEnvAvailabilityAction } from './actions/check-env-availability-action.js'
 import { HealthCheckAction } from './actions/health-check-action.js'
@@ -12,6 +13,7 @@ export const setupSystemRestApi = async (injector: Injector) => {
   await useRestService<SystemApi>({
     injector,
     root: 'api/system',
+    hostName: getHost(),
     port: getPort(),
     cors: getCorsOptions(),
     api: {

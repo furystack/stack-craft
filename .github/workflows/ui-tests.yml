@@ -1,4 +1,4 @@
-name: UI tests for Showcase app
+name: UI tests for StackCraft
 on: [push]
 jobs:
   build:

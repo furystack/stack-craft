@@ -4,6 +4,7 @@ import { usingAsync } from '@furystack/utils'
 import { ServerManager, useStaticFiles } from '@furystack/rest-service'
 import { injector } from './config.js'
 import { attachShutdownHandler } from './shutdown-handler.js'
+import { getHost } from './get-host.js'
 import { getPort } from './get-port.js'
 import { setupDataStore } from './app-models/data-store/setup-data-store.js'
 import { setupInstallRestApi } from './app-models/install/setup-install-rest-api.js'
@@ -23,6 +24,7 @@ import { setupMcp } from './mcp/setup-mcp.js'
 import { useRequestLogger } from './middleware/request-logger.js'
 import { encryptExistingSecrets } from './utils/encrypt-existing-secrets.js'
 
+const host = getHost()
 const port = getPort()
 
 const setupRestApis = async () => {
@@ -67,6 +69,7 @@ setupRestApis()
       injector,
       baseUrl: '/',
       path: '../frontend/dist',
+      hostName: host,
       port,
       fallback: 'index.html',
     }),
