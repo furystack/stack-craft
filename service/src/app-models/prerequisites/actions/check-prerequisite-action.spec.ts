@@ -4,7 +4,7 @@ import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
 import { Prerequisite, PrerequisiteCheckResult, StackConfig } from 'common'
-import type { PrerequisiteConfig, PrerequisiteType } from 'common'
+import type { PrerequisiteType } from 'common'
 import { randomBytes } from 'crypto'
 import { describe, expect, it, vi } from 'vitest'
 

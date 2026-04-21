@@ -15,7 +15,6 @@ import {
   ServiceStatus,
   StackConfig,
 } from 'common'
-import type { TriggerSource } from 'common'
 import { tmpdir } from 'os'
 import { describe, expect, it, vi } from 'vitest'
 

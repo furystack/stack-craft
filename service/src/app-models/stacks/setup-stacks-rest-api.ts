@@ -4,7 +4,7 @@ import '@furystack/repository'
 import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, useRestService, Validate } from '@furystack/rest-service'
-import type { StacksApi, StackView } from 'common'
+import type { StacksApi } from 'common'
 import {
   GitHubRepository,
   Prerequisite,

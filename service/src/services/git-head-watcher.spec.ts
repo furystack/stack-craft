@@ -1,5 +1,3 @@
-import type { FSWatcher } from 'fs'
-
 import { getRepository } from '@furystack/repository'
 import { ServiceGitStatus } from 'common'
 import { beforeEach, describe, expect, it, vi } from 'vitest'

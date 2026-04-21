@@ -1,7 +1,6 @@
 import type { Injector } from '@furystack/inject'
 import { getRepository } from '@furystack/repository'
 import { ServiceDefinition, ServiceDependencyLink, ServiceStatus, StackConfig } from 'common'
-import type { TriggerSource } from 'common'
 import { describe, expect, it, vi } from 'vitest'
 
 import { withTestInjector } from '../test-helpers.js'
