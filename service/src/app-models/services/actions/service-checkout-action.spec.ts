@@ -98,7 +98,7 @@ describe('ServiceCheckoutAction', () => {
         body: { branch: 'dev' },
       })
       const result = await ServiceCheckoutAction(ctx)
-      const body = result.chunk as { success: boolean; serviceId: string }
+      const body = result.chunk
 
       expect(body.success).toBe(true)
       expect(body.serviceId).toBe('svc-1')

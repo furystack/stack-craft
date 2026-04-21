@@ -12,7 +12,7 @@ describe('PostInstallAction', () => {
         createMockActionContext({
           injector,
           body: { username: 'admin', password: 'secret123' },
-        }) as Parameters<typeof PostInstallAction>[0],
+        }),
       )
 
       expect((result as { chunk: unknown }).chunk).toEqual({ success: true })
@@ -29,7 +29,7 @@ describe('PostInstallAction', () => {
         createMockActionContext({
           injector,
           body: { username: 'admin', password: 'secret123' },
-        }) as Parameters<typeof PostInstallAction>[0],
+        }),
       )
 
       await expect(

@@ -11,7 +11,7 @@ import type { TriggerSource } from 'common'
 import type { TriggerContext } from './trigger-context.js'
 import { ServiceStatusManager } from './service-status-manager.js'
 
-const testTrigger: TriggerContext = { triggeredBy: 'test-user', triggerSource: 'api' as TriggerSource }
+const testTrigger: TriggerContext = { triggeredBy: 'test-user', triggerSource: 'api' }
 
 const createTestServiceStatus = (overrides: Partial<ServiceStatus> = {}): ServiceStatus => ({
   serviceId: 'svc-1',
@@ -199,7 +199,7 @@ describe('ServiceStatusManager', () => {
           serviceId: 'svc-1',
           event: 'run-started' as const,
           triggeredBy: 'test',
-          triggerSource: 'api' as TriggerSource,
+          triggerSource: 'api',
           createdAt: new Date().toISOString(),
         }))
 
@@ -231,7 +231,7 @@ describe('ServiceStatusManager', () => {
           serviceId: 'svc-1',
           event: 'run-started' as const,
           triggeredBy: 'test',
-          triggerSource: 'api' as TriggerSource,
+          triggerSource: 'api',
           createdAt: new Date().toISOString(),
         }))
         await historyStore.add(...entries)

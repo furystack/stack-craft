@@ -12,7 +12,7 @@ import { ServicePipelineOrchestrator } from './service-pipeline-orchestrator.js'
 import { ServiceStatusManager } from './service-status-manager.js'
 import type { TriggerContext } from './trigger-context.js'
 
-const testTrigger: TriggerContext = { triggeredBy: 'test', triggerSource: 'api' as TriggerSource }
+const testTrigger: TriggerContext = { triggeredBy: 'test', triggerSource: 'api' }
 const ts = new Date().toISOString()
 
 const setupMocks = (injector: Injector) => {
@@ -54,7 +54,7 @@ const seedService = async (elevated: Injector, overrides: Partial<ServiceDefinit
       environmentVariables: {},
       createdAt: ts,
       updatedAt: ts,
-    } as StackConfig)
+    })
   }
 
   await repo.getDataSetFor(ServiceDefinition, 'id').add(elevated, {
@@ -75,7 +75,7 @@ const seedService = async (elevated: Injector, overrides: Partial<ServiceDefinit
     buildStatus: 'not-built',
     runStatus: 'stopped',
     updatedAt: ts,
-  } as ServiceStatus)
+  })
 }
 
 describe('ServicePipelineOrchestrator', () => {

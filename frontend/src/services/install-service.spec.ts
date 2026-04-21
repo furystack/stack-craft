@@ -11,7 +11,7 @@ const createMockApiClient = () => ({
 
 const createSetup = (injector: Injector) => {
   const mockApi = createMockApiClient()
-  injector.setExplicitInstance(mockApi as unknown as InstallApiClient, InstallApiClient)
+  injector.setExplicitInstance(mockApi, InstallApiClient)
   const service = injector.getInstance(InstallService)
   return { mockApi, service }
 }

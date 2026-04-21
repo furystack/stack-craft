@@ -175,7 +175,7 @@ export const Sidebar = Shade<{ injector?: Injector }>({
 
     const stackIds = stacks.map((s) => s.name).join('\0')
 
-    const [remountPhaseByStack, setRemountPhaseByStack] = useState('remountPhaseByStack', {} as Record<string, 0 | 1>)
+    const [remountPhaseByStack, setRemountPhaseByStack] = useState('remountPhaseByStack', {})
     sidebarStackRemountScratch.map = remountPhaseByStack
 
     useDisposable(

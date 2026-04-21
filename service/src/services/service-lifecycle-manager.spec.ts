@@ -24,7 +24,7 @@ import { LogStorageService } from './log-storage-service.js'
 import { ServiceLifecycleManager } from './service-lifecycle-manager.js'
 import type { TriggerContext } from './trigger-context.js'
 
-const testTrigger: TriggerContext = { triggeredBy: 'test', triggerSource: 'api' as TriggerSource }
+const testTrigger: TriggerContext = { triggeredBy: 'test', triggerSource: 'api' }
 
 const createTestServiceDefinition = (overrides: Partial<ServiceDefinition> = {}): ServiceDefinition => ({
   id: 'svc-1',

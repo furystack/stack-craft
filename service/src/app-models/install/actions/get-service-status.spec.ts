@@ -35,9 +35,7 @@ const createMockActionContext = (options: { injector: Injector }) => ({
 describe('GetServiceStatus', () => {
   it('should return "needsInstall" when no users exist', () =>
     usingAsync(setupInjector(), async (injector) => {
-      const result = await GetServiceStatus(
-        createMockActionContext({ injector }) as Parameters<typeof GetServiceStatus>[0],
-      )
+      const result = await GetServiceStatus(createMockActionContext({ injector }))
       const body = (result as { chunk: { state: InstallState } }).chunk
       expect(body.state).toBe('needsInstall')
     }))
@@ -48,9 +46,7 @@ describe('GetServiceStatus', () => {
       await getRepository(elevated).getDataSetFor(User, 'username').add(elevated, { username: 'admin', roles: [] })
       await elevated[Symbol.asyncDispose]()
 
-      const result = await GetServiceStatus(
-        createMockActionContext({ injector }) as Parameters<typeof GetServiceStatus>[0],
-      )
+      const result = await GetServiceStatus(createMockActionContext({ injector }))
       const body = (result as { chunk: { state: InstallState } }).chunk
       expect(body.state).toBe('installed')
     }))

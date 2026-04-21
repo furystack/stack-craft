@@ -47,7 +47,7 @@ const seedData = async (
     environmentVariables: {},
     createdAt: ts,
     updatedAt: ts,
-  } as StackConfig)
+  })
   await repo.getDataSetFor(ServiceDefinition, 'id').add(elevated, {
     id: 'svc-1',
     stackName: 'test-stack',
@@ -66,7 +66,7 @@ const seedData = async (
     localFiles: overrides?.localFiles ?? [],
     createdAt: ts,
     updatedAt: ts,
-  } as ServiceConfig)
+  })
   await repo.getDataSetFor(ServiceStatus, 'serviceId').add(elevated, {
     serviceId: 'svc-1',
     cloneStatus: 'not-cloned',
@@ -74,7 +74,7 @@ const seedData = async (
     buildStatus: 'not-built',
     runStatus: 'stopped',
     updatedAt: ts,
-  } as ServiceStatus)
+  })
 }
 
 describe('ServiceFileManager', () => {

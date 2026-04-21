@@ -30,7 +30,7 @@ describe('ServiceLogsAction', () => {
       injector.setExplicitInstance(mockLogStorage as unknown as LogStorageService, LogStorageService)
 
       const result = await ServiceLogsAction(createLogsContext({ injector, urlParams: { id: 'svc-1' }, query: {} }))
-      const body = result.chunk as { entries: ServiceLogEntry[] }
+      const body = result.chunk
 
       expect(body.entries).toEqual(entries)
       expect(mockLogStorage.getEntries).toHaveBeenCalledWith('svc-1', {

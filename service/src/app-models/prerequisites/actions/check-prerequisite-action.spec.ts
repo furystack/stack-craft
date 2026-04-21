@@ -93,7 +93,7 @@ describe('CheckPrerequisiteAction', () => {
     describe('git', () => {
       it('should return satisfied when git is available', async () => {
         execFileMock.mockResolvedValue({ stdout: 'git version 2.43.0\n', stderr: '' })
-        const result = await runCheck('git', {} as PrerequisiteConfig)
+        const result = await runCheck('git', {})
         expect(result.satisfied).toBe(true)
         expect(result.output).toContain('git version')
       })
@@ -200,7 +200,7 @@ describe('CheckPrerequisiteAction', () => {
 
     describe('unknown type', () => {
       it('should return not satisfied for unknown type', async () => {
-        const result = await runCheck('unknown-type' as PrerequisiteType, {} as PrerequisiteConfig)
+        const result = await runCheck('unknown-type' as PrerequisiteType, {})
         expect(result.satisfied).toBe(false)
         expect(result.output).toContain('Unknown prerequisite type')
       })
@@ -230,7 +230,7 @@ describe('CheckPrerequisiteAction', () => {
           createMockActionContext({ injector: elevated, urlParams: { id: 'prereq-1' } }),
         )
 
-        const body = result.chunk as { satisfied: boolean; output: string }
+        const body = result.chunk
         expect(body.satisfied).toBe(true)
       })
     })
@@ -276,7 +276,7 @@ describe('CheckPrerequisiteAction', () => {
           createMockActionContext({ injector: elevated, urlParams: { id: 'prereq-env-1' } }),
         )
 
-        const body = result.chunk as { satisfied: boolean; output: string }
+        const body = result.chunk
         expect(body.satisfied).toBe(true)
         expect(body.output).toContain('custom value')
       })
@@ -304,7 +304,7 @@ describe('CheckPrerequisiteAction', () => {
           createMockActionContext({ injector: elevated, urlParams: { id: 'prereq-2' } }),
         )
 
-        const body = result.chunk as { satisfied: boolean; output: string }
+        const body = result.chunk
         expect(body.satisfied).toBe(false)
         expect(body.output).toContain('Command not found')
       })

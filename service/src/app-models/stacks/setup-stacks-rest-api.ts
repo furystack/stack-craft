@@ -64,7 +64,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
                   config.environmentVariables ?? {},
                   SENSITIVE_VALUE_MASK,
                 ),
-              } as StackView
+              }
             })
             return JsonResult({ count: entries.length, entries })
           },

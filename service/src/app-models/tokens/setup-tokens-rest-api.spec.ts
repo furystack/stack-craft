@@ -55,7 +55,7 @@ describe('Token CRUD operations', () => {
 
         const actionResult = await CreateTokenAction(createMockActionContext({ injector, body: { name: 'my-token' } }))
 
-        const result = actionResult.chunk as { token: PublicApiToken; plainTextToken: string }
+        const result = actionResult.chunk
         expect(result.plainTextToken).toBeDefined()
         expect(result.plainTextToken.length).toBe(64)
         expect(result.token.name).toBe('my-token')
@@ -108,7 +108,7 @@ describe('Token CRUD operations', () => {
         await elevated[Symbol.asyncDispose]()
 
         const actionResult = await GetTokensAction(createMockActionContext({ injector }))
-        const result = actionResult.chunk as { count: number; entries: PublicApiToken[] }
+        const result = actionResult.chunk
 
         expect(result.count).toBe(1)
         expect(result.entries[0]?.name).toBe('Admin Token')

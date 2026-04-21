@@ -15,7 +15,7 @@ describe('EnvironmentVariableService', () => {
   beforeEach(() => {
     mocks = createMocks()
     const injector = new Injector()
-    injector.setExplicitInstance(mocks.systemApi as unknown as SystemApiClient, SystemApiClient)
+    injector.setExplicitInstance(mocks.systemApi, SystemApiClient)
     service = injector.getInstance(EnvironmentVariableService)
   })
 

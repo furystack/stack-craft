@@ -84,7 +84,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
         headerComponents={{
           selection: () => <span />,
           displayName: () => {
-            const order = findOptions.order as Record<string, 'ASC' | 'DESC'> | undefined
+            const { order } = findOptions
             const currentDir = order?.displayName
             const nextDir = currentDir === 'ASC' ? 'DESC' : 'ASC'
 

@@ -40,24 +40,24 @@ export const buildConfig = (data: PrerequisiteFormPayload): PrerequisiteConfig =
   switch (data.type) {
     case 'node':
     case 'yarn':
-      return { minimumVersion: data.minimumVersion! } as PrerequisiteConfig
+      return { minimumVersion: data.minimumVersion! }
     case 'dotnet-sdk':
     case 'dotnet-runtime':
-      return { version: data.version! } as PrerequisiteConfig
+      return { version: data.version! }
     case 'nuget-feed':
-      return { feedUrl: data.feedUrl!, ...(data.feedName ? { feedName: data.feedName } : {}) } as PrerequisiteConfig
+      return { feedUrl: data.feedUrl!, ...(data.feedName ? { feedName: data.feedName } : {}) }
     case 'git':
     case 'github-cli':
-      return {} as PrerequisiteConfig
+      return {}
     case 'env-variable':
       return {
         variableName: data.variableName!,
         ...(data.isSensitive === 'on' ? { isSensitive: true } : {}),
-      } as PrerequisiteConfig
+      }
     case 'custom-script':
-      return { script: data.script! } as PrerequisiteConfig
+      return { script: data.script! }
     default:
-      return {} as PrerequisiteConfig
+      return {}
   }
 }
 

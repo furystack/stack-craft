@@ -31,7 +31,7 @@ describe('PasswordResetAction', () => {
           body: { currentPassword: 'old-pass', newPassword: 'new-pass' },
         }),
       )
-      const body = result.chunk as { success: boolean }
+      const body = result.chunk
 
       expect(body.success).toBe(true)
       expect(mockAuthenticator.setPasswordForUser).toHaveBeenCalledWith('testuser', 'old-pass', 'new-pass')

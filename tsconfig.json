@@ -2,7 +2,7 @@
   "compilerOptions": {
     /* Basic Options */
     "incremental": true /* Enable incremental compilation */,
-    "target": "ES2022",
+    "target": "ESNext",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     // "lib": [],                             /* Specify library files to be included in the compilation. */

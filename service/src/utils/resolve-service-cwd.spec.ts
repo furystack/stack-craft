@@ -12,15 +12,13 @@ const ts = new Date().toISOString()
 
 describe('resolveServiceCwd', () => {
   const addStackConfig = async (elevated: Injector, stackName: string, mainDirectory: string) => {
-    await getRepository(elevated)
-      .getDataSetFor(StackConfig, 'stackName')
-      .add(elevated, {
-        stackName,
-        mainDirectory,
-        environmentVariables: {},
-        createdAt: ts,
-        updatedAt: ts,
-      } as StackConfig)
+    await getRepository(elevated).getDataSetFor(StackConfig, 'stackName').add(elevated, {
+      stackName,
+      mainDirectory,
+      environmentVariables: {},
+      createdAt: ts,
+      updatedAt: ts,
+    })
   }
 
   const addRepo = async (elevated: Injector, id: string, stackName: string, url: string) => {

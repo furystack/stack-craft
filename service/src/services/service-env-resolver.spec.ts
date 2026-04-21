@@ -14,27 +14,25 @@ const ts = new Date().toISOString()
 
 const makeServiceDefinition = (
   overrides: Partial<ServiceDefinition> & { id: string; stackName: string },
-): ServiceDefinition =>
-  ({
-    displayName: overrides.id,
-    description: '',
-    runCommand: 'echo test',
-    files: [],
-    createdAt: ts,
-    updatedAt: ts,
-    ...overrides,
-  }) as ServiceDefinition
+): ServiceDefinition => ({
+  displayName: overrides.id,
+  description: '',
+  runCommand: 'echo test',
+  files: [],
+  createdAt: ts,
+  updatedAt: ts,
+  ...overrides,
+})
 
-const makePrerequisite = (overrides: Partial<Prerequisite> & { id: string; stackName: string }): Prerequisite =>
-  ({
-    name: overrides.id,
-    type: 'env-variable',
-    config: { variableName: 'UNSET' },
-    installationHelp: '',
-    createdAt: ts,
-    updatedAt: ts,
-    ...overrides,
-  }) as Prerequisite
+const makePrerequisite = (overrides: Partial<Prerequisite> & { id: string; stackName: string }): Prerequisite => ({
+  name: overrides.id,
+  type: 'env-variable',
+  config: { variableName: 'UNSET' },
+  installationHelp: '',
+  createdAt: ts,
+  updatedAt: ts,
+  ...overrides,
+})
 
 const withEnvAndInjector = async (
   fn: (ctx: {
@@ -143,7 +141,7 @@ describe('ServiceEnvResolver', () => {
           },
           createdAt: ts,
           updatedAt: ts,
-        } as StackConfig)
+        })
 
         const resolver = injector.getInstance(ServiceEnvResolver)
         const result = await resolver.resolveServiceEnvVars('svc-2')
@@ -181,7 +179,7 @@ describe('ServiceEnvResolver', () => {
         },
         createdAt: ts,
         updatedAt: ts,
-      } as StackConfig)
+      })
 
       const resolver = injector.getInstance(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('svc-3')
@@ -215,7 +213,7 @@ describe('ServiceEnvResolver', () => {
         },
         createdAt: ts,
         updatedAt: ts,
-      } as StackConfig)
+      })
 
       const resolver = injector.getInstance(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('svc-4')
@@ -247,7 +245,7 @@ describe('ServiceEnvResolver', () => {
           },
           createdAt: ts,
           updatedAt: ts,
-        } as StackConfig)
+        })
         await svcConfigStore.add({
           serviceId: 'svc-5',
           autoFetchEnabled: false,
@@ -259,7 +257,7 @@ describe('ServiceEnvResolver', () => {
           localFiles: [],
           createdAt: ts,
           updatedAt: ts,
-        } as ServiceConfig)
+        })
 
         const resolver = injector.getInstance(ServiceEnvResolver)
         const result = await resolver.resolveServiceEnvVars('svc-5')
@@ -294,7 +292,7 @@ describe('ServiceEnvResolver', () => {
         },
         createdAt: ts,
         updatedAt: ts,
-      } as StackConfig)
+      })
 
       const resolver = injector.getInstance(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('svc-6')
@@ -312,7 +310,7 @@ describe('ServiceEnvResolver', () => {
         },
         createdAt: ts,
         updatedAt: ts,
-      } as StackConfig)
+      })
       await svcConfigStore.add({
         serviceId: 'svc-7',
         autoFetchEnabled: false,
@@ -322,7 +320,7 @@ describe('ServiceEnvResolver', () => {
         localFiles: [],
         createdAt: ts,
         updatedAt: ts,
-      } as ServiceConfig)
+      })
 
       const resolver = injector.getInstance(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('svc-7')
@@ -338,7 +336,7 @@ describe('ServiceEnvResolver', () => {
         environmentVariables: {},
         createdAt: ts,
         updatedAt: ts,
-      } as StackConfig)
+      })
       await svcConfigStore.add({
         serviceId: 'svc-8',
         autoFetchEnabled: false,
@@ -350,7 +348,7 @@ describe('ServiceEnvResolver', () => {
         localFiles: [],
         createdAt: ts,
         updatedAt: ts,
-      } as ServiceConfig)
+      })
 
       const resolver = injector.getInstance(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('svc-8')
@@ -378,7 +376,7 @@ describe('ServiceEnvResolver', () => {
           },
           createdAt: ts,
           updatedAt: ts,
-        } as StackConfig)
+        })
         await svcConfigStore.add({
           serviceId: 'svc-9',
           autoFetchEnabled: false,
@@ -388,7 +386,7 @@ describe('ServiceEnvResolver', () => {
           localFiles: [],
           createdAt: ts,
           updatedAt: ts,
-        } as ServiceConfig)
+        })
 
         const resolver = injector.getInstance(ServiceEnvResolver)
         const result = await resolver.resolveServiceEnvVars('svc-9')
@@ -410,7 +408,7 @@ describe('ServiceEnvResolver', () => {
         },
         createdAt: ts,
         updatedAt: ts,
-      } as StackConfig)
+      })
       await svcConfigStore.add({
         serviceId: 'svc-10',
         autoFetchEnabled: false,
@@ -422,7 +420,7 @@ describe('ServiceEnvResolver', () => {
         localFiles: [],
         createdAt: ts,
         updatedAt: ts,
-      } as ServiceConfig)
+      })
 
       const resolver = injector.getInstance(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('svc-10')

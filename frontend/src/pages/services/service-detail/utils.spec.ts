@@ -30,9 +30,9 @@ const createMocks = () => ({
 
 const createInjector = (mocks: ReturnType<typeof createMocks>) => {
   const injector = new Injector()
-  injector.setExplicitInstance(mocks.servicesApi as unknown as ServicesApiClient, ServicesApiClient)
-  injector.setExplicitInstance(mocks.prereqsApi as unknown as PrerequisitesApiClient, PrerequisitesApiClient)
-  injector.setExplicitInstance(mocks.reposApi as unknown as GitHubReposApiClient, GitHubReposApiClient)
+  injector.setExplicitInstance(mocks.servicesApi, ServicesApiClient)
+  injector.setExplicitInstance(mocks.prereqsApi, PrerequisitesApiClient)
+  injector.setExplicitInstance(mocks.reposApi, GitHubReposApiClient)
   injector.setExplicitInstance(mocks.noty as unknown as NotyService, NotyService)
   return injector
 }

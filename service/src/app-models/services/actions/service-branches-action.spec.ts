@@ -115,7 +115,7 @@ describe('ServiceBranchesAction', () => {
 
       const ctx = createMockActionContext({ injector, urlParams: { id: 'svc-1' } })
       const result = await ServiceBranchesAction(ctx)
-      const body = result.chunk as { currentBranch: string; local: string[]; remote: string[] }
+      const body = result.chunk
 
       expect(body.currentBranch).toBe('main')
       expect(body.local).toEqual(['main', 'dev'])
