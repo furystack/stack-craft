@@ -27,7 +27,7 @@ describe('ClearServiceLogsAction', () => {
       injector.setExplicitInstance(mockLogStorage as unknown as LogStorageService, LogStorageService)
 
       const result = await ClearServiceLogsAction(createMockActionContext({ injector, urlParams: { id: 'svc-1' } }))
-      const body = result.chunk as { success: boolean }
+      const body = result.chunk
 
       expect(body.success).toBe(true)
     })

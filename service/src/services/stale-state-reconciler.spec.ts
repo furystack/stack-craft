@@ -37,7 +37,7 @@ const addServiceStatus = async (elevated: Injector, overrides: Partial<ServiceSt
       runStatus: 'stopped',
       updatedAt: new Date().toISOString(),
       ...overrides,
-    } as ServiceStatus)
+    })
 }
 
 const addServiceDefinition = async (elevated: Injector, id: string) => {

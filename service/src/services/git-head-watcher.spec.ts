@@ -1,5 +1,3 @@
-import type { FSWatcher } from 'fs'
-
 import { getRepository } from '@furystack/repository'
 import { ServiceGitStatus } from 'common'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -25,7 +23,7 @@ vi.mock('fs', async (importOriginal) => {
 beforeEach(() => {
   vi.clearAllMocks()
   mockExistsSync.mockReturnValue(false)
-  mockWatch.mockReturnValue({ close: mockWatcherClose } as unknown as FSWatcher)
+  mockWatch.mockReturnValue({ close: mockWatcherClose })
 })
 
 describe('GitHeadWatcher', () => {
@@ -118,8 +116,8 @@ describe('GitHeadWatcher', () => {
       mockExistsSync.mockReturnValue(true)
       const closeA = vi.fn()
       const closeB = vi.fn()
-      mockWatch.mockReturnValueOnce({ close: closeA } as unknown as FSWatcher)
-      mockWatch.mockReturnValueOnce({ close: closeB } as unknown as FSWatcher)
+      mockWatch.mockReturnValueOnce({ close: closeA })
+      mockWatch.mockReturnValueOnce({ close: closeB })
 
       const mockGit = {
         getCurrentBranch: vi.fn().mockResolvedValue('main'),

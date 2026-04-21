@@ -31,15 +31,13 @@ describe('encryptExistingSecrets', () => {
     stackName: string,
     environmentVariables: StackConfig['environmentVariables'],
   ) => {
-    await getRepository(elevated)
-      .getDataSetFor(StackConfig, 'stackName')
-      .add(elevated, {
-        stackName,
-        mainDirectory: '/tmp',
-        environmentVariables,
-        createdAt: ts,
-        updatedAt: ts,
-      } as StackConfig)
+    await getRepository(elevated).getDataSetFor(StackConfig, 'stackName').add(elevated, {
+      stackName,
+      mainDirectory: '/tmp',
+      environmentVariables,
+      createdAt: ts,
+      updatedAt: ts,
+    })
   }
 
   const addServiceConfig = async (
@@ -47,18 +45,16 @@ describe('encryptExistingSecrets', () => {
     serviceId: string,
     environmentVariableOverrides: ServiceConfig['environmentVariableOverrides'],
   ) => {
-    await getRepository(elevated)
-      .getDataSetFor(ServiceConfig, 'serviceId')
-      .add(elevated, {
-        serviceId,
-        autoFetchEnabled: false,
-        autoFetchIntervalMinutes: 60,
-        autoRestartOnFetch: false,
-        environmentVariableOverrides,
-        localFiles: [],
-        createdAt: ts,
-        updatedAt: ts,
-      } as ServiceConfig)
+    await getRepository(elevated).getDataSetFor(ServiceConfig, 'serviceId').add(elevated, {
+      serviceId,
+      autoFetchEnabled: false,
+      autoFetchIntervalMinutes: 60,
+      autoRestartOnFetch: false,
+      environmentVariableOverrides,
+      localFiles: [],
+      createdAt: ts,
+      updatedAt: ts,
+    })
   }
 
   const getStackEnvVars = async (elevated: Injector, stackName: string) => {

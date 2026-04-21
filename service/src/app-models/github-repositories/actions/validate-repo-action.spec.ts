@@ -72,7 +72,7 @@ describe('ValidateRepoAction', () => {
         createMockActionContext({ injector: elevated, urlParams: { id: 'repo-2' } }),
       )
 
-      const body = result.chunk as { accessible: boolean; message?: string }
+      const body = result.chunk
       expect(body.accessible).toBe(false)
       expect(body.message).toContain('Repository not found')
     })

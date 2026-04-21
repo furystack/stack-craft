@@ -6,12 +6,10 @@ import { usingAsync } from '@furystack/utils'
 import { ServiceStateHistory, ServiceStatus } from 'common'
 import { describe, expect, it } from 'vitest'
 
-import type { TriggerSource } from 'common'
-
-import type { TriggerContext } from './trigger-context.js'
 import { ServiceStatusManager } from './service-status-manager.js'
+import type { TriggerContext } from './trigger-context.js'
 
-const testTrigger: TriggerContext = { triggeredBy: 'test-user', triggerSource: 'api' as TriggerSource }
+const testTrigger: TriggerContext = { triggeredBy: 'test-user', triggerSource: 'api' }
 
 const createTestServiceStatus = (overrides: Partial<ServiceStatus> = {}): ServiceStatus => ({
   serviceId: 'svc-1',
@@ -194,12 +192,12 @@ describe('ServiceStatusManager', () => {
         const elevated = useSystemIdentityContext({ injector })
         const historyDs = getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id')
 
-        const entries = Array.from({ length: 10_005 }, (_, i) => ({
+        const entries: ServiceStateHistory[] = Array.from({ length: 10_005 }, (_, i) => ({
           id: i + 1,
           serviceId: 'svc-1',
-          event: 'run-started' as const,
+          event: 'run-started',
           triggeredBy: 'test',
-          triggerSource: 'api' as TriggerSource,
+          triggerSource: 'api',
           createdAt: new Date().toISOString(),
         }))
 
@@ -226,12 +224,12 @@ describe('ServiceStatusManager', () => {
         const elevated = useSystemIdentityContext({ injector })
         const historyDs = getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id')
 
-        const entries = Array.from({ length: 5 }, (_, i) => ({
+        const entries: ServiceStateHistory[] = Array.from({ length: 5 }, (_, i) => ({
           id: i + 1,
           serviceId: 'svc-1',
-          event: 'run-started' as const,
+          event: 'run-started',
           triggeredBy: 'test',
-          triggerSource: 'api' as TriggerSource,
+          triggerSource: 'api',
           createdAt: new Date().toISOString(),
         }))
         await historyStore.add(...entries)

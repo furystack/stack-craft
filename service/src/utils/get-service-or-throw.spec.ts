@@ -13,16 +13,15 @@ const ts = new Date().toISOString()
 
 const makeServiceDefinition = (
   overrides: Partial<ServiceDefinition> & { id: string; stackName: string },
-): ServiceDefinition =>
-  ({
-    displayName: overrides.id,
-    description: '',
-    runCommand: 'echo test',
-    files: [],
-    createdAt: ts,
-    updatedAt: ts,
-    ...overrides,
-  }) as ServiceDefinition
+): ServiceDefinition => ({
+  displayName: overrides.id,
+  description: '',
+  runCommand: 'echo test',
+  files: [],
+  createdAt: ts,
+  updatedAt: ts,
+  ...overrides,
+})
 
 const setupStore = (injector: Injector) => {
   useLogging(injector, VerboseConsoleLogger)

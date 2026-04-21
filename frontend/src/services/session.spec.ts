@@ -12,7 +12,7 @@ const createMocks = () => ({
 
 const createService = (mocks: ReturnType<typeof createMocks>): { injector: Injector; service: SessionService } => {
   const injector = new Injector()
-  injector.setExplicitInstance(mocks.api as unknown as IdentityApiClient, IdentityApiClient)
+  injector.setExplicitInstance(mocks.api, IdentityApiClient)
   injector.setExplicitInstance(mocks.notys as unknown as NotyService, NotyService)
   const service = injector.getInstance(SessionService)
   return { injector, service }

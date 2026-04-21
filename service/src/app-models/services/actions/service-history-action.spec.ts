@@ -55,7 +55,7 @@ describe('ServiceHistoryAction', () => {
         createHistoryContext({ injector: elevated, urlParams: { id: 'svc-1' }, query: {} }),
       )
 
-      const body = result.chunk as { entries: ServiceStateHistory[] }
+      const body = result.chunk
       expect(body.entries).toHaveLength(1)
       expect(body.entries[0].serviceId).toBe('svc-1')
     })
@@ -92,7 +92,7 @@ describe('ServiceHistoryAction', () => {
         createHistoryContext({ injector: elevated, urlParams: { id: 'svc-2' }, query: { limit: 2 } }),
       )
 
-      const body = result.chunk as { entries: ServiceStateHistory[] }
+      const body = result.chunk
       expect(body.entries).toHaveLength(2)
     })
   })

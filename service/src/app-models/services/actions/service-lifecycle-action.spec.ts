@@ -46,7 +46,7 @@ describe('ServiceLifecycleAction', () => {
         const action = ServiceLifecycleAction('start')
         const ctx = createMockActionContext({ injector, urlParams: { id: 'svc-1' } })
         const result = await action(ctx)
-        const body = result.chunk as { success: boolean; serviceId: string }
+        const body = result.chunk
 
         expect(body.success).toBe(true)
         expect(body.serviceId).toBe('svc-1')

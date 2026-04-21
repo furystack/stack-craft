@@ -66,7 +66,7 @@ const seedServiceData = async (
     environmentVariables: {},
     createdAt: ts,
     updatedAt: ts,
-  } as StackConfig)
+  })
   await repo.getDataSetFor(ServiceDefinition, 'id').add(elevated, {
     id: 'svc-1',
     stackName: 'test-stack',
@@ -86,7 +86,7 @@ const seedServiceData = async (
     localFiles: [],
     createdAt: ts,
     updatedAt: ts,
-  } as ServiceConfig)
+  })
   await repo.getDataSetFor(ServiceStatus, 'serviceId').add(elevated, {
     serviceId: 'svc-1',
     cloneStatus: 'not-cloned',
@@ -94,7 +94,7 @@ const seedServiceData = async (
     buildStatus: 'not-built',
     runStatus: 'stopped',
     updatedAt: ts,
-  } as ServiceStatus)
+  })
   await repo.getDataSetFor(GitHubRepository, 'id').add(elevated, {
     id: 'repo-1',
     stackName: 'test-stack',
@@ -103,7 +103,7 @@ const seedServiceData = async (
     description: '',
     createdAt: ts,
     updatedAt: ts,
-  } as GitHubRepository)
+  })
 }
 
 const trigger: TriggerContext = { triggeredBy: 'test-user', triggerSource: 'api' }
@@ -194,7 +194,7 @@ describe('GitOperationsService', () => {
           files: [],
           createdAt: ts,
           updatedAt: ts,
-        } as ServiceDefinition)
+        })
 
         const service = injector.getInstance(GitOperationsService)
         await expect(service.cloneOrPullService('svc-1', trigger)).rejects.toThrow('No repository linked')

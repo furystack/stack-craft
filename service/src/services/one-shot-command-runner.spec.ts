@@ -15,7 +15,6 @@ import {
   ServiceStatus,
   StackConfig,
 } from 'common'
-import type { TriggerSource } from 'common'
 import { tmpdir } from 'os'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -24,7 +23,7 @@ import { LogStorageService } from './log-storage-service.js'
 import { OneShotCommandRunner } from './one-shot-command-runner.js'
 import type { TriggerContext } from './trigger-context.js'
 
-const testTrigger: TriggerContext = { triggeredBy: 'test', triggerSource: 'api' as TriggerSource }
+const testTrigger: TriggerContext = { triggeredBy: 'test', triggerSource: 'api' }
 
 const createTestServiceDefinition = (overrides: Partial<ServiceDefinition> = {}): ServiceDefinition => ({
   id: 'svc-1',

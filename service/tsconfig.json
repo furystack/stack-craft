@@ -4,7 +4,8 @@
     "outDir": "dist",
     "rootDir": "src",
     "resolveJsonModule": true,
-    "composite": true
+    "composite": true,
+    "types": ["node"]
   },
   "include": ["src"],
   "references": [{ "path": "../common" }]

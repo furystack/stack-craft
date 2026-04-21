@@ -41,7 +41,7 @@ export const resolveTokenUser = async (
     const logger = getLogger(injector).withScope('BearerTokenAuth')
     await logger.verbose({ message: `Token authenticated: ${token.name} for user ${token.username}` })
 
-    await tokenDs.update(elevated, token.id, { lastUsedAt: new Date().toISOString() } as Partial<ApiToken>)
+    await tokenDs.update(elevated, token.id, { lastUsedAt: new Date().toISOString() })
 
     const userDs = repository.getDataSetFor(User, 'username')
     const users = await userDs.find(elevated, { filter: { username: { $eq: token.username } }, top: 1 })
