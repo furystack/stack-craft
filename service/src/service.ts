@@ -7,6 +7,7 @@ import { attachShutdownHandler } from './shutdown-handler.js'
 import { getHost } from './get-host.js'
 import { getPort } from './get-port.js'
 import { setupDataStore } from './app-models/data-store/setup-data-store.js'
+import { setupPatcher } from './patcher/setup-patcher.js'
 import { setupInstallRestApi } from './app-models/install/setup-install-rest-api.js'
 import { setupIdentityRestApi } from './app-models/identity/setup-identity-rest-api.js'
 import { setupStacksRestApi } from './app-models/stacks/setup-stacks-rest-api.js'
@@ -17,6 +18,7 @@ import { setupPrerequisitesRestApi } from './app-models/prerequisites/setup-prer
 import { setupTokensRestApi } from './app-models/tokens/setup-tokens-rest-api.js'
 import { setupSystemRestApi } from './app-models/system/setup-system-rest-api.js'
 import { setupLogStore } from './app-models/logs/setup-log-store.js'
+import { ExternalGitChangeListener } from './services/external-git-change-listener.js'
 import { ProcessManager } from './services/process-manager.js'
 import { WebsocketService } from './services/websocket-service.js'
 import { setupEntitySync } from './setup-entity-sync.js'
@@ -30,6 +32,9 @@ const port = getPort()
 const setupRestApis = async () => {
   await setupDataStore(injector)
   await setupLogStore(injector)
+  await setupPatcher(injector)
+
+  injector.getInstance(ExternalGitChangeListener).start()
 
   const processManager = injector.getInstance(ProcessManager)
   await processManager.reconcileStaleStates()

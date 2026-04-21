@@ -109,4 +109,53 @@ describe('GitService', () => {
         expect(['main', 'master']).toContain(branch)
       }))
   })
+
+  describe('hasRemoteBranch', () => {
+    it('returns true for a tracked remote branch', () =>
+      withGitTestContext(async ({ git, workDir }) => {
+        const currentBranch = await git.getCurrentBranch(workDir)
+        expect(await git.hasRemoteBranch(workDir, currentBranch)).toBe(true)
+      }))
+
+    it('returns false for a non-existent branch', () =>
+      withGitTestContext(async ({ git, workDir }) => {
+        expect(await git.hasRemoteBranch(workDir, 'nope-does-not-exist')).toBe(false)
+      }))
+  })
+
+  describe('getWorktreeStatus', () => {
+    it('reports a clean worktree', () =>
+      withGitTestContext(async ({ git, workDir }) => {
+        expect(await git.getWorktreeStatus(workDir)).toBe('clean')
+      }))
+
+    it('reports a dirty worktree when untracked/modified files exist', () =>
+      withGitTestContext(async ({ git, workDir }) => {
+        writeFileSync(join(workDir, 'extra.txt'), 'x')
+        expect(await git.getWorktreeStatus(workDir)).toBe('dirty')
+      }))
+  })
+
+  describe('revParse', () => {
+    it('resolves HEAD to a SHA', () =>
+      withGitTestContext(async ({ git, workDir }) => {
+        const sha = await git.revParse(workDir, 'HEAD')
+        expect(sha).toMatch(/^[0-9a-f]{40}$/)
+      }))
+
+    it('returns undefined for an unknown ref', () =>
+      withGitTestContext(async ({ git, workDir }) => {
+        expect(await git.revParse(workDir, 'refs/heads/ghost')).toBeUndefined()
+      }))
+  })
+
+  describe('deleteLocalBranch', () => {
+    it('removes a merged local branch', () =>
+      withGitTestContext(async ({ git, workDir }) => {
+        execFileSync('git', ['branch', 'to-delete'], { cwd: workDir })
+        await git.deleteLocalBranch(workDir, 'to-delete')
+        const { local } = await git.getBranches(workDir)
+        expect(local).not.toContain('to-delete')
+      }))
+  })
 })

@@ -49,7 +49,9 @@ export const ServiceDetailActionBar = Shade<ServiceDetailActionBarProps>({
           <BranchSelector
             serviceId={service.id}
             currentBranch={service.currentBranch}
-            isCloned={service.cloneStatus === 'cloned'}
+            cloneStatus={service.cloneStatus}
+            upstreamStatus={service.upstreamStatus}
+            lastPullError={service.lastPullError}
           />
         ) : null}
         <ButtonGroup>

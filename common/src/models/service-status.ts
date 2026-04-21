@@ -1,6 +1,6 @@
 export type CloneStatus = 'not-cloned' | 'cloning' | 'cloned' | 'failed'
-export type InstallStatus = 'not-installed' | 'installing' | 'installed' | 'failed'
-export type BuildStatus = 'not-built' | 'building' | 'built' | 'failed'
+export type InstallStatus = 'not-installed' | 'installing' | 'installed' | 'failed' | 'stale'
+export type BuildStatus = 'not-built' | 'building' | 'built' | 'failed' | 'stale'
 export type RunStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error'
 
 /**

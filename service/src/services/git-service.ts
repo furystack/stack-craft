@@ -74,4 +74,69 @@ export class GitService {
     await this.logger.information({ message: `Checking out ${branch} in ${directory}` })
     await execFileAsync('git', ['checkout', branch], { cwd: directory, timeout: 30000 })
   }
+
+  /** Deletes a local branch. Uses `-D` (force) when `force` is true, otherwise `-d` (safe). */
+  public async deleteLocalBranch(directory: string, branch: string, force = false): Promise<void> {
+    await this.logger.information({ message: `Deleting local branch ${branch} in ${directory}` })
+    await execFileAsync('git', ['branch', force ? '-D' : '-d', branch], { cwd: directory, timeout: 10000 })
+  }
+
+  /** Returns true if `origin/<branch>` has a resolvable ref locally (i.e. the branch exists on the remote after a fetch). */
+  public async hasRemoteBranch(directory: string, branch: string): Promise<boolean> {
+    try {
+      await execFileAsync('git', ['show-ref', '--verify', '--quiet', `refs/remotes/origin/${branch}`], {
+        cwd: directory,
+        timeout: 5000,
+      })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Returns the default branch name as reported by `refs/remotes/origin/HEAD`.
+   * Falls back to `undefined` if the symref is missing (older clones, etc.).
+   */
+  public async getDefaultBranch(directory: string): Promise<string | undefined> {
+    try {
+      const { stdout } = await execFileAsync(
+        'git',
+        ['symbolic-ref', '--short', '--quiet', 'refs/remotes/origin/HEAD'],
+        { cwd: directory, timeout: 5000 },
+      )
+      const trimmed = stdout.trim()
+      return trimmed.startsWith('origin/') ? trimmed.slice('origin/'.length) : trimmed || undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  /** Runs `git status --porcelain` and classifies the working tree. */
+  public async getWorktreeStatus(directory: string): Promise<'clean' | 'dirty' | 'conflicts'> {
+    const { stdout } = await execFileAsync('git', ['status', '--porcelain'], {
+      cwd: directory,
+      timeout: 10000,
+    })
+    const lines = stdout.split('\n').filter((l) => l.length > 0)
+    if (lines.length === 0) return 'clean'
+    const hasConflicts = lines.some((line) => {
+      const code = line.slice(0, 2)
+      return code === 'UU' || code === 'AA' || code === 'DD' || code.startsWith('U') || code.endsWith('U')
+    })
+    return hasConflicts ? 'conflicts' : 'dirty'
+  }
+
+  /** Returns the SHA that a given ref points to (e.g. `HEAD`, `refs/heads/main`). Returns undefined if unresolvable. */
+  public async revParse(directory: string, ref: string): Promise<string | undefined> {
+    try {
+      const { stdout } = await execFileAsync('git', ['rev-parse', '--quiet', '--verify', ref], {
+        cwd: directory,
+        timeout: 5000,
+      })
+      return stdout.trim() || undefined
+    } catch {
+      return undefined
+    }
+  }
 }

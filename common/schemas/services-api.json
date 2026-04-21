@@ -273,6 +273,22 @@
           "type": "number",
           "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
         },
+        "upstreamStatus": {
+          "$ref": "#/definitions/UpstreamStatus",
+          "description": "Whether the upstream branch (`origin/<currentBranch>`) still exists on the remote."
+        },
+        "worktreeStatus": {
+          "$ref": "#/definitions/WorktreeStatus",
+          "description": "State of the local working tree (clean/dirty/conflicts). Derived from `git status --porcelain`."
+        },
+        "lastPullError": {
+          "type": "string",
+          "description": "Last error message produced by a pull attempt on an already-cloned repository. Cleared on successful pull."
+        },
+        "warningsDismissed": {
+          "$ref": "#/definitions/ServiceGitWarningDismissals",
+          "description": "Warnings the user has dismissed for this session."
+        },
         "cloneStatus": {
           "$ref": "#/definitions/CloneStatus"
         },
@@ -400,17 +416,40 @@
       ],
       "description": "Full service view combining definition, config, status, git state, and relations for API responses"
     },
+    "UpstreamStatus": {
+      "type": "string",
+      "enum": ["present", "gone", "unknown"],
+      "description": "Upstream branch presence on the remote. Used to detect branches that were deleted from origin."
+    },
+    "WorktreeStatus": {
+      "type": "string",
+      "enum": ["clean", "dirty", "conflicts", "unknown"],
+      "description": "State of the local working tree relative to HEAD."
+    },
+    "ServiceGitWarningDismissals": {
+      "type": "object",
+      "properties": {
+        "upstreamGone": {
+          "type": "boolean"
+        },
+        "stale": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Persisted-per-session flags for warnings the user has dismissed. Reset on service restart."
+    },
     "CloneStatus": {
       "type": "string",
       "enum": ["not-cloned", "cloning", "cloned", "failed"]
     },
     "InstallStatus": {
       "type": "string",
-      "enum": ["not-installed", "installing", "installed", "failed"]
+      "enum": ["not-installed", "installing", "installed", "failed", "stale"]
     },
     "BuildStatus": {
       "type": "string",
-      "enum": ["not-built", "building", "built", "failed"]
+      "enum": ["not-built", "building", "built", "failed", "stale"]
     },
     "RunStatus": {
       "type": "string",
@@ -915,7 +954,11 @@
         "update-failed",
         "pull-completed",
         "imported",
-        "state-reconciled"
+        "state-reconciled",
+        "external-branch-changed",
+        "external-pull-detected",
+        "upstream-gone",
+        "marked-stale"
       ],
       "description": "Event types for service state transitions. Each value represents a discrete lifecycle event that can occur."
     },
@@ -1005,6 +1048,101 @@
       "additionalProperties": false,
       "description": "Switches the service's repository to a different branch"
     },
+    "ServiceDeleteBranchEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "body": {
+          "type": "object",
+          "properties": {
+            "branch": {
+              "type": "string"
+            },
+            "switchTo": {
+              "type": "string"
+            },
+            "force": {
+              "type": "boolean"
+            }
+          },
+          "required": ["branch"],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "serviceId": {
+              "type": "string"
+            },
+            "deleted": {
+              "type": "string"
+            }
+          },
+          "required": ["success", "serviceId", "deleted"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["url", "body", "result"],
+      "additionalProperties": false,
+      "description": "Deletes a local branch in the service's repository, optionally switching to a target branch first"
+    },
+    "ServiceWarningKind": {
+      "type": "string",
+      "enum": ["upstream-gone", "stale"]
+    },
+    "ServiceDismissWarningEndpoint": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        },
+        "body": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "$ref": "#/definitions/ServiceWarningKind"
+            }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "serviceId": {
+              "type": "string"
+            }
+          },
+          "required": ["success", "serviceId"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["url", "body", "result"],
+      "additionalProperties": false,
+      "description": "Dismisses an inline warning for a service (in-memory, resets on service restart)"
+    },
     "ServicesApi": {
       "type": "object",
       "properties": {
@@ -1071,6 +1209,12 @@
             },
             "/services/:id/checkout": {
               "$ref": "#/definitions/ServiceCheckoutEndpoint"
+            },
+            "/services/:id/delete-branch": {
+              "$ref": "#/definitions/ServiceDeleteBranchEndpoint"
+            },
+            "/services/:id/dismiss-warning": {
+              "$ref": "#/definitions/ServiceDismissWarningEndpoint"
             }
           },
           "required": [
@@ -1084,7 +1228,9 @@
             "/services/:id/setup",
             "/services/:id/update",
             "/services/:id/apply-files",
-            "/services/:id/checkout"
+            "/services/:id/checkout",
+            "/services/:id/delete-branch",
+            "/services/:id/dismiss-warning"
           ],
           "additionalProperties": false
         },
@@ -1272,7 +1418,7 @@
           "type": "object",
           "properties": {
             "findOptions": {
-              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22files%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22environmentVariableOverrides%22%7C%22localFiles%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22%7C%22currentBranch%22%7C%22commitsBehind%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22)%5B%5D%3E"
+              "$ref": "#/definitions/FindOptions%3CServiceView%2C(%22id%22%7C%22stackName%22%7C%22displayName%22%7C%22description%22%7C%22workingDirectory%22%7C%22repositoryId%22%7C%22installCommand%22%7C%22buildCommand%22%7C%22runCommand%22%7C%22files%22%7C%22createdAt%22%7C%22updatedAt%22%7C%22serviceId%22%7C%22autoFetchEnabled%22%7C%22autoFetchIntervalMinutes%22%7C%22autoRestartOnFetch%22%7C%22environmentVariableOverrides%22%7C%22localFiles%22%7C%22cloneStatus%22%7C%22installStatus%22%7C%22buildStatus%22%7C%22runStatus%22%7C%22lastClonedAt%22%7C%22lastInstalledAt%22%7C%22lastBuiltAt%22%7C%22lastStartedAt%22%7C%22lastFetchedAt%22%7C%22currentBranch%22%7C%22commitsBehind%22%7C%22upstreamStatus%22%7C%22worktreeStatus%22%7C%22lastPullError%22%7C%22warningsDismissed%22%7C%22prerequisiteIds%22%7C%22prerequisiteServiceIds%22)%5B%5D%3E"
             }
           },
           "additionalProperties": false
@@ -1285,7 +1431,7 @@
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
-    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"files\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"environmentVariableOverrides\"|\"localFiles\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\"|\"currentBranch\"|\"commitsBehind\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\")[]>": {
+    "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"files\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"environmentVariableOverrides\"|\"localFiles\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\"|\"currentBranch\"|\"commitsBehind\"|\"upstreamStatus\"|\"worktreeStatus\"|\"lastPullError\"|\"warningsDismissed\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\")[]>": {
       "type": "object",
       "properties": {
         "top": {
@@ -1415,6 +1561,22 @@
               "type": "string",
               "enum": ["ASC", "DESC"]
             },
+            "upstreamStatus": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "worktreeStatus": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "lastPullError": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
+            "warningsDismissed": {
+              "type": "string",
+              "enum": ["ASC", "DESC"]
+            },
             "prerequisiteIds": {
               "type": "string",
               "enum": ["ASC", "DESC"]
@@ -1461,6 +1623,10 @@
               "lastFetchedAt",
               "currentBranch",
               "commitsBehind",
+              "upstreamStatus",
+              "worktreeStatus",
+              "lastPullError",
+              "warningsDismissed",
               "prerequisiteIds",
               "prerequisiteServiceIds"
             ]
@@ -3017,6 +3183,214 @@
             }
           ]
         },
+        "upstreamStatus": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "$ref": "#/definitions/UpstreamStatus",
+                  "description": "Whether the upstream branch (`origin/<currentBranch>`) still exists on the remote."
+                },
+                "$ne": {
+                  "$ref": "#/definitions/UpstreamStatus",
+                  "description": "Whether the upstream branch (`origin/<currentBranch>`) still exists on the remote."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/UpstreamStatus"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Whether the upstream branch (`origin/<currentBranch>`) still exists on the remote."
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/UpstreamStatus"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Whether the upstream branch (`origin/<currentBranch>`) still exists on the remote."
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "worktreeStatus": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "$ref": "#/definitions/WorktreeStatus",
+                  "description": "State of the local working tree (clean/dirty/conflicts). Derived from `git status --porcelain`."
+                },
+                "$ne": {
+                  "$ref": "#/definitions/WorktreeStatus",
+                  "description": "State of the local working tree (clean/dirty/conflicts). Derived from `git status --porcelain`."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/WorktreeStatus"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "State of the local working tree (clean/dirty/conflicts). Derived from `git status --porcelain`."
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/WorktreeStatus"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "State of the local working tree (clean/dirty/conflicts). Derived from `git status --porcelain`."
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "lastPullError": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "type": "string",
+                  "description": "Last error message produced by a pull attempt on an already-cloned repository. Cleared on successful pull."
+                },
+                "$ne": {
+                  "type": "string",
+                  "description": "Last error message produced by a pull attempt on an already-cloned repository. Cleared on successful pull."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Last error message produced by a pull attempt on an already-cloned repository. Cleared on successful pull."
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Last error message produced by a pull attempt on an already-cloned repository. Cleared on successful pull."
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "warningsDismissed": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "$eq": {
+                  "$ref": "#/definitions/ServiceGitWarningDismissals",
+                  "description": "Warnings the user has dismissed for this session."
+                },
+                "$ne": {
+                  "$ref": "#/definitions/ServiceGitWarningDismissals",
+                  "description": "Warnings the user has dismissed for this session."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$in": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/ServiceGitWarningDismissals"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Warnings the user has dismissed for this session."
+                  }
+                },
+                "$nin": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/ServiceGitWarningDismissals"
+                      },
+                      {
+                        "not": {}
+                      }
+                    ],
+                    "description": "Warnings the user has dismissed for this session."
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
         "prerequisiteIds": {
           "anyOf": [
             {
@@ -3170,6 +3544,10 @@
                   "lastFetchedAt",
                   "currentBranch",
                   "commitsBehind",
+                  "upstreamStatus",
+                  "worktreeStatus",
+                  "lastPullError",
+                  "warningsDismissed",
                   "prerequisiteIds",
                   "prerequisiteServiceIds"
                 ]

@@ -59,6 +59,7 @@ export class GitWatcher {
     await this.logger.information({
       message: `Started watching service ${svc.displayName} (every ${FETCH_CHECK_INTERVAL_MS / 60000}min)`,
     })
+    void this.fetchAndCheck(serviceId)
   }
 
   public stopWatching(serviceId: string): void {
@@ -94,13 +95,26 @@ export class GitWatcher {
       await statusDs.update(elevated, serviceId, { lastFetchedAt: new Date().toISOString() })
 
       const currentBranch = await this.git.getCurrentBranch(cwd).catch(() => undefined)
+      const worktreeStatus = await this.git.getWorktreeStatus(cwd).catch(() => 'unknown' as const)
       if (currentBranch) {
-        const commitsBehind = await this.git.getCommitsBehind(cwd, currentBranch)
+        const upstreamPresent = await this.git.hasRemoteBranch(cwd, currentBranch)
+        const commitsBehind = upstreamPresent ? await this.git.getCommitsBehind(cwd, currentBranch) : 0
+        const patch = {
+          currentBranch,
+          commitsBehind,
+          upstreamStatus: upstreamPresent ? ('present' as const) : ('gone' as const),
+          worktreeStatus,
+        }
         const existing = await gitStatusDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
         if (existing.length > 0) {
-          await gitStatusDs.update(elevated, serviceId, { commitsBehind })
+          await gitStatusDs.update(elevated, serviceId, patch)
         } else {
-          await gitStatusDs.add(elevated, { serviceId, currentBranch, commitsBehind })
+          await gitStatusDs.add(elevated, { serviceId, ...patch })
+        }
+      } else {
+        const existing = await gitStatusDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+        if (existing.length > 0) {
+          await gitStatusDs.update(elevated, serviceId, { worktreeStatus })
         }
       }
 
@@ -114,7 +128,8 @@ export class GitWatcher {
         entry.lastBranches = new Set(remote)
       }
 
-      if (config?.autoRestartOnFetch) {
+      const upstreamForAutoPull = currentBranch ? await this.git.hasRemoteBranch(cwd, currentBranch) : false
+      if (config?.autoRestartOnFetch && upstreamForAutoPull) {
         const autoRestartTrigger = { triggeredBy: 'system', triggerSource: 'auto-restart' as const }
         const { updated } = await this.git.pull(cwd)
         if (updated) {
