@@ -27,6 +27,7 @@ import {
   StackDefinition,
 } from 'common'
 
+import { stackCraftReplace } from '../../../components/app-routes.js'
 import { PrerequisiteSummaryChip } from '../../../components/prerequisite-summary-chip.js'
 import { SecretWarningsCard } from '../../../components/secret-warnings-card.js'
 import { ServiceStatusIndicator } from '../../../components/service-status-indicator.js'
@@ -55,22 +56,28 @@ type ServiceDetailProps = {
 export const ServiceDetail = Shade<ServiceDetailProps>({
   customElementName: 'shade-service-detail',
   render: (options) => {
-    const { props, injector, useState } = options
+    const { props, injector, useState, useObservable } = options
     const locationService = injector.getInstance(LocationService)
     const validTabs: TabId[] = ['overview', 'logs', 'history', 'files', 'configuration']
-    const hashValue = locationService.onLocationHashChanged.getValue().replace('#', '')
-    const searchState = locationService.onDeserializedLocationSearchChanged.getValue()
-    const initialTab: TabId = validTabs.includes(hashValue as TabId)
+    const [hashRaw] = useObservable('locationHash', locationService.onLocationHashChanged)
+    const [searchState] = useObservable('locationSearch', locationService.onDeserializedLocationSearchChanged)
+    const hashValue = hashRaw.replace('#', '')
+    const processUid = typeof searchState.processUid === 'string' ? searchState.processUid : undefined
+    const activeTab: TabId = validTabs.includes(hashValue as TabId)
       ? (hashValue as TabId)
-      : searchState.edit === true
-        ? 'configuration'
-        : 'overview'
-    const [activeTab, setActiveTabState] = useState<TabId>('activeTab', initialTab)
+      : processUid
+        ? 'logs'
+        : searchState.edit === true
+          ? 'configuration'
+          : 'overview'
     const [isConfirmingDelete, setIsConfirmingDelete] = useState('isConfirmingDelete', false)
 
     const setActiveTab = (tab: TabId) => {
-      locationService.replace(`${window.location.pathname}#${tab}`)
-      setActiveTabState(tab)
+      stackCraftReplace(injector, {
+        path: '/stacks/:stackName/services/:serviceId',
+        params: { stackName: props.stackName, serviceId: props.serviceId },
+        hash: tab,
+      })
     }
 
     const serviceState = useEntitySync(options, ServiceDefinition, props.serviceId)
@@ -237,6 +244,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
           <Tabs
             activeKey={activeTab}
             onTabChange={(key) => setActiveTab(key as TabId)}
+            containerStyle={{ flex: '1', minHeight: '0' }}
             tabs={[
               {
                 header: <span>Overview</span>,
@@ -258,7 +266,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
               {
                 header: <span>Logs</span>,
                 hash: 'logs',
-                component: <LogsTab serviceId={service.id} stackName={service.stackName} />,
+                component: <LogsTab serviceId={service.id} stackName={service.stackName} processUid={processUid} />,
               },
               {
                 header: <span>History</span>,

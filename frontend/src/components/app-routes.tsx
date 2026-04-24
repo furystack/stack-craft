@@ -1,4 +1,10 @@
-import { createComponent, createNestedNavigate, createNestedRouteLink, type NestedRoute } from '@furystack/shades'
+import {
+  createComponent,
+  createNestedNavigate,
+  createNestedReplace,
+  createNestedRouteLink,
+  type NestedRoute,
+} from '@furystack/shades'
 import type { MatchResult } from 'path-to-regexp'
 import { Dashboard } from '../pages/dashboard/index.js'
 import { ExportStack } from '../pages/import-export/export-stack.js'
@@ -8,7 +14,6 @@ import { CreateRepository } from '../pages/repositories/create-repository.js'
 import { EditRepository } from '../pages/repositories/edit-repository.js'
 import { RepositoriesList } from '../pages/repositories/repositories-list.js'
 import { ServiceDetail } from '../pages/services/service-detail/index.js'
-import { ServiceLogs } from '../pages/services/service-logs.js'
 import { ServicesList } from '../pages/services/services-list.js'
 import { UserSettings } from '../pages/settings/user-settings.js'
 import { CreateStack } from '../pages/stacks/create-stack.js'
@@ -59,24 +64,13 @@ export const appRoutes = {
       <CreateServiceWizard stackName={match.params.stackName} />
     ),
   },
-  '/stacks/:stackName/services/:serviceId/logs/:processUid': {
-    component: ({ match }: { match: MatchResult<{ stackName: string; serviceId: string; processUid: string }> }) => (
-      <ServiceLogs
-        stackName={match.params.stackName}
-        serviceId={match.params.serviceId}
-        processUid={match.params.processUid}
-      />
-    ),
-  },
-  '/stacks/:stackName/services/:serviceId/logs': {
-    component: ({ match }: { match: MatchResult<{ stackName: string; serviceId: string }> }) => (
-      <ServiceLogs stackName={match.params.stackName} serviceId={match.params.serviceId} />
-    ),
-  },
   '/stacks/:stackName/services/:serviceId': {
     component: ({ match }: { match: MatchResult<{ stackName: string; serviceId: string }> }) => (
       <ServiceDetail stackName={match.params.stackName} serviceId={match.params.serviceId} />
     ),
+    hash: ['overview', 'logs', 'history', 'files', 'configuration'] as const,
+    query: ({ processUid }): { processUid?: string } | null =>
+      typeof processUid === 'string' || processUid === undefined ? { processUid } : null,
   },
   '/stacks/:stackName/repositories': {
     component: ({ match }: { match: MatchResult<{ stackName: string }> }) => (
@@ -103,6 +97,8 @@ export const appRoutes = {
 export const StackCraftNestedRouteLink = createNestedRouteLink<typeof appRoutes>()
 
 export const stackCraftNavigate = createNestedNavigate<typeof appRoutes>()
+
+export const stackCraftReplace = createNestedReplace<typeof appRoutes>()
 
 export type AppRoutePath = keyof typeof appRoutes
 

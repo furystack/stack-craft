@@ -273,8 +273,9 @@ export const StackSetup = Shade<StackSetupProps>({
                         </Button>
                       )}
                       <StackCraftNestedRouteLink
-                        path="/stacks/:stackName/services/:serviceId/logs"
+                        path="/stacks/:stackName/services/:serviceId"
                         params={{ stackName: props.stackName, serviceId: svc.id }}
+                        hash="logs"
                       >
                         <Button variant="outlined" size="small" startIcon={<Icon icon={icons.fileText} size="small" />}>
                           Logs

@@ -47,21 +47,6 @@ const parseBreadcrumbs = (
         href: '/stacks/:stackName/services/:serviceId',
         params: { stackName, serviceId },
       })
-
-      const logSection = parts[4]
-      if (logSection === 'logs') {
-        const processUid = parts[5]
-        if (processUid) {
-          segments.push({
-            label: 'Logs',
-            href: '/stacks/:stackName/services/:serviceId/logs',
-            params: { stackName, serviceId },
-          })
-          segments.push({ label: `${processUid.slice(0, 8)}…` })
-        } else {
-          segments.push({ label: 'Logs' })
-        }
-      }
     } else if (serviceId === 'create') {
       segments.push({ label: 'Create' })
     } else if (serviceId === 'wizard') {

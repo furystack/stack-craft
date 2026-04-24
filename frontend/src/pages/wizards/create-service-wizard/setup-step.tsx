@@ -124,8 +124,9 @@ export const SetupStep = Shade<SetupStepProps>({
                 Retry
               </Button>
               <StackCraftNestedRouteLink
-                path="/stacks/:stackName/services/:serviceId/logs"
+                path="/stacks/:stackName/services/:serviceId"
                 params={{ stackName: props.stackName, serviceId: props.serviceId }}
+                hash="logs"
               >
                 <Button variant="outlined" startIcon={<Icon icon={icons.fileText} size="small" />}>
                   View Logs

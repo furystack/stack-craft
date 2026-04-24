@@ -144,12 +144,13 @@ export const ServiceHistory = Shade<ServiceHistoryProps>({
                     size="small"
                     onclick={() =>
                       stackCraftNavigate(injector, {
-                        path: '/stacks/:stackName/services/:serviceId/logs/:processUid',
+                        path: '/stacks/:stackName/services/:serviceId',
                         params: {
                           stackName: props.stackName,
                           serviceId: props.serviceId,
-                          processUid,
                         },
+                        query: { processUid },
+                        hash: 'logs',
                       })
                     }
                   >

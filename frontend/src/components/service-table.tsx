@@ -210,8 +210,9 @@ export const ServiceTable = Shade<ServiceTableProps>({
                 ) : null}
                 {/* Logs */}
                 <StackCraftNestedRouteLink
-                  path="/stacks/:stackName/services/:serviceId/logs"
+                  path="/stacks/:stackName/services/:serviceId"
                   params={{ stackName: entry.stackName, serviceId: entry.id }}
+                  hash="logs"
                 >
                   <Button
                     variant="text"
