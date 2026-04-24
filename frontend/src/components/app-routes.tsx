@@ -103,3 +103,9 @@ export const appRoutes = {
 export const StackCraftNestedRouteLink = createNestedRouteLink<typeof appRoutes>()
 
 export const stackCraftNavigate = createNestedNavigate<typeof appRoutes>()
+
+export type AppRoutePath = keyof typeof appRoutes
+
+export type StaticAppRoutePath = {
+  [K in AppRoutePath]: K extends `${string}:${string}` ? never : K
+}[AppRoutePath]

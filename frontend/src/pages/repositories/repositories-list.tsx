@@ -18,7 +18,7 @@ export const RepositoriesList = Shade<RepositoriesListProps>({
           title="Repositories"
           actions={
             <StackCraftNestedRouteLink
-              href="/stacks/:stackName/repositories/create"
+              path="/stacks/:stackName/repositories/create"
               params={{ stackName: props.stackName }}
             >
               <Button variant="contained" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>

@@ -17,6 +17,16 @@ export default tseslint.config(
       '.yarn/*',
       'eslint.config.js',
       'prettier.config.js',
+      // Compiled config/spec artifacts emitted next to sources.
+      '**/*.config.js',
+      '**/*.config.mjs',
+      '**/*.config.d.ts',
+      '**/*.config.d.mts',
+      '**/*.config.js.map',
+      '**/*.config.mjs.map',
+      'e2e/**/*.js',
+      'e2e/**/*.d.ts',
+      'e2e/**/*.js.map',
     ],
   },
   eslint.configs.recommended,
@@ -29,7 +39,13 @@ export default tseslint.config(
     },
     languageOptions: {
       parserOptions: {
-        project: ['tsconfig.json'],
+        project: [
+          'common/tsconfig.json',
+          'service/tsconfig.json',
+          'frontend/tsconfig.json',
+          'monaco-mfe/tsconfig.json',
+          'tsconfig.lint.json',
+        ],
         tsconfigRootDir: import.meta.dirname,
       },
     },

@@ -6,6 +6,7 @@ import type { StackView } from 'common'
 import { StackDefinition } from 'common'
 import { match } from 'path-to-regexp'
 
+import type { StaticAppRoutePath } from '../app-routes.js'
 import { StackCraftNestedRouteLink } from '../app-routes.js'
 
 /** Latest remount phase map for location subscription merges (Shade useState has no functional updates). */
@@ -64,7 +65,7 @@ const SidebarStackLink = Shade<SidebarStackLinkProps>({
 
     return (
       <StackCraftNestedRouteLink
-        href={href}
+        path={href}
         params={{ stackName: props.stackName }}
         title={props.label}
         {...(isActive ? { 'data-active': '' } : {})}
@@ -77,7 +78,7 @@ const SidebarStackLink = Shade<SidebarStackLinkProps>({
 })
 
 type SidebarItemProps = {
-  href: string
+  href: StaticAppRoutePath
   icon: typeof icons.home
   label: string
   currentUrl: string
@@ -120,7 +121,7 @@ const SidebarItem = Shade<SidebarItemProps>({
     }
 
     return (
-      <StackCraftNestedRouteLink href={props.href as '/'}>
+      <StackCraftNestedRouteLink path={props.href}>
         <Icon icon={props.icon} size="small" />
         {props.label}
       </StackCraftNestedRouteLink>

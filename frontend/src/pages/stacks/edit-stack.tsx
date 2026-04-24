@@ -86,7 +86,7 @@ export const EditStack = Shade<EditStackProps>({
           body: `"${data.displayName ?? stack.displayName}" was updated successfully.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/stacks/:stackName', { stackName: stack.name })
+        stackCraftNavigate(injector, { path: '/stacks/:stackName', params: { stackName: stack.name } })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -109,7 +109,7 @@ export const EditStack = Shade<EditStackProps>({
           body: `"${stack.displayName}" was deleted.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/')
+        stackCraftNavigate(injector, { path: '/' })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -143,7 +143,9 @@ export const EditStack = Shade<EditStackProps>({
             mode="edit"
             initial={stack}
             onSubmit={(data) => void handleSave(data)}
-            onCancel={() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: stack.name })}
+            onCancel={() =>
+              stackCraftNavigate(injector, { path: '/stacks/:stackName', params: { stackName: stack.name } })
+            }
           />
         </Paper>
         <EnvironmentVariablesManager

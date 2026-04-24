@@ -56,7 +56,7 @@ export const LogsTab = Shade<LogsTabProps>({
               Clear Logs
             </Button>
             <StackCraftNestedRouteLink
-              href="/stacks/:stackName/services/:serviceId/logs"
+              path="/stacks/:stackName/services/:serviceId/logs"
               params={{ stackName: props.stackName, serviceId: props.serviceId }}
             >
               <Button variant="outlined" size="small" startIcon={<Icon icon={icons.externalLink} size="small" />}>

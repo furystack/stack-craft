@@ -178,7 +178,7 @@ export const StackSetup = Shade<StackSetupProps>({
                   Set Up All Services
                 </Button>
               )}
-              <StackCraftNestedRouteLink href="/stacks/:stackName" params={{ stackName: props.stackName }}>
+              <StackCraftNestedRouteLink path="/stacks/:stackName" params={{ stackName: props.stackName }}>
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.home} size="small" />}>
                   Go to Dashboard
                 </Button>
@@ -249,7 +249,7 @@ export const StackSetup = Shade<StackSetupProps>({
                     >
                       {ready ? (
                         <StackCraftNestedRouteLink
-                          href="/stacks/:stackName/services/:serviceId"
+                          path="/stacks/:stackName/services/:serviceId"
                           params={{ stackName: props.stackName, serviceId: svc.id }}
                         >
                           <Button
@@ -273,7 +273,7 @@ export const StackSetup = Shade<StackSetupProps>({
                         </Button>
                       )}
                       <StackCraftNestedRouteLink
-                        href="/stacks/:stackName/services/:serviceId/logs"
+                        path="/stacks/:stackName/services/:serviceId/logs"
                         params={{ stackName: props.stackName, serviceId: svc.id }}
                       >
                         <Button variant="outlined" size="small" startIcon={<Icon icon={icons.fileText} size="small" />}>

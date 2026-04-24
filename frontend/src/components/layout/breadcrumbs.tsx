@@ -7,7 +7,7 @@ import { StackCraftNestedRouteLink } from '../app-routes.js'
 
 type BreadcrumbSegment = {
   label: string
-  href?: Parameters<typeof StackCraftNestedRouteLink>[0]['href']
+  href?: Parameters<typeof StackCraftNestedRouteLink>[0]['path']
   params?: Record<string, string>
 }
 
@@ -163,7 +163,7 @@ const EntityNameResolver = Shade<EntityNameResolverProps>({
               <li>
                 {index > 0 ? <span className="breadcrumb-separator"> / </span> : null}
                 {segment.href && !isLast ? (
-                  <StackCraftNestedRouteLink href={segment.href} params={segment.params as Record<string, string>}>
+                  <StackCraftNestedRouteLink path={segment.href} params={segment.params ?? {}}>
                     {segment.label}
                   </StackCraftNestedRouteLink>
                 ) : (

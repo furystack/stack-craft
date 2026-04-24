@@ -17,10 +17,10 @@
   "type": "module",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@furystack/eslint-plugin": "^2.1.5",
+    "@furystack/eslint-plugin": "^2.2.0",
     "@playwright/test": "^1.59.1",
     "@types/node": "^25.6.0",
-    "@vitest/coverage-v8": "^4.1.4",
+    "@vitest/coverage-v8": "^4.1.5",
     "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "2.32.0",
@@ -33,8 +33,8 @@
     "rimraf": "^6.1.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.0",
-    "vite": "^8.0.9",
-    "vitest": "^4.1.4"
+    "vite": "^8.0.10",
+    "vitest": "^4.1.5"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

@@ -99,7 +99,7 @@ export const deleteService = async (
       body: `"${displayName}" was deleted.`,
       type: 'success',
     })
-    stackCraftNavigate(injector, '/stacks/:stackName/services', { stackName })
+    stackCraftNavigate(injector, { path: '/stacks/:stackName/services', params: { stackName } })
   } catch (error) {
     noty.emit('onNotyAdded', {
       title: 'Error',

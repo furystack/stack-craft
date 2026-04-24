@@ -13,6 +13,7 @@ import {
 } from '@furystack/shades-common-components'
 import type { GitHubRepository, Prerequisite, ServiceFile, ServiceView } from 'common'
 
+import type { StaticAppRoutePath } from '../../app-routes.js'
 import { StackCraftNestedRouteLink } from '../../app-routes.js'
 import { GitHubRepoForm } from '../github-repo-form.js'
 import { PrerequisiteForm } from '../prerequisite-form.js'
@@ -48,7 +49,7 @@ type ServiceFormProps = {
   onCreatePrerequisite?: (data: Partial<Prerequisite>) => Promise<string>
   onCreateRepository?: (data: Partial<GitHubRepository>) => Promise<string>
   onCancel?: () => void
-  cancelHref?: string
+  cancelHref?: StaticAppRoutePath
   mode: 'create' | 'edit'
 }
 
@@ -267,7 +268,7 @@ export const ServiceForm = Shade<ServiceFormProps>({
           </div>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
             {props.cancelHref ? (
-              <StackCraftNestedRouteLink href={props.cancelHref as '/'}>
+              <StackCraftNestedRouteLink path={props.cancelHref}>
                 <Button variant="outlined" startIcon={<Icon icon={icons.close} size="small" />}>
                   Cancel
                 </Button>

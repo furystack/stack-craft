@@ -210,7 +210,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                 ) : null}
                 {/* Logs */}
                 <StackCraftNestedRouteLink
-                  href="/stacks/:stackName/services/:serviceId/logs"
+                  path="/stacks/:stackName/services/:serviceId/logs"
                   params={{ stackName: entry.stackName, serviceId: entry.id }}
                 >
                   <Button
@@ -223,7 +223,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                 </StackCraftNestedRouteLink>
                 {/* Details */}
                 <StackCraftNestedRouteLink
-                  href="/stacks/:stackName/services/:serviceId"
+                  path="/stacks/:stackName/services/:serviceId"
                   params={{ stackName: entry.stackName, serviceId: entry.id }}
                 >
                   <Button

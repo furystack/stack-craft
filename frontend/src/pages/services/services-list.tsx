@@ -135,7 +135,7 @@ export const ServicesList = Shade<ServicesListProps>({
               ) : null}
               <BulkActionBar collectionService={collectionService} />
               <StackCraftNestedRouteLink
-                href="/stacks/:stackName/services/wizard"
+                path="/stacks/:stackName/services/wizard"
                 params={{ stackName: props.stackName }}
               >
                 <Button variant="contained" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
@@ -150,7 +150,7 @@ export const ServicesList = Shade<ServicesListProps>({
             No services in this stack yet.
             <div style={{ marginTop: '12px' }}>
               <StackCraftNestedRouteLink
-                href="/stacks/:stackName/services/wizard"
+                path="/stacks/:stackName/services/wizard"
                 params={{ stackName: props.stackName }}
               >
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>

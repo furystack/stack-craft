@@ -58,7 +58,7 @@ export const OverviewTab = Shade<OverviewTabProps>({
                 <strong>Repository</strong>
                 <span>
                   <StackCraftNestedRouteLink
-                    href="/stacks/:stackName/repositories/:repositoryId"
+                    path="/stacks/:stackName/repositories/:repositoryId"
                     params={{ stackName: service.stackName, repositoryId: linkedRepo.id }}
                     style={{ color: 'inherit' }}
                   >

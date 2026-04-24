@@ -138,9 +138,12 @@ export const ImportStack = Shade({
         })
         const hasAutoSetup = formData.autoSetup === 'on'
         if (hasAutoSetup && (parsed.services?.length ?? 0) > 0) {
-          stackCraftNavigate(injector, '/stacks/:stackName/setup', { stackName: parsed.stack.name })
+          stackCraftNavigate(injector, {
+            path: '/stacks/:stackName/setup',
+            params: { stackName: parsed.stack.name },
+          })
         } else {
-          stackCraftNavigate(injector, '/stacks/:stackName', { stackName: parsed.stack.name })
+          stackCraftNavigate(injector, { path: '/stacks/:stackName', params: { stackName: parsed.stack.name } })
         }
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
@@ -173,7 +176,7 @@ export const ImportStack = Shade({
                 <div style={{ color: cssVariableTheme.palette.error.main, marginTop: '8px' }}>{parseError}</div>
               )}
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
-                <StackCraftNestedRouteLink href="/">
+                <StackCraftNestedRouteLink path="/">
                   <Button variant="outlined" startIcon={<Icon icon={icons.close} size="small" />}>
                     Cancel
                   </Button>

@@ -71,7 +71,7 @@ export const ServiceRow = Shade<ServiceRowProps>({
             title={svc.runStatus}
           />
           <StackCraftNestedRouteLink
-            href="/stacks/:stackName/services/:serviceId"
+            path="/stacks/:stackName/services/:serviceId"
             params={{ stackName, serviceId: svc.id }}
             style={{
               textDecoration: 'none',
