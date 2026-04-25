@@ -56,7 +56,16 @@ class ServiceStatusManagerImpl {
       if (update.buildStatus === 'built') patchData.lastBuiltAt = now
       if (update.runStatus === 'running') patchData.lastStartedAt = now
 
-      await statusDs.update(elevated, serviceId, patchData)
+      // sequelize@6 `Model.update` short-circuits to `[0]` when the only field
+      // being written is the auto-managed `updatedAt` timestamp, which makes
+      // `@furystack/sequelize-store` throw `Entity not found`. Only call
+      // `update` when there is something meaningful to persist beyond the
+      // timestamp bump; the history entry below still gets written for
+      // status-less lifecycle events.
+      const hasMeaningfulChange = Object.keys(patchData).some((key) => key !== 'updatedAt')
+      if (hasMeaningfulChange) {
+        await statusDs.update(elevated, serviceId, patchData)
+      }
 
       if (!options?.skipHistory) {
         const historyDs = getDataSetFor(elevated, ServiceStateHistoryDataSet)
