@@ -6,10 +6,7 @@
       "properties": {
         "source": {
           "type": "string",
-          "enum": [
-            "inherit",
-            "custom"
-          ],
+          "enum": ["inherit", "custom"],
           "description": "Whether to inherit the value from the host system or use a custom value"
         },
         "customValue": {
@@ -21,9 +18,7 @@
           "description": "Whether this value contains sensitive data (e.g. passwords, tokens). When true, the value is encrypted at rest and masked in API responses. Overrides the prerequisite-level default when set."
         }
       },
-      "required": [
-        "source"
-      ],
+      "required": ["source"],
       "additionalProperties": false,
       "description": "Describes how an environment variable's value is resolved. Used in  {@link  StackConfig  }  for stack-level defaults and in  {@link  ServiceConfig  }  for per-service overrides."
     },
@@ -52,13 +47,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "stackName",
-        "mainDirectory",
-        "environmentVariables",
-        "createdAt",
-        "updatedAt"
-      ],
+      "required": ["stackName", "mainDirectory", "environmentVariables", "createdAt", "updatedAt"],
       "additionalProperties": false,
       "description": "User-specific stack configuration. Contains settings unique to this installation/machine. Not included in exports - set by the user during import/installation."
     },
@@ -84,13 +73,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "name",
-        "displayName",
-        "description",
-        "createdAt",
-        "updatedAt"
-      ],
+      "required": ["name", "displayName", "description", "createdAt", "updatedAt"],
       "additionalProperties": false,
       "description": "Shareable stack definition. Contains the immutable identity and description of a stack. Included in stack exports and shared between installations."
     },
@@ -106,10 +89,7 @@
           "description": "File content (usually plain text)"
         }
       },
-      "required": [
-        "relativePath",
-        "content"
-      ],
+      "required": ["relativePath", "content"],
       "additionalProperties": false,
       "description": "A file to be placed relative to the service root (e.g. .env, appConfig.local.json)"
     },
@@ -166,16 +146,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "stackName",
-        "displayName",
-        "description",
-        "runCommand",
-        "files",
-        "createdAt",
-        "updatedAt"
-      ],
+      "required": ["id", "stackName", "displayName", "description", "runCommand", "files", "createdAt", "updatedAt"],
       "additionalProperties": false,
       "description": "Shareable service definition. Contains the immutable description of a service and its commands. Included in stack exports and shared between installations."
     },
@@ -234,21 +205,12 @@
     },
     "UpstreamStatus": {
       "type": "string",
-      "enum": [
-        "present",
-        "gone",
-        "unknown"
-      ],
+      "enum": ["present", "gone", "unknown"],
       "description": "Upstream branch presence on the remote. Used to detect branches that were deleted from origin."
     },
     "WorktreeStatus": {
       "type": "string",
-      "enum": [
-        "clean",
-        "dirty",
-        "conflicts",
-        "unknown"
-      ],
+      "enum": ["clean", "dirty", "conflicts", "unknown"],
       "description": "State of the local working tree relative to HEAD."
     },
     "ServiceGitWarningDismissals": {
@@ -295,50 +257,25 @@
           "description": "Warnings the user has dismissed for this session."
         }
       },
-      "required": [
-        "serviceId"
-      ],
+      "required": ["serviceId"],
       "additionalProperties": false,
       "description": "In-memory git state for a service. Derived from the filesystem (`.git/HEAD`, `.git/refs/heads/`) and periodic remote checks, never persisted to DB."
     },
     "CloneStatus": {
       "type": "string",
-      "enum": [
-        "not-cloned",
-        "cloning",
-        "cloned",
-        "failed"
-      ]
+      "enum": ["not-cloned", "cloning", "cloned", "failed"]
     },
     "InstallStatus": {
       "type": "string",
-      "enum": [
-        "not-installed",
-        "installing",
-        "installed",
-        "failed",
-        "stale"
-      ]
+      "enum": ["not-installed", "installing", "installed", "failed", "stale"]
     },
     "BuildStatus": {
       "type": "string",
-      "enum": [
-        "not-built",
-        "building",
-        "built",
-        "failed",
-        "stale"
-      ]
+      "enum": ["not-built", "building", "built", "failed", "stale"]
     },
     "RunStatus": {
       "type": "string",
-      "enum": [
-        "stopped",
-        "starting",
-        "running",
-        "stopping",
-        "error"
-      ]
+      "enum": ["stopped", "starting", "running", "stopping", "error"]
     },
     "ServiceStatus": {
       "type": "object",
@@ -378,14 +315,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "serviceId",
-        "cloneStatus",
-        "installStatus",
-        "buildStatus",
-        "runStatus",
-        "updatedAt"
-      ],
+      "required": ["serviceId", "cloneStatus", "installStatus", "buildStatus", "runStatus", "updatedAt"],
       "additionalProperties": false,
       "description": "Runtime status of a service. Managed by the system (ProcessManager, GitWatcher). Never exported. Reset to defaults on import."
     },
@@ -455,10 +385,7 @@
           }
         }
       },
-      "required": [
-        "prerequisiteIds",
-        "prerequisiteServiceIds"
-      ],
+      "required": ["prerequisiteIds", "prerequisiteServiceIds"],
       "additionalProperties": false,
       "description": "Prerequisite and dependency relationships resolved from join tables"
     },
@@ -645,10 +572,7 @@
           }
         }
       },
-      "required": [
-        "username",
-        "roles"
-      ],
+      "required": ["username", "roles"],
       "additionalProperties": false
     },
     "ServiceStateEvent": {
@@ -685,13 +609,7 @@
     },
     "TriggerSource": {
       "type": "string",
-      "enum": [
-        "api",
-        "mcp",
-        "auto-fetch",
-        "auto-restart",
-        "system"
-      ],
+      "enum": ["api", "mcp", "auto-fetch", "auto-restart", "system"],
       "description": "How a state change was triggered. Used to distinguish user actions from automated system behavior."
     },
     "ServiceStateHistory": {
@@ -737,14 +655,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "serviceId",
-        "event",
-        "triggeredBy",
-        "triggerSource",
-        "createdAt"
-      ],
+      "required": ["id", "serviceId", "event", "triggeredBy", "triggerSource", "createdAt"],
       "additionalProperties": false,
       "description": "Audit log entry for service state transitions. Records every lifecycle event (start, stop, crash, install, build, pull) with full context: who triggered it, how, and any relevant metadata. Entries are never deleted and not included in exports."
     },
@@ -764,11 +675,7 @@
           "description": "FK to  {@link  Prerequisite.id  }"
         }
       },
-      "required": [
-        "id",
-        "serviceId",
-        "prerequisiteId"
-      ],
+      "required": ["id", "serviceId", "prerequisiteId"],
       "additionalProperties": false,
       "description": "Join table linking a  {@link  ServiceDefinition  }  to a  {@link  Prerequisite  }"
     },
@@ -786,10 +693,7 @@
         },
         "stream": {
           "type": "string",
-          "enum": [
-            "stdout",
-            "stderr"
-          ]
+          "enum": ["stdout", "stderr"]
         },
         "line": {
           "type": "string"
@@ -798,14 +702,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "serviceId",
-        "processUid",
-        "stream",
-        "line",
-        "createdAt"
-      ],
+      "required": ["id", "serviceId", "processUid", "stream", "line", "createdAt"],
       "additionalProperties": false
     },
     "ServiceDependencyLink": {
@@ -824,11 +721,7 @@
           "description": "FK to  {@link  ServiceDefinition.id  }  -- the service that must run first"
         }
       },
-      "required": [
-        "id",
-        "serviceId",
-        "dependsOnServiceId"
-      ],
+      "required": ["id", "serviceId", "dependsOnServiceId"],
       "additionalProperties": false,
       "description": "Join table linking a  {@link  ServiceDefinition  }  to another service it depends on"
     },
@@ -851,12 +744,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "username",
-        "name",
-        "createdAt"
-      ],
+      "required": ["id", "username", "name", "createdAt"],
       "additionalProperties": false
     },
     "PrerequisiteType": {
@@ -884,9 +772,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "minimumVersion"
-          ],
+          "required": ["minimumVersion"],
           "additionalProperties": false
         },
         "yarn": {
@@ -896,9 +782,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "minimumVersion"
-          ],
+          "required": ["minimumVersion"],
           "additionalProperties": false
         },
         "dotnet-sdk": {
@@ -908,9 +792,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "version"
-          ],
+          "required": ["version"],
           "additionalProperties": false
         },
         "dotnet-runtime": {
@@ -920,9 +802,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "version"
-          ],
+          "required": ["version"],
           "additionalProperties": false
         },
         "nuget-feed": {
@@ -935,9 +815,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "feedUrl"
-          ],
+          "required": ["feedUrl"],
           "additionalProperties": false
         },
         "git": {
@@ -962,9 +840,7 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "variableName"
-          ],
+          "required": ["variableName"],
           "additionalProperties": false
         },
         "custom-script": {
@@ -974,9 +850,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "script"
-          ],
+          "required": ["script"],
           "additionalProperties": false
         }
       },
@@ -1003,9 +877,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "minimumVersion"
-          ],
+          "required": ["minimumVersion"],
           "additionalProperties": false
         },
         {
@@ -1015,9 +887,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "minimumVersion"
-          ],
+          "required": ["minimumVersion"],
           "additionalProperties": false
         },
         {
@@ -1027,9 +897,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "version"
-          ],
+          "required": ["version"],
           "additionalProperties": false
         },
         {
@@ -1039,9 +907,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "version"
-          ],
+          "required": ["version"],
           "additionalProperties": false
         },
         {
@@ -1054,9 +920,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "feedUrl"
-          ],
+          "required": ["feedUrl"],
           "additionalProperties": false
         },
         {
@@ -1075,9 +939,7 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "variableName"
-          ],
+          "required": ["variableName"],
           "additionalProperties": false
         },
         {
@@ -1087,9 +949,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "script"
-          ],
+          "required": ["script"],
           "additionalProperties": false
         }
       ],
@@ -1129,27 +989,13 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "stackName",
-        "name",
-        "type",
-        "config",
-        "installationHelp",
-        "createdAt",
-        "updatedAt"
-      ],
+      "required": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"],
       "additionalProperties": false,
       "description": "Shareable prerequisite definition. Describes an external requirement (e.g. Node.js, Git, an env variable) that a stack or service may need to be satisfied before it can run. Included in stack exports and shared between installations."
     },
     "PrerequisiteCheckStatus": {
       "type": "string",
-      "enum": [
-        "unchecked",
-        "checking",
-        "satisfied",
-        "failed"
-      ],
+      "enum": ["unchecked", "checking", "satisfied", "failed"],
       "description": "Possible statuses for a prerequisite check."
     },
     "PrerequisiteCheckResult": {
@@ -1172,12 +1018,7 @@
           "description": "ISO-8601 timestamp of the last check"
         }
       },
-      "required": [
-        "prerequisiteId",
-        "status",
-        "output",
-        "checkedAt"
-      ],
+      "required": ["prerequisiteId", "status", "output", "checkedAt"],
       "additionalProperties": false,
       "description": "Represents the result of evaluating a  {@link  Prerequisite  } . Stored in an in-memory store on the service and synced to the frontend via entity sync so that every connected client sees real-time status."
     },
@@ -1206,12 +1047,7 @@
         },
         "status": {
           "type": "string",
-          "enum": [
-            "running",
-            "success",
-            "failed",
-            "orphaned"
-          ]
+          "enum": ["running", "success", "failed", "orphaned"]
         },
         "log": {
           "type": "array",
@@ -1225,24 +1061,12 @@
                 "type": "string"
               }
             },
-            "required": [
-              "timestamp",
-              "message"
-            ],
+            "required": ["timestamp", "message"],
             "additionalProperties": false
           }
         }
       },
-      "required": [
-        "id",
-        "patchId",
-        "createdAt",
-        "updatedAt",
-        "name",
-        "description",
-        "status",
-        "log"
-      ],
+      "required": ["id", "patchId", "createdAt", "updatedAt", "name", "description", "status", "log"],
       "additionalProperties": false,
       "description": "Log of a patch execution. Tracks idempotency (a successful run is skipped next time) and provides an audit trail for upgrade operations."
     },
@@ -1276,15 +1100,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "stackName",
-        "url",
-        "displayName",
-        "description",
-        "createdAt",
-        "updatedAt"
-      ],
+      "required": ["id", "stackName", "url", "displayName", "description", "createdAt", "updatedAt"],
       "additionalProperties": false,
       "description": "Shareable GitHub repository definition. Links a git repository to a stack for cloning and pulling. Included in stack exports and shared between installations."
     },
@@ -1310,13 +1126,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "username",
-        "name",
-        "tokenHash",
-        "createdAt"
-      ],
+      "required": ["id", "username", "name", "tokenHash", "createdAt"],
       "additionalProperties": false
     }
   }

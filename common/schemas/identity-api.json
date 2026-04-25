@@ -11,15 +11,11 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "isAuthenticated"
-          ],
+          "required": ["isAuthenticated"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "result"
-      ],
+      "required": ["result"],
       "additionalProperties": false,
       "description": "Checks whether the current session is authenticated"
     },
@@ -30,9 +26,7 @@
           "$ref": "#/definitions/User"
         }
       },
-      "required": [
-        "result"
-      ],
+      "required": ["result"],
       "additionalProperties": false,
       "description": "Returns the currently authenticated user's profile"
     },
@@ -49,10 +43,7 @@
           }
         }
       },
-      "required": [
-        "username",
-        "roles"
-      ],
+      "required": ["username", "roles"],
       "additionalProperties": false
     },
     "LoginAction": {
@@ -71,17 +62,11 @@
               "type": "string"
             }
           },
-          "required": [
-            "username",
-            "password"
-          ],
+          "required": ["username", "password"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "result",
-        "body"
-      ],
+      "required": ["result", "body"],
       "additionalProperties": false,
       "description": "Authenticates with username/password and returns the user profile"
     },
@@ -90,9 +75,7 @@
       "properties": {
         "result": {}
       },
-      "required": [
-        "result"
-      ],
+      "required": ["result"],
       "additionalProperties": false,
       "description": "Ends the current session"
     },
@@ -106,9 +89,7 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "success"
-          ],
+          "required": ["success"],
           "additionalProperties": false
         },
         "body": {
@@ -121,17 +102,11 @@
               "type": "string"
             }
           },
-          "required": [
-            "currentPassword",
-            "newPassword"
-          ],
+          "required": ["currentPassword", "newPassword"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "result",
-        "body"
-      ],
+      "required": ["result", "body"],
       "additionalProperties": false,
       "description": "Changes the current user's password"
     },
@@ -148,10 +123,7 @@
               "$ref": "#/definitions/GetCurrentUserAction"
             }
           },
-          "required": [
-            "/isAuthenticated",
-            "/currentUser"
-          ],
+          "required": ["/isAuthenticated", "/currentUser"],
           "additionalProperties": false
         },
         "POST": {
@@ -167,11 +139,7 @@
               "$ref": "#/definitions/PasswordResetAction"
             }
           },
-          "required": [
-            "/login",
-            "/logout",
-            "/password-reset"
-          ],
+          "required": ["/login", "/logout", "/password-reset"],
           "additionalProperties": false
         },
         "PATCH": {
@@ -200,9 +168,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -232,9 +198,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -264,9 +228,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -296,9 +258,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -328,9 +288,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -360,9 +318,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -392,17 +348,12 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         }
       },
-      "required": [
-        "GET",
-        "POST"
-      ],
+      "required": ["GET", "POST"],
       "additionalProperties": false
     }
   }
