@@ -69,7 +69,13 @@ const showBranchDropdown = (opts: {
   const listContainer = document.createElement('div')
   Object.assign(listContainer.style, { overflowY: 'auto', flex: '1' })
 
+  // Close on scroll (capture phase catches scrolls in any ancestor) or viewport resize.
+  // Repositioning is avoided because the anchor can disappear from the viewport mid-scroll.
+  const closeOnViewportChange = () => cleanup()
+
   const cleanup = () => {
+    window.removeEventListener('scroll', closeOnViewportChange, true)
+    window.removeEventListener('resize', closeOnViewportChange)
     backdrop.remove()
     dropdown.remove()
   }
@@ -147,6 +153,8 @@ const showBranchDropdown = (opts: {
 
   searchInput.addEventListener('input', () => renderList(searchInput.value))
   backdrop.addEventListener('click', cleanup)
+  window.addEventListener('scroll', closeOnViewportChange, true)
+  window.addEventListener('resize', closeOnViewportChange)
 
   dropdown.appendChild(searchInput)
   dropdown.appendChild(listContainer)

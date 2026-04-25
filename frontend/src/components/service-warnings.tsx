@@ -15,6 +15,27 @@ type ServiceWarningsProps = {
  */
 export const ServiceWarnings = Shade<ServiceWarningsProps>({
   customElementName: 'shade-service-warnings',
+  css: {
+    '& .warnings-container': {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '4px',
+      marginTop: '6px',
+    },
+    '& .warning-card': {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '6px 10px',
+      background: 'var(--shades-theme-palette-warning-background)',
+      borderLeft: '3px solid var(--shades-theme-palette-warning-main)',
+      borderRadius: 'var(--shades-theme-shape-borderRadius-sm)',
+      fontSize: 'var(--shades-theme-typography-fontSize-sm)',
+    },
+    '& .warning-message': {
+      flex: '1',
+    },
+  },
   render: ({ props, injector }) => {
     const { service } = props
     const api = injector.getInstance(ServicesApiClient)
@@ -54,28 +75,10 @@ export const ServiceWarnings = Shade<ServiceWarningsProps>({
     }
 
     return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          marginTop: '6px',
-        }}
-      >
+      <div className="warnings-container">
         {showUpstreamGone ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '6px 10px',
-              background: 'var(--shades-theme-palette-warning-background)',
-              borderLeft: '3px solid var(--shades-theme-palette-warning-main)',
-              borderRadius: 'var(--shades-theme-shape-borderRadius-sm)',
-              fontSize: 'var(--shades-theme-typography-fontSize-sm)',
-            }}
-          >
-            <span style={{ flex: '1' }}>
+          <div className="warning-card">
+            <span className="warning-message">
               Branch <strong>{service.currentBranch ?? 'unknown'}</strong> was removed from origin.
             </span>
             <Button
@@ -113,19 +116,8 @@ export const ServiceWarnings = Shade<ServiceWarningsProps>({
           </div>
         ) : null}
         {showStale ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '6px 10px',
-              background: 'var(--shades-theme-palette-warning-background)',
-              borderLeft: '3px solid var(--shades-theme-palette-warning-main)',
-              borderRadius: 'var(--shades-theme-shape-borderRadius-sm)',
-              fontSize: 'var(--shades-theme-typography-fontSize-sm)',
-            }}
-          >
-            <span style={{ flex: '1' }}>Install/build are stale after an external git change.</span>
+          <div className="warning-card">
+            <span className="warning-message">Install/build are stale after an external git change.</span>
             <Button
               variant="text"
               size="small"

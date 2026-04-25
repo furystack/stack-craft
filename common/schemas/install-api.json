@@ -3,7 +3,10 @@
   "definitions": {
     "InstallState": {
       "type": "string",
-      "enum": ["needsInstall", "installed"]
+      "enum": [
+        "needsInstall",
+        "installed"
+      ]
     },
     "InstallStateResponse": {
       "type": "object",
@@ -12,7 +15,9 @@
           "$ref": "#/definitions/InstallState"
         }
       },
-      "required": ["state"],
+      "required": [
+        "state"
+      ],
       "additionalProperties": false
     },
     "GetServiceStatusAction": {
@@ -22,7 +27,9 @@
           "$ref": "#/definitions/InstallStateResponse"
         }
       },
-      "required": ["result"],
+      "required": [
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Returns whether the application needs initial setup or is already installed"
     },
@@ -36,7 +43,9 @@
               "type": "boolean"
             }
           },
-          "required": ["success"],
+          "required": [
+            "success"
+          ],
           "additionalProperties": false
         },
         "body": {
@@ -49,11 +58,17 @@
               "type": "string"
             }
           },
-          "required": ["username", "password"],
+          "required": [
+            "username",
+            "password"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["result", "body"],
+      "required": [
+        "result",
+        "body"
+      ],
       "additionalProperties": false,
       "description": "Performs initial application setup and creates the first admin user"
     },
@@ -67,7 +82,9 @@
               "$ref": "#/definitions/GetServiceStatusAction"
             }
           },
-          "required": ["/serviceStatus"],
+          "required": [
+            "/serviceStatus"
+          ],
           "additionalProperties": false
         },
         "POST": {
@@ -77,7 +94,9 @@
               "$ref": "#/definitions/InstallAction"
             }
           },
-          "required": ["/install"],
+          "required": [
+            "/install"
+          ],
           "additionalProperties": false
         },
         "PATCH": {
@@ -106,7 +125,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -136,7 +157,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -166,7 +189,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -196,7 +221,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -226,7 +253,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -256,7 +285,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -286,12 +317,17 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         }
       },
-      "required": ["GET", "POST"],
+      "required": [
+        "GET",
+        "POST"
+      ],
       "additionalProperties": false
     }
   }

@@ -6,7 +6,10 @@
       "properties": {
         "status": {
           "type": "string",
-          "enum": ["ok", "degraded"]
+          "enum": [
+            "ok",
+            "degraded"
+          ]
         },
         "uptime": {
           "type": "number"
@@ -16,10 +19,18 @@
         },
         "database": {
           "type": "string",
-          "enum": ["connected", "disconnected"]
+          "enum": [
+            "connected",
+            "disconnected"
+          ]
         }
       },
-      "required": ["status", "uptime", "version", "database"],
+      "required": [
+        "status",
+        "uptime",
+        "version",
+        "database"
+      ],
       "additionalProperties": false,
       "description": "Backend health status including uptime and database connectivity"
     },
@@ -30,7 +41,9 @@
           "$ref": "#/definitions/HealthCheckResult"
         }
       },
-      "required": ["result"],
+      "required": [
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Returns the current health status of the service"
     },
@@ -53,11 +66,16 @@
               }
             }
           },
-          "required": ["variableNames"],
+          "required": [
+            "variableNames"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["result", "body"],
+      "required": [
+        "result",
+        "body"
+      ],
       "additionalProperties": false,
       "description": "Checks whether the specified environment variables are set on the host system"
     },
@@ -71,7 +89,9 @@
               "$ref": "#/definitions/HealthCheckEndpoint"
             }
           },
-          "required": ["/system/health"],
+          "required": [
+            "/system/health"
+          ],
           "additionalProperties": false
         },
         "POST": {
@@ -81,7 +101,9 @@
               "$ref": "#/definitions/CheckEnvAvailabilityEndpoint"
             }
           },
-          "required": ["/system/check-env-availability"],
+          "required": [
+            "/system/check-env-availability"
+          ],
           "additionalProperties": false
         },
         "PATCH": {
@@ -110,7 +132,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -140,7 +164,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -170,7 +196,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -200,7 +228,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -230,7 +260,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -260,7 +292,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -290,12 +324,17 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         }
       },
-      "required": ["GET", "POST"],
+      "required": [
+        "GET",
+        "POST"
+      ],
       "additionalProperties": false
     }
   }

@@ -14,7 +14,10 @@
               "type": "string"
             }
           },
-          "required": ["token", "plainTextToken"],
+          "required": [
+            "token",
+            "plainTextToken"
+          ],
           "additionalProperties": false
         },
         "body": {
@@ -24,11 +27,16 @@
               "type": "string"
             }
           },
-          "required": ["name"],
+          "required": [
+            "name"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["result", "body"],
+      "required": [
+        "result",
+        "body"
+      ],
       "additionalProperties": false,
       "description": "Creates a new API token and returns the plain-text value (shown only once)"
     },
@@ -51,7 +59,12 @@
           "type": "string"
         }
       },
-      "required": ["id", "username", "name", "createdAt"],
+      "required": [
+        "id",
+        "username",
+        "name",
+        "createdAt"
+      ],
       "additionalProperties": false
     },
     "TokensApi": {
@@ -64,7 +77,9 @@
               "$ref": "#/definitions/GetCollectionEndpoint%3CPublicApiToken%3E"
             }
           },
-          "required": ["/tokens"],
+          "required": [
+            "/tokens"
+          ],
           "additionalProperties": false
         },
         "POST": {
@@ -74,7 +89,9 @@
               "$ref": "#/definitions/CreateTokenEndpoint"
             }
           },
-          "required": ["/tokens"],
+          "required": [
+            "/tokens"
+          ],
           "additionalProperties": false
         },
         "PATCH": {
@@ -103,7 +120,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -133,7 +152,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -144,7 +165,9 @@
               "$ref": "#/definitions/DeleteEndpoint%3CApiToken%2C%22id%22%3E"
             }
           },
-          "required": ["/tokens/:id"],
+          "required": [
+            "/tokens/:id"
+          ],
           "additionalProperties": false
         },
         "HEAD": {
@@ -173,7 +196,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -203,7 +228,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -233,7 +260,9 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         },
@@ -263,12 +292,18 @@
                 "type": "string"
               }
             },
-            "required": ["result"],
+            "required": [
+              "result"
+            ],
             "additionalProperties": false
           }
         }
       },
-      "required": ["GET", "POST", "DELETE"],
+      "required": [
+        "GET",
+        "POST",
+        "DELETE"
+      ],
       "additionalProperties": false
     },
     "GetCollectionEndpoint<PublicApiToken>": {
@@ -287,7 +322,10 @@
           "$ref": "#/definitions/GetCollectionResult%3CPublicApiToken%3E"
         }
       },
-      "required": ["query", "result"],
+      "required": [
+        "query",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Rest endpoint model for getting / querying collections"
     },
@@ -307,23 +345,38 @@
           "properties": {
             "id": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "username": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "name": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "lastUsedAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             },
             "createdAt": {
               "type": "string",
-              "enum": ["ASC", "DESC"]
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
             }
           },
           "additionalProperties": false,
@@ -333,7 +386,13 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["id", "username", "name", "lastUsedAt", "createdAt"]
+            "enum": [
+              "id",
+              "username",
+              "name",
+              "lastUsedAt",
+              "createdAt"
+            ]
           },
           "description": "The result set will be limited to these fields"
         },
@@ -646,7 +705,10 @@
           "description": "List of the selected entities"
         }
       },
-      "required": ["count", "entries"],
+      "required": [
+        "count",
+        "entries"
+      ],
       "additionalProperties": false,
       "description": "Response Model for GetCollection"
     },
@@ -660,14 +722,19 @@
               "type": "string"
             }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": ["url", "result"],
+      "required": [
+        "url",
+        "result"
+      ],
       "additionalProperties": false,
       "description": "Endpoint model for deleting entities"
     }

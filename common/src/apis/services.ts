@@ -69,7 +69,7 @@ export type ServiceCheckoutEndpoint = {
 export type ServiceDeleteBranchEndpoint = {
   url: { id: string }
   body: { branch: string; switchTo?: string; force?: boolean }
-  result: { success: boolean; serviceId: string; deleted: string }
+  result: { success: boolean; serviceId: string; deleted: string; switchedTo?: string }
 }
 
 export type ServiceWarningKind = 'upstream-gone' | 'stale'

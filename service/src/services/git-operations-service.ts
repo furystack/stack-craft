@@ -107,7 +107,11 @@ export class GitOperationsService {
         const backupPath = `${cwd}.backup-${Date.now()}`
         if (dirContents.length > 0) {
           await this.logger.warning({
-            message: `Directory "${cwd}" exists with ${dirContents.length} entries but is not a git repo. Moving to "${backupPath}" and re-cloning.`,
+            message: `Directory "${cwd}" exists with ${dirContents.length} entries but is not a git repo. Moving to "${backupPath}" and re-cloning. The backup directory is left in place and must be cleaned up manually.`,
+          })
+        } else {
+          await this.logger.warning({
+            message: `Empty directory "${cwd}" moved to "${backupPath}" before re-cloning. The backup directory is left in place and must be cleaned up manually.`,
           })
         }
         renameSync(cwd, backupPath)

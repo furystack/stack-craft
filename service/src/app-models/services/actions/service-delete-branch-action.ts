@@ -84,10 +84,10 @@ export const ServiceDeleteBranchAction: RequestAction<ServiceDeleteBranchEndpoin
 
   await injector.getInstance(GitHeadWatcher).watch(serviceId, cwd)
 
-  void switchedTo
   return JsonResult({
     success: true,
     serviceId,
     deleted: localBranch,
+    ...(switchedTo !== undefined ? { switchedTo } : {}),
   })
 }

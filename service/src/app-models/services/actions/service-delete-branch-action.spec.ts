@@ -85,9 +85,28 @@ describe('ServiceDeleteBranchAction', () => {
         urlParams: { id: 'svc-1' },
         body: { branch: 'feature/gone', force: true },
       })
-      await ServiceDeleteBranchAction(ctx)
+      const result = await ServiceDeleteBranchAction(ctx)
       expect(git.checkout).toHaveBeenCalledWith('/tmp/repo', 'main')
       expect(git.deleteLocalBranch).toHaveBeenCalledWith('/tmp/repo', 'feature/gone', true)
+      expect(result.chunk).toMatchObject({ success: true, deleted: 'feature/gone', switchedTo: 'main' })
+    }))
+
+  it('omits switchedTo from the response when no branch switch happened', () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      await seed(elevated)
+      const git = mockGit({
+        getCurrentBranch: vi.fn().mockResolvedValue('main'),
+      })
+      injector.setExplicitInstance(git, GitService)
+      injector.setExplicitInstance({ watch: vi.fn() } as unknown as GitHeadWatcher, GitHeadWatcher)
+
+      const ctx = createMockActionContext({
+        injector,
+        urlParams: { id: 'svc-1' },
+        body: { branch: 'feature/old' },
+      })
+      const result = await ServiceDeleteBranchAction(ctx)
+      expect(result.chunk).not.toHaveProperty('switchedTo')
     }))
 
   it('throws when the repository is not cloned yet', () =>

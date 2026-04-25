@@ -66,12 +66,17 @@ export class GitHeadWatcher extends EventEmitter<{ externalChange: [GitHeadChang
     await this.upsertGitStatus(serviceId, branch)
 
     try {
-      const watcher = chokidar.watch([join(gitDir, 'HEAD'), join(gitDir, 'refs', 'heads')], {
-        ignoreInitial: true,
-        persistent: true,
-        awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 30 },
-        depth: 10,
-      })
+      // `packed-refs` is included so changes made after `git gc` (which packs loose refs into
+      // `.git/packed-refs`) still trigger branch/commit detection.
+      const watcher = chokidar.watch(
+        [join(gitDir, 'HEAD'), join(gitDir, 'refs', 'heads'), join(gitDir, 'packed-refs')],
+        {
+          ignoreInitial: true,
+          persistent: true,
+          awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 30 },
+          depth: 10,
+        },
+      )
 
       const entry: WatchedEntry = { cwd, watcher, lastBranch: branch, lastBranchSha: branchSha }
       this.watchers.set(serviceId, entry)

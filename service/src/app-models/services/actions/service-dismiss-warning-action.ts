@@ -45,7 +45,9 @@ const flagKeyFor = (kind: ServiceWarningKind): 'upstreamGone' | 'stale' => {
       return 'upstreamGone'
     case 'stale':
       return 'stale'
-    default:
-      return kind
+    default: {
+      const _exhaustive: never = kind
+      throw new RequestError(`Unknown ServiceWarningKind: ${_exhaustive as string}`, 400)
+    }
   }
 }
