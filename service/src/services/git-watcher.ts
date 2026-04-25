@@ -83,7 +83,18 @@ export class GitWatcher {
 
     const defs = await svcDefDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = defs[0]
-    if (!svc?.repositoryId) return
+    if (!svc?.repositoryId) {
+      entry.isFetching = false
+      return
+    }
+
+    // Bail out if the watcher was stopped while we were awaiting above.
+    // Without this guard the rest of the method may dereference `@Injected` getters
+    // on an already-disposed injector and produce an unhandled rejection.
+    if (!this.watchers.has(serviceId)) {
+      entry.isFetching = false
+      return
+    }
 
     const configs = await svcConfigDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
     const config = configs[0]
@@ -142,10 +153,19 @@ export class GitWatcher {
         }
       }
     } catch (error) {
-      await this.logger.warning({
-        message: `Git fetch failed for ${svc.displayName}`,
-        data: { error },
-      })
+      // Guard against the injector being disposed mid-flight (common in tests
+      // where the watcher is stopped right after start). Touching `this.logger`
+      // re-resolves it via DI; on a disposed injector that throws.
+      if (this.watchers.has(serviceId)) {
+        try {
+          await this.logger.warning({
+            message: `Git fetch failed for ${svc.displayName}`,
+            data: { error },
+          })
+        } catch {
+          // Injector torn down between watcher entry check and logger access; nothing to log to.
+        }
+      }
     } finally {
       entry.isFetching = false
     }
