@@ -64,14 +64,31 @@ const initOnce = async (sequelize: Sequelize): Promise<void> => {
  * module import; the actual call to `getSequelizeClient(opts.options)` only
  * happens when the store factory runs. Tests that bind these store tokens
  * to in-memory implementations therefore never need `DATABASE_URL`, but
- * passing `dbOptions()` directly would throw at import time.
+ * passing `getDbOptions()` directly would throw at import time.
+ *
+ * The proxy implements `ownKeys` and `getOwnPropertyDescriptor` so that
+ * `JSON.stringify(options)` and the `{ ...options }` spread used inside
+ * `SequelizeClientFactory.getSequelizeClient` see every option (and not an
+ * empty object, which would cause Sequelize to throw `Dialect needs to be
+ * explicitly supplied as of v4.0.0`).
  */
+let cachedOptions: ReturnType<typeof getDbOptions> | null = null
+const resolveOptions = (): ReturnType<typeof getDbOptions> => {
+  if (!cachedOptions) {
+    cachedOptions = getDbOptions()
+  }
+  return cachedOptions
+}
+
 const lazyDbOptions = new Proxy(
   {},
   {
-    get: (_target, prop) => getDbOptions()[prop as keyof ReturnType<typeof getDbOptions>],
+    get: (_target, prop) => resolveOptions()[prop as keyof ReturnType<typeof getDbOptions>],
+    has: (_target, prop) => prop in resolveOptions(),
+    ownKeys: () => Reflect.ownKeys(resolveOptions()),
+    getOwnPropertyDescriptor: (_target, prop) => Reflect.getOwnPropertyDescriptor(resolveOptions(), prop),
   },
-)
+) as ReturnType<typeof getDbOptions>
 
 const dbOptions = (): ReturnType<typeof getDbOptions> => lazyDbOptions
 

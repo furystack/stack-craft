@@ -7,9 +7,9 @@ import { PatchRun } from 'common'
 import type { Sequelize } from 'sequelize'
 import { DataTypes, Model } from 'sequelize'
 
-import { authorizedDataSet } from '../auth-data-set.js'
 import { getDbOptions } from '../app-models/data-store/db-options.js'
 import { ServiceStatusDataSet } from '../app-models/data-store/tokens.js'
+import { authorizedDataSet } from '../auth-data-set.js'
 import { patchList } from './0000-patch-list.js'
 import { checkForOrphanedPatch } from './check-for-orphaned-patch.js'
 import { runPatch } from './run-patch.js'
@@ -52,12 +52,27 @@ const initPatchRunModel = async (sequelize: Sequelize): Promise<void> => {
 
 // Lazy proxy so importing this module does not require `DATABASE_URL` to be set
 // (e.g. in unit tests that bind the store token to an in-memory implementation).
+// `ownKeys` / `getOwnPropertyDescriptor` traps are required so that
+// `JSON.stringify(options)` and `{ ...options }` inside `SequelizeClientFactory`
+// observe the underlying option keys (Sequelize otherwise rejects with
+// "Dialect needs to be explicitly supplied as of v4.0.0").
+let cachedPatcherOptions: ReturnType<typeof getDbOptions> | null = null
+const resolvePatcherOptions = (): ReturnType<typeof getDbOptions> => {
+  if (!cachedPatcherOptions) {
+    cachedPatcherOptions = getDbOptions()
+  }
+  return cachedPatcherOptions
+}
+
 const lazyDbOptions = new Proxy(
   {},
   {
-    get: (_target, prop) => getDbOptions()[prop as keyof ReturnType<typeof getDbOptions>],
+    get: (_target, prop) => resolvePatcherOptions()[prop as keyof ReturnType<typeof getDbOptions>],
+    has: (_target, prop) => prop in resolvePatcherOptions(),
+    ownKeys: () => Reflect.ownKeys(resolvePatcherOptions()),
+    getOwnPropertyDescriptor: (_target, prop) => Reflect.getOwnPropertyDescriptor(resolvePatcherOptions(), prop),
   },
-)
+) as ReturnType<typeof getDbOptions>
 
 export const PatchRunStoreToken = defineSequelizeStore({
   name: 'app/PatchRunStore',
