@@ -189,7 +189,7 @@ export const StackDashboard = Shade<StackDashboardProps>({
           />
           <Card variant="outlined">
             <CardContent style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <StackCraftNestedRouteLink href="/" style={{ textDecoration: 'none', alignSelf: 'flex-start' }}>
+              <StackCraftNestedRouteLink path="/" style={{ textDecoration: 'none', alignSelf: 'flex-start' }}>
                 <Button variant="contained" size="small" startIcon={<Icon icon={icons.home} size="small" />}>
                   Back to dashboard
                 </Button>
@@ -232,12 +232,12 @@ export const StackDashboard = Shade<StackDashboardProps>({
                   </Button>
                 </div>
               ) : null}
-              <StackCraftNestedRouteLink href="/stacks/:stackName/export" params={{ stackName }}>
+              <StackCraftNestedRouteLink path="/stacks/:stackName/export" params={{ stackName }}>
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.download} size="small" />}>
                   Export
                 </Button>
               </StackCraftNestedRouteLink>
-              <StackCraftNestedRouteLink href="/stacks/:stackName/edit" params={{ stackName }}>
+              <StackCraftNestedRouteLink path="/stacks/:stackName/edit" params={{ stackName }}>
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.edit} size="small" />}>
                   Edit Stack
                 </Button>
@@ -327,7 +327,7 @@ export const StackDashboard = Shade<StackDashboardProps>({
                 ] as const
               ).map((item, index) => (
                 <StackCraftNestedRouteLink
-                  href={item.href}
+                  path={item.href}
                   params={{ stackName }}
                   style={{
                     textDecoration: 'none',
@@ -398,7 +398,7 @@ export const StackDashboard = Shade<StackDashboardProps>({
             avatar={<Icon icon={icons.code} />}
             action={
               <StackCraftNestedRouteLink
-                href="/stacks/:stackName/services"
+                path="/stacks/:stackName/services"
                 params={{ stackName }}
                 style={{ color: 'inherit' }}
               >
@@ -415,7 +415,7 @@ export const StackDashboard = Shade<StackDashboardProps>({
           ) : null}
           <CardActions>
             <StackCraftNestedRouteLink
-              href="/stacks/:stackName/services"
+              path="/stacks/:stackName/services"
               params={{ stackName }}
               style={{ textDecoration: 'none' }}
             >
@@ -424,7 +424,7 @@ export const StackDashboard = Shade<StackDashboardProps>({
               </Button>
             </StackCraftNestedRouteLink>
             <StackCraftNestedRouteLink
-              href="/stacks/:stackName/services/wizard"
+              path="/stacks/:stackName/services/wizard"
               params={{ stackName }}
               style={{ textDecoration: 'none' }}
             >
@@ -450,7 +450,7 @@ export const StackDashboard = Shade<StackDashboardProps>({
               avatar={<Icon icon={icons.check} />}
               action={
                 <StackCraftNestedRouteLink
-                  href="/stacks/:stackName/prerequisites"
+                  path="/stacks/:stackName/prerequisites"
                   params={{ stackName }}
                   style={{ color: 'inherit' }}
                 >
@@ -485,7 +485,7 @@ export const StackDashboard = Shade<StackDashboardProps>({
             ) : null}
             <CardActions>
               <StackCraftNestedRouteLink
-                href="/stacks/:stackName/prerequisites"
+                path="/stacks/:stackName/prerequisites"
                 params={{ stackName }}
                 style={{ textDecoration: 'none' }}
               >
@@ -504,7 +504,7 @@ export const StackDashboard = Shade<StackDashboardProps>({
               avatar={<Icon icon={icons.link} />}
               action={
                 <StackCraftNestedRouteLink
-                  href="/stacks/:stackName/repositories"
+                  path="/stacks/:stackName/repositories"
                   params={{ stackName }}
                   style={{ color: 'inherit' }}
                 >
@@ -536,7 +536,7 @@ export const StackDashboard = Shade<StackDashboardProps>({
             ) : null}
             <CardActions>
               <StackCraftNestedRouteLink
-                href="/stacks/:stackName/repositories"
+                path="/stacks/:stackName/repositories"
                 params={{ stackName }}
                 style={{ textDecoration: 'none' }}
               >
@@ -545,7 +545,7 @@ export const StackDashboard = Shade<StackDashboardProps>({
                 </Button>
               </StackCraftNestedRouteLink>
               <StackCraftNestedRouteLink
-                href="/stacks/:stackName/repositories/create"
+                path="/stacks/:stackName/repositories/create"
                 params={{ stackName }}
                 style={{ textDecoration: 'none' }}
               >

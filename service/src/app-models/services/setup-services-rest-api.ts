@@ -32,6 +32,8 @@ import {
 import { ClearServiceLogsAction } from './actions/clear-service-logs-action.js'
 import { ServiceBranchesAction } from './actions/service-branches-action.js'
 import { ServiceCheckoutAction } from './actions/service-checkout-action.js'
+import { ServiceDeleteBranchAction } from './actions/service-delete-branch-action.js'
+import { ServiceDismissWarningAction } from './actions/service-dismiss-warning-action.js'
 import { ServiceHistoryAction } from './actions/service-history-action.js'
 import { ServiceLifecycleAction } from './actions/service-lifecycle-action.js'
 import { ServiceLogsAction } from './actions/service-logs-action.js'
@@ -294,6 +296,14 @@ export const setupServicesRestApi = async (injector: Injector) => {
         '/services/:id/checkout': Validate({ schema: servicesApiSchema, schemaName: 'ServiceCheckoutEndpoint' })(
           ServiceCheckoutAction,
         ),
+        '/services/:id/delete-branch': Validate({
+          schema: servicesApiSchema,
+          schemaName: 'ServiceDeleteBranchEndpoint',
+        })(ServiceDeleteBranchAction),
+        '/services/:id/dismiss-warning': Validate({
+          schema: servicesApiSchema,
+          schemaName: 'ServiceDismissWarningEndpoint',
+        })(ServiceDismissWarningAction),
         '/services/:id/apply-files': Validate({
           schema: servicesApiSchema,
           schemaName: 'ApplyServiceFilesEndpoint',

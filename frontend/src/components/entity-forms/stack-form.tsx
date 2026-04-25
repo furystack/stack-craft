@@ -2,6 +2,7 @@ import { createComponent, Shade } from '@furystack/shades'
 import { Button, Form, Icon, icons, Input, MarkdownEditor } from '@furystack/shades-common-components'
 import type { StackView } from 'common'
 
+import type { StaticAppRoutePath } from '../app-routes.js'
 import { StackCraftNestedRouteLink } from '../app-routes.js'
 
 type StackFormPayload = {
@@ -20,7 +21,7 @@ type StackFormProps = {
   initial?: Partial<StackView>
   onSubmit: (data: Partial<StackView>) => void | Promise<void>
   onCancel?: () => void
-  cancelHref?: string
+  cancelHref?: StaticAppRoutePath
   mode: 'create' | 'edit'
 }
 
@@ -73,7 +74,7 @@ export const StackForm = Shade<StackFormProps>({
         />
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           {props.cancelHref ? (
-            <StackCraftNestedRouteLink href={props.cancelHref as '/'}>
+            <StackCraftNestedRouteLink path={props.cancelHref}>
               <Button variant="outlined" startIcon={<Icon icon={icons.close} size="small" />}>
                 Cancel
               </Button>

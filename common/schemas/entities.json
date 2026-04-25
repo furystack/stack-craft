@@ -203,6 +203,29 @@
       "additionalProperties": false,
       "description": "User-specific service configuration. Contains settings that each installation can customize independently. Not included in exports - set by the user during import/installation."
     },
+    "UpstreamStatus": {
+      "type": "string",
+      "enum": ["present", "gone", "unknown"],
+      "description": "Upstream branch presence on the remote. Used to detect branches that were deleted from origin."
+    },
+    "WorktreeStatus": {
+      "type": "string",
+      "enum": ["clean", "dirty", "conflicts", "unknown"],
+      "description": "State of the local working tree relative to HEAD."
+    },
+    "ServiceGitWarningDismissals": {
+      "type": "object",
+      "properties": {
+        "upstreamGone": {
+          "type": "boolean"
+        },
+        "stale": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Persisted-per-session flags for warnings the user has dismissed. Reset on service restart."
+    },
     "ServiceGitStatus": {
       "type": "object",
       "properties": {
@@ -216,11 +239,27 @@
         "commitsBehind": {
           "type": "number",
           "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
+        },
+        "upstreamStatus": {
+          "$ref": "#/definitions/UpstreamStatus",
+          "description": "Whether the upstream branch (`origin/<currentBranch>`) still exists on the remote."
+        },
+        "worktreeStatus": {
+          "$ref": "#/definitions/WorktreeStatus",
+          "description": "State of the local working tree (clean/dirty/conflicts). Derived from `git status --porcelain`."
+        },
+        "lastPullError": {
+          "type": "string",
+          "description": "Last error message produced by a pull attempt on an already-cloned repository. Cleared on successful pull."
+        },
+        "warningsDismissed": {
+          "$ref": "#/definitions/ServiceGitWarningDismissals",
+          "description": "Warnings the user has dismissed for this session."
         }
       },
       "required": ["serviceId"],
       "additionalProperties": false,
-      "description": "In-memory git state for a service. Derived from the filesystem (`.git/HEAD`) and periodic remote checks, never persisted to DB."
+      "description": "In-memory git state for a service. Derived from the filesystem (`.git/HEAD`, `.git/refs/heads/`) and periodic remote checks, never persisted to DB."
     },
     "CloneStatus": {
       "type": "string",
@@ -228,11 +267,11 @@
     },
     "InstallStatus": {
       "type": "string",
-      "enum": ["not-installed", "installing", "installed", "failed"]
+      "enum": ["not-installed", "installing", "installed", "failed", "stale"]
     },
     "BuildStatus": {
       "type": "string",
-      "enum": ["not-built", "building", "built", "failed"]
+      "enum": ["not-built", "building", "built", "failed", "stale"]
     },
     "RunStatus": {
       "type": "string",
@@ -376,6 +415,22 @@
         "commitsBehind": {
           "type": "number",
           "description": "Number of commits the local branch is behind `origin/<currentBranch>`. Updated by GitWatcher after each fetch."
+        },
+        "upstreamStatus": {
+          "$ref": "#/definitions/UpstreamStatus",
+          "description": "Whether the upstream branch (`origin/<currentBranch>`) still exists on the remote."
+        },
+        "worktreeStatus": {
+          "$ref": "#/definitions/WorktreeStatus",
+          "description": "State of the local working tree (clean/dirty/conflicts). Derived from `git status --porcelain`."
+        },
+        "lastPullError": {
+          "type": "string",
+          "description": "Last error message produced by a pull attempt on an already-cloned repository. Cleared on successful pull."
+        },
+        "warningsDismissed": {
+          "$ref": "#/definitions/ServiceGitWarningDismissals",
+          "description": "Warnings the user has dismissed for this session."
         },
         "cloneStatus": {
           "$ref": "#/definitions/CloneStatus"
@@ -544,7 +599,11 @@
         "update-failed",
         "pull-completed",
         "imported",
-        "state-reconciled"
+        "state-reconciled",
+        "external-branch-changed",
+        "external-pull-detected",
+        "upstream-gone",
+        "marked-stale"
       ],
       "description": "Event types for service state transitions. Each value represents a discrete lifecycle event that can occur."
     },
@@ -962,6 +1021,54 @@
       "required": ["prerequisiteId", "status", "output", "checkedAt"],
       "additionalProperties": false,
       "description": "Represents the result of evaluating a  {@link  Prerequisite  } . Stored in an in-memory store on the service and synced to the frontend via entity sync so that every connected client sees real-time status."
+    },
+    "PatchRun": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "patchId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["running", "success", "failed", "orphaned"]
+        },
+        "log": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": ["timestamp", "message"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["id", "patchId", "createdAt", "updatedAt", "name", "description", "status", "log"],
+      "additionalProperties": false,
+      "description": "Log of a patch execution. Tracks idempotency (a successful run is skipped next time) and provides an audit trail for upgrade operations."
     },
     "GitHubRepository": {
       "type": "object",

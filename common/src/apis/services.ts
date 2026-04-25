@@ -65,6 +65,22 @@ export type ServiceCheckoutEndpoint = {
   result: { success: boolean; serviceId: string }
 }
 
+/** Deletes a local branch in the service's repository, optionally switching to a target branch first */
+export type ServiceDeleteBranchEndpoint = {
+  url: { id: string }
+  body: { branch: string; switchTo?: string; force?: boolean }
+  result: { success: boolean; serviceId: string; deleted: string; switchedTo?: string }
+}
+
+export type ServiceWarningKind = 'upstream-gone' | 'stale'
+
+/** Dismisses an inline warning for a service (in-memory, resets on service restart) */
+export type ServiceDismissWarningEndpoint = {
+  url: { id: string }
+  body: { kind: ServiceWarningKind }
+  result: { success: boolean; serviceId: string }
+}
+
 export interface ServicesApi extends RestApi {
   GET: {
     '/services': GetCollectionEndpoint<ServiceView>
@@ -85,6 +101,8 @@ export interface ServicesApi extends RestApi {
     '/services/:id/update': ServiceActionEndpoint
     '/services/:id/apply-files': ApplyServiceFilesEndpoint
     '/services/:id/checkout': ServiceCheckoutEndpoint
+    '/services/:id/delete-branch': ServiceDeleteBranchEndpoint
+    '/services/:id/dismiss-warning': ServiceDismissWarningEndpoint
   }
   PATCH: {
     '/services/:id': PatchServiceEndpoint

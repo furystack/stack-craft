@@ -2,9 +2,10 @@ import { useSystemIdentityContext } from '@furystack/core'
 import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
+import chokidar, { type FSWatcher } from 'chokidar'
 import { ServiceGitStatus } from 'common'
+import { EventEmitter } from 'events'
 import { existsSync } from 'fs'
-import { watch, type FSWatcher } from 'fs'
 import { join } from 'path'
 
 import { GitService } from './git-service.js'
@@ -13,13 +14,31 @@ type WatchedEntry = {
   cwd: string
   watcher: FSWatcher
   debounceTimer?: ReturnType<typeof setTimeout>
+  lastBranch?: string
+  lastBranchSha?: string
 }
 
 const DEBOUNCE_MS = 200
 
-/** Watches `.git/HEAD` file changes to detect branch switches and updates the in-memory git status */
+/**
+ * Payload emitted on `externalChange`. Distinguishes between branch switches
+ * (HEAD ref changed) and pull-detected events (branch ref advanced).
+ */
+export type GitHeadChangeEvent = {
+  serviceId: string
+  previousBranch?: string
+  currentBranch?: string
+  previousSha?: string
+  currentSha?: string
+  kind: 'branch-switched' | 'pull-detected' | 'unknown'
+}
+
+/**
+ * Watches `.git/HEAD` and `.git/refs/heads/` of cloned services to detect
+ * branch switches and external pulls performed outside the application.
+ */
 @Injectable({ lifetime: 'singleton' })
-export class GitHeadWatcher {
+export class GitHeadWatcher extends EventEmitter<{ externalChange: [GitHeadChangeEvent] }> {
   private watchers = new Map<string, WatchedEntry>()
   private elevatedInjector?: Injector
 
@@ -36,32 +55,53 @@ export class GitHeadWatcher {
   @Injected(GitService)
   declare private git: GitService
 
-  /**
-   * Starts watching `.git/HEAD` for a cloned service.
-   * Reads the current branch immediately and writes it to the in-memory store.
-   */
   public async watch(serviceId: string, cwd: string): Promise<void> {
     this.unwatch(serviceId)
 
-    const headPath = join(cwd, '.git', 'HEAD')
-    if (!existsSync(headPath)) return
+    const gitDir = join(cwd, '.git')
+    if (!existsSync(join(gitDir, 'HEAD'))) return
 
     const branch = await this.readBranch(serviceId, cwd)
+    const branchSha = branch ? await this.git.revParse(cwd, `refs/heads/${branch}`) : undefined
     await this.upsertGitStatus(serviceId, branch)
 
     try {
-      const watcher = watch(headPath, () => {
-        const entry = this.watchers.get(serviceId)
-        if (!entry) return
-        if (entry.debounceTimer) clearTimeout(entry.debounceTimer)
-        entry.debounceTimer = setTimeout(() => {
+      // `packed-refs` is included so changes made after `git gc` (which packs loose refs into
+      // `.git/packed-refs`) still trigger branch/commit detection.
+      const watcher = chokidar.watch(
+        [join(gitDir, 'HEAD'), join(gitDir, 'refs', 'heads'), join(gitDir, 'packed-refs')],
+        {
+          ignoreInitial: true,
+          persistent: true,
+          awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 30 },
+          depth: 10,
+        },
+      )
+
+      const entry: WatchedEntry = { cwd, watcher, lastBranch: branch, lastBranchSha: branchSha }
+      this.watchers.set(serviceId, entry)
+
+      const schedule = () => {
+        const current = this.watchers.get(serviceId)
+        if (!current) return
+        if (current.debounceTimer) clearTimeout(current.debounceTimer)
+        current.debounceTimer = setTimeout(() => {
           void this.onHeadChanged(serviceId, cwd)
         }, DEBOUNCE_MS)
-      })
+      }
 
-      this.watchers.set(serviceId, { cwd, watcher })
-    } catch {
-      void this.logger.verbose({ message: `Could not watch .git/HEAD for service ${serviceId}` })
+      watcher.on('change', schedule)
+      watcher.on('add', schedule)
+      watcher.on('unlink', schedule)
+      watcher.on('error', (error) => {
+        void this.logger.verbose({
+          message: `GitHeadWatcher error for ${serviceId}: ${(error as Error).message}`,
+        })
+      })
+    } catch (error) {
+      void this.logger.verbose({
+        message: `Could not watch .git for service ${serviceId}: ${(error as Error).message}`,
+      })
     }
   }
 
@@ -69,20 +109,46 @@ export class GitHeadWatcher {
     const entry = this.watchers.get(serviceId)
     if (entry) {
       if (entry.debounceTimer) clearTimeout(entry.debounceTimer)
-      entry.watcher.close()
+      void entry.watcher.close()
       this.watchers.delete(serviceId)
     }
   }
 
   private async onHeadChanged(serviceId: string, cwd: string): Promise<void> {
+    const entry = this.watchers.get(serviceId)
+    if (!entry) return
+
+    const previousBranch = entry.lastBranch
+    const previousSha = entry.lastBranchSha
+
     const branch = await this.readBranch(serviceId, cwd)
+    const branchSha = branch ? await this.git.revParse(cwd, `refs/heads/${branch}`) : undefined
     const commitsBehind = branch ? await this.git.getCommitsBehind(cwd, branch).catch(() => 0) : undefined
     await this.upsertGitStatus(serviceId, branch, commitsBehind)
+
+    entry.lastBranch = branch
+    entry.lastBranchSha = branchSha
+
+    let kind: GitHeadChangeEvent['kind'] = 'unknown'
+    if (previousBranch !== branch) kind = 'branch-switched'
+    else if (previousSha && branchSha && previousSha !== branchSha) kind = 'pull-detected'
+
+    if (kind !== 'unknown') {
+      this.emit('externalChange', {
+        serviceId,
+        previousBranch,
+        currentBranch: branch,
+        previousSha,
+        currentSha: branchSha,
+        kind,
+      })
+    }
   }
 
   private async readBranch(serviceId: string, cwd: string): Promise<string | undefined> {
     try {
-      return await this.git.getCurrentBranch(cwd)
+      const branch = await this.git.getCurrentBranch(cwd)
+      return branch || undefined
     } catch {
       void this.logger.verbose({ message: `Could not read branch for service ${serviceId}` })
       return undefined
@@ -114,7 +180,7 @@ export class GitHeadWatcher {
   public async [Symbol.asyncDispose]() {
     for (const [, entry] of this.watchers) {
       if (entry.debounceTimer) clearTimeout(entry.debounceTimer)
-      entry.watcher.close()
+      await entry.watcher.close().catch(() => undefined)
     }
     this.watchers.clear()
     try {

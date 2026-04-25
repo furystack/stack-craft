@@ -45,7 +45,7 @@ export const SecretWarningsCard = Shade<SecretWarningsCardProps>({
                   }}
                 >
                   <StackCraftNestedRouteLink
-                    href="/stacks/:stackName/services/:serviceId"
+                    path="/stacks/:stackName/services/:serviceId"
                     params={{ stackName: group.stackName, serviceId: group.serviceId }}
                     style={{ color: cssVariableTheme.palette.primary.main, textDecoration: 'none' }}
                   >

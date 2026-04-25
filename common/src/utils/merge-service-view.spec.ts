@@ -116,4 +116,28 @@ describe('mergeServiceView', () => {
     expect(result.serviceId).toBe('svc-1')
     expect(result.runStatus).toBe('stopped')
   })
+
+  it('should populate git-related defaults when gitStatus is not provided', () => {
+    const result = mergeServiceView(baseDef)
+    expect(result.upstreamStatus).toBe('unknown')
+    expect(result.worktreeStatus).toBe('unknown')
+    expect(result.warningsDismissed).toEqual({})
+  })
+
+  it('should merge upstream/worktree/warnings flags from gitStatus', () => {
+    const gitStatus: ServiceGitStatus = {
+      serviceId: 'svc-1',
+      currentBranch: 'main',
+      commitsBehind: 0,
+      upstreamStatus: 'gone',
+      worktreeStatus: 'dirty',
+      lastPullError: 'remote hung up',
+      warningsDismissed: { upstreamGone: true, stale: false },
+    }
+    const result = mergeServiceView(baseDef, undefined, undefined, gitStatus)
+    expect(result.upstreamStatus).toBe('gone')
+    expect(result.worktreeStatus).toBe('dirty')
+    expect(result.lastPullError).toBe('remote hung up')
+    expect(result.warningsDismissed).toEqual({ upstreamGone: true, stale: false })
+  })
 })

@@ -43,6 +43,9 @@ const setupMocks = (injector: Injector) => {
   const mockGitService = {
     clone: vi.fn().mockResolvedValue(undefined),
     pull: vi.fn().mockResolvedValue({ updated: false }),
+    fetch: vi.fn().mockResolvedValue(undefined),
+    getCurrentBranch: vi.fn().mockResolvedValue('main'),
+    hasRemoteBranch: vi.fn().mockResolvedValue(true),
   }
   injector.setExplicitInstance(mockGitService as unknown as GitService, GitService)
 
@@ -217,6 +220,56 @@ describe('GitOperationsService', () => {
           'clone-failed',
           trigger,
           { error: 'Network error' },
+        )
+      }))
+
+    it('should keep cloneStatus as "cloned" when a pull fails on an existing repo on disk', () =>
+      withTestInjector(async ({ injector, elevated }) => {
+        const { mockStatusManager, mockGitService } = setupMocks(injector)
+        await seedServiceData(elevated)
+
+        existsSyncMock.mockReturnValue(true)
+        mockGitService.fetch.mockRejectedValueOnce(new Error('remote hung up'))
+
+        const service = injector.getInstance(GitOperationsService)
+        await expect(service.cloneOrPullService('svc-1', trigger)).rejects.toThrow('remote hung up')
+
+        expect(mockStatusManager.updateServiceStatus).not.toHaveBeenCalledWith(
+          'svc-1',
+          { cloneStatus: 'failed' },
+          'clone-failed',
+          trigger,
+          expect.anything(),
+        )
+        expect(mockStatusManager.updateServiceStatus).toHaveBeenCalledWith(
+          'svc-1',
+          { cloneStatus: 'cloned' },
+          'clone-failed',
+          trigger,
+          { error: 'remote hung up' },
+        )
+      }))
+
+    it('should short-circuit with upstreamGone=true when the current branch was removed from origin', () =>
+      withTestInjector(async ({ injector, elevated }) => {
+        const { mockGitService, mockStatusManager } = setupMocks(injector)
+        await seedServiceData(elevated)
+
+        existsSyncMock.mockReturnValue(true)
+        mockGitService.getCurrentBranch.mockResolvedValueOnce('feature/gone')
+        mockGitService.hasRemoteBranch.mockResolvedValueOnce(false)
+
+        const service = injector.getInstance(GitOperationsService)
+        const result = await service.cloneOrPullService('svc-1', trigger)
+
+        expect(result).toEqual({ cloned: false, pulled: false, updated: false, upstreamGone: true })
+        expect(mockGitService.pull).not.toHaveBeenCalled()
+        expect(mockStatusManager.updateServiceStatus).toHaveBeenCalledWith(
+          'svc-1',
+          { cloneStatus: 'cloned' },
+          'upstream-gone',
+          trigger,
+          { branch: 'feature/gone' },
         )
       }))
 

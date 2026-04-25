@@ -184,11 +184,11 @@ export async function initAllModels(sequelize: Sequelize): Promise<void> {
         defaultValue: 'not-cloned',
       },
       installStatus: {
-        type: DataTypes.ENUM('not-installed', 'installing', 'installed', 'failed'),
+        type: DataTypes.ENUM('not-installed', 'installing', 'installed', 'failed', 'stale'),
         defaultValue: 'not-installed',
       },
       buildStatus: {
-        type: DataTypes.ENUM('not-built', 'building', 'built', 'failed'),
+        type: DataTypes.ENUM('not-built', 'building', 'built', 'failed', 'stale'),
         defaultValue: 'not-built',
       },
       runStatus: {
@@ -237,6 +237,10 @@ export async function initAllModels(sequelize: Sequelize): Promise<void> {
           'pull-completed',
           'imported',
           'state-reconciled',
+          'external-branch-changed',
+          'external-pull-detected',
+          'upstream-gone',
+          'marked-stale',
         ),
         allowNull: false,
       },

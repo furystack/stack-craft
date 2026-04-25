@@ -7,7 +7,7 @@ import { StackCraftNestedRouteLink } from '../app-routes.js'
 
 type BreadcrumbSegment = {
   label: string
-  href?: Parameters<typeof StackCraftNestedRouteLink>[0]['href']
+  href?: Parameters<typeof StackCraftNestedRouteLink>[0]['path']
   params?: Record<string, string>
 }
 
@@ -47,21 +47,6 @@ const parseBreadcrumbs = (
         href: '/stacks/:stackName/services/:serviceId',
         params: { stackName, serviceId },
       })
-
-      const logSection = parts[4]
-      if (logSection === 'logs') {
-        const processUid = parts[5]
-        if (processUid) {
-          segments.push({
-            label: 'Logs',
-            href: '/stacks/:stackName/services/:serviceId/logs',
-            params: { stackName, serviceId },
-          })
-          segments.push({ label: `${processUid.slice(0, 8)}…` })
-        } else {
-          segments.push({ label: 'Logs' })
-        }
-      }
     } else if (serviceId === 'create') {
       segments.push({ label: 'Create' })
     } else if (serviceId === 'wizard') {
@@ -163,7 +148,7 @@ const EntityNameResolver = Shade<EntityNameResolverProps>({
               <li>
                 {index > 0 ? <span className="breadcrumb-separator"> / </span> : null}
                 {segment.href && !isLast ? (
-                  <StackCraftNestedRouteLink href={segment.href} params={segment.params as Record<string, string>}>
+                  <StackCraftNestedRouteLink path={segment.href} params={segment.params ?? {}}>
                     {segment.label}
                   </StackCraftNestedRouteLink>
                 ) : (

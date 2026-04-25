@@ -78,7 +78,10 @@ export const EditRepository = Shade<EditRepositoryProps>({
           body: `"${data.displayName ?? repo.displayName}" was updated successfully.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/stacks/:stackName/repositories', { stackName: repo.stackName })
+        stackCraftNavigate(injector, {
+          path: '/stacks/:stackName/repositories',
+          params: { stackName: repo.stackName },
+        })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -101,7 +104,10 @@ export const EditRepository = Shade<EditRepositoryProps>({
           body: `"${repo.displayName}" was deleted.`,
           type: 'success',
         })
-        stackCraftNavigate(injector, '/stacks/:stackName/repositories', { stackName: repo.stackName })
+        stackCraftNavigate(injector, {
+          path: '/stacks/:stackName/repositories',
+          params: { stackName: repo.stackName },
+        })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',
@@ -136,7 +142,10 @@ export const EditRepository = Shade<EditRepositoryProps>({
             initial={repo}
             onSubmit={(data) => void handleSave(data)}
             onCancel={() =>
-              stackCraftNavigate(injector, '/stacks/:stackName/repositories', { stackName: repo.stackName })
+              stackCraftNavigate(injector, {
+                path: '/stacks/:stackName/repositories',
+                params: { stackName: repo.stackName },
+              })
             }
           />
         </Paper>

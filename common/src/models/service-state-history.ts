@@ -25,6 +25,10 @@ export type ServiceStateEvent =
   | 'pull-completed'
   | 'imported'
   | 'state-reconciled'
+  | 'external-branch-changed'
+  | 'external-pull-detected'
+  | 'upstream-gone'
+  | 'marked-stale'
 
 /**
  * How a state change was triggered.

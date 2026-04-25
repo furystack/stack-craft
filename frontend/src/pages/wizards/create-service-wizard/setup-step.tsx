@@ -1,7 +1,7 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { Button, cssVariableTheme, Icon, icons, NotyService } from '@furystack/shades-common-components'
 
-import { StackCraftNestedRouteLink, stackCraftNavigate } from '../../../components/app-routes.js'
+import { stackCraftNavigate, StackCraftNestedRouteLink } from '../../../components/app-routes.js'
 import { ServicesApiClient } from '../../../services/api-clients/services-api-client.js'
 
 type SetupStepProps = {
@@ -64,7 +64,9 @@ export const SetupStep = Shade<SetupStepProps>({
               </Button>
               <Button
                 variant="outlined"
-                onclick={() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: props.stackName })}
+                onclick={() =>
+                  stackCraftNavigate(injector, { path: '/stacks/:stackName', params: { stackName: props.stackName } })
+                }
                 endIcon={<Icon icon={icons.chevronRight} size="small" />}
               >
                 Skip
@@ -91,13 +93,15 @@ export const SetupStep = Shade<SetupStepProps>({
               <Button
                 variant="contained"
                 color="success"
-                onclick={() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: props.stackName })}
+                onclick={() =>
+                  stackCraftNavigate(injector, { path: '/stacks/:stackName', params: { stackName: props.stackName } })
+                }
                 startIcon={<Icon icon={icons.home} size="small" />}
               >
                 Go to Dashboard
               </Button>
               <StackCraftNestedRouteLink
-                href="/stacks/:stackName/services/:serviceId"
+                path="/stacks/:stackName/services/:serviceId"
                 params={{ stackName: props.stackName, serviceId: props.serviceId }}
               >
                 <Button variant="outlined" startIcon={<Icon icon={icons.eye} size="small" />}>
@@ -120,8 +124,9 @@ export const SetupStep = Shade<SetupStepProps>({
                 Retry
               </Button>
               <StackCraftNestedRouteLink
-                href="/stacks/:stackName/services/:serviceId/logs"
+                path="/stacks/:stackName/services/:serviceId"
                 params={{ stackName: props.stackName, serviceId: props.serviceId }}
+                hash="logs"
               >
                 <Button variant="outlined" startIcon={<Icon icon={icons.fileText} size="small" />}>
                   View Logs
@@ -129,7 +134,9 @@ export const SetupStep = Shade<SetupStepProps>({
               </StackCraftNestedRouteLink>
               <Button
                 variant="outlined"
-                onclick={() => stackCraftNavigate(injector, '/stacks/:stackName', { stackName: props.stackName })}
+                onclick={() =>
+                  stackCraftNavigate(injector, { path: '/stacks/:stackName', params: { stackName: props.stackName } })
+                }
                 startIcon={<Icon icon={icons.home} size="small" />}
               >
                 Go to Dashboard

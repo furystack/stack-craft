@@ -99,7 +99,14 @@ export class ServicePipelineOrchestrator {
         throw new ValidationError('No repository linked to this service')
       }
 
-      const { updated } = await this.gitOps.cloneOrPullService(serviceId, trigger)
+      const { updated, upstreamGone } = await this.gitOps.cloneOrPullService(serviceId, trigger)
+
+      if (upstreamGone) {
+        await this.statusManager.updateServiceStatus(serviceId, {}, 'update-completed', trigger, {
+          message: 'Upstream branch removed; nothing to update',
+        })
+        return
+      }
 
       if (!updated) {
         await this.statusManager.updateServiceStatus(serviceId, {}, 'update-completed', trigger, {

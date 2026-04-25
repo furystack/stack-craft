@@ -13,7 +13,7 @@ export const NotFound = Shade({
           <p style={{ color: cssVariableTheme.text.secondary }}>
             The page you are looking for does not exist or has been moved.
           </p>
-          <Button variant="contained" onclick={() => stackCraftNavigate(injector, '/', {})}>
+          <Button variant="contained" onclick={() => stackCraftNavigate(injector, { path: '/' })}>
             Go to Dashboard
           </Button>
         </Paper>

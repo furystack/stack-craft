@@ -1,12 +1,15 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { Chip, NotyService } from '@furystack/shades-common-components'
+import type { CloneStatus, UpstreamStatus } from 'common'
 
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
 
 type BranchSelectorProps = {
   serviceId: string
   currentBranch?: string
-  isCloned: boolean
+  cloneStatus: CloneStatus
+  upstreamStatus?: UpstreamStatus
+  lastPullError?: string
 }
 
 /**
@@ -66,7 +69,13 @@ const showBranchDropdown = (opts: {
   const listContainer = document.createElement('div')
   Object.assign(listContainer.style, { overflowY: 'auto', flex: '1' })
 
+  // Close on scroll (capture phase catches scrolls in any ancestor) or viewport resize.
+  // Repositioning is avoided because the anchor can disappear from the viewport mid-scroll.
+  const closeOnViewportChange = () => cleanup()
+
   const cleanup = () => {
+    window.removeEventListener('scroll', closeOnViewportChange, true)
+    window.removeEventListener('resize', closeOnViewportChange)
     backdrop.remove()
     dropdown.remove()
   }
@@ -144,6 +153,8 @@ const showBranchDropdown = (opts: {
 
   searchInput.addEventListener('input', () => renderList(searchInput.value))
   backdrop.addEventListener('click', cleanup)
+  window.addEventListener('scroll', closeOnViewportChange, true)
+  window.addEventListener('resize', closeOnViewportChange)
 
   dropdown.appendChild(searchInput)
   dropdown.appendChild(listContainer)
@@ -186,15 +197,28 @@ export const BranchSelector = Shade<BranchSelectorProps>({
       opacity: '0.5',
       cursor: 'wait',
     },
+    '& .branch-trigger[data-upstream-gone]': {
+      borderColor: 'var(--shades-theme-palette-warning-main)',
+    },
     '& .branch-arrow': {
       fontSize: '8px',
       opacity: '0.5',
       flexShrink: '0',
     },
+    '& .branch-spinner': {
+      display: 'inline-block',
+      width: '10px',
+      height: '10px',
+      borderRadius: '50%',
+      border: '2px solid var(--shades-theme-action-subtleBorder)',
+      borderTopColor: 'var(--shades-theme-palette-primary-main)',
+      animation: 'shade-branch-spin 0.8s linear infinite',
+      flexShrink: '0',
+    },
   },
   render: ({ props, injector, useState, useDisposable, useRef }) => {
     const triggerRef = useRef<HTMLButtonElement>('triggerRef')
-    const { serviceId, currentBranch, isCloned } = props
+    const { serviceId, currentBranch, cloneStatus, upstreamStatus, lastPullError } = props
 
     const [branches, setBranches] = useState<{ local: string[]; remote: string[] } | null>('branches', null)
     const [isLoading, setIsLoading] = useState('isLoading', false)
@@ -202,6 +226,10 @@ export const BranchSelector = Shade<BranchSelectorProps>({
 
     const api = injector.getInstance(ServicesApiClient)
     const noty = injector.getInstance(NotyService)
+
+    const hasBranchInfo = Boolean(currentBranch)
+    const isClonedOrPulling = cloneStatus === 'cloned' || (cloneStatus === 'cloning' && hasBranchInfo)
+    const isInitialCloning = cloneStatus === 'cloning' && !hasBranchInfo
 
     const loadBranches = async () => {
       setIsLoading(true)
@@ -220,21 +248,40 @@ export const BranchSelector = Shade<BranchSelectorProps>({
     }
 
     useDisposable(
-      `load-branches-${serviceId}`,
+      `load-branches-${serviceId}-${currentBranch ?? ''}`,
       () => {
-        if (isCloned) void loadBranches()
+        if (isClonedOrPulling) void loadBranches()
         return { [Symbol.dispose]: () => {} }
       },
-      [isCloned],
+      [isClonedOrPulling, currentBranch],
     )
 
-    if (!isCloned) {
+    if (isInitialCloning) {
+      return (
+        <Chip variant="outlined" size="small" color="primary">
+          Cloning...
+        </Chip>
+      )
+    }
+
+    if (cloneStatus === 'failed') {
+      return (
+        <Chip variant="outlined" size="small" color="error" title={lastPullError ?? 'Clone failed. Retry via Update.'}>
+          Clone failed
+        </Chip>
+      )
+    }
+
+    if (cloneStatus === 'not-cloned') {
       return (
         <Chip variant="outlined" size="small" color="secondary">
           Not cloned
         </Chip>
       )
     }
+
+    const isPulling = cloneStatus === 'cloning'
+    const isUpstreamGone = upstreamStatus === 'gone'
 
     const handleOpen = () => {
       if (!triggerRef.current || !branches) return
@@ -269,19 +316,42 @@ export const BranchSelector = Shade<BranchSelectorProps>({
       })
     }
 
+    const disabled = isLoading || isCheckingOut || isPulling
+    const label = isCheckingOut
+      ? 'Switching...'
+      : isPulling
+        ? (currentBranch ?? 'Updating...')
+        : (currentBranch ?? (isLoading ? 'Loading...' : 'No branch'))
+
+    const title = isUpstreamGone
+      ? `Branch "${currentBranch}" was removed from origin`
+      : lastPullError
+        ? `Last pull failed: ${lastPullError}`
+        : (currentBranch ?? 'Select branch')
+
     return (
-      <button
-        ref={triggerRef}
-        type="button"
-        className="branch-trigger"
-        onclick={handleOpen}
-        disabled={isLoading || isCheckingOut}
-        title={currentBranch ?? 'Select branch'}
-        {...(isLoading || isCheckingOut ? { 'data-disabled': '' } : {})}
-      >
-        {isCheckingOut ? 'Switching...' : (currentBranch ?? (isLoading ? 'Loading...' : 'No branch'))}
-        <span className="branch-arrow">&#9660;</span>
-      </button>
+      <>
+        <button
+          ref={triggerRef}
+          type="button"
+          className="branch-trigger"
+          onclick={handleOpen}
+          disabled={disabled}
+          title={title}
+          {...(disabled ? { 'data-disabled': '' } : {})}
+          {...(isUpstreamGone ? { 'data-upstream-gone': '' } : {})}
+        >
+          {isPulling || isCheckingOut ? <span className="branch-spinner" aria-hidden="true" /> : null}
+          {label}
+          <span className="branch-arrow">&#9660;</span>
+        </button>
+        <style>{`
+          @keyframes shade-branch-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </>
     )
   },
 })

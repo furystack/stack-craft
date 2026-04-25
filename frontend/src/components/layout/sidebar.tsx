@@ -6,10 +6,15 @@ import type { StackView } from 'common'
 import { StackDefinition } from 'common'
 import { match } from 'path-to-regexp'
 
+import type { StaticAppRoutePath } from '../app-routes.js'
 import { StackCraftNestedRouteLink } from '../app-routes.js'
 
-/** Latest remount phase map for location subscription merges (Shade useState has no functional updates). */
-const sidebarStackRemountScratch = { map: {} as Record<string, 0 | 1> }
+/**
+ * Per-instance scratch for the location subscription merges.
+ * Shades `useState` has no functional updates, so the subscription reads the
+ * latest remount-phase map via this mutable container instead of a stale closure.
+ */
+type RemountScratch = { map: Record<string, 0 | 1> }
 
 type SidebarStackLinkProps = {
   stackName: string
@@ -64,7 +69,7 @@ const SidebarStackLink = Shade<SidebarStackLinkProps>({
 
     return (
       <StackCraftNestedRouteLink
-        href={href}
+        path={href}
         params={{ stackName: props.stackName }}
         title={props.label}
         {...(isActive ? { 'data-active': '' } : {})}
@@ -77,7 +82,7 @@ const SidebarStackLink = Shade<SidebarStackLinkProps>({
 })
 
 type SidebarItemProps = {
-  href: string
+  href: StaticAppRoutePath
   icon: typeof icons.home
   label: string
   currentUrl: string
@@ -120,7 +125,7 @@ const SidebarItem = Shade<SidebarItemProps>({
     }
 
     return (
-      <StackCraftNestedRouteLink href={props.href as '/'}>
+      <StackCraftNestedRouteLink path={props.href}>
         <Icon icon={props.icon} size="small" />
         {props.label}
       </StackCraftNestedRouteLink>
@@ -176,7 +181,8 @@ export const Sidebar = Shade<{ injector?: Injector }>({
     const stackIds = stacks.map((s) => s.name).join('\0')
 
     const [remountPhaseByStack, setRemountPhaseByStack] = useState<Record<string, 0 | 1>>('remountPhaseByStack', {})
-    sidebarStackRemountScratch.map = remountPhaseByStack
+    const [remountScratch] = useState<RemountScratch>('remountScratch', { map: {} })
+    remountScratch.map = remountPhaseByStack
 
     useDisposable(
       'sidebar-stack-accordion-sync',
@@ -195,7 +201,7 @@ export const Sidebar = Shade<{ injector?: Injector }>({
           }
           lastUrl = url
           if (Object.keys(nextPhase).length > 0) {
-            const merged = { ...sidebarStackRemountScratch.map, ...nextPhase }
+            const merged = { ...remountScratch.map, ...nextPhase }
             setRemountPhaseByStack(merged)
             queueMicrotask(() => {
               const cleared = { ...merged }

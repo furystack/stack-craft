@@ -29,7 +29,10 @@ export const CreateStack = Shade({
           type: 'success',
         })
 
-        stackCraftNavigate(injector, '/stacks/:stackName', { stackName: createdStack.result.name })
+        stackCraftNavigate(injector, {
+          path: '/stacks/:stackName',
+          params: { stackName: createdStack.result.name },
+        })
       } catch (error) {
         injector.getInstance(NotyService).emit('onNotyAdded', {
           title: 'Error',

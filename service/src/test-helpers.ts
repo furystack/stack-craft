@@ -52,7 +52,10 @@ export const createTestInjector = () => {
   getRepository(injector).createDataSet(ServiceStatus, 'serviceId', {})
   getRepository(injector).createDataSet(ServiceGitStatus, 'serviceId', {})
   getRepository(injector).createDataSet(ServiceLogEntry, 'id', {})
-  getRepository(injector).createDataSet(ServiceStateHistory, 'id', {})
+  let historyIdCounter = 0
+  getRepository(injector).createDataSet(ServiceStateHistory, 'id', {
+    modifyOnAdd: async ({ entity }) => ({ ...entity, id: entity.id ?? ++historyIdCounter }),
+  })
   getRepository(injector).createDataSet(ServicePrerequisiteLink, 'id', {})
   getRepository(injector).createDataSet(ServiceDependencyLink, 'id', {})
   getRepository(injector).createDataSet(User, 'username', {})

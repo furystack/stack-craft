@@ -45,7 +45,7 @@ export const Offline = Shade({
           </li>
           <li>You have started the service :)</li>
         </ul>
-        <StackCraftNestedRouteLink href="/">Reload page</StackCraftNestedRouteLink>
+        <StackCraftNestedRouteLink path="/">Reload page</StackCraftNestedRouteLink>
       </div>
     )
   },

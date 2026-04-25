@@ -92,7 +92,13 @@ export interface StackCraftApi extends RestApi {
 Use FuryStack's built-in actions when possible:
 
 ```typescript
-import { GetCurrentUser, IsAuthenticated, LoginAction, LogoutAction } from '@furystack/rest-service'
+import {
+  createCookieLoginStrategy,
+  createPasswordLoginAction,
+  GetCurrentUser,
+  IsAuthenticated,
+  LogoutAction,
+} from '@furystack/rest-service'
 
 useRestService<StackCraftApi>({
   injector,
@@ -102,7 +108,7 @@ useRestService<StackCraftApi>({
       '/isAuthenticated': IsAuthenticated,
     },
     POST: {
-      '/login': LoginAction,
+      '/login': createPasswordLoginAction(createCookieLoginStrategy(injector)),
       '/logout': LogoutAction,
     },
   },
@@ -434,7 +440,7 @@ useRestService<StackCraftApi>({
 **Key Principles:**
 
 1. **Type the API** - Define API in `common` package with `RestApi` interface
-2. **Use built-in actions** - `LoginAction`, `LogoutAction`, `GetCurrentUser`, etc.
+2. **Use built-in actions** - `createPasswordLoginAction`, `LogoutAction`, `GetCurrentUser`, etc.
 3. **Validate requests** - Use `Validate` wrapper with JSON schemas
 4. **Configure stores** - `FileSystemStore` for persistence, `InMemoryStore` for sessions
 5. **Handle authorization** - Define authorization functions for data sets

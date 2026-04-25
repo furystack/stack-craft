@@ -34,7 +34,7 @@ export const Header = Shade<HeaderProps>({
       <AppBar id="header">
         <DrawerToggleButton position="left" ariaLabel="Toggle navigation" />
         <h3>
-          <AppBarLink href="/" title={props.title}>
+          <AppBarLink path="/" title={props.title}>
             {props.title}
           </AppBarLink>
         </h3>

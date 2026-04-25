@@ -2,6 +2,7 @@ import { createComponent, Shade } from '@furystack/shades'
 import { Button, Form, Icon, icons, Input, MarkdownEditor } from '@furystack/shades-common-components'
 import type { GitHubRepository } from 'common'
 
+import type { StaticAppRoutePath } from '../app-routes.js'
 import { StackCraftNestedRouteLink } from '../app-routes.js'
 
 type GitHubRepoFormPayload = {
@@ -20,7 +21,7 @@ type GitHubRepoFormProps = {
   stackName: string
   onSubmit: (data: Partial<GitHubRepository>) => void | Promise<void>
   onCancel?: () => void
-  cancelHref?: string
+  cancelHref?: StaticAppRoutePath
   mode: 'create' | 'edit'
 }
 
@@ -60,7 +61,7 @@ export const GitHubRepoForm = Shade<GitHubRepoFormProps>({
         <MarkdownEditor name="description" labelTitle="Description" value={props.initial?.description ?? ''} rows={4} />
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           {props.cancelHref ? (
-            <StackCraftNestedRouteLink href={props.cancelHref as '/'}>
+            <StackCraftNestedRouteLink path={props.cancelHref}>
               <Button variant="outlined" startIcon={<Icon icon={icons.close} size="small" />}>
                 Cancel
               </Button>

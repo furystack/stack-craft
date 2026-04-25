@@ -71,7 +71,7 @@ export const ServiceRow = Shade<ServiceRowProps>({
             title={svc.runStatus}
           />
           <StackCraftNestedRouteLink
-            href="/stacks/:stackName/services/:serviceId"
+            path="/stacks/:stackName/services/:serviceId"
             params={{ stackName, serviceId: svc.id }}
             style={{
               textDecoration: 'none',
@@ -90,7 +90,9 @@ export const ServiceRow = Shade<ServiceRowProps>({
           <BranchSelector
             serviceId={svc.id}
             currentBranch={svc.currentBranch}
-            isCloned={svc.cloneStatus === 'cloned'}
+            cloneStatus={svc.cloneStatus}
+            upstreamStatus={svc.upstreamStatus}
+            lastPullError={svc.lastPullError}
           />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: '0' }}>

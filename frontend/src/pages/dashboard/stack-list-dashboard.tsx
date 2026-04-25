@@ -214,12 +214,12 @@ export const StackListDashboard = Shade<StackListDashboardProps>({
                   </Button>
                 </div>
               ) : null}
-              <StackCraftNestedRouteLink href="/stacks/create">
+              <StackCraftNestedRouteLink path="/stacks/create">
                 <Button variant="contained" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
                   Create Stack
                 </Button>
               </StackCraftNestedRouteLink>
-              <StackCraftNestedRouteLink href="/stacks/import">
+              <StackCraftNestedRouteLink path="/stacks/import">
                 <Button variant="outlined" size="small" startIcon={<Icon icon={icons.upload} size="small" />}>
                   Import Stack
                 </Button>
@@ -250,7 +250,7 @@ export const StackListDashboard = Shade<StackListDashboardProps>({
 
             return (
               <StackCraftNestedRouteLink
-                href="/stacks/:stackName"
+                path="/stacks/:stackName"
                 params={{ stackName: stack.name }}
                 style={{ textDecoration: 'none', color: 'inherit' }}
               >

@@ -17,6 +17,7 @@ const installStatusMap: StatusMapping<InstallStatus> = {
   installing: { label: 'Installing', color: 'warning', icon: '⏳' },
   installed: { label: 'Installed', color: 'success', icon: '✓' },
   failed: { label: 'Failed', color: 'error', icon: '✗' },
+  stale: { label: 'Stale', color: 'warning', icon: '!' },
 }
 
 const buildStatusMap: StatusMapping<BuildStatus> = {
@@ -24,6 +25,7 @@ const buildStatusMap: StatusMapping<BuildStatus> = {
   building: { label: 'Building', color: 'warning', icon: '⏳' },
   built: { label: 'Built', color: 'success', icon: '✓' },
   failed: { label: 'Failed', color: 'error', icon: '✗' },
+  stale: { label: 'Stale', color: 'warning', icon: '!' },
 }
 
 const runStatusMap: StatusMapping<RunStatus> = {

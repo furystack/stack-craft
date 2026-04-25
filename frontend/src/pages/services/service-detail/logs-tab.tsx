@@ -1,7 +1,6 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { Button, Icon, icons, NotyService, Paper } from '@furystack/shades-common-components'
 
-import { StackCraftNestedRouteLink } from '../../../components/app-routes.js'
 import { LogViewer } from '../../../components/shared/log-viewer.js'
 import { ServicesApiClient } from '../../../services/api-clients/services-api-client.js'
 
@@ -12,6 +11,7 @@ import { ServicesApiClient } from '../../../services/api-clients/services-api-cl
 type LogsTabProps = {
   serviceId: string
   stackName: string
+  processUid?: string
 }
 
 export const LogsTab = Shade<LogsTabProps>({
@@ -42,31 +42,25 @@ export const LogsTab = Shade<LogsTabProps>({
     }
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: '1', minHeight: '0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: '0' }}>Service Logs</h3>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <Button
-              variant="outlined"
-              size="small"
-              color="error"
-              onclick={() => void handleClearLogs()}
-              startIcon={<Icon icon={icons.trash} size="small" />}
-            >
-              Clear Logs
-            </Button>
-            <StackCraftNestedRouteLink
-              href="/stacks/:stackName/services/:serviceId/logs"
-              params={{ stackName: props.stackName, serviceId: props.serviceId }}
-            >
-              <Button variant="outlined" size="small" startIcon={<Icon icon={icons.externalLink} size="small" />}>
-                Full View
+          <h3 style={{ margin: '0' }}>{props.processUid ? 'Process Logs' : 'Service Logs'}</h3>
+          {!props.processUid ? (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button
+                variant="outlined"
+                size="small"
+                color="error"
+                onclick={() => void handleClearLogs()}
+                startIcon={<Icon icon={icons.trash} size="small" />}
+              >
+                Clear Logs
               </Button>
-            </StackCraftNestedRouteLink>
-          </div>
+            </div>
+          ) : null}
         </div>
-        <Paper style={{ height: 'clamp(300px, 50vh, 600px)', overflow: 'hidden' }}>
-          <LogViewer serviceId={props.serviceId} />
+        <Paper style={{ flex: '1', minHeight: '0', overflow: 'hidden' }}>
+          <LogViewer serviceId={props.serviceId} processUid={props.processUid} />
         </Paper>
       </div>
     )

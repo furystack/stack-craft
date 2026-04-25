@@ -66,7 +66,7 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
           No repositories defined for this stack.
           <div style={{ marginTop: '12px' }}>
             <StackCraftNestedRouteLink
-              href="/stacks/:stackName/repositories/create"
+              path="/stacks/:stackName/repositories/create"
               params={{ stackName: props.stackName }}
             >
               <Button variant="outlined" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
@@ -101,7 +101,7 @@ export const RepositoryTable = Shade<RepositoryTableProps>({
           url: (entry) => <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>{entry.url}</span>,
           actions: (entry) => (
             <StackCraftNestedRouteLink
-              href="/stacks/:stackName/repositories/:repositoryId"
+              path="/stacks/:stackName/repositories/:repositoryId"
               params={{ stackName: props.stackName, repositoryId: entry.id }}
             >
               <Button variant="outlined" size="small" startIcon={<Icon icon={icons.edit} size="small" />}>

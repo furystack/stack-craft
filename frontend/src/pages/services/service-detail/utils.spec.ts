@@ -156,7 +156,10 @@ describe('service-detail utils', () => {
         'onNotyAdded',
         expect.objectContaining({ type: 'success', body: '"My Service" was deleted.' }),
       )
-      expect(navigateMock).toHaveBeenCalledWith(injector, '/stacks/:stackName/services', { stackName: 'my-stack' })
+      expect(navigateMock).toHaveBeenCalledWith(injector, {
+        path: '/stacks/:stackName/services',
+        params: { stackName: 'my-stack' },
+      })
     })
 
     it('should show error notification on failure without navigating', async () => {

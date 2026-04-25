@@ -27,10 +27,10 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "ts-json-schema-generator": "^2.9.0",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.5"
   },
   "dependencies": {
     "@furystack/core": "^16.0.4",
-    "@furystack/rest": "^8.1.5"
+    "@furystack/rest": "^9.0.0"
   }
 }

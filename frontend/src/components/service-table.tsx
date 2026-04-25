@@ -20,6 +20,7 @@ import { StackCraftNestedRouteLink } from './app-routes.js'
 import { BranchSelector } from './branch-selector.js'
 import { MiniPipelineDots } from './mini-pipeline-dots.js'
 import { PrerequisiteSummaryChip } from './prerequisite-summary-chip.js'
+import { ServiceWarnings } from './service-warnings.js'
 
 type ServiceTableProps = {
   services: ServiceView[]
@@ -123,6 +124,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                   <PrerequisiteSummaryChip prerequisiteIds={entry.prerequisiteIds} />
                 </div>
               ) : null}
+              <ServiceWarnings service={entry} />
             </span>
           ),
           pipeline: (entry) => <MiniPipelineDots service={entry} />,
@@ -131,7 +133,9 @@ export const ServiceTable = Shade<ServiceTableProps>({
               <BranchSelector
                 serviceId={entry.id}
                 currentBranch={entry.currentBranch}
-                isCloned={entry.cloneStatus === 'cloned'}
+                cloneStatus={entry.cloneStatus}
+                upstreamStatus={entry.upstreamStatus}
+                lastPullError={entry.lastPullError}
               />
             </div>
           ),
@@ -206,8 +210,9 @@ export const ServiceTable = Shade<ServiceTableProps>({
                 ) : null}
                 {/* Logs */}
                 <StackCraftNestedRouteLink
-                  href="/stacks/:stackName/services/:serviceId/logs"
+                  path="/stacks/:stackName/services/:serviceId"
                   params={{ stackName: entry.stackName, serviceId: entry.id }}
+                  hash="logs"
                 >
                   <Button
                     variant="text"
@@ -219,7 +224,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                 </StackCraftNestedRouteLink>
                 {/* Details */}
                 <StackCraftNestedRouteLink
-                  href="/stacks/:stackName/services/:serviceId"
+                  path="/stacks/:stackName/services/:serviceId"
                   params={{ stackName: entry.stackName, serviceId: entry.id }}
                 >
                   <Button

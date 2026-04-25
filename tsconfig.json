@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     /* Basic Options */
-    "incremental": true /* Enable incremental compilation */,
     "target": "ESNext",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
@@ -16,7 +15,6 @@
     // "outFile": "./",                       /* Concatenate and emit output to single file. */
     // "outDir": "./",                        /* Redirect output structure to the directory. */
     // "rootDir": "./",                       /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */
-    "composite": true /* Enable project compilation */,
     // "tsBuildInfoFile": "./",               /* Specify file to store incremental compilation information */
     // "removeComments": true,                /* Do not emit comments to output. */
     // "noEmit": true,                        /* Do not emit outputs. */
@@ -60,5 +58,7 @@
     "experimentalDecorators": true /* Enables experimental support for ES7 decorators. */,
     "emitDecoratorMetadata": true /* Enables experimental support for emitting type metadata for decorators. */,
     "skipLibCheck": true
-  }
+  },
+  "files": [],
+  "references": [{ "path": "./common" }, { "path": "./service" }, { "path": "./frontend" }]
 }

@@ -59,6 +59,7 @@ export class GitWatcher {
     await this.logger.information({
       message: `Started watching service ${svc.displayName} (every ${FETCH_CHECK_INTERVAL_MS / 60000}min)`,
     })
+    void this.fetchAndCheck(serviceId)
   }
 
   public stopWatching(serviceId: string): void {
@@ -82,7 +83,18 @@ export class GitWatcher {
 
     const defs = await svcDefDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = defs[0]
-    if (!svc?.repositoryId) return
+    if (!svc?.repositoryId) {
+      entry.isFetching = false
+      return
+    }
+
+    // Bail out if the watcher was stopped while we were awaiting above.
+    // Without this guard the rest of the method may dereference `@Injected` getters
+    // on an already-disposed injector and produce an unhandled rejection.
+    if (!this.watchers.has(serviceId)) {
+      entry.isFetching = false
+      return
+    }
 
     const configs = await svcConfigDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
     const config = configs[0]
@@ -94,13 +106,26 @@ export class GitWatcher {
       await statusDs.update(elevated, serviceId, { lastFetchedAt: new Date().toISOString() })
 
       const currentBranch = await this.git.getCurrentBranch(cwd).catch(() => undefined)
+      const worktreeStatus = await this.git.getWorktreeStatus(cwd).catch(() => 'unknown' as const)
       if (currentBranch) {
-        const commitsBehind = await this.git.getCommitsBehind(cwd, currentBranch)
+        const upstreamPresent = await this.git.hasRemoteBranch(cwd, currentBranch)
+        const commitsBehind = upstreamPresent ? await this.git.getCommitsBehind(cwd, currentBranch) : 0
+        const patch = {
+          currentBranch,
+          commitsBehind,
+          upstreamStatus: upstreamPresent ? ('present' as const) : ('gone' as const),
+          worktreeStatus,
+        }
         const existing = await gitStatusDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
         if (existing.length > 0) {
-          await gitStatusDs.update(elevated, serviceId, { commitsBehind })
+          await gitStatusDs.update(elevated, serviceId, patch)
         } else {
-          await gitStatusDs.add(elevated, { serviceId, currentBranch, commitsBehind })
+          await gitStatusDs.add(elevated, { serviceId, ...patch })
+        }
+      } else {
+        const existing = await gitStatusDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+        if (existing.length > 0) {
+          await gitStatusDs.update(elevated, serviceId, { worktreeStatus })
         }
       }
 
@@ -114,7 +139,8 @@ export class GitWatcher {
         entry.lastBranches = new Set(remote)
       }
 
-      if (config?.autoRestartOnFetch) {
+      const upstreamForAutoPull = currentBranch ? await this.git.hasRemoteBranch(cwd, currentBranch) : false
+      if (config?.autoRestartOnFetch && upstreamForAutoPull) {
         const autoRestartTrigger = { triggeredBy: 'system', triggerSource: 'auto-restart' as const }
         const { updated } = await this.git.pull(cwd)
         if (updated) {
@@ -127,10 +153,19 @@ export class GitWatcher {
         }
       }
     } catch (error) {
-      await this.logger.warning({
-        message: `Git fetch failed for ${svc.displayName}`,
-        data: { error },
-      })
+      // Guard against the injector being disposed mid-flight (common in tests
+      // where the watcher is stopped right after start). Touching `this.logger`
+      // re-resolves it via DI; on a disposed injector that throws.
+      if (this.watchers.has(serviceId)) {
+        try {
+          await this.logger.warning({
+            message: `Git fetch failed for ${svc.displayName}`,
+            data: { error },
+          })
+        } catch {
+          // Injector torn down between watcher entry check and logger access; nothing to log to.
+        }
+      }
     } finally {
       entry.isFetching = false
     }

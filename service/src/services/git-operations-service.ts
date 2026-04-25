@@ -2,7 +2,14 @@ import { useSystemIdentityContext } from '@furystack/core'
 import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { getRepository } from '@furystack/repository'
-import { GitHubRepository, ServiceConfig, ServiceDefinition, StackConfig, getServiceCwd } from 'common'
+import {
+  GitHubRepository,
+  ServiceConfig,
+  ServiceDefinition,
+  ServiceGitStatus,
+  StackConfig,
+  getServiceCwd,
+} from 'common'
 import { existsSync, mkdirSync, readdirSync, renameSync } from 'fs'
 import { dirname, join, resolve as resolvePosix, sep } from 'path'
 
@@ -48,7 +55,7 @@ export class GitOperationsService {
   public async cloneOrPullService(
     serviceId: string,
     trigger: TriggerContext,
-  ): Promise<{ cloned: boolean; pulled: boolean; updated: boolean }> {
+  ): Promise<{ cloned: boolean; pulled: boolean; updated: boolean; upstreamGone?: boolean }> {
     const elevated = this.getElevatedInjector()
     const repository = getRepository(elevated)
 
@@ -77,51 +84,117 @@ export class GitOperationsService {
       throw new ValidationError(`Resolved path "${cwd}" is outside the stack directory "${stackRoot}"`)
     }
 
+    const git = getInjectorReference(this).getInstance(GitService)
+    const isGitRepo = existsSync(cwd) && existsSync(join(cwd, '.git'))
+
     await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloning' }, 'clone-started', trigger)
 
     try {
-      const git = getInjectorReference(this).getInstance(GitService)
-      const isGitRepo = existsSync(cwd) && existsSync(join(cwd, '.git'))
-
       if (!existsSync(cwd)) {
         await this.logger.information({ message: `Cloning ${repo.url} into ${cwd}` })
         mkdirSync(dirname(cwd), { recursive: true })
         await git.clone(repo.url, cwd)
         await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        await this.upsertGitStatusPatch(serviceId, { lastPullError: undefined, upstreamStatus: 'present' })
         await this.gitHeadWatcher.watch(serviceId, cwd)
         void this.gitWatcher.startWatching(serviceId)
         await this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       } else if (isGitRepo) {
-        await this.logger.information({ message: `Pulling in ${cwd}` })
-        const { updated } = await git.pull(cwd)
-        await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
-        await this.gitHeadWatcher.watch(serviceId, cwd)
-        void this.gitWatcher.startWatching(serviceId)
-        await this.applySharedFiles(svc, cwd)
-        return { cloned: false, pulled: true, updated }
+        return await this.pullExistingRepo(serviceId, cwd, svc, trigger, git)
       } else {
         const dirContents = readdirSync(cwd)
         const backupPath = `${cwd}.backup-${Date.now()}`
         if (dirContents.length > 0) {
           await this.logger.warning({
-            message: `Directory "${cwd}" exists with ${dirContents.length} entries but is not a git repo. Moving to "${backupPath}" and re-cloning.`,
+            message: `Directory "${cwd}" exists with ${dirContents.length} entries but is not a git repo. Moving to "${backupPath}" and re-cloning. The backup directory is left in place and must be cleaned up manually.`,
+          })
+        } else {
+          await this.logger.warning({
+            message: `Empty directory "${cwd}" moved to "${backupPath}" before re-cloning. The backup directory is left in place and must be cleaned up manually.`,
           })
         }
         renameSync(cwd, backupPath)
         mkdirSync(dirname(cwd), { recursive: true })
         await git.clone(repo.url, cwd)
         await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+        await this.upsertGitStatusPatch(serviceId, { lastPullError: undefined, upstreamStatus: 'present' })
         await this.gitHeadWatcher.watch(serviceId, cwd)
         void this.gitWatcher.startWatching(serviceId)
         await this.applySharedFiles(svc, cwd)
         return { cloned: true, pulled: false, updated: true }
       }
     } catch (error) {
-      await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'failed' }, 'clone-failed', trigger, {
-        error: error instanceof Error ? error.message : 'Unknown clone/pull error',
-      })
+      const message = error instanceof Error ? error.message : 'Unknown clone/pull error'
+      // Only regress cloneStatus to 'failed' when there is no cloned repo on disk.
+      // For pull failures on an already-cloned repo, preserve 'cloned' and surface the error
+      // via ServiceGitStatus.lastPullError so the UI keeps the branch selector usable.
+      if (isGitRepo) {
+        await this.upsertGitStatusPatch(serviceId, { lastPullError: message })
+        await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-failed', trigger, {
+          error: message,
+        })
+      } else {
+        await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'failed' }, 'clone-failed', trigger, {
+          error: message,
+        })
+      }
       throw error
+    }
+  }
+
+  private async pullExistingRepo(
+    serviceId: string,
+    cwd: string,
+    svc: ServiceDefinition,
+    trigger: TriggerContext,
+    git: GitService,
+  ): Promise<{ cloned: false; pulled: boolean; updated: boolean; upstreamGone?: boolean }> {
+    // Fetch with prune first so deleted remote branches disappear from refs/remotes/origin.
+    await git.fetch(cwd)
+
+    const currentBranch = await git.getCurrentBranch(cwd).catch(() => undefined)
+    if (currentBranch) {
+      const upstreamPresent = await git.hasRemoteBranch(cwd, currentBranch)
+      if (!upstreamPresent) {
+        await this.upsertGitStatusPatch(serviceId, {
+          upstreamStatus: 'gone',
+          lastPullError: undefined,
+        })
+        await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'upstream-gone', trigger, {
+          branch: currentBranch,
+        })
+        await this.gitHeadWatcher.watch(serviceId, cwd)
+        void this.gitWatcher.startWatching(serviceId)
+        return { cloned: false, pulled: false, updated: false, upstreamGone: true }
+      }
+      await this.upsertGitStatusPatch(serviceId, { upstreamStatus: 'present' })
+    }
+
+    await this.logger.information({ message: `Pulling in ${cwd}` })
+    const { updated } = await git.pull(cwd)
+    await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
+    await this.upsertGitStatusPatch(serviceId, { lastPullError: undefined })
+    await this.gitHeadWatcher.watch(serviceId, cwd)
+    void this.gitWatcher.startWatching(serviceId)
+    await this.applySharedFiles(svc, cwd)
+    return { cloned: false, pulled: true, updated }
+  }
+
+  private async upsertGitStatusPatch(serviceId: string, patch: Partial<ServiceGitStatus>): Promise<void> {
+    try {
+      const elevated = this.getElevatedInjector()
+      const ds = getRepository(elevated).getDataSetFor(ServiceGitStatus, 'serviceId')
+      const existing = await ds.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+      if (existing.length > 0) {
+        await ds.update(elevated, serviceId, patch)
+      } else {
+        await ds.add(elevated, { serviceId, ...patch })
+      }
+    } catch (error) {
+      void this.logger.verbose({
+        message: `Failed to patch git status for ${serviceId}: ${(error as Error).message}`,
+      })
     }
   }
 
