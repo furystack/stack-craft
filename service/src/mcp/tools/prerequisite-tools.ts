@@ -1,11 +1,11 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Injector } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
 import { Prerequisite } from 'common'
 import { randomUUID } from 'crypto'
 import { z } from 'zod'
 
 import { errorResult, textResult } from './mcp-helpers.js'
+import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
 
 export const registerPrerequisiteTools = (mcp: McpServer, _injector: Injector, elevated: Injector) => {
   const repository = getRepository(elevated)

@@ -1,5 +1,6 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import type { LeveledLogEntry } from '@furystack/logging'
+import { createInjector } from '@furystack/inject'
+import type { LeveledLogEntry, Logger } from '@furystack/logging'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('FilteredConsoleLogger', () => {
   const originalEnv = process.env.LOG_LEVEL
@@ -24,9 +25,10 @@ describe('FilteredConsoleLogger', () => {
     level,
   })
 
-  const loadLogger = async () => {
+  const loadLogger = async (): Promise<Logger> => {
     const { FilteredConsoleLogger } = await import('./filtered-console-logger.js')
-    return new FilteredConsoleLogger()
+    const injector = createInjector()
+    return injector.get(FilteredConsoleLogger)
   }
 
   it('should default to verbose when LOG_LEVEL is not set', async () => {

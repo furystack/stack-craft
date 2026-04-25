@@ -1,12 +1,15 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { ApiTokenDataSet } from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import { InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { addStore } from '../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { ApiToken, User } from 'common'
 import { createHash } from 'crypto'
 import { describe, expect, it } from 'vitest'
 
 import { resolveTokenUser } from './bearer-token-auth.js'
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
 
 const setupInjector = () => {
   const injector = new Injector()
@@ -68,7 +71,7 @@ describe('resolveTokenUser', () => {
     const tokenHash = createHash('sha256').update(plainToken).digest('hex')
 
     const elevated = useSystemIdentityContext({ injector })
-    await getRepository(elevated).getDataSetFor(ApiToken, 'id').add(elevated, {
+    await getDataSetFor(elevated, ApiTokenDataSet).add(elevated, {
       id: 'token-2',
       username: 'deleted-user',
       name: 'orphan',

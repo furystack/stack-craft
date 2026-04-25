@@ -1,10 +1,9 @@
-import { getRepository } from '@furystack/repository'
-import { User } from 'common'
-import { describe, expect, it } from 'vitest'
+import { UserDataSet } from '../../data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 
+import { describe, expect, it } from 'vitest'
 import { createMockActionContext, withTestInjector } from '../../../test-helpers.js'
 import { PostInstallAction } from './post-install-action.js'
-
 describe('PostInstallAction', () => {
   it('should install the service and return success', async () => {
     await withTestInjector(async ({ injector, elevated }) => {
@@ -17,7 +16,7 @@ describe('PostInstallAction', () => {
 
       expect((result as { chunk: unknown }).chunk).toEqual({ success: true })
 
-      const users = await getRepository(elevated).getDataSetFor(User, 'username').find(elevated, {})
+      const users = await getDataSetFor(elevated, UserDataSet).find(elevated, {})
       expect(users).toHaveLength(1)
       expect(users[0].username).toBe('admin')
     })

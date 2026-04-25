@@ -1,5 +1,5 @@
 import type { FindOptions } from '@furystack/core'
-import { useCollectionSync } from '@furystack/entity-sync-client'
+import { useCollectionSync } from '../../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
 import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {
@@ -41,12 +41,12 @@ export const ApiTokensSection = Shade({
   render: (options) => {
     const { injector, useState, useObservable, useDisposable } = options
 
-    const sessionService = injector.getInstance(SessionService)
+    const sessionService = injector.get(SessionService)
     const [currentUser] = useObservable('currentUser', sessionService.currentUser)
     const [createdToken, setCreatedToken] = useState<string | null>('createdToken', null)
 
-    const tokensApi = injector.getInstance(TokensApiClient)
-    const notys = injector.getInstance(NotyService)
+    const tokensApi = injector.get(TokensApiClient)
+    const notys = injector.get(NotyService)
 
     const collectionService = useDisposable(
       'collectionService',

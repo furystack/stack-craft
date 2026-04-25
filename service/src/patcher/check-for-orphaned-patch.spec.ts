@@ -1,25 +1,25 @@
-import { addStore, InMemoryStore } from '@furystack/core'
-import { Injector } from '@furystack/inject'
+import { InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { createInjector, type Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
 import { PatchRun } from 'common'
 import { describe, expect, it } from 'vitest'
 
 import { checkForOrphanedPatch } from './check-for-orphaned-patch.js'
+import { PatchRunDataSet, PatchRunStoreToken } from './setup-patcher.js'
 
-const setupInjector = (injector: Injector) => {
-  useLogging(injector, VerboseConsoleLogger)
-  const store = new InMemoryStore({ model: PatchRun, primaryKey: 'id' })
-  addStore(injector, store)
-  getRepository(injector).createDataSet(PatchRun, 'id', {})
-  return { store, ds: getRepository(injector).getDataSetFor(PatchRun, 'id') }
+const setupInjector = (parent: Injector) => {
+  useLogging(parent, VerboseConsoleLogger)
+  const store = new InMemoryStore({ model: PatchRun, primaryKey: 'id' as const })
+  parent.bind(PatchRunStoreToken, () => store)
+  const elevated = useSystemIdentityContext({ injector: parent })
+  return { store, ds: elevated.get(PatchRunDataSet), elevated }
 }
 
 describe('checkForOrphanedPatch', () => {
   it('transitions running entries to orphaned', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { store, ds } = setupInjector(injector)
+    usingAsync(createInjector(), async (injector) => {
+      const { store, ds, elevated } = setupInjector(injector)
       const now = new Date()
       await store.add({
         id: 'p1',
@@ -32,7 +32,7 @@ describe('checkForOrphanedPatch', () => {
         updatedAt: now,
       })
 
-      await checkForOrphanedPatch(injector, ds)
+      await checkForOrphanedPatch(elevated, ds)
 
       const rows = await store.find({})
       expect(rows[0]?.status).toBe('orphaned')
@@ -40,8 +40,8 @@ describe('checkForOrphanedPatch', () => {
     }))
 
   it('does nothing when no running entries exist', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { store, ds } = setupInjector(injector)
+    usingAsync(createInjector(), async (injector) => {
+      const { store, ds, elevated } = setupInjector(injector)
       const now = new Date()
       await store.add({
         id: 'p1',
@@ -54,7 +54,7 @@ describe('checkForOrphanedPatch', () => {
         updatedAt: now,
       })
 
-      await checkForOrphanedPatch(injector, ds)
+      await checkForOrphanedPatch(elevated, ds)
 
       const rows = await store.find({})
       expect(rows[0]?.status).toBe('success')

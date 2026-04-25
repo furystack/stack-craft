@@ -1,4 +1,3 @@
-import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -7,6 +6,8 @@ import { GitHeadWatcher } from '../../../services/git-head-watcher.js'
 import { GitService } from '../../../services/git-service.js'
 import { createMockActionContext, withTestInjector } from '../../../test-helpers.js'
 import { ServiceCheckoutAction } from './service-checkout-action.js'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
+import '../../../test-shims.js'
 
 const seedClonedService = async (elevated: Injector) => {
   const repo = getRepository(elevated)

@@ -30,7 +30,7 @@ const withGitTestContext = async (
   try {
     await usingAsync(new Injector(), async (injector) => {
       useLogging(injector, VerboseConsoleLogger)
-      const git = injector.getInstance(GitService)
+      const git = injector.get(GitService)
 
       const bareDir = join(tempDir, 'bare.git')
       const workDir = join(tempDir, 'work')

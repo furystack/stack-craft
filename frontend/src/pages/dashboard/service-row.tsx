@@ -27,8 +27,8 @@ export const ServiceRow = Shade<ServiceRowProps>({
   customElementName: 'dashboard-service-row',
   render: ({ props, injector }) => {
     const { service: svc, stackName, showTopBorder } = props
-    const api = injector.getInstance(ServicesApiClient)
-    const noty = injector.getInstance(NotyService)
+    const api = injector.get(ServicesApiClient)
+    const noty = injector.get(NotyService)
 
     const callServiceAction = (serviceId: string, action: string, actionLabel: string) => {
       void api

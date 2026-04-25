@@ -1,13 +1,16 @@
-import { addStore, getCurrentUser, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { ApiTokenDataSet, PublicApiTokenDataSet } from '../data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import { getCurrentUser, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { addStore } from '../../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
 import { ApiToken, PublicApiToken, type User } from 'common'
 import { createHash } from 'crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { CreateTokenAction, DeleteTokenAction, GetTokensAction } from './setup-tokens-rest-api.js'
+import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
 
 vi.mock('@furystack/core', async (importOriginal) => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -63,7 +66,7 @@ describe('Token CRUD operations', () => {
         expect(result.token).not.toHaveProperty('tokenHash')
 
         const elevated = useSystemIdentityContext({ injector })
-        const stored = await getRepository(elevated).getDataSetFor(ApiToken, 'id').find(elevated, {})
+        const stored = await getDataSetFor(elevated, ApiTokenDataSet).find(elevated, {})
         await elevated[Symbol.asyncDispose]()
 
         expect(stored).toHaveLength(1)
@@ -87,7 +90,7 @@ describe('Token CRUD operations', () => {
         mockedGetCurrentUser.mockResolvedValue({ username: 'admin', roles: ['admin'] })
 
         const elevated = useSystemIdentityContext({ injector })
-        const tokenDs = getRepository(elevated).getDataSetFor(ApiToken, 'id')
+        const tokenDs = getDataSetFor(elevated, ApiTokenDataSet)
         await tokenDs.add(
           elevated,
           {
@@ -121,14 +124,14 @@ describe('Token CRUD operations', () => {
         mockedGetCurrentUser.mockResolvedValue({ username: 'admin', roles: ['admin'] })
 
         const elevated = useSystemIdentityContext({ injector })
-        await getRepository(elevated).getDataSetFor(ApiToken, 'id').add(elevated, {
+        await getDataSetFor(elevated, ApiTokenDataSet).add(elevated, {
           id: 'tok-del',
           username: 'admin',
           name: 'Delete Me',
           tokenHash: 'hash',
           createdAt: new Date().toISOString(),
         })
-        await getRepository(elevated).getDataSetFor(PublicApiToken, 'id').add(elevated, {
+        await getDataSetFor(elevated, PublicApiTokenDataSet).add(elevated, {
           id: 'tok-del',
           username: 'admin',
           name: 'Delete Me',
@@ -149,7 +152,7 @@ describe('Token CRUD operations', () => {
         mockedGetCurrentUser.mockResolvedValue({ username: 'admin', roles: ['admin'] })
 
         const elevated = useSystemIdentityContext({ injector })
-        await getRepository(elevated).getDataSetFor(ApiToken, 'id').add(elevated, {
+        await getDataSetFor(elevated, ApiTokenDataSet).add(elevated, {
           id: 'tok-other',
           username: 'other-user',
           name: 'Other Token',

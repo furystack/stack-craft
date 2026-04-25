@@ -1,17 +1,20 @@
-import { getRepository } from '@furystack/repository'
-import { ServiceDefinition, ServiceStateHistory, ServiceStatus } from 'common'
+import {
+  ServiceDefinitionDataSet,
+  ServiceStateHistoryDataSet,
+  ServiceStatusDataSet,
+} from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import type { ServiceStatus } from 'common'
 import { describe, expect, it, vi } from 'vitest'
-
 import { withTestInjector } from '../test-helpers.js'
 import { ExternalGitChangeListener } from './external-git-change-listener.js'
 import { GitHeadWatcher, type GitHeadChangeEvent } from './git-head-watcher.js'
-
 const seed = async (
   elevated: Parameters<Parameters<typeof withTestInjector>[0]>[0]['elevated'],
   status: Partial<ServiceStatus> = {},
 ) => {
   const ts = new Date().toISOString()
-  await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').add(elevated, {
+  await getDataSetFor(elevated, ServiceDefinitionDataSet).add(elevated, {
     id: 'svc-1',
     stackName: 'stack',
     displayName: 'Test',
@@ -21,25 +24,23 @@ const seed = async (
     createdAt: ts,
     updatedAt: ts,
   })
-  await getRepository(elevated)
-    .getDataSetFor(ServiceStatus, 'serviceId')
-    .add(elevated, {
-      serviceId: 'svc-1',
-      cloneStatus: 'cloned',
-      installStatus: 'installed',
-      buildStatus: 'built',
-      runStatus: 'stopped',
-      updatedAt: ts,
-      ...status,
-    })
+  await getDataSetFor(elevated, ServiceStatusDataSet).add(elevated, {
+    serviceId: 'svc-1',
+    cloneStatus: 'cloned',
+    installStatus: 'installed',
+    buildStatus: 'built',
+    runStatus: 'stopped',
+    updatedAt: ts,
+    ...status,
+  })
 }
 
 describe('ExternalGitChangeListener', () => {
   it('records a history entry and marks install/build stale on branch-switched', () =>
     withTestInjector(async ({ injector, elevated }) => {
       await seed(elevated)
-      const watcher = injector.getInstance(GitHeadWatcher)
-      const listener = injector.getInstance(ExternalGitChangeListener)
+      const watcher = injector.get(GitHeadWatcher)
+      const listener = injector.get(ExternalGitChangeListener)
       listener.start()
 
       const event: GitHeadChangeEvent = {
@@ -52,13 +53,14 @@ describe('ExternalGitChangeListener', () => {
 
       await vi.waitFor(
         async () => {
-          const statuses = await getRepository(elevated)
-            .getDataSetFor(ServiceStatus, 'serviceId')
-            .find(elevated, { filter: { serviceId: { $eq: 'svc-1' } }, top: 1 })
+          const statuses = await getDataSetFor(elevated, ServiceStatusDataSet).find(elevated, {
+            filter: { serviceId: { $eq: 'svc-1' } },
+            top: 1,
+          })
           expect(statuses[0]?.installStatus).toBe('stale')
           expect(statuses[0]?.buildStatus).toBe('stale')
 
-          const history = await getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id').find(elevated, {})
+          const history = await getDataSetFor(elevated, ServiceStateHistoryDataSet).find(elevated, {})
           expect(history.map((h) => h.event)).toContain('external-branch-changed')
           expect(history.map((h) => h.event)).toContain('marked-stale')
         },
@@ -69,8 +71,8 @@ describe('ExternalGitChangeListener', () => {
   it('uses external-pull-detected event when the ref SHA changes', () =>
     withTestInjector(async ({ injector, elevated }) => {
       await seed(elevated)
-      const watcher = injector.getInstance(GitHeadWatcher)
-      const listener = injector.getInstance(ExternalGitChangeListener)
+      const watcher = injector.get(GitHeadWatcher)
+      const listener = injector.get(ExternalGitChangeListener)
       listener.start()
 
       watcher.emit('externalChange', {
@@ -81,7 +83,7 @@ describe('ExternalGitChangeListener', () => {
 
       await vi.waitFor(
         async () => {
-          const history = await getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id').find(elevated, {})
+          const history = await getDataSetFor(elevated, ServiceStateHistoryDataSet).find(elevated, {})
           expect(history.map((h) => h.event)).toContain('external-pull-detected')
         },
         { timeout: 1000 },
@@ -91,8 +93,8 @@ describe('ExternalGitChangeListener', () => {
   it('does not mark stale when install/build are not already in the final state', () =>
     withTestInjector(async ({ injector, elevated }) => {
       await seed(elevated, { installStatus: 'not-installed', buildStatus: 'not-built' })
-      const watcher = injector.getInstance(GitHeadWatcher)
-      const listener = injector.getInstance(ExternalGitChangeListener)
+      const watcher = injector.get(GitHeadWatcher)
+      const listener = injector.get(ExternalGitChangeListener)
       listener.start()
 
       watcher.emit('externalChange', {
@@ -104,15 +106,16 @@ describe('ExternalGitChangeListener', () => {
 
       await vi.waitFor(
         async () => {
-          const history = await getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id').find(elevated, {})
+          const history = await getDataSetFor(elevated, ServiceStateHistoryDataSet).find(elevated, {})
           expect(history.map((h) => h.event)).toContain('external-branch-changed')
         },
         { timeout: 1000 },
       )
 
-      const statuses = await getRepository(elevated)
-        .getDataSetFor(ServiceStatus, 'serviceId')
-        .find(elevated, { filter: { serviceId: { $eq: 'svc-1' } }, top: 1 })
+      const statuses = await getDataSetFor(elevated, ServiceStatusDataSet).find(elevated, {
+        filter: { serviceId: { $eq: 'svc-1' } },
+        top: 1,
+      })
       expect(statuses[0]?.installStatus).toBe('not-installed')
       expect(statuses[0]?.buildStatus).toBe('not-built')
     }))

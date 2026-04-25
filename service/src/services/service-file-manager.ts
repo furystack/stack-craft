@@ -1,5 +1,4 @@
-import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
+import { type Injector, defineService, type Token } from '@furystack/inject'
 import { ServiceConfig } from 'common'
 
 import { useSystemIdentityContext } from '@furystack/core'
@@ -10,21 +9,23 @@ import { decryptLocalFiles } from '../utils/env-encryption-helpers.js'
 import { getServiceOrThrow } from '../utils/get-service-or-throw.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { ServiceEnvResolver } from './service-env-resolver.js'
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
 
 /** Applies shared and local service files to disk, merging and decrypting as needed */
-@Injectable({ lifetime: 'singleton' })
-export class ServiceFileManager {
+class ServiceFileManagerImpl {
+  constructor(
+    private readonly envResolver: ServiceEnvResolver,
+    public readonly injector: Injector,
+  ) {}
+
   private elevatedInjector?: Injector
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+      this.elevatedInjector = useSystemIdentityContext({ injector: this.injector })
     }
     return this.elevatedInjector
   }
-
-  @Injected(ServiceEnvResolver)
-  declare private envResolver: ServiceEnvResolver
 
   /**
    * Manually applies shared files for a service to disk.
@@ -33,7 +34,7 @@ export class ServiceFileManager {
    */
   public async applyFiles(serviceId: string, relativePath?: string): Promise<string[]> {
     const elevated = this.getElevatedInjector()
-    const crypto = elevated.getInstance(CryptoService)
+    const crypto = elevated.get(CryptoService)
     const repository = getRepository(elevated)
 
     const svc = await getServiceOrThrow(serviceId, elevated)
@@ -44,7 +45,7 @@ export class ServiceFileManager {
     const localFiles = decryptLocalFiles(crypto, svcConfigs[0]?.localFiles ?? [])
     const merged = mergeServiceFiles(svc.files ?? [], localFiles)
 
-    const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
+    const cwd = await resolveServiceCwd(this.injector, svc, elevated)
 
     if (relativePath) {
       const file = merged.find((f) => f.relativePath === relativePath)
@@ -63,3 +64,11 @@ export class ServiceFileManager {
     }
   }
 }
+
+export type ServiceFileManager = ServiceFileManagerImpl
+
+export const ServiceFileManager: Token<ServiceFileManager, 'singleton'> = defineService({
+  name: 'app/ServiceFileManager',
+  lifetime: 'singleton',
+  factory: ({ inject, injector }) => new ServiceFileManagerImpl(inject(ServiceEnvResolver), injector),
+})

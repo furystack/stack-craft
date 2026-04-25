@@ -13,7 +13,7 @@ export const ServiceLifecycleAction =
   async ({ injector, getUrlParams }) => {
     const logger = getLogger(injector).withScope('ServiceLifecycle')
     const { id: serviceId } = getUrlParams()
-    const pm = injector.getInstance(ProcessManager)
+    const pm = injector.get(ProcessManager)
     let username = 'unknown'
     try {
       const { username: resolvedUsername } = (await getCurrentUser(injector)) ?? {}

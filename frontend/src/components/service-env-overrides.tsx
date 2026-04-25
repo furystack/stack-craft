@@ -65,7 +65,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
     if (envPrereqs.length > 0 && !hasChecked) {
       const varNames = [...prereqVarNames]
       void injector
-        .getInstance(EnvironmentVariableService)
+        .get(EnvironmentVariableService)
         .checkAvailability(varNames)
         .then((result) => {
           setEnvAvailability(result)
@@ -77,20 +77,20 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
     const handleSave = async () => {
       setIsSaving(true)
       try {
-        const toSave = injector.getInstance(EnvironmentVariableService).buildSavePayload(editState, touchedSensitive)
-        await injector.getInstance(ServicesApiClient).call({
+        const toSave = injector.get(EnvironmentVariableService).buildSavePayload(editState, touchedSensitive)
+        await injector.get(ServicesApiClient).call({
           method: 'PATCH',
           action: '/services/:id',
           url: { id: service.id },
           body: { environmentVariableOverrides: toSave },
         })
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Overrides saved',
           body: 'Service environment variable overrides were updated.',
           type: 'success',
         })
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Error',
           body: error instanceof Error ? error.message : 'Failed to save overrides',
           type: 'error',
@@ -108,7 +108,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
       try {
         if (mode === 'requirement') {
           const newId = crypto.randomUUID()
-          await injector.getInstance(PrerequisitesApiClient).call({
+          await injector.get(PrerequisitesApiClient).call({
             method: 'POST',
             action: '/prerequisites',
             body: {
@@ -120,13 +120,13 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
               installationHelp: '',
             },
           })
-          await injector.getInstance(ServicesApiClient).call({
+          await injector.get(ServicesApiClient).call({
             method: 'PATCH',
             action: '/services/:id',
             url: { id: service.id },
             body: { prerequisiteIds: [...(service.prerequisiteIds ?? []), newId] },
           })
-          injector.getInstance(NotyService).emit('onNotyAdded', {
+          injector.get(NotyService).emit('onNotyAdded', {
             title: 'Prerequisite created',
             body: `Environment variable requirement "${variableName}" was added and linked to this service.`,
             type: 'success',
@@ -147,7 +147,7 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
         setAddFormState({ ...defaultAddFormState })
         setIsAddFormOpen(false)
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Error',
           body: error instanceof Error ? error.message : 'Failed to add environment variable',
           type: 'error',

@@ -1,7 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import {
   ServiceConfig,
   ServiceDefinition,
@@ -24,6 +23,7 @@ import {
   registerServiceAction,
   textResult,
 } from './mcp-helpers.js'
+import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
 
 export const registerServiceTools = (mcp: McpServer, injector: Injector, elevated: Injector) => {
   const repository = getRepository(elevated)
@@ -130,7 +130,7 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
       annotations: { readOnlyHint: true },
     },
     async ({ serviceId, lines }) => {
-      const entries = await injector.getInstance(LogStorageService).getEntries(serviceId, { limit: lines })
+      const entries = await injector.get(LogStorageService).getEntries(serviceId, { limit: lines })
       const logLines = entries.reverse().map((e) => e.line)
       return textResult(logLines.join('\n') || '(no logs)')
     },
@@ -146,7 +146,7 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
     },
     async ({ serviceId }) => {
       try {
-        const result = await injector.getInstance(ProcessManager).cloneOrPullService(serviceId, mcpTrigger)
+        const result = await injector.get(ProcessManager).cloneOrPullService(serviceId, mcpTrigger)
         if (result.cloned) return textResult('Repository cloned')
         return textResult(result.updated ? 'Changes pulled' : 'Already up to date')
       } catch (error) {
@@ -253,7 +253,7 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
           updatedAt: now,
         }
 
-        const crypto = elevated.getInstance(CryptoService)
+        const crypto = elevated.get(CryptoService)
         const config = {
           serviceId: id,
           autoFetchEnabled: autoFetchEnabled ?? false,
@@ -390,7 +390,7 @@ export const registerServiceTools = (mcp: McpServer, injector: Injector, elevate
         if (autoFetchIntervalMinutes !== undefined) configFields.autoFetchIntervalMinutes = autoFetchIntervalMinutes
         if (autoRestartOnFetch !== undefined) configFields.autoRestartOnFetch = autoRestartOnFetch
         if (environmentVariableOverrides !== undefined) {
-          const crypto = elevated.getInstance(CryptoService)
+          const crypto = elevated.get(CryptoService)
           const existing = (
             await repository
               .getDataSetFor(ServiceConfig, 'serviceId')

@@ -11,16 +11,10 @@ const mockLogger = vi.hoisted(() => ({
   }),
 }))
 
-const mockServerManager = vi.hoisted(() => ({}))
-
 vi.mock('@furystack/logging', () => ({
   getLogger: () => ({
     withScope: () => mockLogger,
   }),
-}))
-
-vi.mock('@furystack/rest-service', () => ({
-  ServerManager: mockServerManager,
 }))
 
 describe('attachShutdownHandler', () => {
@@ -47,13 +41,13 @@ describe('attachShutdownHandler', () => {
     await vi.waitFor(() => expect(processExitSpy).toHaveBeenCalled())
   }
 
+  const buildMockInjector = (overrides?: { dispose?: () => Promise<void> }) => ({
+    [Symbol.asyncDispose]: vi.fn().mockImplementation(overrides?.dispose ?? (() => Promise.resolve())),
+  })
+
   it('should register signal handlers for SIGINT, SIGTERM, uncaughtException, and unhandledRejection', async () => {
     const { attachShutdownHandler } = await import('./shutdown-handler.js')
-    const injector = {
-      cachedSingletons: new Map(),
-      getInstance: vi.fn(),
-      [Symbol.asyncDispose]: vi.fn().mockResolvedValue(undefined),
-    }
+    const injector = buildMockInjector()
 
     await attachShutdownHandler(injector as never)
 
@@ -65,73 +59,35 @@ describe('attachShutdownHandler', () => {
 
   it('should prevent double shutdown via the isShuttingDown guard', async () => {
     const { attachShutdownHandler } = await import('./shutdown-handler.js')
-    const injectorDispose = vi.fn().mockResolvedValue(undefined)
-    const injector = {
-      cachedSingletons: new Map(),
-      getInstance: vi.fn(),
-      [Symbol.asyncDispose]: injectorDispose,
-    }
+    const injector = buildMockInjector()
 
     await attachShutdownHandler(injector as never)
 
     const sigintHandler = registeredHandlers.get('SIGINT')!
     await triggerAndWaitForExit(sigintHandler)
-
-    injectorDispose.mockClear()
+    ;(injector[Symbol.asyncDispose] as ReturnType<typeof vi.fn>).mockClear()
     processExitSpy.mockClear()
 
     sigintHandler()
     await new Promise((resolve) => setTimeout(resolve, 50))
 
-    expect(injectorDispose).not.toHaveBeenCalled()
-  })
-
-  it('should dispose ServerManager when it exists in the injector', async () => {
-    const { attachShutdownHandler } = await import('./shutdown-handler.js')
-    const serverManagerDispose = vi.fn().mockResolvedValue(undefined)
-
-    const cachedSingletons = new Map()
-    cachedSingletons.set(mockServerManager, {})
-
-    const injector = {
-      cachedSingletons,
-      getInstance: vi.fn().mockReturnValue({
-        [Symbol.asyncDispose]: serverManagerDispose,
-      }),
-      [Symbol.asyncDispose]: vi.fn().mockResolvedValue(undefined),
-    }
-
-    await attachShutdownHandler(injector as never)
-
-    await triggerAndWaitForExit(registeredHandlers.get('SIGINT')!)
-
-    expect(injector.getInstance).toHaveBeenCalledWith(mockServerManager)
-    expect(serverManagerDispose).toHaveBeenCalled()
+    expect(injector[Symbol.asyncDispose]).not.toHaveBeenCalled()
   })
 
   it('should dispose the injector during shutdown', async () => {
     const { attachShutdownHandler } = await import('./shutdown-handler.js')
-    const injectorDispose = vi.fn().mockResolvedValue(undefined)
-    const injector = {
-      cachedSingletons: new Map(),
-      getInstance: vi.fn(),
-      [Symbol.asyncDispose]: injectorDispose,
-    }
+    const injector = buildMockInjector()
 
     await attachShutdownHandler(injector as never)
 
     await triggerAndWaitForExit(registeredHandlers.get('SIGINT')!)
 
-    expect(injectorDispose).toHaveBeenCalled()
+    expect(injector[Symbol.asyncDispose]).toHaveBeenCalled()
   })
 
   it('should log fatal on error during shutdown', async () => {
     const { attachShutdownHandler } = await import('./shutdown-handler.js')
-    const injector = {
-      cachedSingletons: new Map(),
-      getInstance: vi.fn(),
-      [Symbol.asyncDispose]: vi.fn().mockRejectedValue(new Error('dispose failed')),
-    }
+    const injector = buildMockInjector({ dispose: () => Promise.reject(new Error('dispose failed')) })
 
     await attachShutdownHandler(injector as never)
 

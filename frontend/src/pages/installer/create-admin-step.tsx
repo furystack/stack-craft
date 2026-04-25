@@ -17,7 +17,7 @@ export const CreateAdminStep = Shade<WizardStepProps>({
   customElementName: 'shade-create-admin-step',
   render: ({ props, injector }) => {
     const handleSubmit = async (data: AdminPayload) => {
-      await injector.getInstance(InstallApiClient).call({
+      await injector.get(InstallApiClient).call({
         method: 'POST',
         action: '/install',
         body: data,

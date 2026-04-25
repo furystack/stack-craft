@@ -1,10 +1,10 @@
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import type { EnvironmentVariableValue } from 'common'
 import { ServiceConfig, StackConfig } from 'common'
 
 import { CryptoService } from './crypto-service.js'
+import { legacyRepository as getRepository } from './legacy-repository.js'
 
 /**
  * One-time migration that encrypts any `customValue` entries marked as
@@ -13,7 +13,7 @@ import { CryptoService } from './crypto-service.js'
  */
 export const encryptExistingSecrets = async (injector: Injector): Promise<void> => {
   const logger = getLogger(injector).withScope('EncryptExistingSecrets')
-  const crypto = injector.getInstance(CryptoService)
+  const crypto = injector.get(CryptoService)
   const repository = getRepository(injector)
 
   const encryptRecord = (

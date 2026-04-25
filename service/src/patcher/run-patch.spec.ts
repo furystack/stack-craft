@@ -1,23 +1,23 @@
-import { addStore, InMemoryStore } from '@furystack/core'
-import { Injector } from '@furystack/inject'
+import { InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { createInjector, type Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
 import { PatchRun } from 'common'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { Patch } from './patch.js'
 import { runPatch } from './run-patch.js'
+import { PatchRunDataSet, PatchRunStoreToken } from './setup-patcher.js'
 
-const setupInjector = (injector: Injector) => {
-  useLogging(injector, VerboseConsoleLogger)
-  const store = new InMemoryStore({ model: PatchRun, primaryKey: 'id' })
-  addStore(injector, store)
+const setupInjector = (parent: Injector) => {
+  useLogging(parent, VerboseConsoleLogger)
   let idCounter = 0
-  getRepository(injector).createDataSet(PatchRun, 'id', {
-    modifyOnAdd: async ({ entity }) => ({ ...entity, id: entity.id ?? `patch-${++idCounter}` }),
-  })
-  return { store, ds: getRepository(injector).getDataSetFor(PatchRun, 'id') }
+  const store = new InMemoryStore<PatchRun, 'id'>({ model: PatchRun, primaryKey: 'id' })
+  const originalAdd = store.add.bind(store)
+  store.add = async (entry: PatchRun) => originalAdd({ ...entry, id: entry.id ?? `patch-${++idCounter}` })
+  parent.bind(PatchRunStoreToken, () => store)
+  const elevated = useSystemIdentityContext({ injector: parent })
+  return { store, ds: elevated.get(PatchRunDataSet), elevated }
 }
 
 describe('runPatch', () => {
@@ -31,10 +31,10 @@ describe('runPatch', () => {
   }
 
   it('runs the patch and marks it success', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { ds, store } = setupInjector(injector)
+    usingAsync(createInjector(), async (injector) => {
+      const { ds, store, elevated } = setupInjector(injector)
 
-      await runPatch(injector, basePatch, ds)
+      await runPatch(elevated, basePatch, ds)
 
       const rows = await store.find({})
       expect(rows).toHaveLength(1)
@@ -43,8 +43,8 @@ describe('runPatch', () => {
     }))
 
   it('skips when a previous run succeeded', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { ds, store } = setupInjector(injector)
+    usingAsync(createInjector(), async (injector) => {
+      const { ds, store, elevated } = setupInjector(injector)
       const now = new Date()
       await store.add({
         id: 'prev',
@@ -58,7 +58,7 @@ describe('runPatch', () => {
       })
 
       const spy = vi.fn()
-      await runPatch(injector, { ...basePatch, run: spy }, ds)
+      await runPatch(elevated, { ...basePatch, run: spy }, ds)
 
       expect(spy).not.toHaveBeenCalled()
       const rows = await store.find({})
@@ -66,11 +66,11 @@ describe('runPatch', () => {
     }))
 
   it('marks the run failed and rethrows when the patch throws', () =>
-    usingAsync(new Injector(), async (injector) => {
-      const { ds, store } = setupInjector(injector)
+    usingAsync(createInjector(), async (injector) => {
+      const { ds, store, elevated } = setupInjector(injector)
       const failing: Patch = { ...basePatch, run: async () => Promise.reject(new Error('boom')) }
 
-      await expect(runPatch(injector, failing, ds)).rejects.toThrow('boom')
+      await expect(runPatch(elevated, failing, ds)).rejects.toThrow('boom')
 
       const rows = await store.find({})
       expect(rows).toHaveLength(1)

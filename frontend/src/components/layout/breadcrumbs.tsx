@@ -1,4 +1,4 @@
-import { useEntitySync } from '@furystack/entity-sync-client'
+import { useEntitySync } from '../../services/entity-sync.js'
 import { createComponent, LocationService, Shade } from '@furystack/shades'
 import { cssVariableTheme } from '@furystack/shades-common-components'
 import { GitHubRepository as GitHubRepositoryModel, ServiceDefinition, StackDefinition } from 'common'
@@ -168,7 +168,7 @@ const EntityNameResolver = Shade<EntityNameResolverProps>({
 export const Breadcrumbs = Shade({
   customElementName: 'shade-breadcrumbs',
   render: ({ injector, useObservable }) => {
-    const [currentUrl] = useObservable('locationChange', injector.getInstance(LocationService).onLocationPathChanged)
+    const [currentUrl] = useObservable('locationChange', injector.get(LocationService).onLocationPathChanged)
 
     const { segments, stackName, serviceId, repositoryId } = parseBreadcrumbs(currentUrl)
 

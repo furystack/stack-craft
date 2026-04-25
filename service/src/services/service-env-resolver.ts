@@ -1,23 +1,24 @@
 import { useSystemIdentityContext } from '@furystack/core'
-import { Injectable, type Injector, getInjectorReference } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
+import { type Injector, defineService, type Token } from '@furystack/inject'
 import type { EnvironmentVariableValue } from 'common'
 import { Prerequisite, ServiceConfig, ServiceDefinition, ServicePrerequisiteLink, StackConfig } from 'common'
 
 import { CryptoService } from '../utils/crypto-service.js'
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
 
 /**
  * Resolves the effective environment variables for a service by looking up
  * its env-variable prerequisites and merging stack-level defaults with
  * optional service-level overrides.
  */
-@Injectable({ lifetime: 'singleton' })
-export class ServiceEnvResolver {
+class ServiceEnvResolverImpl {
+  constructor(public readonly injector: Injector) {}
+
   private elevatedInjector?: Injector
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+      this.elevatedInjector = useSystemIdentityContext({ injector: this.injector })
     }
     return this.elevatedInjector
   }
@@ -28,7 +29,7 @@ export class ServiceEnvResolver {
     resolved: Record<string, string>,
   ): void {
     if (config?.source === 'custom' && config.customValue !== undefined) {
-      const crypto = this.getElevatedInjector().getInstance(CryptoService)
+      const crypto = this.getElevatedInjector().get(CryptoService)
       resolved[varName] = crypto.isEncrypted(config.customValue)
         ? crypto.decrypt(config.customValue)
         : config.customValue
@@ -102,3 +103,11 @@ export class ServiceEnvResolver {
     }
   }
 }
+
+export type ServiceEnvResolver = ServiceEnvResolverImpl
+
+export const ServiceEnvResolver: Token<ServiceEnvResolver, 'singleton'> = defineService({
+  name: 'app/ServiceEnvResolver',
+  lifetime: 'singleton',
+  factory: ({ injector }) => new ServiceEnvResolverImpl(injector),
+})

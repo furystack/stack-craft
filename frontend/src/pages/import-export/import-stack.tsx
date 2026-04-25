@@ -70,7 +70,7 @@ export const ImportStack = Shade({
           setEnvLoading(true)
           try {
             const varNames = envPrereqs.map((p) => (p.config as { variableName: string }).variableName)
-            const { result } = await injector.getInstance(SystemApiClient).call({
+            const { result } = await injector.get(SystemApiClient).call({
               method: 'POST',
               action: '/system/check-env-availability',
               body: { variableNames: varNames },
@@ -120,7 +120,7 @@ export const ImportStack = Shade({
       }
 
       try {
-        await injector.getInstance(StacksApiClient).call({
+        await injector.get(StacksApiClient).call({
           method: 'POST',
           action: '/stacks/import',
           body: {
@@ -131,7 +131,7 @@ export const ImportStack = Shade({
             },
           },
         })
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Stack imported',
           body: `Stack "${parsed.stack.displayName}" was imported successfully.`,
           type: 'success',
@@ -146,7 +146,7 @@ export const ImportStack = Shade({
           stackCraftNavigate(injector, { path: '/stacks/:stackName', params: { stackName: parsed.stack.name } })
         }
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Import failed',
           body: error instanceof Error ? error.message : 'Import error',
           type: 'error',

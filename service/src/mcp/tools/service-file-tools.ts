@@ -1,6 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Injector } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
 import { ServiceConfig, ServiceDefinition } from 'common'
 import type { ServiceFile } from 'common'
 import { z } from 'zod'
@@ -9,10 +8,11 @@ import { ProcessManager } from '../../services/process-manager.js'
 import { CryptoService } from '../../utils/crypto-service.js'
 import { decryptLocalFiles, encryptLocalFiles } from '../../utils/env-encryption-helpers.js'
 import { errorResult, textResult } from './mcp-helpers.js'
+import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
 
 export const registerServiceFileTools = (mcp: McpServer, injector: Injector, elevated: Injector) => {
   const repository = getRepository(elevated)
-  const crypto = elevated.getInstance(CryptoService)
+  const crypto = elevated.get(CryptoService)
   const svcDs = () => repository.getDataSetFor(ServiceDefinition, 'id')
   const svcConfigDs = () => repository.getDataSetFor(ServiceConfig, 'serviceId')
 
@@ -152,7 +152,7 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
     },
     async ({ serviceId }) => {
       try {
-        const applied = await injector.getInstance(ProcessManager).applyFiles(serviceId)
+        const applied = await injector.get(ProcessManager).applyFiles(serviceId)
         if (applied.length === 0) return textResult('No shared files to apply')
         return textResult(`Applied ${applied.length} file(s): ${applied.join(', ')}`)
       } catch (error) {
@@ -173,7 +173,7 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
     },
     async ({ serviceId, relativePath }) => {
       try {
-        const applied = await injector.getInstance(ProcessManager).applyFiles(serviceId, relativePath)
+        const applied = await injector.get(ProcessManager).applyFiles(serviceId, relativePath)
         if (applied.length === 0) return errorResult(`File not found: ${relativePath}`)
         return textResult(`Applied: ${applied.join(', ')}`)
       } catch (error) {

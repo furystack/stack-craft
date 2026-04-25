@@ -4,7 +4,9 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { CryptoService, SENSITIVE_VALUE_MASK, UNCHANGED_SENTINEL } from './crypto-service.js'
+import { CryptoServiceImpl, SENSITIVE_VALUE_MASK, UNCHANGED_SENTINEL } from './crypto-service.js'
+
+type CryptoService = CryptoServiceImpl
 
 describe('CryptoService', () => {
   let originalEnv: string | undefined
@@ -29,7 +31,7 @@ describe('CryptoService', () => {
   const createServiceWithEnvKey = (): CryptoService => {
     const key = randomBytes(32)
     process.env.STACK_CRAFT_ENCRYPTION_KEY = key.toString('base64')
-    return new CryptoService()
+    return new CryptoServiceImpl()
   }
 
   describe('encrypt and decrypt', () => {
@@ -85,11 +87,11 @@ describe('CryptoService', () => {
       const key2 = randomBytes(32)
 
       process.env.STACK_CRAFT_ENCRYPTION_KEY = key1.toString('base64')
-      const service1 = new CryptoService()
+      const service1 = new CryptoServiceImpl()
       const encrypted = service1.encrypt('secret')
 
       process.env.STACK_CRAFT_ENCRYPTION_KEY = key2.toString('base64')
-      const service2 = new CryptoService()
+      const service2 = new CryptoServiceImpl()
       expect(() => service2.decrypt(encrypted)).toThrow()
     })
   })
@@ -109,7 +111,7 @@ describe('CryptoService', () => {
   describe('key sources', () => {
     it('should reject env key with wrong size', () => {
       process.env.STACK_CRAFT_ENCRYPTION_KEY = Buffer.from('too-short').toString('base64')
-      expect(() => new CryptoService()).toThrow('256-bit')
+      expect(() => new CryptoServiceImpl()).toThrow('256-bit')
     })
   })
 

@@ -1,4 +1,4 @@
-import { useCollectionSync } from '@furystack/entity-sync-client'
+import { useCollectionSync } from '../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
 import type { Palette } from '@furystack/shades-common-components'
 import { Chip, CircularProgress, cssVariableTheme, Icon, icons } from '@furystack/shades-common-components'
@@ -99,7 +99,7 @@ export const PrerequisiteSummaryChip = Shade<PrerequisiteSummaryChipProps>({
 
     const handleCheckAll = async () => {
       setIsChecking(true)
-      const api = injector.getInstance(PrerequisitesApiClient)
+      const api = injector.get(PrerequisitesApiClient)
       try {
         for (const id of props.prerequisiteIds) {
           await api.call({

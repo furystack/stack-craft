@@ -1,26 +1,30 @@
-import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
-import { LoggerCollection } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
-import { PasswordAuthenticator, PasswordCredential } from '@furystack/security'
-import type { InstallState } from 'common'
-import { User } from 'common'
-
 import { useSystemIdentityContext } from '@furystack/core'
+import { defineService, type Injector, type Token } from '@furystack/inject'
+import { type Logger, LoggerCollection } from '@furystack/logging'
+import { PasswordAuthenticator } from '@furystack/security'
+import type { InstallState } from 'common'
 
-@Injectable({ lifetime: 'singleton' })
-export class ServiceStatusProvider {
+import { PasswordCredentialDataSet, UserDataSet } from '../data-store/tokens.js'
+
+class ServiceStatusProviderImpl {
   private elevatedInjector?: Injector
+
+  constructor(
+    private readonly authenticator: PasswordAuthenticator,
+    private readonly logger: Logger,
+    public readonly injector: Injector,
+  ) {}
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+      this.elevatedInjector = useSystemIdentityContext({ injector: this.injector })
     }
     return this.elevatedInjector
   }
 
   public async getStatus(): Promise<InstallState> {
     const elevated = this.getElevatedInjector()
-    const userCount = await getRepository(elevated).getDataSetFor(User, 'username').count(elevated)
+    const userCount = await elevated.get(UserDataSet).count(elevated)
     return userCount > 0 ? 'installed' : 'needsInstall'
   }
 
@@ -30,23 +34,13 @@ export class ServiceStatusProvider {
       throw Error('Service is already installed')
     }
     const elevated = this.getElevatedInjector()
-    const repository = getRepository(elevated)
-    await repository.getDataSetFor(User, 'username').add(elevated, {
-      username,
-      roles: ['admin'],
-    })
+    await elevated.get(UserDataSet).add(elevated, { username, roles: ['admin'] })
     const credential = await this.authenticator.hasher.createCredential(username, password)
-    await repository.getDataSetFor(PasswordCredential, 'userName').add(elevated, credential)
+    await elevated.get(PasswordCredentialDataSet).add(elevated, credential)
     await this.logger
       .withScope(this.constructor.name)
       .information({ message: `Service installed for user '${username}'` })
   }
-
-  @Injected(PasswordAuthenticator)
-  declare private authenticator: PasswordAuthenticator
-
-  @Injected(LoggerCollection)
-  declare private logger: LoggerCollection
 
   public async [Symbol.asyncDispose]() {
     try {
@@ -56,3 +50,12 @@ export class ServiceStatusProvider {
     }
   }
 }
+
+export type ServiceStatusProvider = ServiceStatusProviderImpl
+
+export const ServiceStatusProvider: Token<ServiceStatusProvider, 'singleton'> = defineService({
+  name: 'app/ServiceStatusProvider',
+  lifetime: 'singleton',
+  factory: ({ inject, injector }) =>
+    new ServiceStatusProviderImpl(inject(PasswordAuthenticator), inject(LoggerCollection), injector),
+})

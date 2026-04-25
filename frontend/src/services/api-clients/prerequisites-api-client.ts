@@ -1,10 +1,9 @@
-import { Injectable } from '@furystack/inject'
+import { defineService, type Token } from '@furystack/inject'
 import { createClient } from '@furystack/rest-client-fetch'
 import type { PrerequisitesApi } from 'common'
 import { environmentOptions } from '../../environment-options.js'
 
-@Injectable({ lifetime: 'singleton' })
-export class PrerequisitesApiClient {
+class PrerequisitesApiClientImpl {
   public call = createClient<PrerequisitesApi>({
     endpointUrl: `${environmentOptions.serviceUrl}/prerequisites`,
     requestInit: {
@@ -13,3 +12,11 @@ export class PrerequisitesApiClient {
     },
   })
 }
+
+export type PrerequisitesApiClient = PrerequisitesApiClientImpl
+
+export const PrerequisitesApiClient: Token<PrerequisitesApiClient, 'singleton'> = defineService({
+  name: 'app/PrerequisitesApiClient',
+  lifetime: 'singleton',
+  factory: () => new PrerequisitesApiClientImpl(),
+})

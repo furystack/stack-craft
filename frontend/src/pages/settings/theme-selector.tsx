@@ -7,7 +7,7 @@ export const ThemeSelector = Shade({
   customElementName: 'shade-theme-selector',
   render: ({ injector, useStoredState }) => {
     const [themeKey, setThemeKey] = useStoredState<string>(THEME_STORAGE_KEY, DEFAULT_THEME_KEY)
-    const themeProvider = injector.getInstance(ThemeProviderService)
+    const themeProvider = injector.get(ThemeProviderService)
 
     return (
       <Paper elevation={1} style={{ padding: '16px', marginBottom: '16px' }}>
@@ -24,7 +24,7 @@ export const ThemeSelector = Shade({
 
             const entry = themeEntries.find((e) => e.key === newKey)
             if (entry?.quote) {
-              injector.getInstance(NotyService).emit('onNotyAdded', {
+              injector.get(NotyService).emit('onNotyAdded', {
                 title: entry.label,
                 body: entry.quote,
                 type: 'info',

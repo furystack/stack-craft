@@ -1,7 +1,6 @@
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import '@furystack/repository'
-import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, useRestService, Validate } from '@furystack/rest-service'
 import type { StacksApi } from 'common'
@@ -27,6 +26,7 @@ import { CryptoService, SENSITIVE_VALUE_MASK } from '../../utils/crypto-service.
 import { encryptEnvValues, maskSensitiveEnvValues } from '../../utils/env-encryption-helpers.js'
 import { ExportStackAction } from './actions/export-stack-action.js'
 import { ImportStackAction } from './actions/import-stack-action.js'
+import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
 
 export const setupStacksRestApi = async (injector: Injector) => {
   await useRestService<StacksApi>({
@@ -41,7 +41,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
           async ({ injector: i, getQuery }) => {
             const query = getQuery()
             const repo = getRepository(i)
-            const crypto = i.getInstance(CryptoService)
+            const crypto = i.get(CryptoService)
             const defs = await repo.getDataSetFor(StackDefinition, 'name').find(i, {
               top: query.findOptions?.top,
               skip: query.findOptions?.skip,
@@ -73,7 +73,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
           async ({ injector: i, getUrlParams }) => {
             const { id } = getUrlParams()
             const repo = getRepository(i)
-            const crypto = i.getInstance(CryptoService)
+            const crypto = i.get(CryptoService)
             const defs = await repo
               .getDataSetFor(StackDefinition, 'name')
               .find(i, { filter: { name: { $eq: id } }, top: 1 })
@@ -100,7 +100,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
           async ({ injector: i, getBody }) => {
             const body = await getBody()
             const repo = getRepository(i)
-            const crypto = i.getInstance(CryptoService)
+            const crypto = i.get(CryptoService)
             const now = new Date().toISOString()
             const name = body.name ?? randomUUID()
             const def = {
@@ -140,7 +140,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
             }
             const trigger = { triggeredBy: username, triggerSource: 'api' as const }
 
-            const pm = i.getInstance(ProcessManager)
+            const pm = i.get(ProcessManager)
             await pm.setupServices(
               svcs.map((s) => s.id),
               trigger,
@@ -155,7 +155,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
             const { id } = getUrlParams()
             const body = await getBody()
             const repo = getRepository(i)
-            const crypto = i.getInstance(CryptoService)
+            const crypto = i.get(CryptoService)
 
             const defFields: Partial<StackDefinition> = {}
             if (body.displayName !== undefined) defFields.displayName = body.displayName

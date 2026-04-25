@@ -1,10 +1,10 @@
-import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ServiceBranchesEndpoint } from 'common'
 import { ServiceDefinition, ServiceStatus } from 'common'
 import { GitService } from '../../../services/git-service.js'
 import { resolveServiceCwd } from '../../../utils/resolve-service-cwd.js'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
 export const ServiceBranchesAction: RequestAction<ServiceBranchesEndpoint> = async ({ injector, getUrlParams }) => {
   const { id: serviceId } = getUrlParams()
@@ -25,7 +25,7 @@ export const ServiceBranchesAction: RequestAction<ServiceBranchesEndpoint> = asy
   }
 
   const cwd = await resolveServiceCwd(injector, svc, injector)
-  const git = injector.getInstance(GitService)
+  const git = injector.get(GitService)
 
   const [currentBranch, branches] = await Promise.all([git.getCurrentBranch(cwd), git.getBranches(cwd)])
 

@@ -12,7 +12,7 @@ export const CreateStack = Shade({
   render: ({ injector }) => {
     const handleSubmit = async (data: Partial<StackView>) => {
       try {
-        const createdStack = await injector.getInstance(StacksApiClient).call({
+        const createdStack = await injector.get(StacksApiClient).call({
           method: 'POST',
           action: '/stacks',
           body: {
@@ -23,7 +23,7 @@ export const CreateStack = Shade({
             environmentVariables: {},
           },
         })
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Stack created',
           body: `Stack "${data.displayName}" was created successfully.`,
           type: 'success',
@@ -34,7 +34,7 @@ export const CreateStack = Shade({
           params: { stackName: createdStack.result.name },
         })
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Error',
           body: error instanceof Error ? error.message : 'Failed to create stack',
           type: 'error',

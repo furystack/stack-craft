@@ -1,4 +1,4 @@
-import { useCollectionSync, useEntitySync } from '@furystack/entity-sync-client'
+import { useCollectionSync, useEntitySync } from '../../../services/entity-sync.js'
 import { createComponent, LocationService, Shade } from '@furystack/shades'
 import {
   ConfirmDialog,
@@ -57,7 +57,7 @@ export const ServiceDetail = Shade<ServiceDetailProps>({
   customElementName: 'shade-service-detail',
   render: (options) => {
     const { props, injector, useState, useObservable } = options
-    const locationService = injector.getInstance(LocationService)
+    const locationService = injector.get(LocationService)
     const validTabs: TabId[] = ['overview', 'logs', 'history', 'files', 'configuration']
     const [hashRaw] = useObservable('locationHash', locationService.onLocationHashChanged)
     const [searchState] = useObservable('locationSearch', locationService.onDeserializedLocationSearchChanged)

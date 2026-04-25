@@ -1,5 +1,4 @@
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { CheckPrerequisiteEndpoint, EnvironmentVariableValue, PrerequisiteConfig, PrerequisiteType } from 'common'
@@ -8,6 +7,7 @@ import { execFile } from 'child_process'
 import { promisify } from 'util'
 
 import { CryptoService } from '../../../utils/crypto-service.js'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -215,7 +215,7 @@ export const CheckPrerequisiteAction: RequestAction<CheckPrerequisiteEndpoint> =
     })
   })
 
-  const crypto = injector.getInstance(CryptoService)
+  const crypto = injector.get(CryptoService)
   try {
     const result = await runCheck(prereq.type, prereq.config, { envVarConfig, crypto })
     const checkUpdate = {

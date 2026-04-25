@@ -1,5 +1,5 @@
 import type { FindOptions } from '@furystack/core'
-import { useCollectionSync } from '@furystack/entity-sync-client'
+import { useCollectionSync } from '../../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
 
 import {
@@ -89,13 +89,13 @@ export const StackSetup = Shade<StackSetupProps>({
     const triggerSetup = async (serviceId: string) => {
       setSetupTriggered(new Set([...setupTriggered, serviceId]))
       try {
-        await injector.getInstance(ServicesApiClient).call({
+        await injector.get(ServicesApiClient).call({
           method: 'POST',
           action: '/services/:id/setup',
           url: { id: serviceId },
         })
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Setup failed',
           body: error instanceof Error ? error.message : 'Setup error',
           type: 'error',
@@ -106,13 +106,13 @@ export const StackSetup = Shade<StackSetupProps>({
     const triggerSetupAll = async () => {
       setIsBatchRunning(true)
       try {
-        await injector.getInstance(StacksApiClient).call({
+        await injector.get(StacksApiClient).call({
           method: 'POST',
           action: '/stacks/:id/setup',
           url: { id: props.stackName },
         })
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Batch setup failed',
           body: error instanceof Error ? error.message : 'Setup error',
           type: 'error',
@@ -125,7 +125,7 @@ export const StackSetup = Shade<StackSetupProps>({
 
     const triggerStartAll = async () => {
       setIsStartingAll(true)
-      const api = injector.getInstance(ServicesApiClient)
+      const api = injector.get(ServicesApiClient)
       for (const svc of services) {
         if (isServiceReady(svc) && svc.runStatus === 'stopped') {
           try {

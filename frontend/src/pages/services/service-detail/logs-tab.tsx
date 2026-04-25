@@ -17,8 +17,8 @@ type LogsTabProps = {
 export const LogsTab = Shade<LogsTabProps>({
   customElementName: 'shade-service-logs-tab',
   render: ({ props, injector }) => {
-    const api = injector.getInstance(ServicesApiClient)
-    const noty = injector.getInstance(NotyService)
+    const api = injector.get(ServicesApiClient)
+    const noty = injector.get(NotyService)
 
     const handleClearLogs = async () => {
       try {

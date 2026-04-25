@@ -1,7 +1,9 @@
-import { getStoreManager, useSystemIdentityContext } from '@furystack/core'
+import { ServiceLogEntryDataSet } from './setup-log-store.js'
+import { getDataSetFor } from '@furystack/repository'
+import { useSystemIdentityContext } from '@furystack/core'
+import { getStoreManager } from '../../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
 import { ServiceLogEntry } from 'common'
 import { describe, expect, it, vi } from 'vitest'
@@ -11,7 +13,6 @@ vi.mock('../../config.js', () => ({
 }))
 
 import { setupLogStore } from './setup-log-store.js'
-
 const createInjector = () => {
   const injector = new Injector()
   useLogging(injector, VerboseConsoleLogger)
@@ -31,7 +32,7 @@ describe('setupLogStore', () => {
     usingAsync(createInjector(), async (injector) => {
       await setupLogStore(injector)
 
-      const ds = getRepository(injector).getDataSetFor(ServiceLogEntry, 'id')
+      const ds = getDataSetFor(injector, ServiceLogEntryDataSet)
       expect(ds).toBeDefined()
     }))
 
@@ -40,7 +41,7 @@ describe('setupLogStore', () => {
       await setupLogStore(injector)
 
       const elevated = useSystemIdentityContext({ injector })
-      const ds = getRepository(elevated).getDataSetFor(ServiceLogEntry, 'id')
+      const ds = getDataSetFor(elevated, ServiceLogEntryDataSet)
 
       const { created: created1 } = await ds.add(elevated, {
         id: 0,

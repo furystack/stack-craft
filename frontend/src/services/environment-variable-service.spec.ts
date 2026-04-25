@@ -1,4 +1,4 @@
-import { Injector } from '@furystack/inject'
+import { createInjector } from '@furystack/inject'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SystemApiClient } from './api-clients/system-api-client.js'
@@ -14,9 +14,9 @@ describe('EnvironmentVariableService', () => {
 
   beforeEach(() => {
     mocks = createMocks()
-    const injector = new Injector()
-    injector.setExplicitInstance(mocks.systemApi, SystemApiClient)
-    service = injector.getInstance(EnvironmentVariableService)
+    const injector = createInjector()
+    injector.bind(SystemApiClient, () => mocks.systemApi as unknown as SystemApiClient)
+    service = injector.get(EnvironmentVariableService)
   })
 
   describe('checkAvailability', () => {

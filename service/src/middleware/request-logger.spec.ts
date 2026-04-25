@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events'
 import type { IncomingMessage, ServerResponse } from 'http'
-import { Injector } from '@furystack/inject'
-import { getLogger, useLogging, VerboseConsoleLogger } from '@furystack/logging'
+import { createInjector } from '@furystack/inject'
+import { createLogger, useLogging, type LeveledLogEntry, type Logger } from '@furystack/logging'
 import { usingAsync } from '@furystack/utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -25,9 +25,19 @@ describe('useRequestLogger', () => {
     return res
   }
 
+  /** Spies on every leveled entry passed to the registered backend logger. */
+  const setupSpyLogger = (): { logger: Logger; entries: Array<LeveledLogEntry<unknown>> } => {
+    const entries: Array<LeveledLogEntry<unknown>> = []
+    const logger = createLogger(async (entry) => {
+      entries.push(entry)
+    })
+    return { logger, entries }
+  }
+
   it('should call next() immediately', () =>
-    usingAsync(new Injector(), async (injector) => {
-      useLogging(injector, VerboseConsoleLogger)
+    usingAsync(createInjector(), async (injector) => {
+      const { logger } = setupSpyLogger()
+      useLogging(injector, logger)
       const middleware = useRequestLogger(injector)
       const req = createMockReq({ method: 'GET', url: '/test' })
       const res = createMockRes()
@@ -39,122 +49,86 @@ describe('useRequestLogger', () => {
     }))
 
   it('should log at verbose level for 2xx status codes', () =>
-    usingAsync(new Injector(), async (injector) => {
-      useLogging(injector, VerboseConsoleLogger)
-      const loggerCollection = getLogger(injector)
-      const verboseSpy = vi.spyOn(loggerCollection, 'verbose')
+    usingAsync(createInjector(), async (injector) => {
+      const { logger, entries } = setupSpyLogger()
+      useLogging(injector, logger)
       const middleware = useRequestLogger(injector)
-      const req = createMockReq({ method: 'GET', url: '/api/health' })
       const res = createMockRes(200)
-
-      middleware(req, res, vi.fn())
+      middleware(createMockReq({ method: 'GET', url: '/api/health' }), res, vi.fn())
       res.emit('finish')
-
-      await vi.waitFor(() => {
-        expect(verboseSpy).toHaveBeenCalledOnce()
-      })
+      await vi.waitFor(() => expect(entries).toHaveLength(1))
+      expect(entries[0].level).toBe('verbose')
+      expect(entries[0].scope).toBe('http')
     }))
 
   it('should log at warning level for 4xx status codes', () =>
-    usingAsync(new Injector(), async (injector) => {
-      useLogging(injector, VerboseConsoleLogger)
-      const loggerCollection = getLogger(injector)
-      const warningSpy = vi.spyOn(loggerCollection, 'warning')
+    usingAsync(createInjector(), async (injector) => {
+      const { logger, entries } = setupSpyLogger()
+      useLogging(injector, logger)
       const middleware = useRequestLogger(injector)
-      const req = createMockReq({ method: 'POST', url: '/api/login' })
       const res = createMockRes(404)
-
-      middleware(req, res, vi.fn())
+      middleware(createMockReq({ method: 'POST', url: '/api/login' }), res, vi.fn())
       res.emit('finish')
-
-      await vi.waitFor(() => {
-        expect(warningSpy).toHaveBeenCalledOnce()
-      })
+      await vi.waitFor(() => expect(entries).toHaveLength(1))
+      expect(entries[0].level).toBe('warning')
     }))
 
   it('should log at error level for 5xx status codes', () =>
-    usingAsync(new Injector(), async (injector) => {
-      useLogging(injector, VerboseConsoleLogger)
-      const loggerCollection = getLogger(injector)
-      const errorSpy = vi.spyOn(loggerCollection, 'error')
+    usingAsync(createInjector(), async (injector) => {
+      const { logger, entries } = setupSpyLogger()
+      useLogging(injector, logger)
       const middleware = useRequestLogger(injector)
-      const req = createMockReq({ method: 'GET', url: '/api/data' })
       const res = createMockRes(500)
-
-      middleware(req, res, vi.fn())
+      middleware(createMockReq({ method: 'GET', url: '/api/data' }), res, vi.fn())
       res.emit('finish')
-
-      await vi.waitFor(() => {
-        expect(errorSpy).toHaveBeenCalledOnce()
-      })
+      await vi.waitFor(() => expect(entries).toHaveLength(1))
+      expect(entries[0].level).toBe('error')
     }))
 
   it('should use UNKNOWN for missing req.method', () =>
-    usingAsync(new Injector(), async (injector) => {
-      useLogging(injector, VerboseConsoleLogger)
-      const loggerCollection = getLogger(injector)
-      const verboseSpy = vi.spyOn(loggerCollection, 'verbose')
+    usingAsync(createInjector(), async (injector) => {
+      const { logger, entries } = setupSpyLogger()
+      useLogging(injector, logger)
       const middleware = useRequestLogger(injector)
-      const req = createMockReq({ url: '/test' })
       const res = createMockRes(200)
-
-      middleware(req, res, vi.fn())
+      middleware(createMockReq({ url: '/test' }), res, vi.fn())
       res.emit('finish')
-
-      await vi.waitFor(() => {
-        expect(verboseSpy).toHaveBeenCalledOnce()
-        expect(verboseSpy.mock.calls[0][0]).toMatchObject({
-          scope: 'http',
-          message: expect.stringContaining('UNKNOWN'),
-          data: expect.objectContaining({ method: 'UNKNOWN' }),
-        })
-      })
+      await vi.waitFor(() => expect(entries).toHaveLength(1))
+      const entry = entries[0] as LeveledLogEntry<{ method: string }>
+      expect(entry.message).toContain('UNKNOWN')
+      expect(entry.data?.method).toBe('UNKNOWN')
     }))
 
   it('should use / for missing req.url', () =>
-    usingAsync(new Injector(), async (injector) => {
-      useLogging(injector, VerboseConsoleLogger)
-      const loggerCollection = getLogger(injector)
-      const verboseSpy = vi.spyOn(loggerCollection, 'verbose')
+    usingAsync(createInjector(), async (injector) => {
+      const { logger, entries } = setupSpyLogger()
+      useLogging(injector, logger)
       const middleware = useRequestLogger(injector)
-      const req = createMockReq({ method: 'GET' })
       const res = createMockRes(200)
-
-      middleware(req, res, vi.fn())
+      middleware(createMockReq({ method: 'GET' }), res, vi.fn())
       res.emit('finish')
-
-      await vi.waitFor(() => {
-        expect(verboseSpy).toHaveBeenCalledOnce()
-        expect(verboseSpy.mock.calls[0][0]).toMatchObject({
-          scope: 'http',
-          message: expect.stringContaining('GET /'),
-          data: expect.objectContaining({ url: '/' }),
-        })
-      })
+      await vi.waitFor(() => expect(entries).toHaveLength(1))
+      const entry = entries[0] as LeveledLogEntry<{ url: string }>
+      expect(entry.message).toContain('GET /')
+      expect(entry.data?.url).toBe('/')
     }))
 
   it('should include method, url, statusCode and duration in the log message', () =>
-    usingAsync(new Injector(), async (injector) => {
-      useLogging(injector, VerboseConsoleLogger)
-      const loggerCollection = getLogger(injector)
-      const verboseSpy = vi.spyOn(loggerCollection, 'verbose')
+    usingAsync(createInjector(), async (injector) => {
+      const { logger, entries } = setupSpyLogger()
+      useLogging(injector, logger)
       const middleware = useRequestLogger(injector)
-      const req = createMockReq({ method: 'PUT', url: '/api/users/1' })
       const res = createMockRes(201)
-
-      middleware(req, res, vi.fn())
+      middleware(createMockReq({ method: 'PUT', url: '/api/users/1' }), res, vi.fn())
       res.emit('finish')
-
-      await vi.waitFor(() => {
-        expect(verboseSpy).toHaveBeenCalledOnce()
-        const call = verboseSpy.mock.calls[0][0]
-        expect(call.message).toMatch(/^PUT \/api\/users\/1 201 \d+ms$/)
-        expect(call.data).toMatchObject({
-          method: 'PUT',
-          url: '/api/users/1',
-          statusCode: 201,
-          duration: expect.any(Number),
-        })
-      })
+      await vi.waitFor(() => expect(entries).toHaveLength(1))
+      const entry = entries[0] as LeveledLogEntry<{
+        method: string
+        url: string
+        statusCode: number
+        duration: number
+      }>
+      expect(entry.message).toMatch(/^PUT \/api\/users\/1 201 \d+ms$/)
+      expect(entry.data).toMatchObject({ method: 'PUT', url: '/api/users/1', statusCode: 201 })
     }))
 })

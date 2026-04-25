@@ -1,28 +1,30 @@
+import { ServiceLogEntryDataSet } from '../app-models/logs/setup-log-store.js'
+import { getDataSetFor } from '@furystack/repository'
 import { useSystemIdentityContext } from '@furystack/core'
 import type { FilterType } from '@furystack/core'
-import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
+import { type Injector, defineService, type Token } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
-import { ServiceLogEntry } from 'common'
-
+import type { ServiceLogEntry } from 'common'
 const MAX_ENTRIES_PER_SERVICE = 50_000
 const PRUNE_CHECK_INTERVAL = 1_000
 
 /** Persists and queries service process log entries, with automatic pruning to cap storage per service */
-@Injectable({ lifetime: 'singleton' })
-export class LogStorageService {
+class LogStorageServiceImpl {
+  private logger!: ReturnType<ReturnType<typeof getLogger>['withScope']>
+
+  constructor(public readonly injector: Injector) {
+    this.logger = getLogger(injector).withScope('LogStorageService')
+  }
+
   private elevatedInjector?: Injector
   private insertCount = 0
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+      this.elevatedInjector = useSystemIdentityContext({ injector: this.injector })
     }
     return this.elevatedInjector
   }
-
-  @Injected((injector) => getLogger(injector).withScope('LogStorageService'))
-  declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
 
   public async addEntry(
     serviceId: string,
@@ -31,7 +33,7 @@ export class LogStorageService {
     line: string,
   ): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const ds = getRepository(elevated).getDataSetFor(ServiceLogEntry, 'id')
+    const ds = getDataSetFor(elevated, ServiceLogEntryDataSet)
     await ds.add(elevated, {
       serviceId,
       processUid,
@@ -52,7 +54,7 @@ export class LogStorageService {
     options?: { limit?: number; processUid?: string; search?: string },
   ): Promise<ServiceLogEntry[]> {
     const elevated = this.getElevatedInjector()
-    const ds = getRepository(elevated).getDataSetFor(ServiceLogEntry, 'id')
+    const ds = getDataSetFor(elevated, ServiceLogEntryDataSet)
 
     const filter: FilterType<ServiceLogEntry> = {
       serviceId: { $eq: serviceId },
@@ -75,7 +77,7 @@ export class LogStorageService {
 
   public async clearLogs(serviceId: string): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const ds = getRepository(elevated).getDataSetFor(ServiceLogEntry, 'id')
+    const ds = getDataSetFor(elevated, ServiceLogEntryDataSet)
 
     const BATCH_SIZE = 1_000
     let totalRemoved = 0
@@ -100,7 +102,7 @@ export class LogStorageService {
 
   public async prune(serviceId: string, maxEntries: number): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const ds = getRepository(elevated).getDataSetFor(ServiceLogEntry, 'id')
+    const ds = getDataSetFor(elevated, ServiceLogEntryDataSet)
 
     const count = await ds.count(elevated, { serviceId: { $eq: serviceId } })
     if (count <= maxEntries) return
@@ -127,3 +129,11 @@ export class LogStorageService {
     }
   }
 }
+
+export type LogStorageService = LogStorageServiceImpl
+
+export const LogStorageService: Token<LogStorageService, 'singleton'> = defineService({
+  name: 'app/LogStorageService',
+  lifetime: 'singleton',
+  factory: ({ injector }) => new LogStorageServiceImpl(injector),
+})

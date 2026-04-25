@@ -1,5 +1,5 @@
 import type { FindOptions } from '@furystack/core'
-import { useCollectionSync } from '@furystack/entity-sync-client'
+import { useCollectionSync } from '../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
 import {
   Button,
@@ -31,8 +31,8 @@ export const PrerequisiteTable = Shade<PrerequisiteTableProps>({
   render: (options) => {
     const { props, injector, useDisposable, useState } = options
 
-    const api = injector.getInstance(PrerequisitesApiClient)
-    const noty = injector.getInstance(NotyService)
+    const api = injector.get(PrerequisitesApiClient)
+    const noty = injector.get(NotyService)
 
     const [editingId, setEditingId] = useState<string | null>('editingId', null)
     const [isCreating, setIsCreating] = useState('isCreating', false)

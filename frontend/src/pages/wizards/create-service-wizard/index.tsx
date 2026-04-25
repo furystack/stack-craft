@@ -1,4 +1,4 @@
-import { useCollectionSync } from '@furystack/entity-sync-client'
+import { useCollectionSync } from '../../../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
 import { cssVariableTheme, NotyService, Paper } from '@furystack/shades-common-components'
 import type { GitHubRepository, Prerequisite, ServiceView } from 'common'
@@ -51,10 +51,10 @@ export const CreateServiceWizard = Shade<CreateServiceWizardProps>({
     const otherServices =
       servicesState.status === 'synced' || servicesState.status === 'cached' ? servicesState.data.entries : []
 
-    const servicesApi = injector.getInstance(ServicesApiClient)
-    const reposApi = injector.getInstance(GitHubReposApiClient)
-    const prereqsApi = injector.getInstance(PrerequisitesApiClient)
-    const noty = injector.getInstance(NotyService)
+    const servicesApi = injector.get(ServicesApiClient)
+    const reposApi = injector.get(GitHubReposApiClient)
+    const prereqsApi = injector.get(PrerequisitesApiClient)
+    const noty = injector.get(NotyService)
 
     const handleCreateService = async (data: Partial<ServiceView>) => {
       const serviceId = crypto.randomUUID()

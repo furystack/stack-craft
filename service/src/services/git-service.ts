@@ -1,4 +1,4 @@
-import { Injectable, Injected } from '@furystack/inject'
+import { defineService, type Token, type Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
@@ -6,10 +6,12 @@ import { promisify } from 'util'
 const execFileAsync = promisify(execFile)
 
 /** Low-level wrapper around git CLI operations (clone, fetch, pull, checkout, branch listing) */
-@Injectable({ lifetime: 'singleton' })
-export class GitService {
-  @Injected((injector) => getLogger(injector).withScope('GitService'))
-  declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
+class GitServiceImpl {
+  private logger!: ReturnType<ReturnType<typeof getLogger>['withScope']>
+
+  constructor(injector: Injector) {
+    this.logger = getLogger(injector).withScope('GitService')
+  }
 
   public async clone(url: string, directory: string): Promise<void> {
     await this.logger.information({ message: `Cloning ${url} into ${directory}` })
@@ -140,3 +142,11 @@ export class GitService {
     }
   }
 }
+
+export type GitService = GitServiceImpl
+
+export const GitService: Token<GitService, 'singleton'> = defineService({
+  name: 'app/GitService',
+  lifetime: 'singleton',
+  factory: ({ injector }) => new GitServiceImpl(injector),
+})

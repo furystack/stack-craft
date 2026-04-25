@@ -1,13 +1,16 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { ServiceDefinitionDataSet } from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import { InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { addStore } from '../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
 import { ServiceDefinition } from 'common'
 import { describe, expect, it } from 'vitest'
 
 import { DomainError } from './domain-error.js'
 import { getServiceOrThrow } from './get-service-or-throw.js'
+import { legacyRepository as getRepository } from './legacy-repository.js'
 
 const ts = new Date().toISOString()
 
@@ -36,7 +39,7 @@ describe('getServiceOrThrow', () => {
       const elevated = useSystemIdentityContext({ injector })
       try {
         const svcDef = makeServiceDefinition({ id: 'svc-found', stackName: 'stack-a' })
-        await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').add(elevated, svcDef)
+        await getDataSetFor(elevated, ServiceDefinitionDataSet).add(elevated, svcDef)
 
         const result = await getServiceOrThrow('svc-found', elevated)
         expect(result).toEqual(svcDef)
@@ -64,12 +67,14 @@ describe('getServiceOrThrow', () => {
       setupStore(injector)
       const elevated = useSystemIdentityContext({ injector })
       try {
-        await getRepository(elevated)
-          .getDataSetFor(ServiceDefinition, 'id')
-          .add(elevated, makeServiceDefinition({ id: 'svc-a', stackName: 'stack-x' }))
-        await getRepository(elevated)
-          .getDataSetFor(ServiceDefinition, 'id')
-          .add(elevated, makeServiceDefinition({ id: 'svc-b', stackName: 'stack-x' }))
+        await getDataSetFor(elevated, ServiceDefinitionDataSet).add(
+          elevated,
+          makeServiceDefinition({ id: 'svc-a', stackName: 'stack-x' }),
+        )
+        await getDataSetFor(elevated, ServiceDefinitionDataSet).add(
+          elevated,
+          makeServiceDefinition({ id: 'svc-b', stackName: 'stack-x' }),
+        )
 
         const result = await getServiceOrThrow('svc-b', elevated)
         expect(result.id).toBe('svc-b')

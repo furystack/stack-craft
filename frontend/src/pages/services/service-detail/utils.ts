@@ -13,8 +13,8 @@ export const runServiceAction = async (
   apiAction: string,
   setActionInProgress: (v: string | null) => void,
 ): Promise<void> => {
-  const api = injector.getInstance(ServicesApiClient)
-  const noty = injector.getInstance(NotyService)
+  const api = injector.get(ServicesApiClient)
+  const noty = injector.get(NotyService)
   setActionInProgress(apiAction)
   try {
     await api.call({
@@ -40,8 +40,8 @@ export const saveService = async (
   data: Partial<ServiceView>,
   currentDisplayName: string,
 ): Promise<boolean> => {
-  const api = injector.getInstance(ServicesApiClient)
-  const noty = injector.getInstance(NotyService)
+  const api = injector.get(ServicesApiClient)
+  const noty = injector.get(NotyService)
   try {
     await api.call({
       method: 'PATCH',
@@ -86,8 +86,8 @@ export const deleteService = async (
   displayName: string,
   stackName: string,
 ): Promise<void> => {
-  const api = injector.getInstance(ServicesApiClient)
-  const noty = injector.getInstance(NotyService)
+  const api = injector.get(ServicesApiClient)
+  const noty = injector.get(NotyService)
   try {
     await api.call({
       method: 'DELETE',
@@ -114,8 +114,8 @@ export const createPrerequisite = async (
   stackName: string,
   data: Partial<Prerequisite>,
 ): Promise<string> => {
-  const prereqsApi = injector.getInstance(PrerequisitesApiClient)
-  const noty = injector.getInstance(NotyService)
+  const prereqsApi = injector.get(PrerequisitesApiClient)
+  const noty = injector.get(NotyService)
   const newId = crypto.randomUUID()
   await prereqsApi.call({
     method: 'POST',
@@ -138,8 +138,8 @@ export const createRepository = async (
   stackName: string,
   data: Partial<GitHubRepository>,
 ): Promise<string> => {
-  const reposApi = injector.getInstance(GitHubReposApiClient)
-  const noty = injector.getInstance(NotyService)
+  const reposApi = injector.get(GitHubReposApiClient)
+  const noty = injector.get(NotyService)
   const newId = crypto.randomUUID()
   await reposApi.call({
     method: 'POST',
@@ -166,8 +166,8 @@ export const applyServiceFiles = async (
   setActionInProgress: (v: string | null) => void,
   relativePath?: string,
 ): Promise<void> => {
-  const api = injector.getInstance(ServicesApiClient)
-  const noty = injector.getInstance(NotyService)
+  const api = injector.get(ServicesApiClient)
+  const noty = injector.get(NotyService)
   const key = relativePath ? `apply-file-${relativePath}` : 'apply-files-all'
   setActionInProgress(key)
   try {

@@ -1,13 +1,11 @@
-import { getRepository } from '@furystack/repository'
-import { ServiceDefinition, ServiceGitStatus } from 'common'
+import { ServiceDefinitionDataSet, ServiceGitStatusDataSet } from '../../data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 import { describe, expect, it } from 'vitest'
-
 import { createMockActionContext, withTestInjector } from '../../../test-helpers.js'
 import { ServiceDismissWarningAction } from './service-dismiss-warning-action.js'
-
 const addSvc = async (elevated: Parameters<Parameters<typeof withTestInjector>[0]>[0]['elevated']) => {
   const ts = new Date().toISOString()
-  await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').add(elevated, {
+  await getDataSetFor(elevated, ServiceDefinitionDataSet).add(elevated, {
     id: 'svc-1',
     stackName: 'stack',
     displayName: 'Test',
@@ -31,18 +29,20 @@ describe('ServiceDismissWarningAction', () => {
       })
       await ServiceDismissWarningAction(ctx)
 
-      const rows = await getRepository(elevated)
-        .getDataSetFor(ServiceGitStatus, 'serviceId')
-        .find(elevated, { filter: { serviceId: { $eq: 'svc-1' } }, top: 1 })
+      const rows = await getDataSetFor(elevated, ServiceGitStatusDataSet).find(elevated, {
+        filter: { serviceId: { $eq: 'svc-1' } },
+        top: 1,
+      })
       expect(rows[0]?.warningsDismissed?.upstreamGone).toBe(true)
     }))
 
   it('updates an existing ServiceGitStatus row', () =>
     withTestInjector(async ({ elevated }) => {
       await addSvc(elevated)
-      await getRepository(elevated)
-        .getDataSetFor(ServiceGitStatus, 'serviceId')
-        .add(elevated, { serviceId: 'svc-1', currentBranch: 'main' })
+      await getDataSetFor(elevated, ServiceGitStatusDataSet).add(elevated, {
+        serviceId: 'svc-1',
+        currentBranch: 'main',
+      })
 
       const ctx = createMockActionContext({
         injector: elevated,
@@ -51,9 +51,10 @@ describe('ServiceDismissWarningAction', () => {
       })
       await ServiceDismissWarningAction(ctx)
 
-      const rows = await getRepository(elevated)
-        .getDataSetFor(ServiceGitStatus, 'serviceId')
-        .find(elevated, { filter: { serviceId: { $eq: 'svc-1' } }, top: 1 })
+      const rows = await getDataSetFor(elevated, ServiceGitStatusDataSet).find(elevated, {
+        filter: { serviceId: { $eq: 'svc-1' } },
+        top: 1,
+      })
       expect(rows[0]?.warningsDismissed?.stale).toBe(true)
       expect(rows[0]?.currentBranch).toBe('main')
     }))

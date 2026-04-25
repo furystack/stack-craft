@@ -17,8 +17,8 @@ export const isPasswordChangePayload = (data: unknown): data is PasswordChangePa
 export const PasswordChangeForm = Shade({
   customElementName: 'shade-password-change-form',
   render: ({ injector, useState }) => {
-    const identityApi = injector.getInstance(IdentityApiClient)
-    const notys = injector.getInstance(NotyService)
+    const identityApi = injector.get(IdentityApiClient)
+    const notys = injector.get(NotyService)
 
     const [newPassword, setNewPassword] = useState('newPassword', '')
 

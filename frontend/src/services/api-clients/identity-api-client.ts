@@ -1,10 +1,9 @@
-import { Injectable } from '@furystack/inject'
+import { defineService, type Token } from '@furystack/inject'
 import { createClient } from '@furystack/rest-client-fetch'
 import type { IdentityApi } from 'common'
 import { environmentOptions } from '../../environment-options.js'
 
-@Injectable({ lifetime: 'singleton' })
-export class IdentityApiClient {
+class IdentityApiClientImpl {
   public call = createClient<IdentityApi>({
     endpointUrl: `${environmentOptions.serviceUrl}/identity`,
     requestInit: {
@@ -13,3 +12,11 @@ export class IdentityApiClient {
     },
   })
 }
+
+export type IdentityApiClient = IdentityApiClientImpl
+
+export const IdentityApiClient: Token<IdentityApiClient, 'singleton'> = defineService({
+  name: 'app/IdentityApiClient',
+  lifetime: 'singleton',
+  factory: () => new IdentityApiClientImpl(),
+})

@@ -1,7 +1,6 @@
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import '@furystack/repository'
-import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, useRestService, Validate } from '@furystack/rest-service'
 import type { ServicesApi } from 'common'
@@ -37,6 +36,7 @@ import { ServiceDismissWarningAction } from './actions/service-dismiss-warning-a
 import { ServiceHistoryAction } from './actions/service-history-action.js'
 import { ServiceLifecycleAction } from './actions/service-lifecycle-action.js'
 import { ServiceLogsAction } from './actions/service-logs-action.js'
+import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
 
 const mergeServiceViewMasked = (
   def: ServiceDefinition,
@@ -144,7 +144,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
           async ({ injector: i, getQuery }) => {
             const query = getQuery()
             const repo = getRepository(i)
-            const crypto = i.getInstance(CryptoService)
+            const crypto = i.get(CryptoService)
             const defs = await repo.getDataSetFor(ServiceDefinition, 'id').find(i, {
               top: query.findOptions?.top,
               skip: query.findOptions?.skip,
@@ -180,7 +180,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
           async ({ injector: i, getUrlParams }) => {
             const { id } = getUrlParams()
             const repo = getRepository(i)
-            const crypto = i.getInstance(CryptoService)
+            const crypto = i.get(CryptoService)
             const defs = await repo
               .getDataSetFor(ServiceDefinition, 'id')
               .find(i, { filter: { id: { $eq: id } }, top: 1 })
@@ -218,7 +218,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
           async ({ injector: i, getBody }) => {
             const body = await getBody()
             const repo = getRepository(i)
-            const crypto = i.getInstance(CryptoService)
+            const crypto = i.get(CryptoService)
             const now = new Date().toISOString()
             const id = body.id ?? randomUUID()
 
@@ -311,7 +311,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
           const { id: serviceId } = getUrlParams()
           const body = await getBody()
           try {
-            const applied = await i.getInstance(ProcessManager).applyFiles(serviceId, body.relativePath)
+            const applied = await i.get(ProcessManager).applyFiles(serviceId, body.relativePath)
             return JsonResult({ success: true, serviceId, applied })
           } catch (error) {
             throw new RequestError(error instanceof Error ? error.message : 'Failed to apply files', 500)
@@ -351,7 +351,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
               : undefined
 
             if (body.environmentVariableOverrides !== undefined) {
-              const crypto = i.getInstance(CryptoService)
+              const crypto = i.get(CryptoService)
               configFields.environmentVariableOverrides = encryptEnvValues(
                 crypto,
                 body.environmentVariableOverrides,
@@ -359,7 +359,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
               )
             }
             if (body.localFiles !== undefined) {
-              const crypto = i.getInstance(CryptoService)
+              const crypto = i.get(CryptoService)
               configFields.localFiles = encryptLocalFiles(crypto, body.localFiles, existing?.localFiles)
             }
 

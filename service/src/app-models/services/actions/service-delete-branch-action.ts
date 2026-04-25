@@ -1,4 +1,3 @@
-import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ServiceDeleteBranchEndpoint } from 'common'
@@ -7,6 +6,7 @@ import { ServiceDefinition, ServiceGitStatus, ServiceStatus } from 'common'
 import { GitHeadWatcher } from '../../../services/git-head-watcher.js'
 import { GitService } from '../../../services/git-service.js'
 import { resolveServiceCwd } from '../../../utils/resolve-service-cwd.js'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
 /**
  * Deletes a local branch in the service's git repository.
@@ -37,7 +37,7 @@ export const ServiceDeleteBranchAction: RequestAction<ServiceDeleteBranchEndpoin
   }
 
   const cwd = await resolveServiceCwd(injector, svc, injector)
-  const git = injector.getInstance(GitService)
+  const git = injector.get(GitService)
 
   const localBranch = branch.replace(/^origin\//, '')
 
@@ -82,7 +82,7 @@ export const ServiceDeleteBranchAction: RequestAction<ServiceDeleteBranchEndpoin
     // non-fatal
   }
 
-  await injector.getInstance(GitHeadWatcher).watch(serviceId, cwd)
+  await injector.get(GitHeadWatcher).watch(serviceId, cwd)
 
   return JsonResult({
     success: true,

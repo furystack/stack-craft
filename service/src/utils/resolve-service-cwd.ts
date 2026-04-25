@@ -1,11 +1,11 @@
 import type { Injector } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
 import type { ServiceDefinition } from 'common'
 import { GitHubRepository, StackConfig } from 'common'
 import { getServiceCwd } from 'common'
 
 import { useSystemIdentityContext } from '@furystack/core'
 import { resolvePath } from './resolve-path.js'
+import { legacyRepository as getRepository } from './legacy-repository.js'
 
 /**
  * Resolves the absolute working directory for a service by looking up

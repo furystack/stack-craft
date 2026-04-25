@@ -1,13 +1,13 @@
 import { useSystemIdentityContext } from '@furystack/core'
-import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
+import { defineService, type Injector, type Token } from '@furystack/inject'
+import { getDataSetFor } from '@furystack/repository'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import chokidar, { type FSWatcher } from 'chokidar'
-import { ServiceGitStatus } from 'common'
 import { EventEmitter } from 'events'
 import { existsSync } from 'fs'
 import { join } from 'path'
 
+import { ServiceGitStatusDataSet } from '../app-models/data-store/tokens.js'
 import { GitService } from './git-service.js'
 
 type WatchedEntry = {
@@ -37,23 +37,25 @@ export type GitHeadChangeEvent = {
  * Watches `.git/HEAD` and `.git/refs/heads/` of cloned services to detect
  * branch switches and external pulls performed outside the application.
  */
-@Injectable({ lifetime: 'singleton' })
-export class GitHeadWatcher extends EventEmitter<{ externalChange: [GitHeadChangeEvent] }> {
+class GitHeadWatcherImpl extends EventEmitter<{ externalChange: [GitHeadChangeEvent] }> {
   private watchers = new Map<string, WatchedEntry>()
   private elevatedInjector?: Injector
+  private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
+
+  constructor(
+    private readonly injector: Injector,
+    private readonly git: GitService,
+  ) {
+    super()
+    this.logger = getLogger(injector).withScope('GitHeadWatcher')
+  }
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+      this.elevatedInjector = useSystemIdentityContext({ injector: this.injector })
     }
     return this.elevatedInjector
   }
-
-  @Injected((injector) => getLogger(injector).withScope('GitHeadWatcher'))
-  declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
-
-  @Injected(GitService)
-  declare private git: GitService
 
   public async watch(serviceId: string, cwd: string): Promise<void> {
     this.unwatch(serviceId)
@@ -162,7 +164,7 @@ export class GitHeadWatcher extends EventEmitter<{ externalChange: [GitHeadChang
   ): Promise<void> {
     try {
       const elevated = this.getElevatedInjector()
-      const ds = getRepository(elevated).getDataSetFor(ServiceGitStatus, 'serviceId')
+      const ds = getDataSetFor(elevated, ServiceGitStatusDataSet)
       const existing = await ds.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
 
       if (existing.length > 0) {
@@ -190,3 +192,16 @@ export class GitHeadWatcher extends EventEmitter<{ externalChange: [GitHeadChang
     }
   }
 }
+
+export type GitHeadWatcher = GitHeadWatcherImpl
+
+export const GitHeadWatcher: Token<GitHeadWatcher, 'singleton'> = defineService({
+  name: 'app/GitHeadWatcher',
+  lifetime: 'singleton',
+  factory: ({ inject, injector, onDispose }) => {
+    const instance = new GitHeadWatcherImpl(injector, inject(GitService))
+    // eslint-disable-next-line furystack/prefer-using-wrapper -- onDispose ties teardown to the injector lifetime; the instance escapes via return.
+    onDispose(() => instance[Symbol.asyncDispose]())
+    return instance
+  },
+})

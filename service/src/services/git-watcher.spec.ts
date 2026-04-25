@@ -1,14 +1,16 @@
+import {
+  ServiceDefinitionDataSet,
+  ServiceGitStatusDataSet,
+  ServiceStatusDataSet,
+} from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 import type { Injector } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
-
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-import { ServiceDefinition, ServiceStatus } from 'common'
-
+import type { ServiceDefinition } from 'common'
 import { withTestInjector } from '../test-helpers.js'
 import { GitService } from './git-service.js'
 import { GitWatcher } from './git-watcher.js'
-
+import '../test-shims.js'
 const FETCH_CHECK_INTERVAL_MS = 5 * 60 * 1000
 
 vi.mock('../utils/resolve-service-cwd.js', () => ({
@@ -16,18 +18,16 @@ vi.mock('../utils/resolve-service-cwd.js', () => ({
 }))
 
 const addServiceDefinition = async (elevated: Injector, overrides: Partial<ServiceDefinition> = {}) => {
-  await getRepository(elevated)
-    .getDataSetFor(ServiceDefinition, 'id')
-    .add(elevated, {
-      id: 'svc-1',
-      stackName: 'stack',
-      displayName: 'Test',
-      runCommand: 'npm start',
-      repositoryId: 'repo-1',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...overrides,
-    } as ServiceDefinition)
+  await getDataSetFor(elevated, ServiceDefinitionDataSet).add(elevated, {
+    id: 'svc-1',
+    stackName: 'stack',
+    displayName: 'Test',
+    runCommand: 'npm start',
+    repositoryId: 'repo-1',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  } as ServiceDefinition)
 }
 
 const createMockGit = () => ({
@@ -41,7 +41,7 @@ const createMockGit = () => ({
 })
 
 const flushMicrotasks = async () => {
-  for (let i = 0; i < 5; i++) await Promise.resolve()
+  for (let i = 0; i < 50; i++) await Promise.resolve()
 }
 
 beforeEach(() => {
@@ -54,7 +54,7 @@ describe('GitWatcher', () => {
       await addServiceDefinition(elevated)
       const mockGit = createMockGit()
       injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
-      const watcher = injector.getInstance(GitWatcher)
+      const watcher = injector.get(GitWatcher)
 
       try {
         await watcher.startWatching('svc-1')
@@ -72,7 +72,7 @@ describe('GitWatcher', () => {
       await addServiceDefinition(elevated, { id: 'no-repo', repositoryId: undefined })
       const mockGit = createMockGit()
       injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
-      const watcher = injector.getInstance(GitWatcher)
+      const watcher = injector.get(GitWatcher)
 
       await watcher.startWatching('no-repo')
 
@@ -84,7 +84,7 @@ describe('GitWatcher', () => {
       await addServiceDefinition(elevated)
       const mockGit = createMockGit()
       injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
-      const watcher = injector.getInstance(GitWatcher)
+      const watcher = injector.get(GitWatcher)
       const setIntervalSpy = vi.spyOn(globalThis, 'setInterval')
 
       try {
@@ -103,7 +103,7 @@ describe('GitWatcher', () => {
         await addServiceDefinition(elevated)
         const mockGit = createMockGit()
         injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
-        const watcher = injector.getInstance(GitWatcher)
+        const watcher = injector.get(GitWatcher)
 
         await watcher.startWatching('svc-1')
         // flush the immediate fetchAndCheck so it doesn't race with mockClear below
@@ -123,7 +123,7 @@ describe('GitWatcher', () => {
     withTestInjector(async ({ injector }) => {
       const mockGit = createMockGit()
       injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
-      const watcher = injector.getInstance(GitWatcher)
+      const watcher = injector.get(GitWatcher)
 
       expect(() => watcher.stopWatching('unknown')).not.toThrow()
     }))
@@ -135,7 +135,7 @@ describe('GitWatcher', () => {
         await addServiceDefinition(elevated)
         const mockGit = createMockGit()
         injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
-        const watcher = injector.getInstance(GitWatcher)
+        const watcher = injector.get(GitWatcher)
 
         await watcher.startWatching('svc-1')
         await flushMicrotasks()
@@ -153,7 +153,7 @@ describe('GitWatcher', () => {
   it('updates upstreamStatus to "present" and records worktree status on a normal fetch', () =>
     withTestInjector(async ({ injector, elevated }) => {
       await addServiceDefinition(elevated)
-      await getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId').add(elevated, {
+      await getDataSetFor(elevated, ServiceStatusDataSet).add(elevated, {
         serviceId: 'svc-1',
         cloneStatus: 'cloned',
         installStatus: 'not-installed',
@@ -165,16 +165,16 @@ describe('GitWatcher', () => {
       const mockGit = createMockGit()
       mockGit.getWorktreeStatus.mockResolvedValue('dirty')
       injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
-      const watcher = injector.getInstance(GitWatcher)
+      const watcher = injector.get(GitWatcher)
 
       try {
         await watcher.startWatching('svc-1')
         await vi.waitFor(
           async () => {
-            const { ServiceGitStatus } = await import('common')
-            const rows = await getRepository(elevated)
-              .getDataSetFor(ServiceGitStatus, 'serviceId')
-              .find(elevated, { filter: { serviceId: { $eq: 'svc-1' } }, top: 1 })
+            const rows = await getDataSetFor(elevated, ServiceGitStatusDataSet).find(elevated, {
+              filter: { serviceId: { $eq: 'svc-1' } },
+              top: 1,
+            })
             expect(rows[0]?.upstreamStatus).toBe('present')
             expect(rows[0]?.worktreeStatus).toBe('dirty')
           },
@@ -188,7 +188,7 @@ describe('GitWatcher', () => {
   it('updates upstreamStatus to "gone" when origin/<branch> disappears', () =>
     withTestInjector(async ({ injector, elevated }) => {
       await addServiceDefinition(elevated)
-      await getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId').add(elevated, {
+      await getDataSetFor(elevated, ServiceStatusDataSet).add(elevated, {
         serviceId: 'svc-1',
         cloneStatus: 'cloned',
         installStatus: 'not-installed',
@@ -200,16 +200,16 @@ describe('GitWatcher', () => {
       const mockGit = createMockGit()
       mockGit.hasRemoteBranch.mockResolvedValue(false)
       injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
-      const watcher = injector.getInstance(GitWatcher)
+      const watcher = injector.get(GitWatcher)
 
       try {
         await watcher.startWatching('svc-1')
         await vi.waitFor(
           async () => {
-            const { ServiceGitStatus } = await import('common')
-            const rows = await getRepository(elevated)
-              .getDataSetFor(ServiceGitStatus, 'serviceId')
-              .find(elevated, { filter: { serviceId: { $eq: 'svc-1' } }, top: 1 })
+            const rows = await getDataSetFor(elevated, ServiceGitStatusDataSet).find(elevated, {
+              filter: { serviceId: { $eq: 'svc-1' } },
+              top: 1,
+            })
             expect(rows[0]?.upstreamStatus).toBe('gone')
           },
           { timeout: 1000 },

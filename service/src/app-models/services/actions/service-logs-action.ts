@@ -6,7 +6,7 @@ export const ServiceLogsAction: RequestAction<ServiceLogsEndpoint> = async ({ in
   const { id: serviceId } = getUrlParams()
   const { lines: lineCount, processUid, search } = getQuery()
 
-  const logStorage = injector.getInstance(LogStorageService)
+  const logStorage = injector.get(LogStorageService)
   const parsedLimit = lineCount ? Number(lineCount) : undefined
   const entries = await logStorage.getEntries(serviceId, {
     limit: parsedLimit && Number.isFinite(parsedLimit) ? parsedLimit : undefined,

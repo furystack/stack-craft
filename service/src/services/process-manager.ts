@@ -1,4 +1,4 @@
-import { Injectable, Injected } from '@furystack/inject'
+import { defineService, type Token } from '@furystack/inject'
 
 import { GitOperationsService } from './git-operations-service.js'
 import { OneShotCommandRunner } from './one-shot-command-runner.js'
@@ -15,28 +15,16 @@ import type { TriggerContext } from './trigger-context.js'
  * Facade that delegates to focused service classes.
  * Kept for backward compatibility with REST actions, MCP tools, and other consumers.
  */
-@Injectable({ lifetime: 'singleton' })
-export class ProcessManager {
-  @Injected(ServiceLifecycleManager)
-  declare private lifecycle: ServiceLifecycleManager
-
-  @Injected(OneShotCommandRunner)
-  declare private oneShotRunner: OneShotCommandRunner
-
-  @Injected(ServiceFileManager)
-  declare private fileManager: ServiceFileManager
-
-  @Injected(ServicePipelineOrchestrator)
-  declare private pipeline: ServicePipelineOrchestrator
-
-  @Injected(GitOperationsService)
-  declare private gitOps: GitOperationsService
-
-  @Injected(ServiceEnvResolver)
-  declare private envResolver: ServiceEnvResolver
-
-  @Injected(StaleStateReconciler)
-  declare private reconciler: StaleStateReconciler
+class ProcessManagerImpl {
+  constructor(
+    private readonly lifecycle: ServiceLifecycleManager,
+    private readonly oneShotRunner: OneShotCommandRunner,
+    private readonly fileManager: ServiceFileManager,
+    private readonly pipeline: ServicePipelineOrchestrator,
+    private readonly gitOps: GitOperationsService,
+    private readonly envResolver: ServiceEnvResolver,
+    private readonly reconciler: StaleStateReconciler,
+  ) {}
 
   public async startService(serviceId: string, trigger: TriggerContext): Promise<void> {
     return this.lifecycle.startService(serviceId, trigger)
@@ -93,3 +81,20 @@ export class ProcessManager {
     await this.lifecycle[Symbol.asyncDispose]()
   }
 }
+
+export type ProcessManager = ProcessManagerImpl
+
+export const ProcessManager: Token<ProcessManager, 'singleton'> = defineService({
+  name: 'app/ProcessManager',
+  lifetime: 'singleton',
+  factory: ({ inject }) =>
+    new ProcessManagerImpl(
+      inject(ServiceLifecycleManager),
+      inject(OneShotCommandRunner),
+      inject(ServiceFileManager),
+      inject(ServicePipelineOrchestrator),
+      inject(GitOperationsService),
+      inject(ServiceEnvResolver),
+      inject(StaleStateReconciler),
+    ),
+})

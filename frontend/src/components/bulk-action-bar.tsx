@@ -12,8 +12,8 @@ type BulkActionBarProps = {
 export const BulkActionBar = Shade<BulkActionBarProps>({
   customElementName: 'shade-bulk-action-bar',
   render: ({ props, injector, useObservable, useState }) => {
-    const api = injector.getInstance(ServicesApiClient)
-    const noty = injector.getInstance(NotyService)
+    const api = injector.get(ServicesApiClient)
+    const noty = injector.get(NotyService)
 
     const [selection] = useObservable('selection', props.collectionService.selection)
     const [isBulkLoading, setIsBulkLoading] = useState('isBulkLoading', false)

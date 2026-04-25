@@ -1,21 +1,21 @@
-import { addStore, InMemoryStore } from '@furystack/core'
+import { InMemoryStore } from '@furystack/core'
+import { addStore } from '../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
 import { ServiceLogEntry } from 'common'
 import { describe, expect, it } from 'vitest'
 
 import { LogStorageService } from './log-storage-service.js'
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
 
 const setupLogStorageInjector = (injector: Injector) => {
   useLogging(injector, VerboseConsoleLogger)
   addStore(injector, new InMemoryStore({ model: ServiceLogEntry, primaryKey: 'id' }))
-  let autoId = 0
-  getRepository(injector).createDataSet(ServiceLogEntry, 'id', {
-    modifyOnAdd: async ({ entity }) => ({ ...entity, id: ++autoId }),
-  })
-  return injector.getInstance(LogStorageService)
+  // DataSet is declared as a module-level token with auto-id logic; the
+  // legacy createDataSet shim is a no-op kept here for backwards compatibility.
+  getRepository(injector).createDataSet(ServiceLogEntry, 'id', {})
+  return injector.get(LogStorageService)
 }
 
 describe('LogStorageService', () => {

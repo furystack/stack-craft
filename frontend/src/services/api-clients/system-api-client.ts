@@ -1,10 +1,9 @@
-import { Injectable } from '@furystack/inject'
+import { defineService, type Token } from '@furystack/inject'
 import { createClient } from '@furystack/rest-client-fetch'
 import type { SystemApi } from 'common'
 import { environmentOptions } from '../../environment-options.js'
 
-@Injectable({ lifetime: 'singleton' })
-export class SystemApiClient {
+class SystemApiClientImpl {
   public call = createClient<SystemApi>({
     endpointUrl: `${environmentOptions.serviceUrl}/system`,
     requestInit: {
@@ -13,3 +12,11 @@ export class SystemApiClient {
     },
   })
 }
+
+export type SystemApiClient = SystemApiClientImpl
+
+export const SystemApiClient: Token<SystemApiClient, 'singleton'> = defineService({
+  name: 'app/SystemApiClient',
+  lifetime: 'singleton',
+  factory: () => new SystemApiClientImpl(),
+})

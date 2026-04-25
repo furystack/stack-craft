@@ -1,6 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Injector } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
 import { GitHubRepository } from 'common'
 import { execFile } from 'child_process'
 import { randomUUID } from 'crypto'
@@ -8,6 +7,7 @@ import { promisify } from 'util'
 import { z } from 'zod'
 
 import { errorResult, textResult } from './mcp-helpers.js'
+import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
 
 const execFileAsync = promisify(execFile)
 

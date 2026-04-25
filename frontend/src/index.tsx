@@ -17,11 +17,11 @@ void getLogger(shadeInjector).withScope('Startup').verbose({
   data: { environmentOptions },
 })
 
-shadeInjector.getInstance(SessionService)
+shadeInjector.get(SessionService)
 
 const storedValue = localStorage.getItem(THEME_STORAGE_KEY)
 const savedThemeKey = storedValue ? (JSON.parse(storedValue) as string) : DEFAULT_THEME_KEY
-void applyTheme(savedThemeKey, shadeInjector.getInstance(ThemeProviderService))
+void applyTheme(savedThemeKey, shadeInjector.get(ThemeProviderService))
 
 const rootElement: HTMLDivElement = document.getElementById('root') as HTMLDivElement
 

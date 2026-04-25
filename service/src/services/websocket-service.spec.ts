@@ -5,14 +5,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { withTestInjector } from '../test-helpers.js'
 import { WebsocketService } from './websocket-service.js'
 
-const { mockUseWebsockets, mockGetHost, mockGetPort } = vi.hoisted(() => ({
-  mockUseWebsockets: vi.fn().mockResolvedValue(undefined),
+const { mockUseWebSocketApi, mockGetHost, mockGetPort } = vi.hoisted(() => ({
+  mockUseWebSocketApi: vi.fn().mockResolvedValue(undefined),
   mockGetHost: vi.fn(() => '127.0.0.1'),
   mockGetPort: vi.fn(() => 4242),
 }))
 
 vi.mock('@furystack/websocket-api', () => ({
-  useWebsockets: mockUseWebsockets,
+  useWebSocketApi: mockUseWebSocketApi,
 }))
 
 vi.mock('../get-host.js', () => ({
@@ -28,15 +28,16 @@ beforeEach(() => {
 })
 
 describe('WebsocketService', () => {
-  it('init() calls useWebsockets with correct config (port, path, actions)', () =>
+  it('init() calls useWebSocketApi with correct config (port, path, actions)', () =>
     withTestInjector(async ({ injector }) => {
-      const ws = injector.getInstance(WebsocketService)
+      const ws = injector.get(WebsocketService)
       await ws.init(injector)
 
       expect(mockGetHost).toHaveBeenCalled()
       expect(mockGetPort).toHaveBeenCalled()
-      expect(mockUseWebsockets).toHaveBeenCalledWith(injector, {
-        host: '127.0.0.1',
+      expect(mockUseWebSocketApi).toHaveBeenCalledWith({
+        injector,
+        hostName: '127.0.0.1',
         port: 4242,
         path: '/api/ws',
         actions: [SyncSubscribeAction, SyncUnsubscribeAction],
@@ -45,8 +46,8 @@ describe('WebsocketService', () => {
 
   it('is injectable as singleton', () =>
     withTestInjector(async ({ injector }) => {
-      const a = injector.getInstance(WebsocketService)
-      const b = injector.getInstance(WebsocketService)
+      const a = injector.get(WebsocketService)
+      const b = injector.get(WebsocketService)
       expect(a).toBe(b)
     }))
 })

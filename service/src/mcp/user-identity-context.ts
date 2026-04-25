@@ -4,19 +4,19 @@ import type { User } from 'common'
 
 /**
  * An {@link IdentityContext} bound to a specific authenticated user.
- * Unlike {@link import('@furystack/core').SystemIdentityContext}, authorization
- * checks are performed against the user's actual roles.
+ *
+ * Unlike `useSystemIdentityContext`, authorization checks resolve against
+ * the user's actual roles.
  */
-export class UserIdentityContext extends IdentityContext {
-  constructor(private readonly user: User) {
-    super()
-  }
+export class UserIdentityContext implements IdentityContext {
+  constructor(private readonly user: User) {}
 
-  override isAuthenticated = () => Promise.resolve(true)
+  isAuthenticated = (): Promise<boolean> => Promise.resolve(true)
 
-  override isAuthorized = (...roles: string[]) => Promise.resolve(roles.every((r) => this.user.roles.includes(r)))
+  isAuthorized = (...roles: string[]): Promise<boolean> =>
+    Promise.resolve(roles.every((r) => this.user.roles.includes(r)))
 
-  override getCurrentUser = <TUser>() => Promise.resolve(this.user as TUser)
+  getCurrentUser = <TUser>(): Promise<TUser> => Promise.resolve(this.user as TUser)
 }
 
 /**
@@ -25,7 +25,7 @@ export class UserIdentityContext extends IdentityContext {
  */
 export const useUserIdentityContext = (options: { injector: Injector; user: User }): Injector => {
   const ctx = new UserIdentityContext(options.user)
-  const child = options.injector.createChild({ owner: 'UserIdentityContext' })
-  child.setExplicitInstance(ctx, IdentityContext)
+  const child = options.injector.createScope({ owner: 'UserIdentityContext' })
+  child.bind(IdentityContext, () => ctx)
   return child
 }

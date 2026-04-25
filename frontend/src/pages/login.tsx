@@ -105,7 +105,7 @@ export const Login = Shade({
     },
   },
   render: ({ injector, useObservable }) => {
-    const sessionService = injector.getInstance(SessionService)
+    const sessionService = injector.get(SessionService)
     const [isOperationInProgress] = useObservable('isOperationInProgress', sessionService.isOperationInProgress)
     const [error] = useObservable('loginError', sessionService.loginError)
 

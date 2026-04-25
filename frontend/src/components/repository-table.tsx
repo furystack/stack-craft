@@ -1,5 +1,5 @@
 import type { FindOptions } from '@furystack/core'
-import { useCollectionSync } from '@furystack/entity-sync-client'
+import { useCollectionSync } from '../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
 import type { ColumnFilterConfig } from '@furystack/shades-common-components'
 import {

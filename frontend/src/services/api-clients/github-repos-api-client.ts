@@ -1,10 +1,9 @@
-import { Injectable } from '@furystack/inject'
+import { defineService, type Token } from '@furystack/inject'
 import { createClient } from '@furystack/rest-client-fetch'
 import type { GitHubRepositoriesApi } from 'common'
 import { environmentOptions } from '../../environment-options.js'
 
-@Injectable({ lifetime: 'singleton' })
-export class GitHubReposApiClient {
+class GitHubReposApiClientImpl {
   public call = createClient<GitHubRepositoriesApi>({
     endpointUrl: `${environmentOptions.serviceUrl}/github-repositories`,
     requestInit: {
@@ -13,3 +12,11 @@ export class GitHubReposApiClient {
     },
   })
 }
+
+export type GitHubReposApiClient = GitHubReposApiClientImpl
+
+export const GitHubReposApiClient: Token<GitHubReposApiClient, 'singleton'> = defineService({
+  name: 'app/GitHubReposApiClient',
+  lifetime: 'singleton',
+  factory: () => new GitHubReposApiClientImpl(),
+})

@@ -1,5 +1,4 @@
 import type { Injector } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
 import { GitHubRepository, ServiceConfig, ServiceDefinition, ServiceStatus, StackConfig } from 'common'
 import type fs from 'fs'
 import { describe, expect, it, vi } from 'vitest'
@@ -12,6 +11,8 @@ import { GitWatcher } from './git-watcher.js'
 import type { TriggerContext } from './trigger-context.js'
 import { ServiceEnvResolver } from './service-env-resolver.js'
 import { ServiceStatusManager } from './service-status-manager.js'
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
+import '../test-shims.js'
 
 vi.mock('fs', async (importOriginal) => {
   const actual: typeof fs = await importOriginal()
@@ -120,7 +121,7 @@ describe('GitOperationsService', () => {
 
         existsSyncMock.mockReturnValue(false)
 
-        const service = injector.getInstance(GitOperationsService)
+        const service = injector.get(GitOperationsService)
         const result = await service.cloneOrPullService('svc-1', trigger)
 
         expect(result).toEqual({ cloned: true, pulled: false, updated: true })
@@ -152,7 +153,7 @@ describe('GitOperationsService', () => {
         existsSyncMock.mockReturnValue(true)
         mockGitService.pull.mockResolvedValueOnce({ updated: true })
 
-        const service = injector.getInstance(GitOperationsService)
+        const service = injector.get(GitOperationsService)
         const result = await service.cloneOrPullService('svc-1', trigger)
 
         expect(result).toEqual({ cloned: false, pulled: true, updated: true })
@@ -173,7 +174,7 @@ describe('GitOperationsService', () => {
         })
         readdirSyncMock.mockReturnValue(['some-file.txt'] as unknown as ReturnType<typeof readdirSync>)
 
-        const service = injector.getInstance(GitOperationsService)
+        const service = injector.get(GitOperationsService)
         const result = await service.cloneOrPullService('svc-1', trigger)
 
         expect(result).toEqual({ cloned: true, pulled: false, updated: true })
@@ -199,7 +200,7 @@ describe('GitOperationsService', () => {
           updatedAt: ts,
         })
 
-        const service = injector.getInstance(GitOperationsService)
+        const service = injector.get(GitOperationsService)
         await expect(service.cloneOrPullService('svc-1', trigger)).rejects.toThrow('No repository linked')
       }))
 
@@ -211,7 +212,7 @@ describe('GitOperationsService', () => {
         existsSyncMock.mockReturnValue(false)
         mockGitService.clone.mockRejectedValueOnce(new Error('Network error'))
 
-        const service = injector.getInstance(GitOperationsService)
+        const service = injector.get(GitOperationsService)
         await expect(service.cloneOrPullService('svc-1', trigger)).rejects.toThrow('Network error')
 
         expect(mockStatusManager.updateServiceStatus).toHaveBeenCalledWith(
@@ -231,7 +232,7 @@ describe('GitOperationsService', () => {
         existsSyncMock.mockReturnValue(true)
         mockGitService.fetch.mockRejectedValueOnce(new Error('remote hung up'))
 
-        const service = injector.getInstance(GitOperationsService)
+        const service = injector.get(GitOperationsService)
         await expect(service.cloneOrPullService('svc-1', trigger)).rejects.toThrow('remote hung up')
 
         expect(mockStatusManager.updateServiceStatus).not.toHaveBeenCalledWith(
@@ -259,7 +260,7 @@ describe('GitOperationsService', () => {
         mockGitService.getCurrentBranch.mockResolvedValueOnce('feature/gone')
         mockGitService.hasRemoteBranch.mockResolvedValueOnce(false)
 
-        const service = injector.getInstance(GitOperationsService)
+        const service = injector.get(GitOperationsService)
         const result = await service.cloneOrPullService('svc-1', trigger)
 
         expect(result).toEqual({ cloned: false, pulled: false, updated: false, upstreamGone: true })
@@ -277,7 +278,7 @@ describe('GitOperationsService', () => {
       withTestInjector(async ({ injector }) => {
         setupMocks(injector)
 
-        const service = injector.getInstance(GitOperationsService)
+        const service = injector.get(GitOperationsService)
         await expect(service.cloneOrPullService('nonexistent', trigger)).rejects.toThrow('Service not found')
       }))
   })

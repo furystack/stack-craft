@@ -1,4 +1,4 @@
-import { Injector } from '@furystack/inject'
+import { createInjector, type Injector } from '@furystack/inject'
 import { NotyService } from '@furystack/shades-common-components'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -11,10 +11,10 @@ const createMocks = () => ({
 })
 
 const createService = (mocks: ReturnType<typeof createMocks>): { injector: Injector; service: SessionService } => {
-  const injector = new Injector()
-  injector.setExplicitInstance(mocks.api, IdentityApiClient)
-  injector.setExplicitInstance(mocks.notys as unknown as NotyService, NotyService)
-  const service = injector.getInstance(SessionService)
+  const injector = createInjector()
+  injector.bind(IdentityApiClient, () => mocks.api as unknown as IdentityApiClient)
+  injector.bind(NotyService, () => mocks.notys as unknown as NotyService)
+  const service = injector.get(SessionService)
   return { injector, service }
 }
 

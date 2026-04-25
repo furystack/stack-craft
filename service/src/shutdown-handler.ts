@@ -1,6 +1,5 @@
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { ServerManager } from '@furystack/rest-service'
 
 export const attachShutdownHandler = async (i: Injector) => {
   const logger = getLogger(i).withScope('shutdown-handler')
@@ -37,9 +36,8 @@ export const attachShutdownHandler = async (i: Injector) => {
           },
         })
       }
-      if (i.cachedSingletons.get(ServerManager)) {
-        await i.getInstance(ServerManager)[Symbol.asyncDispose]()
-      }
+      // The injector owns the HTTP server pool token; disposing the injector
+      // closes every pooled server.
       await i[Symbol.asyncDispose]()
     } catch (e) {
       await logger.fatal({ message: 'Error during shutdown', data: { error: e } }).catch(() => {

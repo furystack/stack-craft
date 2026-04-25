@@ -1,4 +1,4 @@
-import { useEntitySync } from '@furystack/entity-sync-client'
+import { useEntitySync } from '../../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
 
 import {
@@ -58,7 +58,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
       )
     }
 
-    const api = injector.getInstance(GitHubReposApiClient)
+    const api = injector.get(GitHubReposApiClient)
     const [isDeleting, setIsDeleting] = useState('isDeleting', false)
 
     const handleSave = async (data: Partial<GitHubRepository>) => {
@@ -73,7 +73,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
             description: data.description,
           },
         })
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Repository updated',
           body: `"${data.displayName ?? repo.displayName}" was updated successfully.`,
           type: 'success',
@@ -83,7 +83,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           params: { stackName: repo.stackName },
         })
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Error',
           body: error instanceof Error ? error.message : 'Failed to update repository',
           type: 'error',
@@ -99,7 +99,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           action: '/github-repositories/:id',
           url: { id: repo.id },
         })
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Repository deleted',
           body: `"${repo.displayName}" was deleted.`,
           type: 'success',
@@ -109,7 +109,7 @@ export const EditRepository = Shade<EditRepositoryProps>({
           params: { stackName: repo.stackName },
         })
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Error',
           body: error instanceof Error ? error.message : 'Failed to delete repository',
           type: 'error',

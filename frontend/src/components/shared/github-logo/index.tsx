@@ -20,7 +20,7 @@ export const GithubLogo = Shade<GithubLogoProps>({
     },
   },
   render: ({ props, useDisposable, useState, injector }) => {
-    const themeProvider = injector.getInstance(ThemeProviderService)
+    const themeProvider = injector.get(ThemeProviderService)
     const [theme, setTheme] = useState('themeName', getTextColor(themeProvider.theme.background.paper, 'light', 'dark'))
     useDisposable('themeChange', () =>
       themeProvider.subscribe('themeChanged', () => {

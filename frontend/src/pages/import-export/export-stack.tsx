@@ -29,7 +29,7 @@ export const ExportStack = Shade<ExportStackProps>({
 
     useDisposable('fetchExport', () => {
       void injector
-        .getInstance(StacksApiClient)
+        .get(StacksApiClient)
         .call({
           method: 'GET',
           action: '/stacks/:id/export',
@@ -112,7 +112,7 @@ export const ExportStack = Shade<ExportStackProps>({
                   variant="contained"
                   onclick={() => {
                     void navigator.clipboard.writeText(jsonOutput)
-                    injector.getInstance(NotyService).emit('onNotyAdded', {
+                    injector.get(NotyService).emit('onNotyAdded', {
                       title: 'Copied',
                       body: 'Stack export data copied to clipboard.',
                       type: 'success',

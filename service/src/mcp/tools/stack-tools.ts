@@ -1,7 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import {
   GitHubRepository,
   Prerequisite,
@@ -21,6 +20,7 @@ import { ProcessManager } from '../../services/process-manager.js'
 import { CryptoService } from '../../utils/crypto-service.js'
 import { encryptEnvValues } from '../../utils/env-encryption-helpers.js'
 import { environmentVariableValueSchema, errorResult, mcpTrigger, textResult } from './mcp-helpers.js'
+import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
 
 export const registerStackTools = (mcp: McpServer, injector: Injector, elevated: Injector) => {
   const repository = getRepository(elevated)
@@ -399,7 +399,7 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
     async ({ stack, services, repositories, prerequisites, config }) => {
       const now = new Date().toISOString()
       const stackName = stack.name
-      const crypto = elevated.getInstance(CryptoService)
+      const crypto = elevated.get(CryptoService)
 
       const repoEntries = repositories.map((repo) => ({
         ...repo,
@@ -612,7 +612,7 @@ export const registerStackTools = (mcp: McpServer, injector: Injector, elevated:
         const svcs = await svcDs.find(elevated, { filter: { stackName: { $eq: stackName } }, select: ['id'] })
         if (svcs.length === 0) return errorResult(`No services found in stack: ${stackName}`)
 
-        const pm = injector.getInstance(ProcessManager)
+        const pm = injector.get(ProcessManager)
         await pm.setupServices(
           svcs.map((s) => s.id),
           mcpTrigger,

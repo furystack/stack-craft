@@ -89,7 +89,7 @@ describe('registerServiceAction', () => {
     const fakeProcessManager = { startService }
 
     const injector = {
-      getInstance: vi.fn().mockReturnValue(fakeProcessManager),
+      get: vi.fn().mockReturnValue(fakeProcessManager),
     } as unknown as Parameters<typeof registerServiceAction>[3]
 
     registerServiceAction(mcp, 'start', 'Start a service', injector, 'startService', 'started')
@@ -109,7 +109,7 @@ describe('registerServiceAction', () => {
     const fakeProcessManager = { buildService }
 
     const injector = {
-      getInstance: vi.fn().mockReturnValue(fakeProcessManager),
+      get: vi.fn().mockReturnValue(fakeProcessManager),
     } as unknown as Parameters<typeof registerServiceAction>[3]
 
     registerServiceAction(mcp, 'build', 'Build a service', injector, 'buildService', 'built')

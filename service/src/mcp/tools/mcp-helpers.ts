@@ -50,7 +50,7 @@ export const registerServiceAction = (
     },
     async ({ serviceId }) => {
       try {
-        await injector.getInstance(ProcessManager)[method](serviceId, mcpTrigger)
+        await injector.get(ProcessManager)[method](serviceId, mcpTrigger)
         return textResult(`Service ${serviceId} ${pastTense}`)
       } catch (error) {
         return errorResult(`Failed: ${(error as Error).message}`)

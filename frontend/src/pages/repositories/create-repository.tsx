@@ -16,7 +16,7 @@ export const CreateRepository = Shade<CreateRepositoryProps>({
   render: ({ props, injector }) => {
     const handleSubmit = async (data: Partial<GitHubRepository>) => {
       try {
-        await injector.getInstance(GitHubReposApiClient).call({
+        await injector.get(GitHubReposApiClient).call({
           method: 'POST',
           action: '/github-repositories',
           body: {
@@ -27,7 +27,7 @@ export const CreateRepository = Shade<CreateRepositoryProps>({
             description: data.description ?? '',
           },
         })
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Repository added',
           body: `"${data.displayName}" was added successfully.`,
           type: 'success',
@@ -37,7 +37,7 @@ export const CreateRepository = Shade<CreateRepositoryProps>({
           params: { stackName: props.stackName },
         })
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Error',
           body: error instanceof Error ? error.message : 'Failed to add repository',
           type: 'error',

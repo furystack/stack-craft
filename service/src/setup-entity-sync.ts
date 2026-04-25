@@ -1,39 +1,49 @@
 import type { Injector } from '@furystack/inject'
-import { useEntitySync } from '@furystack/entity-sync-service'
+import { useEntitySync, type EntitySyncModelConfig } from '@furystack/entity-sync-service'
+import type { DataSetToken } from '@furystack/repository'
+
 import {
-  GitHubRepository,
-  Prerequisite,
-  PrerequisiteCheckResult,
-  PublicApiToken,
-  ServiceConfig,
-  ServiceDefinition,
-  ServiceDependencyLink,
-  ServiceGitStatus,
-  ServiceLogEntry,
-  ServicePrerequisiteLink,
-  ServiceStateHistory,
-  ServiceStatus,
-  StackConfig,
-  StackDefinition,
-} from 'common'
+  GitHubRepositoryDataSet,
+  PrerequisiteCheckResultDataSet,
+  PrerequisiteDataSet,
+  PublicApiTokenDataSet,
+  ServiceConfigDataSet,
+  ServiceDefinitionDataSet,
+  ServiceDependencyLinkDataSet,
+  ServiceGitStatusDataSet,
+  ServicePrerequisiteLinkDataSet,
+  ServiceStateHistoryDataSet,
+  ServiceStatusDataSet,
+  StackConfigDataSet,
+  StackDefinitionDataSet,
+} from './app-models/data-store/tokens.js'
+import { ServiceLogEntryDataSet } from './app-models/logs/setup-log-store.js'
+
+const sync = (
+  token: DataSetToken<unknown, keyof unknown>,
+  options?: Omit<EntitySyncModelConfig, 'dataSet'>,
+): EntitySyncModelConfig => ({
+  dataSet: token,
+  ...options,
+})
 
 export const setupEntitySync = (injector: Injector) => {
   useEntitySync(injector, {
     models: [
-      { model: PublicApiToken, primaryKey: 'id' },
-      { model: StackDefinition, primaryKey: 'name' },
-      { model: StackConfig, primaryKey: 'stackName' },
-      { model: ServiceDefinition, primaryKey: 'id' },
-      { model: ServiceConfig, primaryKey: 'serviceId' },
-      { model: ServiceStatus, primaryKey: 'serviceId' },
-      { model: ServiceGitStatus, primaryKey: 'serviceId' },
-      { model: GitHubRepository, primaryKey: 'id' },
-      { model: Prerequisite, primaryKey: 'id' },
-      { model: ServicePrerequisiteLink, primaryKey: 'id' },
-      { model: ServiceDependencyLink, primaryKey: 'id' },
-      { model: PrerequisiteCheckResult, primaryKey: 'prerequisiteId' },
-      { model: ServiceLogEntry, primaryKey: 'id', debounceMs: 250 },
-      { model: ServiceStateHistory, primaryKey: 'id', debounceMs: 250 },
+      sync(PublicApiTokenDataSet as never),
+      sync(StackDefinitionDataSet as never),
+      sync(StackConfigDataSet as never),
+      sync(ServiceDefinitionDataSet as never),
+      sync(ServiceConfigDataSet as never),
+      sync(ServiceStatusDataSet as never),
+      sync(ServiceGitStatusDataSet as never),
+      sync(GitHubRepositoryDataSet as never),
+      sync(PrerequisiteDataSet as never),
+      sync(ServicePrerequisiteLinkDataSet as never),
+      sync(ServiceDependencyLinkDataSet as never),
+      sync(PrerequisiteCheckResultDataSet as never),
+      sync(ServiceLogEntryDataSet as never, { debounceMs: 250 }),
+      sync(ServiceStateHistoryDataSet as never, { debounceMs: 250 }),
     ],
   })
 }

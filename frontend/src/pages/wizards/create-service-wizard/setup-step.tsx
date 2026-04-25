@@ -15,8 +15,8 @@ export const SetupStep = Shade<SetupStepProps>({
   render: ({ props, injector, useState }) => {
     const [setupStatus, setSetupStatus] = useState<'idle' | 'running' | 'done' | 'failed'>('setupStatus', 'idle')
 
-    const servicesApi = injector.getInstance(ServicesApiClient)
-    const noty = injector.getInstance(NotyService)
+    const servicesApi = injector.get(ServicesApiClient)
+    const noty = injector.get(NotyService)
 
     const handleSetupNow = async () => {
       setSetupStatus('running')

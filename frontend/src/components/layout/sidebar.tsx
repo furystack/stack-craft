@@ -1,4 +1,4 @@
-import { useCollectionSync } from '@furystack/entity-sync-client'
+import { useCollectionSync } from '../../services/entity-sync.js'
 import type { Injector } from '@furystack/inject'
 import { createComponent, LocationService, Shade } from '@furystack/shades'
 import { Accordion, AccordionItem, cssVariableTheme, Divider, Icon, icons } from '@furystack/shades-common-components'
@@ -171,7 +171,7 @@ export const Sidebar = Shade<{ injector?: Injector }>({
   },
   render: (options) => {
     const { injector, useObservable, useState, useDisposable } = options
-    const [currentUrl] = useObservable('locationChange', injector.getInstance(LocationService).onLocationPathChanged)
+    const [currentUrl] = useObservable('locationChange', injector.get(LocationService).onLocationPathChanged)
 
     const stacksState = useCollectionSync(options, StackDefinition, {})
     const stacks = (
@@ -187,7 +187,7 @@ export const Sidebar = Shade<{ injector?: Injector }>({
     useDisposable(
       'sidebar-stack-accordion-sync',
       () => {
-        const locationService = injector.getInstance(LocationService)
+        const locationService = injector.get(LocationService)
         let lastUrl = locationService.onLocationPathChanged.getValue()
         const observer = locationService.onLocationPathChanged.subscribe((url) => {
           const nextPhase: Record<string, 0 | 1> = {}

@@ -8,7 +8,7 @@ import { appRoutes } from '../app-routes.js'
 export const Body = Shade<{ style?: Partial<CSSStyleDeclaration>; injector?: Injector }>({
   customElementName: 'shade-app-body',
   render: ({ injector, useObservable }) => {
-    const session = injector.getInstance(SessionService)
+    const session = injector.get(SessionService)
     const [sessionState] = useObservable('sessionState', session.state)
     return (
       <div id="Body">

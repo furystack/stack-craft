@@ -33,8 +33,8 @@ export const ServiceTable = Shade<ServiceTableProps>({
   customElementName: 'shade-service-table',
   render: (options) => {
     const { props, injector, useState } = options
-    const api = injector.getInstance(ServicesApiClient)
-    const noty = injector.getInstance(NotyService)
+    const api = injector.get(ServicesApiClient)
+    const noty = injector.get(NotyService)
     const { collectionService } = props
 
     const callServiceAction = (serviceId: string, action: string, actionLabel: string) => {
@@ -243,7 +243,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                   aria-label="Edit"
                   onclick={() =>
                     injector
-                      .getInstance(LocationService)
+                      .get(LocationService)
                       .navigate(`/stacks/${entry.stackName}/services/${entry.id}#configuration`)
                   }
                   startIcon={<Icon icon={icons.edit} size="small" />}
