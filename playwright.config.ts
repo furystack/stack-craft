@@ -14,6 +14,7 @@ const baseURL = `http://localhost:${port}`
 const config: PlaywrightTestConfig = {
   forbidOnly: isInCi,
   testDir: 'e2e',
+  testMatch: /.*\.spec\.ts$/,
   fullyParallel: true,
   retries: isInCi ? 2 : 0,
   reporter: isInCi ? 'github' : 'line',
