@@ -430,9 +430,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@furystack/entity-sync-service@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "@furystack/entity-sync-service@npm:2.0.0"
+"@furystack/entity-sync-service@npm:^2.0.1":
+  version: 2.0.1
+  resolution: "@furystack/entity-sync-service@npm:2.0.1"
   dependencies:
     "@furystack/core": "npm:^17.0.0"
     "@furystack/entity-sync": "npm:^2.0.0"
@@ -440,7 +440,7 @@ __metadata:
     "@furystack/repository": "npm:^11.0.0"
     "@furystack/websocket-api": "npm:^14.0.0"
     ws: "npm:^8.20.0"
-  checksum: 10c0/f17027d5ddaab58aa0fb2a23b3af90f14225a5bee7b9235fce43e99d60f9e5fd86598f349771c73e88819a8152fd6a02b283066a1d1354da5b39edf2d0767298
+  checksum: 10c0/45dee1e2973ce9a493bccf5e45fa3abc5fb427f59c928b07a8a17f3d7e89b58675e873e7c7da7bc092b8c9c834215864cf6184e99d39a876efc4acd5a0d09f18
   languageName: node
   linkType: hard
 
@@ -5091,7 +5091,7 @@ __metadata:
   resolution: "service@workspace:service"
   dependencies:
     "@furystack/core": "npm:^17.0.0"
-    "@furystack/entity-sync-service": "npm:^2.0.0"
+    "@furystack/entity-sync-service": "npm:^2.0.1"
     "@furystack/inject": "npm:^13.0.0"
     "@furystack/logging": "npm:^9.0.0"
     "@furystack/repository": "npm:^11.0.0"
