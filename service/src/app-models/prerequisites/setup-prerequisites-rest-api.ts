@@ -8,9 +8,9 @@ import {
   Validate,
 } from '@furystack/rest-service'
 import type { PrerequisitesApi } from 'common'
-import { Prerequisite } from 'common'
 import prerequisitesApiSchema from 'common/schemas/prerequisites-api.json' with { type: 'json' }
 
+import { PrerequisiteDataSet } from '../data-store/tokens.js'
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getHost } from '../../get-host.js'
 import { getPort } from '../../get-port.js'
@@ -29,11 +29,11 @@ export const setupPrerequisitesRestApi = async (injector: Injector) => {
         '/prerequisites': Validate({
           schema: prerequisitesApiSchema,
           schemaName: 'GetCollectionEndpoint<Prerequisite>',
-        })(createGetCollectionEndpoint({ model: Prerequisite, primaryKey: 'id' })),
+        })(createGetCollectionEndpoint(PrerequisiteDataSet)),
         '/prerequisites/:id': Validate({
           schema: prerequisitesApiSchema,
           schemaName: 'GetEntityEndpoint<Prerequisite,"id">',
-        })(createGetEntityEndpoint({ model: Prerequisite, primaryKey: 'id' })),
+        })(createGetEntityEndpoint(PrerequisiteDataSet)),
       },
       POST: {
         '/prerequisites': Validate({
@@ -49,7 +49,7 @@ export const setupPrerequisitesRestApi = async (injector: Injector) => {
         '/prerequisites/:id': Validate({
           schema: prerequisitesApiSchema,
           schemaName: 'PatchPrerequisiteEndpoint',
-        })(createPatchEndpoint({ model: Prerequisite, primaryKey: 'id' })),
+        })(createPatchEndpoint(PrerequisiteDataSet)),
       },
       DELETE: {
         '/prerequisites/:id': Validate({

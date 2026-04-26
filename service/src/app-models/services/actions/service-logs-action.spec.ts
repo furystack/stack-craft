@@ -7,6 +7,7 @@ import { LogStorageService } from '../../../services/log-storage-service.js'
 import { withTestInjector } from '../../../test-helpers.js'
 
 import { ServiceLogsAction } from './service-logs-action.js'
+import '../../../test-shims.js'
 
 const createLogsContext = (options: {
   injector: Injector

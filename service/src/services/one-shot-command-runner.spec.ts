@@ -1,7 +1,14 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import {
+  ServiceConfigDataSet,
+  ServiceDefinitionDataSet,
+  ServiceStatusDataSet,
+  StackConfigDataSet,
+} from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import { InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { addStore } from '../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import {
   GitHubRepository,
   Prerequisite,
@@ -22,6 +29,7 @@ import { GitHeadWatcher } from './git-head-watcher.js'
 import { LogStorageService } from './log-storage-service.js'
 import { OneShotCommandRunner } from './one-shot-command-runner.js'
 import type { TriggerContext } from './trigger-context.js'
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
 
 const testTrigger: TriggerContext = { triggeredBy: 'test', triggerSource: 'api' }
 
@@ -88,7 +96,7 @@ const setupInjector = async (injector: Injector) => {
   injector.setExplicitInstance(mockLogStorage as unknown as LogStorageService, LogStorageService)
 
   const elevated = useSystemIdentityContext({ injector })
-  await getRepository(elevated).getDataSetFor(StackConfig, 'stackName').add(elevated, {
+  await getDataSetFor(elevated, StackConfigDataSet).add(elevated, {
     stackName: 'test-stack',
     mainDirectory: tmpdir(),
     environmentVariables: {},
@@ -103,11 +111,9 @@ const setupInjector = async (injector: Injector) => {
 const seedService = async (injector: Injector, overrides: Partial<ServiceDefinition> = {}) => {
   const elevated = useSystemIdentityContext({ injector })
   const svcDef = createTestServiceDefinition(overrides)
-  await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').add(elevated, svcDef)
-  await getRepository(elevated)
-    .getDataSetFor(ServiceStatus, 'serviceId')
-    .add(elevated, createTestServiceStatus({ serviceId: svcDef.id }))
-  await getRepository(elevated).getDataSetFor(ServiceConfig, 'serviceId').add(elevated, {
+  await getDataSetFor(elevated, ServiceDefinitionDataSet).add(elevated, svcDef)
+  await getDataSetFor(elevated, ServiceStatusDataSet).add(elevated, createTestServiceStatus({ serviceId: svcDef.id }))
+  await getDataSetFor(elevated, ServiceConfigDataSet).add(elevated, {
     serviceId: svcDef.id,
     autoFetchEnabled: false,
     autoFetchIntervalMinutes: 60,
@@ -130,7 +136,7 @@ const withContext = async (
   const injector = new Injector()
   const { mockLogStorage } = await setupInjector(injector)
   await seedService(injector)
-  const runner = injector.getInstance(OneShotCommandRunner)
+  const runner = injector.get(OneShotCommandRunner)
   try {
     await fn({ injector, runner, mockLogStorage })
   } finally {
@@ -162,9 +168,10 @@ describe('OneShotCommandRunner', () => {
       await runner.installService('svc-1', testTrigger)
 
       const elevated = useSystemIdentityContext({ injector })
-      const [status] = await getRepository(elevated)
-        .getDataSetFor(ServiceStatus, 'serviceId')
-        .find(elevated, { filter: { serviceId: { $eq: 'svc-1' } }, top: 1 })
+      const [status] = await getDataSetFor(elevated, ServiceStatusDataSet).find(elevated, {
+        filter: { serviceId: { $eq: 'svc-1' } },
+        top: 1,
+      })
       await elevated[Symbol.asyncDispose]()
 
       expect(status?.installStatus).toBe('installed')
@@ -176,9 +183,10 @@ describe('OneShotCommandRunner', () => {
       await runner.buildService('svc-1', testTrigger)
 
       const elevated = useSystemIdentityContext({ injector })
-      const [status] = await getRepository(elevated)
-        .getDataSetFor(ServiceStatus, 'serviceId')
-        .find(elevated, { filter: { serviceId: { $eq: 'svc-1' } }, top: 1 })
+      const [status] = await getDataSetFor(elevated, ServiceStatusDataSet).find(elevated, {
+        filter: { serviceId: { $eq: 'svc-1' } },
+        top: 1,
+      })
       await elevated[Symbol.asyncDispose]()
 
       expect(status?.buildStatus).toBe('built')
@@ -191,9 +199,10 @@ describe('OneShotCommandRunner', () => {
       await expect(runner.installService('fail-svc', testTrigger)).rejects.toThrow('exited with code 1')
 
       const elevated = useSystemIdentityContext({ injector })
-      const [status] = await getRepository(elevated)
-        .getDataSetFor(ServiceStatus, 'serviceId')
-        .find(elevated, { filter: { serviceId: { $eq: 'fail-svc' } }, top: 1 })
+      const [status] = await getDataSetFor(elevated, ServiceStatusDataSet).find(elevated, {
+        filter: { serviceId: { $eq: 'fail-svc' } },
+        top: 1,
+      })
       await elevated[Symbol.asyncDispose]()
 
       expect(status?.installStatus).toBe('failed')
@@ -216,7 +225,7 @@ describe('OneShotCommandRunner', () => {
 
       // Clean up: the install process is still running, kill it via the process runner
       const { ProcessRunner: PR } = await import('./process-runner.js')
-      const processRunner = injector.getInstance(PR)
+      const processRunner = injector.get(PR)
       const managed = processRunner.processes.get('busy-svc')
       if (managed) processRunner.killProcessGroup(managed.process, 'SIGKILL')
       await installPromise.catch(() => {})

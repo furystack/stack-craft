@@ -1,7 +1,8 @@
+import { ApiTokenDataSet, PublicApiTokenDataSet } from '../data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 import { getCurrentUser } from '@furystack/core'
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction, useRestService, Validate } from '@furystack/rest-service'
 import type { CreateTokenEndpoint, TokensApi } from 'common'
@@ -13,6 +14,7 @@ import { useSystemIdentityContext } from '@furystack/core'
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getHost } from '../../get-host.js'
 import { getPort } from '../../get-port.js'
+import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
 
 export const CreateTokenAction: RequestAction<CreateTokenEndpoint> = async ({ injector, getBody }) => {
   const logger = getLogger(injector).withScope('CreateToken')
@@ -37,11 +39,11 @@ export const CreateTokenAction: RequestAction<CreateTokenEndpoint> = async ({ in
     createdAt: now,
   }
 
-  const apiTokenDs = getRepository(injector).getDataSetFor(ApiToken, 'id')
+  const apiTokenDs = getDataSetFor(injector, ApiTokenDataSet)
   await apiTokenDs.add(injector, tokenEntity)
 
   const { tokenHash: _hash, ...publicToken } = tokenEntity
-  const publicTokenDs = getRepository(injector).getDataSetFor(PublicApiToken, 'id')
+  const publicTokenDs = getDataSetFor(injector, PublicApiTokenDataSet)
   await publicTokenDs.add(injector, publicToken)
 
   await logger.information({ message: `Token created: ${name} for user ${currentUser.username}` })
@@ -56,7 +58,7 @@ export const GetTokensAction: RequestAction<TokensApi['GET']['/tokens']> = async
     throw new RequestError('Not authenticated', 401)
   }
 
-  const apiTokenDs = getRepository(injector).getDataSetFor(ApiToken, 'id')
+  const apiTokenDs = getDataSetFor(injector, ApiTokenDataSet)
   const tokens = await apiTokenDs.find(injector, {
     filter: { username: { $eq: currentUser.username } },
   })
@@ -76,7 +78,7 @@ export const DeleteTokenAction: RequestAction<TokensApi['DELETE']['/tokens/:id']
   }
 
   const { id } = getUrlParams()
-  const apiTokenDs = getRepository(injector).getDataSetFor(ApiToken, 'id')
+  const apiTokenDs = getDataSetFor(injector, ApiTokenDataSet)
 
   const results = await apiTokenDs.find(injector, { filter: { id: { $eq: id } }, top: 1 })
   const token = results[0]
@@ -86,7 +88,7 @@ export const DeleteTokenAction: RequestAction<TokensApi['DELETE']['/tokens/:id']
   }
 
   await apiTokenDs.remove(injector, id)
-  const publicTokenDs = getRepository(injector).getDataSetFor(PublicApiToken, 'id')
+  const publicTokenDs = getDataSetFor(injector, PublicApiTokenDataSet)
   await publicTokenDs.remove(injector, id)
   return JsonResult({})
 }

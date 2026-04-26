@@ -1,15 +1,10 @@
+import { ServiceConfigDataSet, ServiceGitStatusDataSet } from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 import { useSystemIdentityContext } from '@furystack/core'
-import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
+import { type Injector, defineService, type Token } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
-import {
-  GitHubRepository,
-  ServiceConfig,
-  ServiceDefinition,
-  ServiceGitStatus,
-  StackConfig,
-  getServiceCwd,
-} from 'common'
+import type { ServiceDefinition, ServiceGitStatus } from 'common'
+import { GitHubRepository, StackConfig, getServiceCwd } from 'common'
 import { existsSync, mkdirSync, readdirSync, renameSync } from 'fs'
 import { dirname, join, resolve as resolvePosix, sep } from 'path'
 
@@ -25,32 +20,29 @@ import { GitWatcher } from './git-watcher.js'
 import type { TriggerContext } from './trigger-context.js'
 import { ServiceEnvResolver } from './service-env-resolver.js'
 import { ServiceStatusManager } from './service-status-manager.js'
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
 
-@Injectable({ lifetime: 'singleton' })
-export class GitOperationsService {
+class GitOperationsServiceImpl {
+  private logger!: ReturnType<ReturnType<typeof getLogger>['withScope']>
+
+  constructor(
+    private readonly statusManager: ServiceStatusManager,
+    private readonly envResolver: ServiceEnvResolver,
+    private readonly gitHeadWatcher: GitHeadWatcher,
+    private readonly gitWatcher: GitWatcher,
+    public readonly injector: Injector,
+  ) {
+    this.logger = getLogger(injector).withScope('GitOperationsService')
+  }
+
   private elevatedInjector?: Injector
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+      this.elevatedInjector = useSystemIdentityContext({ injector: this.injector })
     }
     return this.elevatedInjector
   }
-
-  @Injected((injector) => getLogger(injector).withScope('GitOperationsService'))
-  declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
-
-  @Injected(ServiceStatusManager)
-  declare private statusManager: ServiceStatusManager
-
-  @Injected(ServiceEnvResolver)
-  declare private envResolver: ServiceEnvResolver
-
-  @Injected(GitHeadWatcher)
-  declare private gitHeadWatcher: GitHeadWatcher
-
-  @Injected(GitWatcher)
-  declare private gitWatcher: GitWatcher
 
   public async cloneOrPullService(
     serviceId: string,
@@ -84,7 +76,7 @@ export class GitOperationsService {
       throw new ValidationError(`Resolved path "${cwd}" is outside the stack directory "${stackRoot}"`)
     }
 
-    const git = getInjectorReference(this).getInstance(GitService)
+    const git = this.injector.get(GitService)
     const isGitRepo = existsSync(cwd) && existsSync(join(cwd, '.git'))
 
     await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloning' }, 'clone-started', trigger)
@@ -184,7 +176,7 @@ export class GitOperationsService {
   private async upsertGitStatusPatch(serviceId: string, patch: Partial<ServiceGitStatus>): Promise<void> {
     try {
       const elevated = this.getElevatedInjector()
-      const ds = getRepository(elevated).getDataSetFor(ServiceGitStatus, 'serviceId')
+      const ds = getDataSetFor(elevated, ServiceGitStatusDataSet)
       const existing = await ds.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
       if (existing.length > 0) {
         await ds.update(elevated, serviceId, patch)
@@ -200,11 +192,12 @@ export class GitOperationsService {
 
   private async applySharedFiles(svc: ServiceDefinition, cwd: string): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const crypto = elevated.getInstance(CryptoService)
+    const crypto = elevated.get(CryptoService)
 
-    const svcConfigs = await getRepository(elevated)
-      .getDataSetFor(ServiceConfig, 'serviceId')
-      .find(elevated, { filter: { serviceId: { $eq: svc.id } }, top: 1 })
+    const svcConfigs = await getDataSetFor(elevated, ServiceConfigDataSet).find(elevated, {
+      filter: { serviceId: { $eq: svc.id } },
+      top: 1,
+    })
     const localFiles = decryptLocalFiles(crypto, svcConfigs[0]?.localFiles ?? [])
     const sharedFiles = svc.files ?? []
 
@@ -232,3 +225,18 @@ export class GitOperationsService {
     }
   }
 }
+
+export type GitOperationsService = GitOperationsServiceImpl
+
+export const GitOperationsService: Token<GitOperationsService, 'singleton'> = defineService({
+  name: 'app/GitOperationsService',
+  lifetime: 'singleton',
+  factory: ({ inject, injector }) =>
+    new GitOperationsServiceImpl(
+      inject(ServiceStatusManager),
+      inject(ServiceEnvResolver),
+      inject(GitHeadWatcher),
+      inject(GitWatcher),
+      injector,
+    ),
+})

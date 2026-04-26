@@ -1,7 +1,14 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import {
+  ServiceConfigDataSet,
+  ServiceDefinitionDataSet,
+  ServiceStatusDataSet,
+  StackConfigDataSet,
+} from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import { InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { addStore } from '../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
 import {
   GitHubRepository,
@@ -24,6 +31,7 @@ import type { TriggerSource } from 'common'
 import { GitHeadWatcher } from './git-head-watcher.js'
 import { LogStorageService } from './log-storage-service.js'
 import { ProcessManager } from './process-manager.js'
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
 
 const testTrigger = { triggeredBy: 'test', triggerSource: 'api' as TriggerSource }
 
@@ -65,11 +73,9 @@ const setupStoreInjector = (injector: Injector) => {
 const seedService = async (injector: Injector, overrides: Partial<ServiceDefinition> = {}) => {
   const elevated = useSystemIdentityContext({ injector })
   const svcDef = createTestServiceDefinition(overrides)
-  await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').add(elevated, svcDef)
-  await getRepository(elevated)
-    .getDataSetFor(ServiceStatus, 'serviceId')
-    .add(elevated, createTestServiceStatus({ serviceId: svcDef.id }))
-  await getRepository(elevated).getDataSetFor(ServiceConfig, 'serviceId').add(elevated, {
+  await getDataSetFor(elevated, ServiceDefinitionDataSet).add(elevated, svcDef)
+  await getDataSetFor(elevated, ServiceStatusDataSet).add(elevated, createTestServiceStatus({ serviceId: svcDef.id }))
+  await getDataSetFor(elevated, ServiceConfigDataSet).add(elevated, {
     serviceId: svcDef.id,
     autoFetchEnabled: false,
     autoFetchIntervalMinutes: 60,
@@ -119,7 +125,7 @@ const setupPmInjector = async (injector: Injector) => {
   injector.setExplicitInstance(mockLogStorage as unknown as LogStorageService, LogStorageService)
 
   const elevated = useSystemIdentityContext({ injector })
-  await getRepository(elevated).getDataSetFor(StackConfig, 'stackName').add(elevated, {
+  await getDataSetFor(elevated, StackConfigDataSet).add(elevated, {
     stackName: 'test-stack',
     mainDirectory: tmpdir(),
     environmentVariables: {},
@@ -129,7 +135,7 @@ const setupPmInjector = async (injector: Injector) => {
   await elevated[Symbol.asyncDispose]()
 
   await seedService(injector)
-  const pm = injector.getInstance(ProcessManager)
+  const pm = injector.get(ProcessManager)
 
   return { pm }
 }
@@ -260,7 +266,7 @@ describe('ProcessManager - Store Operations', () => {
         )
 
         const elevated = useSystemIdentityContext({ injector })
-        const serviceDs = getRepository(elevated).getDataSetFor(ServiceDefinition, 'id')
+        const serviceDs = getDataSetFor(elevated, ServiceDefinitionDataSet)
         const stackAServices = await serviceDs.find(elevated, { filter: { stackName: { $eq: 'stack-a' } } })
         expect(stackAServices).toHaveLength(2)
         expect(stackAServices.map((s) => s.id).sort()).toEqual(['svc-a', 'svc-c'])
@@ -274,9 +280,10 @@ describe('ProcessManager - Store Operations', () => {
         await serviceDefStore.add(createTestServiceDefinition())
 
         const elevated = useSystemIdentityContext({ injector })
-        const [svc] = await getRepository(elevated)
-          .getDataSetFor(ServiceDefinition, 'id')
-          .find(elevated, { filter: { id: { $eq: 'svc-1' } }, top: 1 })
+        const [svc] = await getDataSetFor(elevated, ServiceDefinitionDataSet).find(elevated, {
+          filter: { id: { $eq: 'svc-1' } },
+          top: 1,
+        })
         expect(svc?.displayName).toBe('Test Service')
         await elevated[Symbol.asyncDispose]()
       }))
@@ -286,9 +293,10 @@ describe('ProcessManager - Store Operations', () => {
         setupStoreInjector(injector)
 
         const elevated = useSystemIdentityContext({ injector })
-        const result = await getRepository(elevated)
-          .getDataSetFor(ServiceDefinition, 'id')
-          .find(elevated, { filter: { id: { $eq: 'nonexistent' } }, top: 1 })
+        const result = await getDataSetFor(elevated, ServiceDefinitionDataSet).find(elevated, {
+          filter: { id: { $eq: 'nonexistent' } },
+          top: 1,
+        })
         expect(result).toHaveLength(0)
         await elevated[Symbol.asyncDispose]()
       }))
@@ -309,9 +317,10 @@ describe('ProcessManager (facade)', () => {
       await pm.installService('svc-1', testTrigger)
 
       const elevated = useSystemIdentityContext({ injector })
-      const [status] = await getRepository(elevated)
-        .getDataSetFor(ServiceStatus, 'serviceId')
-        .find(elevated, { filter: { serviceId: { $eq: 'svc-1' } }, top: 1 })
+      const [status] = await getDataSetFor(elevated, ServiceStatusDataSet).find(elevated, {
+        filter: { serviceId: { $eq: 'svc-1' } },
+        top: 1,
+      })
       await elevated[Symbol.asyncDispose]()
 
       expect(status?.installStatus).toBe('installed')
@@ -322,9 +331,10 @@ describe('ProcessManager (facade)', () => {
       await pm.buildService('svc-1', testTrigger)
 
       const elevated = useSystemIdentityContext({ injector })
-      const [status] = await getRepository(elevated)
-        .getDataSetFor(ServiceStatus, 'serviceId')
-        .find(elevated, { filter: { serviceId: { $eq: 'svc-1' } }, top: 1 })
+      const [status] = await getDataSetFor(elevated, ServiceStatusDataSet).find(elevated, {
+        filter: { serviceId: { $eq: 'svc-1' } },
+        top: 1,
+      })
       await elevated[Symbol.asyncDispose]()
 
       expect(status?.buildStatus).toBe('built')

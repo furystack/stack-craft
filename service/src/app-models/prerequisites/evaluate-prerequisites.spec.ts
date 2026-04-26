@@ -1,10 +1,9 @@
-import { getRepository } from '@furystack/repository'
-import { Prerequisite, PrerequisiteCheckResult, StackConfig } from 'common'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PrerequisiteCheckResultDataSet, PrerequisiteDataSet, StackConfigDataSet } from '../data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { withTestInjector } from '../../test-helpers.js'
 import { evaluatePrerequisites } from './evaluate-prerequisites.js'
-
 vi.mock('./actions/check-prerequisite-action.js', () => ({
   runCheck: vi.fn(),
 }))
@@ -29,7 +28,7 @@ describe('evaluatePrerequisites', () => {
       mockRunCheck.mockResolvedValue({ satisfied: true, output: 'git version 2.43.0' })
 
       const ts = new Date().toISOString()
-      await getRepository(elevated).getDataSetFor(Prerequisite, 'id').add(elevated, {
+      await getDataSetFor(elevated, PrerequisiteDataSet).add(elevated, {
         id: 'prereq-1',
         stackName: 'my-stack',
         name: 'Git',
@@ -42,9 +41,7 @@ describe('evaluatePrerequisites', () => {
 
       await evaluatePrerequisites(injector)
 
-      const results = await getRepository(elevated)
-        .getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId')
-        .find(elevated, {})
+      const results = await getDataSetFor(elevated, PrerequisiteCheckResultDataSet).find(elevated, {})
 
       expect(results).toHaveLength(1)
       expect(results[0].status).toBe('satisfied')
@@ -57,24 +54,20 @@ describe('evaluatePrerequisites', () => {
       mockRunCheck.mockResolvedValue({ satisfied: false, output: 'Node.js 16.0.0 < 18.0.0' })
 
       const ts = new Date().toISOString()
-      await getRepository(elevated)
-        .getDataSetFor(Prerequisite, 'id')
-        .add(elevated, {
-          id: 'prereq-node',
-          stackName: 'my-stack',
-          name: 'Node.js >= 18',
-          type: 'node',
-          config: { minimumVersion: '18.0.0' },
-          installationHelp: '',
-          createdAt: ts,
-          updatedAt: ts,
-        })
+      await getDataSetFor(elevated, PrerequisiteDataSet).add(elevated, {
+        id: 'prereq-node',
+        stackName: 'my-stack',
+        name: 'Node.js >= 18',
+        type: 'node',
+        config: { minimumVersion: '18.0.0' },
+        installationHelp: '',
+        createdAt: ts,
+        updatedAt: ts,
+      })
 
       await evaluatePrerequisites(injector)
 
-      const results = await getRepository(elevated)
-        .getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId')
-        .find(elevated, {})
+      const results = await getDataSetFor(elevated, PrerequisiteCheckResultDataSet).find(elevated, {})
 
       expect(results[0].status).toBe('failed')
       expect(results[0].output).toBe('Node.js 16.0.0 < 18.0.0')
@@ -86,7 +79,7 @@ describe('evaluatePrerequisites', () => {
       mockRunCheck.mockRejectedValue(new Error('command not found'))
 
       const ts = new Date().toISOString()
-      await getRepository(elevated).getDataSetFor(Prerequisite, 'id').add(elevated, {
+      await getDataSetFor(elevated, PrerequisiteDataSet).add(elevated, {
         id: 'prereq-err',
         stackName: 'my-stack',
         name: 'Git',
@@ -99,9 +92,7 @@ describe('evaluatePrerequisites', () => {
 
       await evaluatePrerequisites(injector)
 
-      const results = await getRepository(elevated)
-        .getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId')
-        .find(elevated, {})
+      const results = await getDataSetFor(elevated, PrerequisiteCheckResultDataSet).find(elevated, {})
 
       expect(results[0].status).toBe('failed')
       expect(results[0].output).toBe('command not found')
@@ -113,7 +104,7 @@ describe('evaluatePrerequisites', () => {
       mockRunCheck.mockRejectedValue('unexpected')
 
       const ts = new Date().toISOString()
-      await getRepository(elevated).getDataSetFor(Prerequisite, 'id').add(elevated, {
+      await getDataSetFor(elevated, PrerequisiteDataSet).add(elevated, {
         id: 'prereq-nonError',
         stackName: 'my-stack',
         name: 'Git',
@@ -126,9 +117,7 @@ describe('evaluatePrerequisites', () => {
 
       await evaluatePrerequisites(injector)
 
-      const results = await getRepository(elevated)
-        .getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId')
-        .find(elevated, {})
+      const results = await getDataSetFor(elevated, PrerequisiteCheckResultDataSet).find(elevated, {})
 
       expect(results[0].status).toBe('failed')
       expect(results[0].output).toBe('Check failed')
@@ -140,29 +129,25 @@ describe('evaluatePrerequisites', () => {
       mockRunCheck.mockResolvedValue({ satisfied: true, output: 'MY_VAR is set' })
 
       const ts = new Date().toISOString()
-      await getRepository(elevated)
-        .getDataSetFor(StackConfig, 'stackName')
-        .add(elevated, {
-          stackName: 'my-stack',
-          mainDirectory: '/tmp/stack',
-          environmentVariables: {
-            MY_VAR: { source: 'custom', customValue: 'secret' },
-          },
-          createdAt: ts,
-          updatedAt: ts,
-        })
-      await getRepository(elevated)
-        .getDataSetFor(Prerequisite, 'id')
-        .add(elevated, {
-          id: 'prereq-env',
-          stackName: 'my-stack',
-          name: 'MY_VAR',
-          type: 'env-variable',
-          config: { variableName: 'MY_VAR' },
-          installationHelp: '',
-          createdAt: ts,
-          updatedAt: ts,
-        })
+      await getDataSetFor(elevated, StackConfigDataSet).add(elevated, {
+        stackName: 'my-stack',
+        mainDirectory: '/tmp/stack',
+        environmentVariables: {
+          MY_VAR: { source: 'custom', customValue: 'secret' },
+        },
+        createdAt: ts,
+        updatedAt: ts,
+      })
+      await getDataSetFor(elevated, PrerequisiteDataSet).add(elevated, {
+        id: 'prereq-env',
+        stackName: 'my-stack',
+        name: 'MY_VAR',
+        type: 'env-variable',
+        config: { variableName: 'MY_VAR' },
+        installationHelp: '',
+        createdAt: ts,
+        updatedAt: ts,
+      })
 
       await evaluatePrerequisites(injector)
 
@@ -179,7 +164,7 @@ describe('evaluatePrerequisites', () => {
       mockRunCheck.mockResolvedValue({ satisfied: true, output: 'ok' })
 
       const ts = new Date().toISOString()
-      const ds = getRepository(elevated).getDataSetFor(Prerequisite, 'id')
+      const ds = getDataSetFor(elevated, PrerequisiteDataSet)
       await ds.add(elevated, {
         id: 'p1',
         stackName: 's',
@@ -205,9 +190,7 @@ describe('evaluatePrerequisites', () => {
 
       expect(mockRunCheck).toHaveBeenCalledTimes(2)
 
-      const results = await getRepository(elevated)
-        .getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId')
-        .find(elevated, {})
+      const results = await getDataSetFor(elevated, PrerequisiteCheckResultDataSet).find(elevated, {})
 
       expect(results).toHaveLength(2)
       expect(results.every((r) => r.status === 'satisfied')).toBe(true)

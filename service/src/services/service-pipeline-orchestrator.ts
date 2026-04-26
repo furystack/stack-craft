@@ -1,8 +1,8 @@
-import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
+import { ServiceStatusDataSet } from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import { type Injector, defineService, type Token } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
-import { ServiceDependencyLink, ServiceStatus } from 'common'
-
+import { ServiceDependencyLink } from 'common'
 import { useSystemIdentityContext } from '@furystack/core'
 import { ValidationError } from '../utils/domain-error.js'
 import { getServiceOrThrow } from '../utils/get-service-or-throw.js'
@@ -12,33 +12,29 @@ import { ServiceLifecycleManager } from './service-lifecycle-manager.js'
 import { computeExecutionLevels } from './service-graph-resolver.js'
 import { ServiceStatusManager } from './service-status-manager.js'
 import type { TriggerContext } from './trigger-context.js'
-
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
 /** Orchestrates multi-step service workflows (setup, update, batch setup with dependency ordering) */
-@Injectable({ lifetime: 'singleton' })
-export class ServicePipelineOrchestrator {
+class ServicePipelineOrchestratorImpl {
+  private logger!: ReturnType<ReturnType<typeof getLogger>['withScope']>
+
+  constructor(
+    private readonly lifecycle: ServiceLifecycleManager,
+    private readonly oneShotRunner: OneShotCommandRunner,
+    private readonly gitOps: GitOperationsService,
+    private readonly statusManager: ServiceStatusManager,
+    public readonly injector: Injector,
+  ) {
+    this.logger = getLogger(injector).withScope('ServicePipelineOrchestrator')
+  }
+
   private elevatedInjector?: Injector
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+      this.elevatedInjector = useSystemIdentityContext({ injector: this.injector })
     }
     return this.elevatedInjector
   }
-
-  @Injected((injector) => getLogger(injector).withScope('ServicePipelineOrchestrator'))
-  declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
-
-  @Injected(ServiceLifecycleManager)
-  declare private lifecycle: ServiceLifecycleManager
-
-  @Injected(OneShotCommandRunner)
-  declare private oneShotRunner: OneShotCommandRunner
-
-  @Injected(GitOperationsService)
-  declare private gitOps: GitOperationsService
-
-  @Injected(ServiceStatusManager)
-  declare private statusManager: ServiceStatusManager
 
   /**
    * Runs the full setup pipeline for a service: clone -> install -> build.
@@ -53,9 +49,10 @@ export class ServicePipelineOrchestrator {
 
     try {
       if (svc.repositoryId) {
-        const statuses = await getRepository(elevated)
-          .getDataSetFor(ServiceStatus, 'serviceId')
-          .find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+        const statuses = await getDataSetFor(elevated, ServiceStatusDataSet).find(elevated, {
+          filter: { serviceId: { $eq: serviceId } },
+          top: 1,
+        })
         const currentStatus = statuses[0]
         if (currentStatus?.cloneStatus !== 'cloned') {
           await this.gitOps.cloneOrPullService(serviceId, trigger)
@@ -87,9 +84,10 @@ export class ServicePipelineOrchestrator {
     const elevated = this.getElevatedInjector()
     const svc = await getServiceOrThrow(serviceId, elevated)
 
-    const statuses = await getRepository(elevated)
-      .getDataSetFor(ServiceStatus, 'serviceId')
-      .find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
+    const statuses = await getDataSetFor(elevated, ServiceStatusDataSet).find(elevated, {
+      filter: { serviceId: { $eq: serviceId } },
+      top: 1,
+    })
     const currentStatus = statuses[0]
 
     await this.statusManager.updateServiceStatus(serviceId, {}, 'update-started', trigger)
@@ -181,3 +179,18 @@ export class ServicePipelineOrchestrator {
     }
   }
 }
+
+export type ServicePipelineOrchestrator = ServicePipelineOrchestratorImpl
+
+export const ServicePipelineOrchestrator: Token<ServicePipelineOrchestrator, 'singleton'> = defineService({
+  name: 'app/ServicePipelineOrchestrator',
+  lifetime: 'singleton',
+  factory: ({ inject, injector }) =>
+    new ServicePipelineOrchestratorImpl(
+      inject(ServiceLifecycleManager),
+      inject(OneShotCommandRunner),
+      inject(GitOperationsService),
+      inject(ServiceStatusManager),
+      injector,
+    ),
+})

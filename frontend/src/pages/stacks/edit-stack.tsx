@@ -1,4 +1,4 @@
-import { useEntitySync } from '@furystack/entity-sync-client'
+import { useEntitySync } from '../../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
 
 import {
@@ -66,7 +66,7 @@ export const EditStack = Shade<EditStackProps>({
       )
     }
 
-    const api = injector.getInstance(StacksApiClient)
+    const api = injector.get(StacksApiClient)
     const [isDeleting, setIsDeleting] = useState('isDeleting', false)
 
     const handleSave = async (data: Partial<StackView>) => {
@@ -81,14 +81,14 @@ export const EditStack = Shade<EditStackProps>({
             mainDirectory: data.mainDirectory,
           },
         })
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Stack updated',
           body: `"${data.displayName ?? stack.displayName}" was updated successfully.`,
           type: 'success',
         })
         stackCraftNavigate(injector, { path: '/stacks/:stackName', params: { stackName: stack.name } })
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Error',
           body: error instanceof Error ? error.message : 'Failed to update stack',
           type: 'error',
@@ -104,14 +104,14 @@ export const EditStack = Shade<EditStackProps>({
           action: '/stacks/:id',
           url: { id: stack.name },
         })
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Stack deleted',
           body: `"${stack.displayName}" was deleted.`,
           type: 'success',
         })
         stackCraftNavigate(injector, { path: '/' })
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Error',
           body: error instanceof Error ? error.message : 'Failed to delete stack',
           type: 'error',
@@ -160,14 +160,14 @@ export const EditStack = Shade<EditStackProps>({
                 body: { environmentVariables: updated },
               })
               .then(() => {
-                injector.getInstance(NotyService).emit('onNotyAdded', {
+                injector.get(NotyService).emit('onNotyAdded', {
                   title: 'Environment variables saved',
                   body: 'Stack environment variables were updated.',
                   type: 'success',
                 })
               })
               .catch((error: unknown) => {
-                injector.getInstance(NotyService).emit('onNotyAdded', {
+                injector.get(NotyService).emit('onNotyAdded', {
                   title: 'Error',
                   body: error instanceof Error ? error.message : 'Failed to save environment variables',
                   type: 'error',

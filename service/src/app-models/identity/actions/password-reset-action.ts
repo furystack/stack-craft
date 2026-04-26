@@ -17,7 +17,7 @@ export const PasswordResetAction: RequestAction<PasswordResetActionType> = async
     throw new RequestError('User not authenticated', 401)
   }
 
-  const authenticator = injector.getInstance(PasswordAuthenticator)
+  const authenticator = injector.get(PasswordAuthenticator)
 
   try {
     await authenticator.setPasswordForUser(currentUser.username, currentPassword, newPassword)

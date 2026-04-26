@@ -1,42 +1,39 @@
+import { ServiceDefinitionDataSet, ServiceStatusDataSet } from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 import { useSystemIdentityContext } from '@furystack/core'
-import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
+import { type Injector, defineService, type Token } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
-import { ServiceDefinition, ServiceStatus } from 'common'
-
+import type { ServiceStatus } from 'common'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { GitHeadWatcher } from './git-head-watcher.js'
 import { GitWatcher } from './git-watcher.js'
 import type { TriggerContext } from './trigger-context.js'
 import { ServiceStatusManager } from './service-status-manager.js'
-
 /** Detects and resets stale in-progress states on startup (e.g. services left as "running" after a crash) */
-@Injectable({ lifetime: 'singleton' })
-export class StaleStateReconciler {
+class StaleStateReconcilerImpl {
+  private logger!: ReturnType<ReturnType<typeof getLogger>['withScope']>
+
+  constructor(
+    private readonly statusManager: ServiceStatusManager,
+    private readonly gitHeadWatcher: GitHeadWatcher,
+    private readonly gitWatcher: GitWatcher,
+    public readonly injector: Injector,
+  ) {
+    this.logger = getLogger(injector).withScope('StaleStateReconciler')
+  }
+
   private elevatedInjector?: Injector
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+      this.elevatedInjector = useSystemIdentityContext({ injector: this.injector })
     }
     return this.elevatedInjector
   }
 
-  @Injected((injector) => getLogger(injector).withScope('StaleStateReconciler'))
-  declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
-
-  @Injected(ServiceStatusManager)
-  declare private statusManager: ServiceStatusManager
-
-  @Injected(GitHeadWatcher)
-  declare private gitHeadWatcher: GitHeadWatcher
-
-  @Injected(GitWatcher)
-  declare private gitWatcher: GitWatcher
-
   public async reconcileStaleStates(): Promise<void> {
     const elevated = this.getElevatedInjector()
-    const statusDs = getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId')
+    const statusDs = getDataSetFor(elevated, ServiceStatusDataSet)
     const allStatuses = await statusDs.find(elevated, {})
 
     const reconcileTrigger: TriggerContext = { triggeredBy: 'system', triggerSource: 'system' }
@@ -84,12 +81,13 @@ export class StaleStateReconciler {
 
       if (status.cloneStatus === 'cloned') {
         try {
-          const services = await getRepository(elevated)
-            .getDataSetFor(ServiceDefinition, 'id')
-            .find(elevated, { filter: { id: { $eq: status.serviceId } }, top: 1 })
+          const services = await getDataSetFor(elevated, ServiceDefinitionDataSet).find(elevated, {
+            filter: { id: { $eq: status.serviceId } },
+            top: 1,
+          })
           const svc = services[0]
           if (svc) {
-            const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
+            const cwd = await resolveServiceCwd(this.injector, svc, elevated)
             await this.gitHeadWatcher.watch(status.serviceId, cwd)
             void this.gitWatcher.startWatching(status.serviceId)
           }
@@ -110,3 +108,12 @@ export class StaleStateReconciler {
     }
   }
 }
+
+export type StaleStateReconciler = StaleStateReconcilerImpl
+
+export const StaleStateReconciler: Token<StaleStateReconciler, 'singleton'> = defineService({
+  name: 'app/StaleStateReconciler',
+  lifetime: 'singleton',
+  factory: ({ inject, injector }) =>
+    new StaleStateReconcilerImpl(inject(ServiceStatusManager), inject(GitHeadWatcher), inject(GitWatcher), injector),
+})

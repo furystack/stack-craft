@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { ServiceLifecycleAction } from './service-lifecycle-action.js'
 import { ProcessManager } from '../../../services/process-manager.js'
+import '../../../test-shims.js'
 
 const createMockActionContext = <TBody = unknown, TUrl = Record<string, string>>(options: {
   injector: Injector

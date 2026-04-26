@@ -1,7 +1,9 @@
-import { addStore, InMemoryStore } from '@furystack/core'
+import { ServiceDefinitionDataSet, ServiceStatusDataSet } from '../../data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import { InMemoryStore } from '@furystack/core'
+import { addStore } from '../../../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { usingAsync } from '@furystack/utils'
 import { GitHubRepository, ServiceDefinition, ServiceStatus, StackConfig } from 'common'
@@ -9,6 +11,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { GitService } from '../../../services/git-service.js'
 import { ServiceBranchesAction } from './service-branches-action.js'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
 const createMockActionContext = (options: { injector: Injector; urlParams?: Record<string, string> }) => ({
   injector: options.injector,
@@ -55,7 +58,7 @@ describe('ServiceBranchesAction', () => {
   it('should throw 400 when service is not cloned', async () => {
     const { injector } = createSetup()
     await usingAsync(injector, async () => {
-      const ds = getRepository(injector).getDataSetFor(ServiceDefinition, 'id')
+      const ds = getDataSetFor(injector, ServiceDefinitionDataSet)
       await ds.add(injector, {
         id: 'svc-1',
         stackName: 'stack-1',
@@ -66,7 +69,7 @@ describe('ServiceBranchesAction', () => {
         createdAt: '',
         updatedAt: '',
       })
-      const statusDs = getRepository(injector).getDataSetFor(ServiceStatus, 'serviceId')
+      const statusDs = getDataSetFor(injector, ServiceStatusDataSet)
       await statusDs.add(injector, {
         serviceId: 'svc-1',
         cloneStatus: 'not-cloned',

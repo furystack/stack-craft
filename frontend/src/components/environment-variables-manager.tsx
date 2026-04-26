@@ -1,4 +1,4 @@
-import { useCollectionSync } from '@furystack/entity-sync-client'
+import { useCollectionSync } from '../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
 
 import {
@@ -77,7 +77,7 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
     if (envPrereqs.length > 0 && !hasChecked) {
       const varNames = [...prereqVarNames]
       void injector
-        .getInstance(EnvironmentVariableService)
+        .get(EnvironmentVariableService)
         .checkAvailability(varNames)
         .then((result) => {
           setEnvAvailability(result)
@@ -89,7 +89,7 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
     const handleSave = async () => {
       setIsSaving(true)
       try {
-        const toSave = injector.getInstance(EnvironmentVariableService).buildSavePayload(editState, touchedSensitive)
+        const toSave = injector.get(EnvironmentVariableService).buildSavePayload(editState, touchedSensitive)
         props.onSave(toSave)
       } finally {
         setIsSaving(false)
@@ -104,7 +104,7 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
       try {
         if (mode === 'requirement') {
           const newId = crypto.randomUUID()
-          await injector.getInstance(PrerequisitesApiClient).call({
+          await injector.get(PrerequisitesApiClient).call({
             method: 'POST',
             action: '/prerequisites',
             body: {
@@ -116,7 +116,7 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
               installationHelp: '',
             },
           })
-          injector.getInstance(NotyService).emit('onNotyAdded', {
+          injector.get(NotyService).emit('onNotyAdded', {
             title: 'Prerequisite created',
             body: `Environment variable requirement "${variableName}" was added.`,
             type: 'success',
@@ -135,7 +135,7 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
         setAddFormState({ ...defaultAddFormState })
         setIsAddFormOpen(false)
       } catch (error) {
-        injector.getInstance(NotyService).emit('onNotyAdded', {
+        injector.get(NotyService).emit('onNotyAdded', {
           title: 'Error',
           body: error instanceof Error ? error.message : 'Failed to add environment variable',
           type: 'error',

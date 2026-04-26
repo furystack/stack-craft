@@ -1,18 +1,17 @@
+import { GitHubRepositoryDataSet, StackConfigDataSet } from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 import { resolve } from 'path'
 import type { Injector } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
 import type { ServiceDefinition } from 'common'
-import { GitHubRepository, StackConfig } from 'common'
+import type { GitHubRepository } from 'common'
 import { describe, expect, it } from 'vitest'
-
 import { withTestInjector } from '../test-helpers.js'
 import { resolveServiceCwd } from './resolve-service-cwd.js'
-
 const ts = new Date().toISOString()
 
 describe('resolveServiceCwd', () => {
   const addStackConfig = async (elevated: Injector, stackName: string, mainDirectory: string) => {
-    await getRepository(elevated).getDataSetFor(StackConfig, 'stackName').add(elevated, {
+    await getDataSetFor(elevated, StackConfigDataSet).add(elevated, {
       stackName,
       mainDirectory,
       environmentVariables: {},
@@ -22,15 +21,13 @@ describe('resolveServiceCwd', () => {
   }
 
   const addRepo = async (elevated: Injector, id: string, stackName: string, url: string) => {
-    await getRepository(elevated)
-      .getDataSetFor(GitHubRepository, 'id')
-      .add(elevated, {
-        id,
-        stackName,
-        url,
-        displayName: id,
-        description: '',
-      } as GitHubRepository)
+    await getDataSetFor(elevated, GitHubRepositoryDataSet).add(elevated, {
+      id,
+      stackName,
+      url,
+      displayName: id,
+      description: '',
+    } as GitHubRepository)
   }
 
   it('should resolve cwd from stack mainDirectory when no workingDirectory or repo', () =>
@@ -114,7 +111,7 @@ describe('resolveServiceCwd', () => {
 
       await resolveServiceCwd(injector, service, elevated)
 
-      const configs = await getRepository(elevated).getDataSetFor(StackConfig, 'stackName').find(elevated, {})
+      const configs = await getDataSetFor(elevated, StackConfigDataSet).find(elevated, {})
       expect(configs).toHaveLength(1)
     }))
 

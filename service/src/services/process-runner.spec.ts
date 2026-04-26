@@ -4,7 +4,8 @@ import type { ChildProcess } from 'child_process'
 import { describe, expect, it, vi } from 'vitest'
 
 import { LogStorageService } from './log-storage-service.js'
-import { ProcessRunner } from './process-runner.js'
+import { ProcessRunner, ProcessRunnerImpl } from './process-runner.js'
+import '../test-shims.js'
 
 vi.mock('child_process', () => ({
   spawn: vi.fn(),
@@ -19,7 +20,7 @@ const setupRunnerInjector = (injector: Injector) => {
   }
   injector.setExplicitInstance(mockLogStorage as unknown as LogStorageService, LogStorageService)
 
-  const runner = injector.getInstance(ProcessRunner)
+  const runner = injector.get(ProcessRunner)
   return { runner, mockLogStorage }
 }
 
@@ -49,7 +50,7 @@ describe('ProcessRunner', () => {
         const original = process.env
         process.env = { PATH: '/usr/bin', HOME: '/home/test', SECRET_KEY: 'should-not-appear' }
 
-        const env = ProcessRunner.getSafeEnv()
+        const env = ProcessRunnerImpl.getSafeEnv()
 
         expect(env.PATH).toBe('/usr/bin')
         expect(env.HOME).toBe('/home/test')
@@ -63,7 +64,7 @@ describe('ProcessRunner', () => {
         const original = process.env
         process.env = { STACK_CRAFT_TOKEN: 'abc123', STACK_CRAFT_MODE: 'dev' }
 
-        const env = ProcessRunner.getSafeEnv()
+        const env = ProcessRunnerImpl.getSafeEnv()
 
         expect(env.STACK_CRAFT_TOKEN).toBe('abc123')
         expect(env.STACK_CRAFT_MODE).toBe('dev')
@@ -82,7 +83,7 @@ describe('ProcessRunner', () => {
           GITHUB_TOKEN: 'ghp_xxx',
         }
 
-        const env = ProcessRunner.getSafeEnv()
+        const env = ProcessRunnerImpl.getSafeEnv()
 
         expect(env.PATH).toBe('/usr/bin')
         expect(env).not.toHaveProperty('AWS_SECRET_ACCESS_KEY')
@@ -98,7 +99,7 @@ describe('ProcessRunner', () => {
         const original = process.env
         process.env = { path: '/usr/bin', Path: '/usr/local/bin' }
 
-        const env = ProcessRunner.getSafeEnv()
+        const env = ProcessRunnerImpl.getSafeEnv()
 
         expect(Object.keys(env).length).toBeGreaterThanOrEqual(1)
 

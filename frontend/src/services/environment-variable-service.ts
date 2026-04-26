@@ -1,14 +1,12 @@
-import { Injectable, Injected } from '@furystack/inject'
+import { defineService, type Token } from '@furystack/inject'
 import type { EnvironmentVariableValue } from 'common'
 
 import { SystemApiClient } from './api-clients/system-api-client.js'
 
 const UNCHANGED_SENTINEL = '__UNCHANGED__'
 
-@Injectable({ lifetime: 'singleton' })
-export class EnvironmentVariableService {
-  @Injected(SystemApiClient)
-  declare private readonly systemApiClient: SystemApiClient
+class EnvironmentVariableServiceImpl {
+  constructor(private readonly systemApiClient: SystemApiClient) {}
 
   public async checkAvailability(variableNames: string[]): Promise<Record<string, boolean>> {
     if (variableNames.length === 0) return {}
@@ -35,3 +33,11 @@ export class EnvironmentVariableService {
     return toSave
   }
 }
+
+export type EnvironmentVariableService = EnvironmentVariableServiceImpl
+
+export const EnvironmentVariableService: Token<EnvironmentVariableService, 'singleton'> = defineService({
+  name: 'app/EnvironmentVariableService',
+  lifetime: 'singleton',
+  factory: ({ inject }) => new EnvironmentVariableServiceImpl(inject(SystemApiClient)),
+})

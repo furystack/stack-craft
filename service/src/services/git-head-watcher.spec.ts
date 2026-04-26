@@ -1,11 +1,11 @@
-import { getRepository } from '@furystack/repository'
-import { ServiceGitStatus } from 'common'
+import { ServiceGitStatusDataSet } from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { withTestInjector } from '../test-helpers.js'
 import { GitHeadWatcher } from './git-head-watcher.js'
 import { GitService } from './git-service.js'
-
+import '../test-shims.js'
 const { mockExistsSync, mockChokidarWatch, watcherFactory } = vi.hoisted(() => {
   const createWatcher = () => {
     const handlers = new Map<string, Array<(...args: unknown[]) => void>>()
@@ -59,14 +59,14 @@ describe('GitHeadWatcher', () => {
       const mockGit = createMockGit()
       injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
 
-      const headWatcher = injector.getInstance(GitHeadWatcher)
+      const headWatcher = injector.get(GitHeadWatcher)
       await headWatcher.watch('svc-1', '/tmp/repo')
 
       expect(mockChokidarWatch).not.toHaveBeenCalled()
       expect(mockGit.getCurrentBranch).not.toHaveBeenCalled()
-      const rows = await getRepository(elevated)
-        .getDataSetFor(ServiceGitStatus, 'serviceId')
-        .find(elevated, { filter: { serviceId: { $eq: 'svc-1' } } })
+      const rows = await getDataSetFor(elevated, ServiceGitStatusDataSet).find(elevated, {
+        filter: { serviceId: { $eq: 'svc-1' } },
+      })
       expect(rows).toHaveLength(0)
     }))
 
@@ -76,13 +76,13 @@ describe('GitHeadWatcher', () => {
       const mockGit = createMockGit()
       injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
 
-      const headWatcher = injector.getInstance(GitHeadWatcher)
+      const headWatcher = injector.get(GitHeadWatcher)
       await headWatcher.watch('svc-create', '/tmp/repo')
 
       expect(mockGit.getCurrentBranch).toHaveBeenCalledWith('/tmp/repo')
-      const rows = await getRepository(elevated)
-        .getDataSetFor(ServiceGitStatus, 'serviceId')
-        .find(elevated, { filter: { serviceId: { $eq: 'svc-create' } } })
+      const rows = await getDataSetFor(elevated, ServiceGitStatusDataSet).find(elevated, {
+        filter: { serviceId: { $eq: 'svc-create' } },
+      })
       expect(rows).toHaveLength(1)
       expect(rows[0]).toMatchObject({ serviceId: 'svc-create', currentBranch: 'main' })
     }))
@@ -90,14 +90,14 @@ describe('GitHeadWatcher', () => {
   it('updates an existing ServiceGitStatus when one already exists', () =>
     withTestInjector(async ({ injector, elevated }) => {
       mockExistsSync.mockReturnValue(true)
-      const ds = getRepository(elevated).getDataSetFor(ServiceGitStatus, 'serviceId')
+      const ds = getDataSetFor(elevated, ServiceGitStatusDataSet)
       await ds.add(elevated, { serviceId: 'svc-upd', currentBranch: 'old' })
 
       const mockGit = createMockGit()
       mockGit.getCurrentBranch.mockResolvedValue('new-branch')
       injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
 
-      const headWatcher = injector.getInstance(GitHeadWatcher)
+      const headWatcher = injector.get(GitHeadWatcher)
       await headWatcher.watch('svc-upd', '/tmp/repo')
 
       const rows = await ds.find(elevated, { filter: { serviceId: { $eq: 'svc-upd' } } })
@@ -116,7 +116,7 @@ describe('GitHeadWatcher', () => {
       const createdWatcher = watcherFactory()
       mockChokidarWatch.mockReturnValueOnce(createdWatcher)
 
-      const headWatcher = injector.getInstance(GitHeadWatcher)
+      const headWatcher = injector.get(GitHeadWatcher)
       const events: unknown[] = []
       headWatcher.on('externalChange', (payload) => events.push(payload))
 
@@ -143,7 +143,7 @@ describe('GitHeadWatcher', () => {
       const createdWatcher = watcherFactory()
       mockChokidarWatch.mockReturnValueOnce(createdWatcher)
 
-      const headWatcher = injector.getInstance(GitHeadWatcher)
+      const headWatcher = injector.get(GitHeadWatcher)
       const events: unknown[] = []
       headWatcher.on('externalChange', (payload) => events.push(payload))
 
@@ -163,7 +163,7 @@ describe('GitHeadWatcher', () => {
       const createdWatcher = watcherFactory()
       mockChokidarWatch.mockReturnValueOnce(createdWatcher)
 
-      const headWatcher = injector.getInstance(GitHeadWatcher)
+      const headWatcher = injector.get(GitHeadWatcher)
       await headWatcher.watch('svc-unwatch', '/tmp/repo')
       headWatcher.unwatch('svc-unwatch')
 
@@ -175,7 +175,7 @@ describe('GitHeadWatcher', () => {
       const mockGit = createMockGit()
       injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
 
-      const headWatcher = injector.getInstance(GitHeadWatcher)
+      const headWatcher = injector.get(GitHeadWatcher)
       expect(() => headWatcher.unwatch('unknown')).not.toThrow()
     }))
 
@@ -189,7 +189,7 @@ describe('GitHeadWatcher', () => {
       const b = watcherFactory()
       mockChokidarWatch.mockReturnValueOnce(a).mockReturnValueOnce(b)
 
-      const headWatcher = injector.getInstance(GitHeadWatcher)
+      const headWatcher = injector.get(GitHeadWatcher)
       await headWatcher.watch('svc-a', '/tmp/a')
       await headWatcher.watch('svc-b', '/tmp/b')
       await headWatcher[Symbol.asyncDispose]()

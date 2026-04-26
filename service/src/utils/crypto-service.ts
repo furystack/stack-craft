@@ -1,4 +1,4 @@
-import { Injectable } from '@furystack/inject'
+import { defineService, type Token } from '@furystack/inject'
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto'
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { homedir } from 'os'
@@ -10,8 +10,7 @@ const AUTH_TAG_LENGTH = 16
 const KEY_LENGTH = 32
 const ENCRYPTED_PREFIX = 'enc:v1:'
 
-@Injectable({ lifetime: 'singleton' })
-export class CryptoService {
+export class CryptoServiceImpl {
   private key: Buffer
 
   constructor() {
@@ -91,6 +90,14 @@ export class CryptoService {
     return value.startsWith(ENCRYPTED_PREFIX)
   }
 }
+
+export type CryptoService = CryptoServiceImpl
+
+export const CryptoService: Token<CryptoService, 'singleton'> = defineService({
+  name: 'app/CryptoService',
+  lifetime: 'singleton',
+  factory: () => new CryptoServiceImpl(),
+})
 
 export const SENSITIVE_VALUE_MASK = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'
 export const UNCHANGED_SENTINEL = '__UNCHANGED__'

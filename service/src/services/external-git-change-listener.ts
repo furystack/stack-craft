@@ -1,14 +1,13 @@
+import { ServiceStatusDataSet } from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 import { useSystemIdentityContext } from '@furystack/core'
-import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
+import { type Injector, defineService, type Token } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import type { BuildStatus, InstallStatus, ServiceStateEvent } from 'common'
-import { ServiceStatus } from 'common'
 
 import { GitHeadWatcher, type GitHeadChangeEvent } from './git-head-watcher.js'
 import { ServiceStatusManager } from './service-status-manager.js'
 import type { TriggerContext } from './trigger-context.js'
-
 const EXTERNAL_TRIGGER: TriggerContext = { triggeredBy: 'system', triggerSource: 'system' }
 
 /**
@@ -16,26 +15,26 @@ const EXTERNAL_TRIGGER: TriggerContext = { triggeredBy: 'system', triggerSource:
  * records a history entry, marks downstream pipeline stages as `'stale'`,
  * and clears outdated errors.
  */
-@Injectable({ lifetime: 'singleton' })
-export class ExternalGitChangeListener {
+class ExternalGitChangeListenerImpl {
+  private logger!: ReturnType<ReturnType<typeof getLogger>['withScope']>
+
+  constructor(
+    private readonly gitHeadWatcher: GitHeadWatcher,
+    private readonly statusManager: ServiceStatusManager,
+    public readonly injector: Injector,
+  ) {
+    this.logger = getLogger(injector).withScope('ExternalGitChangeListener')
+  }
+
   private started = false
   private elevatedInjector?: Injector
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+      this.elevatedInjector = useSystemIdentityContext({ injector: this.injector })
     }
     return this.elevatedInjector
   }
-
-  @Injected((injector) => getLogger(injector).withScope('ExternalGitChangeListener'))
-  declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
-
-  @Injected(GitHeadWatcher)
-  declare private gitHeadWatcher: GitHeadWatcher
-
-  @Injected(ServiceStatusManager)
-  declare private statusManager: ServiceStatusManager
 
   public start(): void {
     if (this.started) return
@@ -66,7 +65,7 @@ export class ExternalGitChangeListener {
 
     try {
       const elevated = this.getElevatedInjector()
-      const statusDs = getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId')
+      const statusDs = getDataSetFor(elevated, ServiceStatusDataSet)
       const statuses = await statusDs.find(elevated, { filter: { serviceId: { $eq: event.serviceId } }, top: 1 })
       const status = statuses[0]
       if (!status) return
@@ -95,3 +94,12 @@ export class ExternalGitChangeListener {
     }
   }
 }
+
+export type ExternalGitChangeListener = ExternalGitChangeListenerImpl
+
+export const ExternalGitChangeListener: Token<ExternalGitChangeListener, 'singleton'> = defineService({
+  name: 'app/ExternalGitChangeListener',
+  lifetime: 'singleton',
+  factory: ({ inject, injector }) =>
+    new ExternalGitChangeListenerImpl(inject(GitHeadWatcher), inject(ServiceStatusManager), injector),
+})

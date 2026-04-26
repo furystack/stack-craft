@@ -1,11 +1,9 @@
-import { getRepository } from '@furystack/repository'
+import { PrerequisiteCheckResultDataSet, PrerequisiteDataSet } from '../../data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 import { readPostBody } from '@furystack/rest-service'
-import { Prerequisite, PrerequisiteCheckResult } from 'common'
 import { describe, expect, it, vi } from 'vitest'
-
 import { createMockActionContext, withTestInjector } from '../../../test-helpers.js'
 import { CreatePrerequisiteAction, DeletePrerequisiteAction } from './prerequisite-lifecycle-actions.js'
-
 vi.mock('@furystack/rest-service', async () => {
   const actual: Record<string, unknown> = await vi.importActual('@furystack/rest-service')
   return {
@@ -37,13 +35,11 @@ describe('CreatePrerequisiteAction', () => {
 
       expect(result.statusCode).toBe(201)
 
-      const storedPrereqs = await getRepository(elevated).getDataSetFor(Prerequisite, 'id').find(elevated, {})
+      const storedPrereqs = await getDataSetFor(elevated, PrerequisiteDataSet).find(elevated, {})
       expect(storedPrereqs).toHaveLength(1)
       expect(storedPrereqs[0].name).toBe('Node.js >= 18')
 
-      const checkResults = await getRepository(elevated)
-        .getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId')
-        .find(elevated, {})
+      const checkResults = await getDataSetFor(elevated, PrerequisiteCheckResultDataSet).find(elevated, {})
       expect(checkResults).toHaveLength(1)
       expect(checkResults[0].prerequisiteId).toBe('prereq-1')
       expect(checkResults[0].status).toBe('unchecked')
@@ -61,7 +57,7 @@ describe('CreatePrerequisiteAction', () => {
         installationHelp: 'Install Docker',
       })
 
-      const ds = getRepository(elevated).getDataSetFor(Prerequisite, 'id')
+      const ds = getDataSetFor(elevated, PrerequisiteDataSet)
       const originalAdd = ds.add.bind(ds)
       vi.spyOn(ds, 'add').mockImplementation(async (...args) => {
         await originalAdd(...args)
@@ -82,20 +78,18 @@ describe('DeletePrerequisiteAction', () => {
   it('should delete prerequisite and its check result', async () => {
     await withTestInjector(async ({ elevated }) => {
       const ts = new Date().toISOString()
-      await getRepository(elevated)
-        .getDataSetFor(Prerequisite, 'id')
-        .add(elevated, {
-          id: 'prereq-del',
-          stackName: 'stack',
-          name: 'Node',
-          type: 'custom-script',
-          config: { script: 'node -v' },
-          installationHelp: '',
-          createdAt: ts,
-          updatedAt: ts,
-        })
+      await getDataSetFor(elevated, PrerequisiteDataSet).add(elevated, {
+        id: 'prereq-del',
+        stackName: 'stack',
+        name: 'Node',
+        type: 'custom-script',
+        config: { script: 'node -v' },
+        installationHelp: '',
+        createdAt: ts,
+        updatedAt: ts,
+      })
 
-      await getRepository(elevated).getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId').add(elevated, {
+      await getDataSetFor(elevated, PrerequisiteCheckResultDataSet).add(elevated, {
         prerequisiteId: 'prereq-del',
         status: 'satisfied',
         output: 'v20.0.0',
@@ -108,12 +102,10 @@ describe('DeletePrerequisiteAction', () => {
 
       expect(result.statusCode).toBe(204)
 
-      const remainingPrereqs = await getRepository(elevated).getDataSetFor(Prerequisite, 'id').find(elevated, {})
+      const remainingPrereqs = await getDataSetFor(elevated, PrerequisiteDataSet).find(elevated, {})
       expect(remainingPrereqs).toHaveLength(0)
 
-      const remainingResults = await getRepository(elevated)
-        .getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId')
-        .find(elevated, {})
+      const remainingResults = await getDataSetFor(elevated, PrerequisiteCheckResultDataSet).find(elevated, {})
       expect(remainingResults).toHaveLength(0)
     })
   })
@@ -121,18 +113,16 @@ describe('DeletePrerequisiteAction', () => {
   it('should delete prerequisite even when no check result exists', async () => {
     await withTestInjector(async ({ elevated }) => {
       const ts = new Date().toISOString()
-      await getRepository(elevated)
-        .getDataSetFor(Prerequisite, 'id')
-        .add(elevated, {
-          id: 'prereq-no-result',
-          stackName: 'stack',
-          name: 'Docker',
-          type: 'custom-script',
-          config: { script: 'docker -v' },
-          installationHelp: '',
-          createdAt: ts,
-          updatedAt: ts,
-        })
+      await getDataSetFor(elevated, PrerequisiteDataSet).add(elevated, {
+        id: 'prereq-no-result',
+        stackName: 'stack',
+        name: 'Docker',
+        type: 'custom-script',
+        config: { script: 'docker -v' },
+        installationHelp: '',
+        createdAt: ts,
+        updatedAt: ts,
+      })
 
       const result = await DeletePrerequisiteAction(
         createMockActionContext({ injector: elevated, urlParams: { id: 'prereq-no-result' } }),
@@ -140,7 +130,7 @@ describe('DeletePrerequisiteAction', () => {
 
       expect(result.statusCode).toBe(204)
 
-      const remainingPrereqs = await getRepository(elevated).getDataSetFor(Prerequisite, 'id').find(elevated, {})
+      const remainingPrereqs = await getDataSetFor(elevated, PrerequisiteDataSet).find(elevated, {})
       expect(remainingPrereqs).toHaveLength(0)
     })
   })

@@ -1,5 +1,4 @@
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ImportStackEndpoint } from 'common'
@@ -19,6 +18,7 @@ import {
 
 import { CryptoService } from '../../../utils/crypto-service.js'
 import { encryptEnvValues, encryptLocalFiles } from '../../../utils/env-encryption-helpers.js'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
 export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ injector, getBody }) => {
   const logger = getLogger(injector).withScope('ImportStack')
@@ -69,7 +69,7 @@ export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ in
       updatedAt: now,
     })
 
-    const crypto = injector.getInstance(CryptoService)
+    const crypto = injector.get(CryptoService)
     await stackConfigDs.add(injector, {
       stackName,
       mainDirectory: body.config.mainDirectory,

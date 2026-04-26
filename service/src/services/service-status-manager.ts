@@ -1,30 +1,31 @@
+import { ServiceStateHistoryDataSet, ServiceStatusDataSet } from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 import { useSystemIdentityContext } from '@furystack/core'
-import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
+import { type Injector, defineService, type Token } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import type { BuildStatus, CloneStatus, InstallStatus, RunStatus, ServiceStateEvent } from 'common'
-import { ServiceStateHistory, ServiceStatus } from 'common'
-
+import type { ServiceStatus } from 'common'
 import type { TriggerContext } from './trigger-context.js'
-
 const MAX_HISTORY_PER_SERVICE = 10_000
 const HISTORY_PRUNE_CHECK_INTERVAL = 100
 
 /** Manages service lifecycle status transitions and records state change history with automatic pruning */
-@Injectable({ lifetime: 'singleton' })
-export class ServiceStatusManager {
+class ServiceStatusManagerImpl {
+  private logger!: ReturnType<ReturnType<typeof getLogger>['withScope']>
+
+  constructor(public readonly injector: Injector) {
+    this.logger = getLogger(injector).withScope('ServiceStatusManager')
+  }
+
   private elevatedInjector?: Injector
   private historyInsertCounts = new Map<string, number>()
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+      this.elevatedInjector = useSystemIdentityContext({ injector: this.injector })
     }
     return this.elevatedInjector
   }
-
-  @Injected((injector) => getLogger(injector).withScope('ServiceStatusManager'))
-  declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
 
   public async updateServiceStatus(
     serviceId: string,
@@ -41,7 +42,7 @@ export class ServiceStatusManager {
   ) {
     try {
       const elevated = this.getElevatedInjector()
-      const statusDs = getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId')
+      const statusDs = getDataSetFor(elevated, ServiceStatusDataSet)
 
       const statuses = await statusDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
       const current = statuses[0]
@@ -55,10 +56,19 @@ export class ServiceStatusManager {
       if (update.buildStatus === 'built') patchData.lastBuiltAt = now
       if (update.runStatus === 'running') patchData.lastStartedAt = now
 
-      await statusDs.update(elevated, serviceId, patchData)
+      // sequelize@6 `Model.update` short-circuits to `[0]` when the only field
+      // being written is the auto-managed `updatedAt` timestamp, which makes
+      // `@furystack/sequelize-store` throw `Entity not found`. Only call
+      // `update` when there is something meaningful to persist beyond the
+      // timestamp bump; the history entry below still gets written for
+      // status-less lifecycle events.
+      const hasMeaningfulChange = Object.keys(patchData).some((key) => key !== 'updatedAt')
+      if (hasMeaningfulChange) {
+        await statusDs.update(elevated, serviceId, patchData)
+      }
 
       if (!options?.skipHistory) {
-        const historyDs = getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id')
+        const historyDs = getDataSetFor(elevated, ServiceStateHistoryDataSet)
 
         const previousState = JSON.stringify({
           cloneStatus: current.cloneStatus,
@@ -105,7 +115,7 @@ export class ServiceStatusManager {
   public async pruneHistory(serviceId: string, elevated?: Injector): Promise<void> {
     const injector = elevated ?? this.getElevatedInjector()
     try {
-      const historyDs = getRepository(injector).getDataSetFor(ServiceStateHistory, 'id')
+      const historyDs = getDataSetFor(injector, ServiceStateHistoryDataSet)
       const count = await historyDs.count(injector, { serviceId: { $eq: serviceId } })
       if (count <= MAX_HISTORY_PER_SERVICE) return
 
@@ -139,3 +149,11 @@ export class ServiceStatusManager {
     }
   }
 }
+
+export type ServiceStatusManager = ServiceStatusManagerImpl
+
+export const ServiceStatusManager: Token<ServiceStatusManager, 'singleton'> = defineService({
+  name: 'app/ServiceStatusManager',
+  lifetime: 'singleton',
+  factory: ({ injector }) => new ServiceStatusManagerImpl(injector),
+})

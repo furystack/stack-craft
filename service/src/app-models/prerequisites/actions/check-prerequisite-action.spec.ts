@@ -1,7 +1,7 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { addStore } from '../../../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
 import { Prerequisite, PrerequisiteCheckResult, StackConfig } from 'common'
 import type { PrerequisiteType } from 'common'
@@ -9,6 +9,7 @@ import { randomBytes } from 'crypto'
 import { describe, expect, it, vi } from 'vitest'
 
 import { runCheck, CheckPrerequisiteAction } from './check-prerequisite-action.js'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
 const execFileMock = vi.hoisted(() =>
   vi.fn<(cmd: string, args: string[], options: { timeout: number }) => Promise<{ stdout: string; stderr: string }>>(),

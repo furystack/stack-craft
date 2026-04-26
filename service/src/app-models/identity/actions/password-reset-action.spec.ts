@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createMockActionContext, withTestInjector } from '../../../test-helpers.js'
 import { PasswordResetAction } from './password-reset-action.js'
+import '../../../test-shims.js'
 
 const getCurrentUserMock = vi.hoisted(() => vi.fn())
 

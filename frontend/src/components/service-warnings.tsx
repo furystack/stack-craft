@@ -38,8 +38,8 @@ export const ServiceWarnings = Shade<ServiceWarningsProps>({
   },
   render: ({ props, injector }) => {
     const { service } = props
-    const api = injector.getInstance(ServicesApiClient)
-    const noty = injector.getInstance(NotyService)
+    const api = injector.get(ServicesApiClient)
+    const noty = injector.get(NotyService)
 
     const dismissed = service.warningsDismissed ?? {}
     const showUpstreamGone = service.upstreamStatus === 'gone' && !dismissed.upstreamGone

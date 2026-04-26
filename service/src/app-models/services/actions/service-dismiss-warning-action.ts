@@ -1,8 +1,8 @@
-import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ServiceDismissWarningEndpoint, ServiceWarningKind } from 'common'
 import { ServiceDefinition, ServiceGitStatus } from 'common'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
 /**
  * Records that the user has dismissed an inline warning (upstream-gone or stale)

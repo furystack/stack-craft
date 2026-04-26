@@ -1,10 +1,10 @@
 import type { WithOptionalId } from '@furystack/core'
-import { getRepository } from '@furystack/repository'
 import type { DeleteEndpoint } from '@furystack/rest'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, readPostBody, type RequestAction } from '@furystack/rest-service'
 import type { PostPrerequisiteEndpoint, PrerequisiteWritableFields } from 'common'
 import { Prerequisite, PrerequisiteCheckResult } from 'common'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
 /**
  * POST action that creates a Prerequisite and seeds an 'unchecked'

@@ -31,8 +31,8 @@ const statusOptions: Array<{ value: ServiceSummaryStatus; label: string }> = [
 export const ServiceFilters = Shade<ServiceFiltersProps>({
   customElementName: 'shade-service-filters',
   render: ({ props, injector, useState }) => {
-    const api = injector.getInstance(ServicesApiClient)
-    const noty = injector.getInstance(NotyService)
+    const api = injector.get(ServicesApiClient)
+    const noty = injector.get(NotyService)
     const [isUpdateLoading, setIsUpdateLoading] = useState('isUpdateLoading', false)
 
     const updatableServices = props.filteredServices.filter(

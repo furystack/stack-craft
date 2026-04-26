@@ -1,5 +1,5 @@
 import type { IdentityContext } from '@furystack/core'
-import { Injectable, Injected } from '@furystack/inject'
+import { defineService, type Token } from '@furystack/inject'
 import { NotyService } from '@furystack/shades-common-components'
 import { ObservableValue, usingAsync } from '@furystack/utils'
 import type { User } from 'common'
@@ -7,8 +7,7 @@ import { IdentityApiClient } from './api-clients/identity-api-client.js'
 
 export type SessionState = 'initializing' | 'offline' | 'unauthenticated' | 'authenticated'
 
-@Injectable({ lifetime: 'singleton' })
-export class SessionService implements IdentityContext {
+class SessionServiceImpl implements IdentityContext {
   private readonly operation = (): Disposable => {
     this.isOperationInProgress.setValue(true)
     return { [Symbol.dispose]: () => this.isOperationInProgress.setValue(false) }
@@ -22,6 +21,13 @@ export class SessionService implements IdentityContext {
   public loginError = new ObservableValue('')
 
   private isInitialized = false
+
+  constructor(
+    private readonly api: IdentityApiClient,
+    private readonly notys: NotyService,
+  ) {
+    void this.init()
+  }
 
   public async init() {
     await usingAsync(this.operation(), async () => {
@@ -107,12 +113,6 @@ export class SessionService implements IdentityContext {
     return currentUser as unknown as TUser
   }
 
-  @Injected(IdentityApiClient)
-  declare private api: IdentityApiClient
-
-  @Injected(NotyService)
-  declare private readonly notys: NotyService
-
   public [Symbol.dispose]() {
     this.state[Symbol.dispose]()
     this.currentUser[Symbol.dispose]()
@@ -120,3 +120,16 @@ export class SessionService implements IdentityContext {
     this.loginError[Symbol.dispose]()
   }
 }
+
+export type SessionService = SessionServiceImpl
+
+export const SessionService: Token<SessionService, 'singleton'> = defineService({
+  name: 'app/SessionService',
+  lifetime: 'singleton',
+  factory: ({ inject, onDispose }) => {
+    const service = new SessionServiceImpl(inject(IdentityApiClient), inject(NotyService))
+    // eslint-disable-next-line furystack/prefer-using-wrapper -- onDispose ties teardown to the injector lifetime; the instance escapes via return.
+    onDispose(() => service[Symbol.dispose]())
+    return service
+  },
+})

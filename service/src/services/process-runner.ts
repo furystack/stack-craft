@@ -1,4 +1,4 @@
-import { Injectable, Injected } from '@furystack/inject'
+import { defineService, type Token } from '@furystack/inject'
 import { type ChildProcess, spawn, spawnSync } from 'child_process'
 
 import { LogStorageService } from './log-storage-service.js'
@@ -58,13 +58,11 @@ const SAFE_ENV_KEYS = new Set([
  * Low-level service responsible for spawning and killing child processes,
  * buffering their stdout/stderr output, and flushing log lines to storage.
  */
-@Injectable({ lifetime: 'singleton' })
-export class ProcessRunner {
+export class ProcessRunnerImpl {
+  constructor(private readonly logStorage: LogStorageService) {}
+
   public processes = new Map<string, ManagedProcess>()
   public pendingOperations = new Set<string>()
-
-  @Injected(LogStorageService)
-  declare private logStorage: LogStorageService
 
   private logBuffer: Array<{ serviceId: string; processUid: string; stream: 'stdout' | 'stderr'; line: string }> = []
   private flushTimer: ReturnType<typeof setTimeout> | null = null
@@ -107,7 +105,7 @@ export class ProcessRunner {
     return spawn(shell, [shellFlag, command], {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...ProcessRunner.getSafeEnv(), ...extraEnv },
+      env: { ...ProcessRunnerImpl.getSafeEnv(), ...extraEnv },
       detached: true,
     })
   }
@@ -142,3 +140,11 @@ export class ProcessRunner {
     await this.flushLogBuffer()
   }
 }
+
+export type ProcessRunner = ProcessRunnerImpl
+
+export const ProcessRunner: Token<ProcessRunner, 'singleton'> = defineService({
+  name: 'app/ProcessRunner',
+  lifetime: 'singleton',
+  factory: ({ inject }) => new ProcessRunnerImpl(inject(LogStorageService)),
+})

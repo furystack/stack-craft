@@ -1,16 +1,16 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Injector } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
 import { ServiceConfig, StackConfig } from 'common'
 import { z } from 'zod'
 
 import { CryptoService } from '../../utils/crypto-service.js'
 import { encryptEnvValues } from '../../utils/env-encryption-helpers.js'
 import { environmentVariableValueSchema, errorResult, textResult } from './mcp-helpers.js'
+import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
 
 export const registerEnvVariableTools = (mcp: McpServer, _injector: Injector, elevated: Injector) => {
   const repository = getRepository(elevated)
-  const crypto = elevated.getInstance(CryptoService)
+  const crypto = elevated.get(CryptoService)
 
   mcp.registerTool(
     'set_stack_env_variable',

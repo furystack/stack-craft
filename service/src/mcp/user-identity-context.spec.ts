@@ -64,7 +64,7 @@ describe('useUserIdentityContext', () => {
     await usingAsync(new Injector(), async (parent) => {
       const user = Object.assign(new User(), { username: 'carol', roles: ['admin'] })
       await usingAsync(useUserIdentityContext({ injector: parent, user }), async (child) => {
-        const ctx = child.getInstance(IdentityContext)
+        const ctx = child.get(IdentityContext)
         expect(ctx).toBeInstanceOf(UserIdentityContext)
       })
     })
@@ -101,7 +101,7 @@ describe('useUserIdentityContext', () => {
         },
       )
       expect(childRef).toBeDefined()
-      expect(() => childRef!.getInstance(IdentityContext)).toThrow('Injector already disposed')
+      expect(() => childRef!.get(IdentityContext)).toThrow('Injector already disposed')
     })
   })
 })

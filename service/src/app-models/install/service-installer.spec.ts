@@ -1,13 +1,16 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { UserDataSet } from '../data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import { InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { addStore } from '../../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { PasswordAuthenticator, PasswordCredential, PasswordResetToken, usePasswordPolicy } from '@furystack/security'
 import { usingAsync } from '@furystack/utils'
 import { User } from 'common'
 import { describe, expect, it } from 'vitest'
 
 import { ServiceStatusProvider } from './service-installer.js'
+import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
 
 const setupInjector = () => {
   const injector = new Injector()
@@ -26,7 +29,7 @@ describe('ServiceStatusProvider', () => {
   describe('getStatus', () => {
     it('should return "needsInstall" when no users exist', () =>
       usingAsync(setupInjector(), async (injector) => {
-        const provider = injector.getInstance(ServiceStatusProvider)
+        const provider = injector.get(ServiceStatusProvider)
         const status = await provider.getStatus()
         expect(status).toBe('needsInstall')
       }))
@@ -34,10 +37,10 @@ describe('ServiceStatusProvider', () => {
     it('should return "installed" when users exist', () =>
       usingAsync(setupInjector(), async (injector) => {
         const elevated = useSystemIdentityContext({ injector })
-        await getRepository(elevated).getDataSetFor(User, 'username').add(elevated, { username: 'admin', roles: [] })
+        await getDataSetFor(elevated, UserDataSet).add(elevated, { username: 'admin', roles: [] })
         await elevated[Symbol.asyncDispose]()
 
-        const provider = injector.getInstance(ServiceStatusProvider)
+        const provider = injector.get(ServiceStatusProvider)
         const status = await provider.getStatus()
         expect(status).toBe('installed')
       }))
@@ -46,7 +49,7 @@ describe('ServiceStatusProvider', () => {
   describe('install', () => {
     it('should create a user and password credential', () =>
       usingAsync(setupInjector(), async (injector) => {
-        const provider = injector.getInstance(ServiceStatusProvider)
+        const provider = injector.get(ServiceStatusProvider)
         await provider.install('admin', 'password123')
 
         const elevated = useSystemIdentityContext({ injector })
@@ -65,7 +68,7 @@ describe('ServiceStatusProvider', () => {
 
     it('should throw if service is already installed', () =>
       usingAsync(setupInjector(), async (injector) => {
-        const provider = injector.getInstance(ServiceStatusProvider)
+        const provider = injector.get(ServiceStatusProvider)
         await provider.install('admin', 'password123')
 
         await expect(provider.install('admin2', 'password456')).rejects.toThrow('Service is already installed')
@@ -73,10 +76,10 @@ describe('ServiceStatusProvider', () => {
 
     it('should create valid password credentials after install', () =>
       usingAsync(setupInjector(), async (injector) => {
-        const provider = injector.getInstance(ServiceStatusProvider)
+        const provider = injector.get(ServiceStatusProvider)
         await provider.install('admin', 'secret')
 
-        const authenticator = injector.getInstance(PasswordAuthenticator)
+        const authenticator = injector.get(PasswordAuthenticator)
         const result = await authenticator.checkPasswordForUser('admin', 'secret')
         expect(result.isValid).toBe(true)
       }))

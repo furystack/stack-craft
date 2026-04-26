@@ -1,8 +1,8 @@
-import { getRepository } from '@furystack/repository'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ServiceHistoryEndpoint } from 'common'
 import { ServiceDefinition, ServiceStateHistory } from 'common'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
 export const ServiceHistoryAction: RequestAction<ServiceHistoryEndpoint> = async ({
   injector,

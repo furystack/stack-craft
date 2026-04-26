@@ -1,7 +1,7 @@
-import { addStore, InMemoryStore } from '@furystack/core'
+import { InMemoryStore } from '@furystack/core'
+import { addStore } from '../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
 import { Prerequisite, ServiceConfig, ServiceDefinition, ServicePrerequisiteLink, StackConfig } from 'common'
 import { randomBytes } from 'crypto'
@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 
 import { CryptoService } from '../utils/crypto-service.js'
 import { ServiceEnvResolver } from './service-env-resolver.js'
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
 
 const ts = new Date().toISOString()
 
@@ -84,7 +85,7 @@ const withEnvAndInjector = async (
 describe('ServiceEnvResolver', () => {
   it('should return empty object when service not found', () =>
     withEnvAndInjector(async ({ injector }) => {
-      const resolver = injector.getInstance(ServiceEnvResolver)
+      const resolver = injector.get(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('nonexistent')
       expect(result).toEqual({})
     }))
@@ -107,7 +108,7 @@ describe('ServiceEnvResolver', () => {
         }),
       )
 
-      const resolver = injector.getInstance(ServiceEnvResolver)
+      const resolver = injector.get(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('svc-1')
       expect(result).toEqual({})
     }))
@@ -143,7 +144,7 @@ describe('ServiceEnvResolver', () => {
           updatedAt: ts,
         })
 
-        const resolver = injector.getInstance(ServiceEnvResolver)
+        const resolver = injector.get(ServiceEnvResolver)
         const result = await resolver.resolveServiceEnvVars('svc-2')
         expect(result).toEqual({ [varName]: 'inherited-value' })
       } finally {
@@ -181,14 +182,14 @@ describe('ServiceEnvResolver', () => {
         updatedAt: ts,
       })
 
-      const resolver = injector.getInstance(ServiceEnvResolver)
+      const resolver = injector.get(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('svc-3')
       expect(result).toEqual({ MY_CUSTOM_VAR: 'plain-secret' })
     }))
 
   it('should resolve env vars with custom source (encrypted value)', () =>
     withEnvAndInjector(async ({ svcDefStore, prereqStore, stackConfigStore, prereqLinkStore, injector }) => {
-      const crypto = injector.getInstance(CryptoService)
+      const crypto = injector.get(CryptoService)
       const encrypted = crypto.encrypt('super-secret')
 
       await svcDefStore.add(
@@ -215,7 +216,7 @@ describe('ServiceEnvResolver', () => {
         updatedAt: ts,
       })
 
-      const resolver = injector.getInstance(ServiceEnvResolver)
+      const resolver = injector.get(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('svc-4')
       expect(result).toEqual({ MY_ENCRYPTED_VAR: 'super-secret' })
     }))
@@ -259,7 +260,7 @@ describe('ServiceEnvResolver', () => {
           updatedAt: ts,
         })
 
-        const resolver = injector.getInstance(ServiceEnvResolver)
+        const resolver = injector.get(ServiceEnvResolver)
         const result = await resolver.resolveServiceEnvVars('svc-5')
         expect(result).toEqual({ OVERRIDDEN_VAR: 'service-override' })
       },
@@ -294,7 +295,7 @@ describe('ServiceEnvResolver', () => {
         updatedAt: ts,
       })
 
-      const resolver = injector.getInstance(ServiceEnvResolver)
+      const resolver = injector.get(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('svc-6')
       expect(result).toEqual({})
     }))
@@ -322,7 +323,7 @@ describe('ServiceEnvResolver', () => {
         updatedAt: ts,
       })
 
-      const resolver = injector.getInstance(ServiceEnvResolver)
+      const resolver = injector.get(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('svc-7')
       expect(result).toEqual({ FREE_FORM_VAR: 'stack-free-form' })
     }))
@@ -350,7 +351,7 @@ describe('ServiceEnvResolver', () => {
         updatedAt: ts,
       })
 
-      const resolver = injector.getInstance(ServiceEnvResolver)
+      const resolver = injector.get(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('svc-8')
       expect(result).toEqual({ SVC_ONLY_VAR: 'service-only-value' })
     }))
@@ -388,7 +389,7 @@ describe('ServiceEnvResolver', () => {
           updatedAt: ts,
         })
 
-        const resolver = injector.getInstance(ServiceEnvResolver)
+        const resolver = injector.get(ServiceEnvResolver)
         const result = await resolver.resolveServiceEnvVars('svc-9')
         expect(result).toEqual({
           PREREQ_VAR: 'from-prereq',
@@ -422,7 +423,7 @@ describe('ServiceEnvResolver', () => {
         updatedAt: ts,
       })
 
-      const resolver = injector.getInstance(ServiceEnvResolver)
+      const resolver = injector.get(ServiceEnvResolver)
       const result = await resolver.resolveServiceEnvVars('svc-10')
       expect(result).toEqual({ SHARED_FREE: 'service-value' })
     }))

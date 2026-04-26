@@ -1,4 +1,4 @@
-import { useCollectionSync } from '@furystack/entity-sync-client'
+import { useCollectionSync } from '../../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
 
 import type { Palette } from '@furystack/shades-common-components'
@@ -132,8 +132,8 @@ export const StackDashboard = Shade<StackDashboardProps>({
     const [isStartingAll, setIsStartingAll] = useState('isStartingAll', false)
     const [isStoppingAll, setIsStoppingAll] = useState('isStoppingAll', false)
 
-    const api = injector.getInstance(ServicesApiClient)
-    const noty = injector.getInstance(NotyService)
+    const api = injector.get(ServicesApiClient)
+    const noty = injector.get(NotyService)
 
     const triggerStartAll = async () => {
       setIsStartingAll(true)

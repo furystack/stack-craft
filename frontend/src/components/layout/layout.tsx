@@ -1,9 +1,8 @@
-import { EntitySyncService } from '@furystack/entity-sync-client'
 import { createComponent, Shade } from '@furystack/shades'
 import { cssVariableTheme, NotyList, PageLayout, ThemeProviderService } from '@furystack/shades-common-components'
-import { environmentOptions } from '../../environment-options.js'
 import { Init } from '../../pages/init.js'
 import { Login } from '../../pages/login.js'
+import { AppEntitySyncService } from '../../services/entity-sync.js'
 import { InstallService } from '../../services/install-service.js'
 import { SessionService } from '../../services/session.js'
 import { applyTheme, DEFAULT_THEME_KEY, THEME_STORAGE_KEY } from '../../services/theme-registry.js'
@@ -25,10 +24,10 @@ export const Layout = Shade({
   },
   render: ({ injector, useObservable, useStoredState }) => {
     const [themeKey] = useStoredState<string>(THEME_STORAGE_KEY, DEFAULT_THEME_KEY)
-    const themeProvider = injector.getInstance(ThemeProviderService)
+    const themeProvider = injector.get(ThemeProviderService)
     void applyTheme(themeKey, themeProvider)
 
-    const installService = injector.getInstance(InstallService)
+    const installService = injector.get(InstallService)
     const [installStatus] = useObservable('installStatus', installService.getServiceStatusAsObservable())
 
     if (installStatus.status === 'loading') {
@@ -81,7 +80,7 @@ export const Layout = Shade({
       )
     }
 
-    const session = injector.getInstance(SessionService)
+    const session = injector.get(SessionService)
     const [sessionState] = useObservable('sessionState', session.state)
 
     if (sessionState === 'unauthenticated') {
@@ -104,16 +103,10 @@ export const Layout = Shade({
 
 const AuthenticatedLayout = Shade({
   customElementName: 'shade-authenticated-layout',
-  render: ({ injector, useDisposable }) => {
-    const serviceUrl = new URL(environmentOptions.serviceUrl)
-    const syncProtocol = serviceUrl.protocol === 'https:' ? 'wss:' : 'ws:'
-    const syncWsUrl = `${syncProtocol}//${serviceUrl.host}/api/ws`
-
-    useDisposable('entitySyncService', () => {
-      const service = new EntitySyncService({ wsUrl: syncWsUrl })
-      injector.setExplicitInstance(service, EntitySyncService)
-      return service
-    })
+  render: ({ injector }) => {
+    // Eagerly resolve the per-app sync service so its WebSocket connection
+    // opens once the layout mounts. Disposal is owned by the injector.
+    injector.get(AppEntitySyncService)
 
     return (
       <PageLayout

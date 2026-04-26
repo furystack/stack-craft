@@ -1,10 +1,9 @@
-import { getRepository } from '@furystack/repository'
-import { GitHubRepository } from 'common'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { GitHubRepositoryDataSet } from '../../data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockActionContext, withTestInjector } from '../../../test-helpers.js'
 import { ValidateRepoAction } from './validate-repo-action.js'
-
 const execFileMock = vi.hoisted(() =>
   vi.fn<(cmd: string, args: string[], options: { timeout: number }) => Promise<{ stdout: string; stderr: string }>>(),
 )
@@ -25,7 +24,7 @@ describe('ValidateRepoAction', () => {
   it('should return accessible: true when git ls-remote succeeds', async () => {
     await withTestInjector(async ({ elevated }) => {
       const ts = new Date().toISOString()
-      await getRepository(elevated).getDataSetFor(GitHubRepository, 'id').add(elevated, {
+      await getDataSetFor(elevated, GitHubRepositoryDataSet).add(elevated, {
         id: 'repo-1',
         stackName: 'test-stack',
         url: 'https://github.com/user/repo.git',
@@ -56,7 +55,7 @@ describe('ValidateRepoAction', () => {
   it('should return accessible: false when git ls-remote fails', async () => {
     await withTestInjector(async ({ elevated }) => {
       const ts = new Date().toISOString()
-      await getRepository(elevated).getDataSetFor(GitHubRepository, 'id').add(elevated, {
+      await getDataSetFor(elevated, GitHubRepositoryDataSet).add(elevated, {
         id: 'repo-2',
         stackName: 'test-stack',
         url: 'https://github.com/user/bad-repo.git',

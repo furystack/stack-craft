@@ -10,9 +10,9 @@ import {
   Validate,
 } from '@furystack/rest-service'
 import type { GitHubRepositoriesApi } from 'common'
-import { GitHubRepository } from 'common'
 import githubReposApiSchema from 'common/schemas/github-repositories-api.json' with { type: 'json' }
 
+import { GitHubRepositoryDataSet } from '../data-store/tokens.js'
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getHost } from '../../get-host.js'
 import { getPort } from '../../get-port.js'
@@ -30,17 +30,17 @@ export const setupGitHubReposRestApi = async (injector: Injector) => {
         '/github-repositories': Validate({
           schema: githubReposApiSchema,
           schemaName: 'GetCollectionEndpoint<GitHubRepository>',
-        })(createGetCollectionEndpoint({ model: GitHubRepository, primaryKey: 'id' })),
+        })(createGetCollectionEndpoint(GitHubRepositoryDataSet)),
         '/github-repositories/:id': Validate({
           schema: githubReposApiSchema,
           schemaName: 'GetEntityEndpoint<GitHubRepository,"id">',
-        })(createGetEntityEndpoint({ model: GitHubRepository, primaryKey: 'id' })),
+        })(createGetEntityEndpoint(GitHubRepositoryDataSet)),
       },
       POST: {
         '/github-repositories': Validate({
           schema: githubReposApiSchema,
           schemaName: 'PostGitHubRepoEndpoint',
-        })(createPostEndpoint({ model: GitHubRepository, primaryKey: 'id' })),
+        })(createPostEndpoint(GitHubRepositoryDataSet)),
         '/github-repositories/:id/validate': Validate({
           schema: githubReposApiSchema,
           schemaName: 'ValidateRepoEndpoint',
@@ -50,13 +50,13 @@ export const setupGitHubReposRestApi = async (injector: Injector) => {
         '/github-repositories/:id': Validate({
           schema: githubReposApiSchema,
           schemaName: 'PatchGitHubRepoEndpoint',
-        })(createPatchEndpoint({ model: GitHubRepository, primaryKey: 'id' })),
+        })(createPatchEndpoint(GitHubRepositoryDataSet)),
       },
       DELETE: {
         '/github-repositories/:id': Validate({
           schema: githubReposApiSchema,
           schemaName: 'DeleteEndpoint<GitHubRepository,"id">',
-        })(createDeleteEndpoint({ model: GitHubRepository, primaryKey: 'id' })),
+        })(createDeleteEndpoint(GitHubRepositoryDataSet)),
       },
     },
   })

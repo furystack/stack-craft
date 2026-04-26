@@ -1,5 +1,4 @@
 import type { Injector } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
 import type { ServiceHistoryEndpoint } from 'common'
 import { ServiceDefinition, ServiceStateHistory } from 'common'
 import { describe, expect, it } from 'vitest'
@@ -8,6 +7,7 @@ import type { RequestActionOptions } from '@furystack/rest-service'
 import { withTestInjector } from '../../../test-helpers.js'
 
 import { ServiceHistoryAction } from './service-history-action.js'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
 const createHistoryContext = (options: {
   injector: Injector

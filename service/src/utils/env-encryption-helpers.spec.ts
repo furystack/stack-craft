@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { CryptoService, SENSITIVE_VALUE_MASK, UNCHANGED_SENTINEL } from './crypto-service.js'
+import { CryptoServiceImpl, type CryptoService, SENSITIVE_VALUE_MASK, UNCHANGED_SENTINEL } from './crypto-service.js'
 import {
   decryptEnvValues,
   decryptLocalFiles,
@@ -19,7 +19,7 @@ describe('env-encryption-helpers', () => {
     originalEnv = process.env.STACK_CRAFT_ENCRYPTION_KEY
     const key = randomBytes(32)
     process.env.STACK_CRAFT_ENCRYPTION_KEY = key.toString('base64')
-    crypto = new CryptoService()
+    crypto = new CryptoServiceImpl()
   })
 
   afterEach(() => {

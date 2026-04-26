@@ -4,7 +4,7 @@ import { LogStorageService } from '../../../services/log-storage-service.js'
 
 export const ClearServiceLogsAction: RequestAction<ClearServiceLogsEndpoint> = async ({ injector, getUrlParams }) => {
   const { id: serviceId } = getUrlParams()
-  const logStorage = injector.getInstance(LogStorageService)
+  const logStorage = injector.get(LogStorageService)
   await logStorage.clearLogs(serviceId)
   return JsonResult({ success: true })
 }

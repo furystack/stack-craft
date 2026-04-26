@@ -1,11 +1,11 @@
 import { useSystemIdentityContext } from '@furystack/core'
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import type { EnvironmentVariableValue } from 'common'
 import { Prerequisite, PrerequisiteCheckResult, StackConfig } from 'common'
 
 import { runCheck } from './actions/check-prerequisite-action.js'
+import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
 
 /**
  * Evaluates all prerequisites on startup and populates the in-memory

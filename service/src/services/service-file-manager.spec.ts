@@ -1,5 +1,4 @@
 import type { Injector } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
 import { ServiceConfig, ServiceDefinition, ServiceStatus, StackConfig } from 'common'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -9,6 +8,8 @@ import { ServiceEnvResolver } from './service-env-resolver.js'
 import { ServiceFileManager } from './service-file-manager.js'
 
 import type * as applyServiceFiles from '../utils/apply-service-files.js'
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
+import '../test-shims.js'
 vi.mock('../utils/apply-service-files.js', async (importOriginal) => {
   const actual = await importOriginal<typeof applyServiceFiles>()
   return {
@@ -83,7 +84,7 @@ describe('ServiceFileManager', () => {
       setupMocks(injector)
       await seedData(elevated)
 
-      const manager = injector.getInstance(ServiceFileManager)
+      const manager = injector.get(ServiceFileManager)
       const result = await manager.applyFiles('svc-1')
 
       expect(mockedApply).toHaveBeenCalledWith(expect.any(String), expect.any(Array), undefined, {
@@ -97,7 +98,7 @@ describe('ServiceFileManager', () => {
       setupMocks(injector)
       await seedData(elevated, { files: [{ relativePath: '.env', content: 'A=1' }] })
 
-      const manager = injector.getInstance(ServiceFileManager)
+      const manager = injector.get(ServiceFileManager)
       await manager.applyFiles('svc-1', '.env')
 
       expect(mockedApply).toHaveBeenCalledWith(expect.any(String), expect.any(Array), '.env', expect.any(Object))
@@ -108,7 +109,7 @@ describe('ServiceFileManager', () => {
       setupMocks(injector)
       await seedData(elevated, { files: [{ relativePath: '.env', content: 'A=1' }] })
 
-      const manager = injector.getInstance(ServiceFileManager)
+      const manager = injector.get(ServiceFileManager)
       await expect(manager.applyFiles('svc-1', 'nonexistent.txt')).rejects.toThrow('File not found')
     }))
 
@@ -116,7 +117,7 @@ describe('ServiceFileManager', () => {
     withTestInjector(async ({ injector }) => {
       setupMocks(injector)
 
-      const manager = injector.getInstance(ServiceFileManager)
+      const manager = injector.get(ServiceFileManager)
       await expect(manager.applyFiles('nonexistent')).rejects.toThrow('Service not found')
     }))
 })

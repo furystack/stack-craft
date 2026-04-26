@@ -224,8 +224,8 @@ export const BranchSelector = Shade<BranchSelectorProps>({
     const [isLoading, setIsLoading] = useState('isLoading', false)
     const [isCheckingOut, setIsCheckingOut] = useState('isCheckingOut', false)
 
-    const api = injector.getInstance(ServicesApiClient)
-    const noty = injector.getInstance(NotyService)
+    const api = injector.get(ServicesApiClient)
+    const noty = injector.get(NotyService)
 
     const hasBranchInfo = Boolean(currentBranch)
     const isClonedOrPulling = cloneStatus === 'cloned' || (cloneStatus === 'cloning' && hasBranchInfo)

@@ -1,17 +1,18 @@
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
+import { SequelizeClientFactory } from '@furystack/sequelize-store'
 import type { HealthCheckEndpoint, HealthCheckResult } from 'common'
+
+import { getDbOptions } from '../../data-store/db-options.js'
 
 const startTime = Date.now()
 
 export const HealthCheckAction: RequestAction<HealthCheckEndpoint> = async ({ injector }) => {
-  let database: HealthCheckResult['database'] = 'disconnected'
+  let database: HealthCheckResult['database']
   try {
-    const { Sequelize } = await import('sequelize')
-    const sequelize = injector.cachedSingletons.get(Sequelize) as InstanceType<typeof Sequelize> | undefined
-    if (sequelize) {
-      await sequelize.authenticate()
-      database = 'connected'
-    }
+    const factory = injector.get(SequelizeClientFactory)
+    const sequelize = factory.getSequelizeClient(getDbOptions())
+    await sequelize.authenticate()
+    database = 'connected'
   } catch {
     database = 'disconnected'
   }

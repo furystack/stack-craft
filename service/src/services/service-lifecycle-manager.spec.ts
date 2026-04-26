@@ -1,7 +1,14 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import {
+  ServiceConfigDataSet,
+  ServiceDefinitionDataSet,
+  ServiceStatusDataSet,
+  StackConfigDataSet,
+} from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import { InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { addStore } from '../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import {
   GitHubRepository,
   Prerequisite,
@@ -22,6 +29,7 @@ import { GitHeadWatcher } from './git-head-watcher.js'
 import { LogStorageService } from './log-storage-service.js'
 import { ServiceLifecycleManager } from './service-lifecycle-manager.js'
 import type { TriggerContext } from './trigger-context.js'
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
 
 const testTrigger: TriggerContext = { triggeredBy: 'test', triggerSource: 'api' }
 
@@ -90,7 +98,7 @@ const setupInjector = async (injector: Injector) => {
   )
 
   const elevated = useSystemIdentityContext({ injector })
-  await getRepository(elevated).getDataSetFor(StackConfig, 'stackName').add(elevated, {
+  await getDataSetFor(elevated, StackConfigDataSet).add(elevated, {
     stackName: 'test-stack',
     mainDirectory: tmpdir(),
     environmentVariables: {},
@@ -103,11 +111,9 @@ const setupInjector = async (injector: Injector) => {
 const seedService = async (injector: Injector, overrides: Partial<ServiceDefinition> = {}) => {
   const elevated = useSystemIdentityContext({ injector })
   const svcDef = createTestServiceDefinition(overrides)
-  await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').add(elevated, svcDef)
-  await getRepository(elevated)
-    .getDataSetFor(ServiceStatus, 'serviceId')
-    .add(elevated, createTestServiceStatus({ serviceId: svcDef.id }))
-  await getRepository(elevated).getDataSetFor(ServiceConfig, 'serviceId').add(elevated, {
+  await getDataSetFor(elevated, ServiceDefinitionDataSet).add(elevated, svcDef)
+  await getDataSetFor(elevated, ServiceStatusDataSet).add(elevated, createTestServiceStatus({ serviceId: svcDef.id }))
+  await getDataSetFor(elevated, ServiceConfigDataSet).add(elevated, {
     serviceId: svcDef.id,
     autoFetchEnabled: false,
     autoFetchIntervalMinutes: 60,
@@ -124,7 +130,7 @@ const withContext = async (fn: (ctx: { injector: Injector; manager: ServiceLifec
   const injector = new Injector()
   await setupInjector(injector)
   await seedService(injector)
-  const manager = injector.getInstance(ServiceLifecycleManager)
+  const manager = injector.get(ServiceLifecycleManager)
   try {
     await fn({ injector, manager })
   } finally {

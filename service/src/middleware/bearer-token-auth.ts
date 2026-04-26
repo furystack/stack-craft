@@ -1,10 +1,10 @@
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { ApiToken, User } from 'common'
 import { createHash } from 'crypto'
 
 import { useSystemIdentityContext } from '@furystack/core'
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
 
 /**
  * Extracts a Bearer token from the Authorization header,

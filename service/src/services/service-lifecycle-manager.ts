@@ -1,5 +1,5 @@
 import type { ChildProcess } from 'child_process'
-import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
+import { type Injector, defineService, type Token } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import type { RunStatus, ServiceStateEvent } from 'common'
 import { randomUUID } from 'crypto'
@@ -18,28 +18,26 @@ const DEFAULT_STOP_TIMEOUT_MS = 10_000
 const DEFAULT_SHUTDOWN_KILL_TIMEOUT_MS = 5_000
 
 /** Manages starting, stopping, restarting long-running service processes and graceful shutdown */
-@Injectable({ lifetime: 'singleton' })
-export class ServiceLifecycleManager {
+class ServiceLifecycleManagerImpl {
+  private logger!: ReturnType<ReturnType<typeof getLogger>['withScope']>
+
+  constructor(
+    private readonly runner: ProcessRunner,
+    private readonly envResolver: ServiceEnvResolver,
+    private readonly statusManager: ServiceStatusManager,
+    public readonly injector: Injector,
+  ) {
+    this.logger = getLogger(injector).withScope('ServiceLifecycleManager')
+  }
+
   private elevatedInjector?: Injector
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+      this.elevatedInjector = useSystemIdentityContext({ injector: this.injector })
     }
     return this.elevatedInjector
   }
-
-  @Injected((injector) => getLogger(injector).withScope('ServiceLifecycleManager'))
-  declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
-
-  @Injected(ProcessRunner)
-  declare private runner: ProcessRunner
-
-  @Injected(ServiceEnvResolver)
-  declare private envResolver: ServiceEnvResolver
-
-  @Injected(ServiceStatusManager)
-  declare private statusManager: ServiceStatusManager
 
   public async startService(serviceId: string, trigger: TriggerContext): Promise<void> {
     const elevated = this.getElevatedInjector()
@@ -63,7 +61,7 @@ export class ServiceLifecycleManager {
         },
       )
 
-      const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
+      const cwd = await resolveServiceCwd(this.injector, svc, elevated)
       const envVars = await this.envResolver.resolveServiceEnvVars(serviceId)
       const processUid = randomUUID()
       const child = this.runner.spawnCommand(svc.runCommand, cwd, envVars)
@@ -241,3 +239,17 @@ export class ServiceLifecycleManager {
     }
   }
 }
+
+export type ServiceLifecycleManager = ServiceLifecycleManagerImpl
+
+export const ServiceLifecycleManager: Token<ServiceLifecycleManager, 'singleton'> = defineService({
+  name: 'app/ServiceLifecycleManager',
+  lifetime: 'singleton',
+  factory: ({ inject, injector }) =>
+    new ServiceLifecycleManagerImpl(
+      inject(ProcessRunner),
+      inject(ServiceEnvResolver),
+      inject(ServiceStatusManager),
+      injector,
+    ),
+})

@@ -12,7 +12,7 @@ export const MiniPipelineDots = Shade<MiniPipelineDotsProps>({
   customElementName: 'shade-mini-pipeline-dots',
   render: ({ props, injector }) => {
     const stages = getPipelineStages(props.service)
-    const { theme } = injector.getInstance(ThemeProviderService)
+    const { theme } = injector.get(ThemeProviderService)
 
     return (
       <div

@@ -1,68 +1,71 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
-import type { Injector } from '@furystack/inject'
-import { Injector as InjectorImpl } from '@furystack/inject'
+import { IdentityContext, InMemoryStore, type StoreToken, useSystemIdentityContext } from '@furystack/core'
+import { createInjector, type Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
-import { PasswordCredential, PasswordResetToken, usePasswordPolicy } from '@furystack/security'
+import { usePasswordPolicy } from '@furystack/security'
+import { ServiceStateHistory } from 'common'
+
 import {
-  GitHubRepository,
-  Prerequisite,
-  PrerequisiteCheckResult,
-  ServiceConfig,
-  ServiceDefinition,
-  ServiceDependencyLink,
-  ServiceGitStatus,
-  ServiceLogEntry,
-  ServicePrerequisiteLink,
-  ServiceStateHistory,
-  ServiceStatus,
-  StackConfig,
-  StackDefinition,
-  User,
-} from 'common'
+  AppPasswordCredentialStore,
+  AppPasswordResetTokenStore,
+  AppSessionStore,
+  AppUserStore,
+  ApiTokenStore,
+  bindAuthenticationStores,
+  GitHubRepositoryStore,
+  PrerequisiteStore,
+  ServiceConfigStore,
+  ServiceDefinitionStore,
+  ServiceDependencyLinkStore,
+  ServicePrerequisiteLinkStore,
+  ServiceStateHistoryStore,
+  ServiceStatusStore,
+  StackConfigStore,
+  StackDefinitionStore,
+} from './app-models/data-store/tokens.js'
+
+const bindInMemory = <T extends object, TPK extends keyof T>(injector: Injector, token: StoreToken<T, TPK>): void => {
+  injector.bind(token, () => new InMemoryStore({ model: token.model, primaryKey: token.primaryKey }))
+}
 
 export const createTestInjector = () => {
-  const injector = new InjectorImpl()
+  const injector = createInjector()
   useLogging(injector, VerboseConsoleLogger)
 
-  addStore(injector, new InMemoryStore({ model: StackDefinition, primaryKey: 'name' }))
-  addStore(injector, new InMemoryStore({ model: StackConfig, primaryKey: 'stackName' }))
-  addStore(injector, new InMemoryStore({ model: GitHubRepository, primaryKey: 'id' }))
-  addStore(injector, new InMemoryStore({ model: Prerequisite, primaryKey: 'id' }))
-  addStore(injector, new InMemoryStore({ model: PrerequisiteCheckResult, primaryKey: 'prerequisiteId' }))
-  addStore(injector, new InMemoryStore({ model: ServiceDefinition, primaryKey: 'id' }))
-  addStore(injector, new InMemoryStore({ model: ServiceConfig, primaryKey: 'serviceId' }))
-  addStore(injector, new InMemoryStore({ model: ServiceStatus, primaryKey: 'serviceId' }))
-  addStore(injector, new InMemoryStore({ model: ServiceGitStatus, primaryKey: 'serviceId' }))
-  addStore(injector, new InMemoryStore({ model: ServiceLogEntry, primaryKey: 'id' }))
-  addStore(injector, new InMemoryStore({ model: ServiceStateHistory, primaryKey: 'id' }))
-  addStore(injector, new InMemoryStore({ model: ServicePrerequisiteLink, primaryKey: 'id' }))
-  addStore(injector, new InMemoryStore({ model: ServiceDependencyLink, primaryKey: 'id' }))
-  addStore(injector, new InMemoryStore({ model: User, primaryKey: 'username' }))
-  addStore(injector, new InMemoryStore({ model: PasswordCredential, primaryKey: 'userName' }))
-  addStore(injector, new InMemoryStore({ model: PasswordResetToken, primaryKey: 'token' }))
+  bindInMemory(injector, AppUserStore)
+  bindInMemory(injector, AppPasswordCredentialStore)
+  bindInMemory(injector, AppPasswordResetTokenStore)
+  bindInMemory(injector, AppSessionStore)
+  bindInMemory(injector, ApiTokenStore)
+  bindInMemory(injector, StackDefinitionStore)
+  bindInMemory(injector, StackConfigStore)
+  bindInMemory(injector, GitHubRepositoryStore)
+  bindInMemory(injector, PrerequisiteStore)
+  bindInMemory(injector, ServiceDefinitionStore)
+  bindInMemory(injector, ServiceConfigStore)
+  bindInMemory(injector, ServiceStatusStore)
+  bindInMemory(injector, ServicePrerequisiteLinkStore)
+  bindInMemory(injector, ServiceDependencyLinkStore)
 
-  getRepository(injector).createDataSet(StackDefinition, 'name', {})
-  getRepository(injector).createDataSet(StackConfig, 'stackName', {})
-  getRepository(injector).createDataSet(GitHubRepository, 'id', {})
-  getRepository(injector).createDataSet(Prerequisite, 'id', {})
-  getRepository(injector).createDataSet(PrerequisiteCheckResult, 'prerequisiteId', {})
-  getRepository(injector).createDataSet(ServiceDefinition, 'id', {})
-  getRepository(injector).createDataSet(ServiceConfig, 'serviceId', {})
-  getRepository(injector).createDataSet(ServiceStatus, 'serviceId', {})
-  getRepository(injector).createDataSet(ServiceGitStatus, 'serviceId', {})
-  getRepository(injector).createDataSet(ServiceLogEntry, 'id', {})
   let historyIdCounter = 0
-  getRepository(injector).createDataSet(ServiceStateHistory, 'id', {
-    modifyOnAdd: async ({ entity }) => ({ ...entity, id: entity.id ?? ++historyIdCounter }),
+  injector.bind(ServiceStateHistoryStore, () => {
+    const store = new InMemoryStore<ServiceStateHistory, 'id'>({ model: ServiceStateHistory, primaryKey: 'id' })
+    const originalAdd = store.add.bind(store)
+    store.add = async (entry) => originalAdd({ ...entry, id: entry.id ?? `h-${++historyIdCounter}` })
+    return store
   })
-  getRepository(injector).createDataSet(ServicePrerequisiteLink, 'id', {})
-  getRepository(injector).createDataSet(ServiceDependencyLink, 'id', {})
-  getRepository(injector).createDataSet(User, 'username', {})
-  getRepository(injector).createDataSet(PasswordCredential, 'userName', {})
-  getRepository(injector).createDataSet(PasswordResetToken, 'token')
 
+  bindAuthenticationStores(injector)
   usePasswordPolicy(injector)
+
+  // Bind a permissive IdentityContext on the test injector so calls that pass
+  // the un-elevated injector (e.g. RequestActions in tests) bypass DataSet
+  // authorization. Production HTTP requests resolve their own scoped
+  // IdentityContext from the request.
+  injector.bind(IdentityContext, () => ({
+    isAuthenticated: () => Promise.resolve(true),
+    isAuthorized: () => Promise.resolve(true),
+    getCurrentUser: () => Promise.resolve({ username: 'test', roles: ['admin'] } as never),
+  }))
 
   const elevated = useSystemIdentityContext({ injector })
 

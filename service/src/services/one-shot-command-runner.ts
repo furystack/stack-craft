@@ -1,6 +1,5 @@
 import type { ChildProcess } from 'child_process'
-import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
-import { getLogger } from '@furystack/logging'
+import { type Injector, defineService, type Token } from '@furystack/inject'
 import type { ServiceStateEvent } from 'common'
 import { randomUUID } from 'crypto'
 
@@ -15,35 +14,29 @@ import { ServiceStatusManager } from './service-status-manager.js'
 import type { TriggerContext } from './trigger-context.js'
 
 /** Executes one-shot commands (install, build) for services and tracks their status */
-@Injectable({ lifetime: 'singleton' })
-export class OneShotCommandRunner {
+class OneShotCommandRunnerImpl {
+  constructor(
+    private readonly runner: ProcessRunner,
+    private readonly envResolver: ServiceEnvResolver,
+    private readonly statusManager: ServiceStatusManager,
+    public readonly injector: Injector,
+  ) {}
+
   private elevatedInjector?: Injector
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+      this.elevatedInjector = useSystemIdentityContext({ injector: this.injector })
     }
     return this.elevatedInjector
   }
-
-  @Injected((injector) => getLogger(injector).withScope('OneShotCommandRunner'))
-  declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
-
-  @Injected(ProcessRunner)
-  declare private runner: ProcessRunner
-
-  @Injected(ServiceEnvResolver)
-  declare private envResolver: ServiceEnvResolver
-
-  @Injected(ServiceStatusManager)
-  declare private statusManager: ServiceStatusManager
 
   public async installService(serviceId: string, trigger: TriggerContext): Promise<void> {
     const elevated = this.getElevatedInjector()
     const svc = await getServiceOrThrow(serviceId, elevated)
     if (!svc.installCommand) throw new ValidationError(`No install command for service: ${serviceId}`)
 
-    const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
+    const cwd = await resolveServiceCwd(this.injector, svc, elevated)
     await this.runOneShot(serviceId, svc.installCommand, cwd, 'install', trigger)
   }
 
@@ -52,7 +45,7 @@ export class OneShotCommandRunner {
     const svc = await getServiceOrThrow(serviceId, elevated)
     if (!svc.buildCommand) throw new ValidationError(`No build command for service: ${serviceId}`)
 
-    const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
+    const cwd = await resolveServiceCwd(this.injector, svc, elevated)
     await this.runOneShot(serviceId, svc.buildCommand, cwd, 'build', trigger)
   }
 
@@ -111,35 +104,22 @@ export class OneShotCommandRunner {
 
     return new Promise((resolve, reject) => {
       child.on('error', (err) => {
-        void this.statusManager.updateServiceStatus(
-          serviceId,
-          failedStatus,
-          failedEvent,
-          trigger,
-          { error: err.message },
-          { processUid },
-        )
         this.runner.processes.delete(serviceId)
-        reject(err)
+        void this.statusManager
+          .updateServiceStatus(serviceId, failedStatus, failedEvent, trigger, { error: err.message }, { processUid })
+          .finally(() => reject(err))
       })
 
       child.on('exit', (code) => {
         this.runner.processes.delete(serviceId)
         if (code === 0) {
-          void this.statusManager.updateServiceStatus(serviceId, doneStatus, doneEvent, trigger, undefined, {
-            processUid,
-          })
-          resolve()
+          void this.statusManager
+            .updateServiceStatus(serviceId, doneStatus, doneEvent, trigger, undefined, { processUid })
+            .then(resolve, resolve)
         } else {
-          void this.statusManager.updateServiceStatus(
-            serviceId,
-            failedStatus,
-            failedEvent,
-            trigger,
-            { exitCode: code },
-            { processUid },
-          )
-          reject(new Error(`${purpose} command exited with code ${code}`))
+          void this.statusManager
+            .updateServiceStatus(serviceId, failedStatus, failedEvent, trigger, { exitCode: code }, { processUid })
+            .finally(() => reject(new Error(`${purpose} command exited with code ${code}`)))
         }
       })
     })
@@ -153,3 +133,17 @@ export class OneShotCommandRunner {
     }
   }
 }
+
+export type OneShotCommandRunner = OneShotCommandRunnerImpl
+
+export const OneShotCommandRunner: Token<OneShotCommandRunner, 'singleton'> = defineService({
+  name: 'app/OneShotCommandRunner',
+  lifetime: 'singleton',
+  factory: ({ inject, injector }) =>
+    new OneShotCommandRunnerImpl(
+      inject(ProcessRunner),
+      inject(ServiceEnvResolver),
+      inject(ServiceStatusManager),
+      injector,
+    ),
+})

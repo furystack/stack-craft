@@ -1,13 +1,16 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { ServiceStateHistoryDataSet } from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import { InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { addStore } from '../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
 import { ServiceStateHistory, ServiceStatus } from 'common'
 import { describe, expect, it } from 'vitest'
 
 import { ServiceStatusManager } from './service-status-manager.js'
 import type { TriggerContext } from './trigger-context.js'
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
 
 const testTrigger: TriggerContext = { triggeredBy: 'test-user', triggerSource: 'api' }
 
@@ -24,7 +27,7 @@ const createTestServiceStatus = (overrides: Partial<ServiceStatus> = {}): Servic
 const setupStatusManagerInjector = (injector: Injector) => {
   useLogging(injector, VerboseConsoleLogger)
 
-  let historyIdCounter = 0
+  const historyIdCounter = 0
 
   const statusStore = new InMemoryStore({ model: ServiceStatus, primaryKey: 'serviceId' })
   const historyStore = new InMemoryStore({ model: ServiceStateHistory, primaryKey: 'id' })
@@ -32,15 +35,13 @@ const setupStatusManagerInjector = (injector: Injector) => {
   addStore(injector, statusStore)
   addStore(injector, historyStore)
 
+  // Datasets are declared as module-level tokens with auto-id logic; the
+  // legacy createDataSet shim is a no-op kept here for backwards compatibility.
   getRepository(injector).createDataSet(ServiceStatus, 'serviceId', {})
-  getRepository(injector).createDataSet(ServiceStateHistory, 'id', {
-    modifyOnAdd: async ({ entity }) => {
-      historyIdCounter++
-      return { ...entity, id: historyIdCounter }
-    },
-  })
+  getRepository(injector).createDataSet(ServiceStateHistory, 'id', {})
+  void historyIdCounter
 
-  const manager = injector.getInstance(ServiceStatusManager)
+  const manager = injector.get(ServiceStatusManager)
 
   return { manager, historyStore, statusStore }
 }
@@ -190,7 +191,7 @@ describe('ServiceStatusManager', () => {
         await statusStore.add(createTestServiceStatus())
 
         const elevated = useSystemIdentityContext({ injector })
-        const historyDs = getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id')
+        const historyDs = getDataSetFor(elevated, ServiceStateHistoryDataSet)
 
         const entries: ServiceStateHistory[] = Array.from({ length: 10_005 }, (_, i) => ({
           id: i + 1,
@@ -222,7 +223,7 @@ describe('ServiceStatusManager', () => {
         await statusStore.add(createTestServiceStatus())
 
         const elevated = useSystemIdentityContext({ injector })
-        const historyDs = getRepository(elevated).getDataSetFor(ServiceStateHistory, 'id')
+        const historyDs = getDataSetFor(elevated, ServiceStateHistoryDataSet)
 
         const entries: ServiceStateHistory[] = Array.from({ length: 5 }, (_, i) => ({
           id: i + 1,

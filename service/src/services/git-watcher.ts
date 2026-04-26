@@ -1,12 +1,16 @@
-import { Injectable, Injected, type Injector, getInjectorReference } from '@furystack/inject'
+import {
+  ServiceConfigDataSet,
+  ServiceDefinitionDataSet,
+  ServiceGitStatusDataSet,
+  ServiceStatusDataSet,
+} from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import { type Injector, defineService, type Token } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
-import { ServiceConfig, ServiceDefinition, ServiceGitStatus, ServiceStatus } from 'common'
 
 import { useSystemIdentityContext } from '@furystack/core'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
 import { GitService } from './git-service.js'
-
 const FETCH_CHECK_INTERVAL_MS = 5 * 60 * 1000
 
 type WatchEntry = {
@@ -17,35 +21,37 @@ type WatchEntry = {
 }
 
 /** Periodically fetches remote changes for watched services and optionally auto-restarts on new commits */
-@Injectable({ lifetime: 'singleton' })
-export class GitWatcher {
+class GitWatcherImpl {
+  private logger!: ReturnType<ReturnType<typeof getLogger>['withScope']>
+
+  constructor(
+    private readonly git: GitService,
+    public readonly injector: Injector,
+  ) {
+    this.logger = getLogger(injector).withScope('GitWatcher')
+  }
+
   private watchers = new Map<string, WatchEntry>()
   private elevatedInjector?: Injector
 
   private getElevatedInjector(): Injector {
     if (!this.elevatedInjector) {
-      this.elevatedInjector = useSystemIdentityContext({ injector: getInjectorReference(this) })
+      this.elevatedInjector = useSystemIdentityContext({ injector: this.injector })
     }
     return this.elevatedInjector
   }
-
-  @Injected((injector) => getLogger(injector).withScope('GitWatcher'))
-  declare private logger: ReturnType<ReturnType<typeof getLogger>['withScope']>
-
-  @Injected(GitService)
-  declare private git: GitService
 
   public async startWatching(serviceId: string): Promise<void> {
     if (this.watchers.has(serviceId)) return
 
     const elevated = this.getElevatedInjector()
-    const svcDefDs = getRepository(elevated).getDataSetFor(ServiceDefinition, 'id')
+    const svcDefDs = getDataSetFor(elevated, ServiceDefinitionDataSet)
 
     const defs = await svcDefDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = defs[0]
     if (!svc?.repositoryId) return
 
-    const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
+    const cwd = await resolveServiceCwd(this.injector, svc, elevated)
     const { remote } = await this.git.getBranches(cwd).catch(() => ({ remote: [] as string[] }))
 
     const entry: WatchEntry = {
@@ -76,10 +82,10 @@ export class GitWatcher {
 
     entry.isFetching = true
     const elevated = this.getElevatedInjector()
-    const svcDefDs = getRepository(elevated).getDataSetFor(ServiceDefinition, 'id')
-    const svcConfigDs = getRepository(elevated).getDataSetFor(ServiceConfig, 'serviceId')
-    const statusDs = getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId')
-    const gitStatusDs = getRepository(elevated).getDataSetFor(ServiceGitStatus, 'serviceId')
+    const svcDefDs = getDataSetFor(elevated, ServiceDefinitionDataSet)
+    const svcConfigDs = getDataSetFor(elevated, ServiceConfigDataSet)
+    const statusDs = getDataSetFor(elevated, ServiceStatusDataSet)
+    const gitStatusDs = getDataSetFor(elevated, ServiceGitStatusDataSet)
 
     const defs = await svcDefDs.find(elevated, { filter: { id: { $eq: serviceId } }, top: 1 })
     const svc = defs[0]
@@ -99,7 +105,7 @@ export class GitWatcher {
     const configs = await svcConfigDs.find(elevated, { filter: { serviceId: { $eq: serviceId } }, top: 1 })
     const config = configs[0]
 
-    const cwd = await resolveServiceCwd(getInjectorReference(this), svc, elevated)
+    const cwd = await resolveServiceCwd(this.injector, svc, elevated)
 
     try {
       await this.git.fetch(cwd)
@@ -146,7 +152,7 @@ export class GitWatcher {
         if (updated) {
           await this.logger.information({ message: `Changes pulled, restarting ${svc.displayName}` })
           const { ProcessManager } = await import('./process-manager.js')
-          const pm = getInjectorReference(this).getInstance(ProcessManager)
+          const pm = this.injector.get(ProcessManager)
           if (svc.installCommand) await pm.installService(serviceId, autoRestartTrigger)
           if (svc.buildCommand) await pm.buildService(serviceId, autoRestartTrigger)
           await pm.restartService(serviceId, autoRestartTrigger)
@@ -183,3 +189,11 @@ export class GitWatcher {
     }
   }
 }
+
+export type GitWatcher = GitWatcherImpl
+
+export const GitWatcher: Token<GitWatcher, 'singleton'> = defineService({
+  name: 'app/GitWatcher',
+  lifetime: 'singleton',
+  factory: ({ inject, injector }) => new GitWatcherImpl(inject(GitService), injector),
+})

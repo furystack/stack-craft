@@ -1,8 +1,8 @@
+import { ServiceDependencyLinkDataSet, ServiceStatusDataSet } from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 import type { Injector } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
-import { ServiceDefinition, ServiceDependencyLink, ServiceStatus, StackConfig } from 'common'
+import { ServiceDefinition, ServiceStatus, StackConfig } from 'common'
 import { describe, expect, it, vi } from 'vitest'
-
 import { withTestInjector } from '../test-helpers.js'
 import { GitOperationsService } from './git-operations-service.js'
 import { OneShotCommandRunner } from './one-shot-command-runner.js'
@@ -10,7 +10,8 @@ import { ServiceLifecycleManager } from './service-lifecycle-manager.js'
 import { ServicePipelineOrchestrator } from './service-pipeline-orchestrator.js'
 import { ServiceStatusManager } from './service-status-manager.js'
 import type { TriggerContext } from './trigger-context.js'
-
+import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
+import '../test-shims.js'
 const testTrigger: TriggerContext = { triggeredBy: 'test', triggerSource: 'api' }
 const ts = new Date().toISOString()
 
@@ -84,7 +85,7 @@ describe('ServicePipelineOrchestrator', () => {
         const { mockOneShotRunner, mockGitOps, mockStatusManager } = setupMocks(injector)
         await seedService(elevated, { id: 'svc-1', repositoryId: undefined })
 
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         await orchestrator.setupService('svc-1', testTrigger)
 
         expect(mockGitOps.cloneOrPullService).not.toHaveBeenCalled()
@@ -99,7 +100,7 @@ describe('ServicePipelineOrchestrator', () => {
         const { mockOneShotRunner } = setupMocks(injector)
         await seedService(elevated, { id: 'svc-1', installCommand: undefined })
 
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         await orchestrator.setupService('svc-1', testTrigger)
 
         expect(mockOneShotRunner.installService).not.toHaveBeenCalled()
@@ -111,7 +112,7 @@ describe('ServicePipelineOrchestrator', () => {
         const { mockOneShotRunner } = setupMocks(injector)
         await seedService(elevated, { id: 'svc-1', buildCommand: undefined })
 
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         await orchestrator.setupService('svc-1', testTrigger)
 
         expect(mockOneShotRunner.installService).toHaveBeenCalledWith('svc-1', testTrigger)
@@ -123,7 +124,7 @@ describe('ServicePipelineOrchestrator', () => {
         const { mockGitOps } = setupMocks(injector)
         await seedService(elevated, { id: 'svc-1', repositoryId: 'repo-1' })
 
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         await orchestrator.setupService('svc-1', testTrigger)
 
         expect(mockGitOps.cloneOrPullService).toHaveBeenCalledWith('svc-1', testTrigger)
@@ -133,11 +134,11 @@ describe('ServicePipelineOrchestrator', () => {
       withTestInjector(async ({ injector, elevated }) => {
         const { mockGitOps } = setupMocks(injector)
         await seedService(elevated, { id: 'svc-1', repositoryId: 'repo-1' })
-        await getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId').update(elevated, 'svc-1', {
+        await getDataSetFor(elevated, ServiceStatusDataSet).update(elevated, 'svc-1', {
           cloneStatus: 'cloned',
         })
 
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         await orchestrator.setupService('svc-1', testTrigger)
 
         expect(mockGitOps.cloneOrPullService).not.toHaveBeenCalled()
@@ -147,7 +148,7 @@ describe('ServicePipelineOrchestrator', () => {
       withTestInjector(async ({ injector }) => {
         setupMocks(injector)
 
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         await expect(orchestrator.setupService('nonexistent', testTrigger)).rejects.toThrow('Service not found')
       }))
 
@@ -158,7 +159,7 @@ describe('ServicePipelineOrchestrator', () => {
 
         mockOneShotRunner.installService.mockRejectedValueOnce(new Error('install boom'))
 
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         await expect(orchestrator.setupService('svc-1', testTrigger)).rejects.toThrow('install boom')
 
         expect(mockStatusManager.updateServiceStatus).toHaveBeenCalledWith('svc-1', {}, 'setup-failed', testTrigger, {
@@ -173,7 +174,7 @@ describe('ServicePipelineOrchestrator', () => {
         const { mockStatusManager } = setupMocks(injector)
         await seedService(elevated, { id: 'svc-1', repositoryId: undefined })
 
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         await expect(orchestrator.updateService('svc-1', testTrigger)).rejects.toThrow('No repository linked')
 
         expect(mockStatusManager.updateServiceStatus).toHaveBeenCalledWith(
@@ -192,7 +193,7 @@ describe('ServicePipelineOrchestrator', () => {
 
         mockGitOps.cloneOrPullService.mockResolvedValueOnce({ cloned: false, pulled: true, updated: false })
 
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         await orchestrator.updateService('svc-1', testTrigger)
 
         expect(mockOneShotRunner.installService).not.toHaveBeenCalled()
@@ -212,13 +213,13 @@ describe('ServicePipelineOrchestrator', () => {
       withTestInjector(async ({ injector, elevated }) => {
         const { mockGitOps, mockOneShotRunner, mockLifecycle } = setupMocks(injector)
         await seedService(elevated, { id: 'svc-1', repositoryId: 'repo-1' })
-        await getRepository(elevated).getDataSetFor(ServiceStatus, 'serviceId').update(elevated, 'svc-1', {
+        await getDataSetFor(elevated, ServiceStatusDataSet).update(elevated, 'svc-1', {
           runStatus: 'running',
         })
 
         mockGitOps.cloneOrPullService.mockResolvedValueOnce({ cloned: false, pulled: true, updated: true })
 
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         await orchestrator.updateService('svc-1', testTrigger)
 
         expect(mockLifecycle.stopService).toHaveBeenCalledWith('svc-1', testTrigger)
@@ -234,7 +235,7 @@ describe('ServicePipelineOrchestrator', () => {
 
         mockGitOps.cloneOrPullService.mockResolvedValueOnce({ cloned: false, pulled: true, updated: true })
 
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         await orchestrator.updateService('svc-1', testTrigger)
 
         expect(mockLifecycle.stopService).not.toHaveBeenCalled()
@@ -251,7 +252,7 @@ describe('ServicePipelineOrchestrator', () => {
         await seedService(elevated, { id: 'batch-a', repositoryId: undefined })
         await seedService(elevated, { id: 'batch-b', repositoryId: undefined })
 
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         await orchestrator.setupServices(['batch-a', 'batch-b'], testTrigger)
 
         expect(mockOneShotRunner.installService).toHaveBeenCalledWith('batch-a', testTrigger)
@@ -264,12 +265,14 @@ describe('ServicePipelineOrchestrator', () => {
         await seedService(elevated, { id: 'dep-parent', repositoryId: undefined, buildCommand: undefined })
         await seedService(elevated, { id: 'dep-child', repositoryId: undefined, buildCommand: undefined })
 
-        await getRepository(elevated)
-          .getDataSetFor(ServiceDependencyLink, 'id')
-          .add(elevated, { id: 'dep-child::dep-parent', serviceId: 'dep-child', dependsOnServiceId: 'dep-parent' })
+        await getDataSetFor(elevated, ServiceDependencyLinkDataSet).add(elevated, {
+          id: 'dep-child::dep-parent',
+          serviceId: 'dep-child',
+          dependsOnServiceId: 'dep-parent',
+        })
 
         const order: string[] = []
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         const origSetup = orchestrator.setupService.bind(orchestrator)
         vi.spyOn(orchestrator, 'setupService').mockImplementation(async (id, trigger) => {
           order.push(id)
@@ -293,7 +296,7 @@ describe('ServicePipelineOrchestrator', () => {
           if (id === 'fail-svc') throw new Error('install failed')
         })
 
-        const orchestrator = injector.getInstance(ServicePipelineOrchestrator)
+        const orchestrator = injector.get(ServicePipelineOrchestrator)
         await orchestrator.setupServices(['ok-svc', 'fail-svc'], testTrigger)
 
         expect(mockOneShotRunner.installService).toHaveBeenCalledWith('ok-svc', testTrigger)

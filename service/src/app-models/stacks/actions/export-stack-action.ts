@@ -1,5 +1,4 @@
 import { RequestError } from '@furystack/rest'
-import { getRepository } from '@furystack/repository'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ExportStackEndpoint } from 'common'
 import {
@@ -11,6 +10,7 @@ import {
   ServicePrerequisiteLink,
   StackDefinition,
 } from 'common'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
 export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ injector, getUrlParams }) => {
   const { id: stackName } = getUrlParams()

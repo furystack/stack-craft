@@ -1,13 +1,12 @@
 import { useSystemIdentityContext } from '@furystack/core'
-import { Injectable } from '@furystack/inject'
+import { defineService, type Token } from '@furystack/inject'
 import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import type { Server } from 'http'
 import { createServer } from 'http'
 import { createMcpRequestHandler, McpSessionManager } from './mcp-server.js'
 
-@Injectable({ lifetime: 'singleton' })
-export class McpHttpServer {
+class McpHttpServerImpl {
   private server: Server | null = null
   private sessionManager: McpSessionManager | null = null
   /** System-level injector used only for Bearer token resolution in {@link resolveTokenUser}. */
@@ -52,6 +51,14 @@ export class McpHttpServer {
   }
 }
 
+export type McpHttpServer = McpHttpServerImpl
+
+export const McpHttpServer: Token<McpHttpServer, 'singleton'> = defineService({
+  name: 'app/McpHttpServer',
+  lifetime: 'singleton',
+  factory: () => new McpHttpServerImpl(),
+})
+
 export const getMcpPort = (env = process.env) => parseInt(env.MCP_PORT as string, 10) || 9091
 
 export const getMcpHost = (env = process.env) => env.MCP_HOST || '127.0.0.1'
@@ -63,6 +70,6 @@ export const getMcpHost = (env = process.env) => env.MCP_HOST || '127.0.0.1'
 export const setupMcp = (injector: Injector) => {
   const port = getMcpPort()
   const host = getMcpHost()
-  const mcpServer = injector.getInstance(McpHttpServer)
+  const mcpServer = injector.get(McpHttpServer)
   mcpServer.listen(injector, port, host)
 }

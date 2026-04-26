@@ -28,7 +28,7 @@ export const Header = Shade<HeaderProps>({
     },
   },
   render: ({ props, injector, useObservable }) => {
-    const [sessionState] = useObservable('sessionState', injector.getInstance(SessionService).state)
+    const [sessionState] = useObservable('sessionState', injector.get(SessionService).state)
 
     return (
       <AppBar id="header">
@@ -45,7 +45,7 @@ export const Header = Shade<HeaderProps>({
             <Button
               variant="outlined"
               size="small"
-              onclick={() => injector.getInstance(SessionService).logout()}
+              onclick={() => injector.get(SessionService).logout()}
               startIcon={<Icon icon={icons.logOut} size="small" />}
               title="Sign out of your account"
             >

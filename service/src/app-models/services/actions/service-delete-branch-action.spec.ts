@@ -1,18 +1,18 @@
-import { getRepository } from '@furystack/repository'
-import { ServiceDefinition, ServiceStatus } from 'common'
+import { ServiceDefinitionDataSet, ServiceStatusDataSet } from '../../data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import type { ServiceStatus } from 'common'
 import { describe, expect, it, vi } from 'vitest'
-
 import { GitHeadWatcher } from '../../../services/git-head-watcher.js'
 import { GitService } from '../../../services/git-service.js'
 import { createMockActionContext, withTestInjector } from '../../../test-helpers.js'
 import { ServiceDeleteBranchAction } from './service-delete-branch-action.js'
-
+import '../../../test-shims.js'
 const seed = async (
   elevated: Parameters<Parameters<typeof withTestInjector>[0]>[0]['elevated'],
   status: Partial<ServiceStatus> = {},
 ) => {
   const ts = new Date().toISOString()
-  await getRepository(elevated).getDataSetFor(ServiceDefinition, 'id').add(elevated, {
+  await getDataSetFor(elevated, ServiceDefinitionDataSet).add(elevated, {
     id: 'svc-1',
     stackName: 'stack',
     displayName: 'Test',
@@ -23,17 +23,15 @@ const seed = async (
     createdAt: ts,
     updatedAt: ts,
   })
-  await getRepository(elevated)
-    .getDataSetFor(ServiceStatus, 'serviceId')
-    .add(elevated, {
-      serviceId: 'svc-1',
-      cloneStatus: 'cloned',
-      installStatus: 'not-installed',
-      buildStatus: 'not-built',
-      runStatus: 'stopped',
-      updatedAt: ts,
-      ...status,
-    })
+  await getDataSetFor(elevated, ServiceStatusDataSet).add(elevated, {
+    serviceId: 'svc-1',
+    cloneStatus: 'cloned',
+    installStatus: 'not-installed',
+    buildStatus: 'not-built',
+    runStatus: 'stopped',
+    updatedAt: ts,
+    ...status,
+  })
 }
 
 const mockGit = (overrides: Partial<GitService> = {}) =>

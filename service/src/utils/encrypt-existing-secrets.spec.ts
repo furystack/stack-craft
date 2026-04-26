@@ -1,13 +1,13 @@
+import { ServiceConfigDataSet, StackConfigDataSet } from '../app-models/data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
 import type { Injector } from '@furystack/inject'
-import { getRepository } from '@furystack/repository'
-import { ServiceConfig, StackConfig } from 'common'
+import type { ServiceConfig, StackConfig } from 'common'
 import { randomBytes } from 'crypto'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { withTestInjector } from '../test-helpers.js'
 import { CryptoService } from './crypto-service.js'
 import { encryptExistingSecrets } from './encrypt-existing-secrets.js'
-
 const ts = new Date().toISOString()
 
 describe('encryptExistingSecrets', () => {
@@ -31,7 +31,7 @@ describe('encryptExistingSecrets', () => {
     stackName: string,
     environmentVariables: StackConfig['environmentVariables'],
   ) => {
-    await getRepository(elevated).getDataSetFor(StackConfig, 'stackName').add(elevated, {
+    await getDataSetFor(elevated, StackConfigDataSet).add(elevated, {
       stackName,
       mainDirectory: '/tmp',
       environmentVariables,
@@ -45,7 +45,7 @@ describe('encryptExistingSecrets', () => {
     serviceId: string,
     environmentVariableOverrides: ServiceConfig['environmentVariableOverrides'],
   ) => {
-    await getRepository(elevated).getDataSetFor(ServiceConfig, 'serviceId').add(elevated, {
+    await getDataSetFor(elevated, ServiceConfigDataSet).add(elevated, {
       serviceId,
       autoFetchEnabled: false,
       autoFetchIntervalMinutes: 60,
@@ -58,22 +58,22 @@ describe('encryptExistingSecrets', () => {
   }
 
   const getStackEnvVars = async (elevated: Injector, stackName: string) => {
-    const [config] = await getRepository(elevated)
-      .getDataSetFor(StackConfig, 'stackName')
-      .find(elevated, { filter: { stackName: { $eq: stackName } } })
+    const [config] = await getDataSetFor(elevated, StackConfigDataSet).find(elevated, {
+      filter: { stackName: { $eq: stackName } },
+    })
     return config.environmentVariables
   }
 
   const getServiceEnvOverrides = async (elevated: Injector, serviceId: string) => {
-    const [config] = await getRepository(elevated)
-      .getDataSetFor(ServiceConfig, 'serviceId')
-      .find(elevated, { filter: { serviceId: { $eq: serviceId } } })
+    const [config] = await getDataSetFor(elevated, ServiceConfigDataSet).find(elevated, {
+      filter: { serviceId: { $eq: serviceId } },
+    })
     return config.environmentVariableOverrides
   }
 
   it('should encrypt unencrypted sensitive custom values in stack configs', () =>
     withTestInjector(async ({ injector, elevated }) => {
-      const crypto = injector.getInstance(CryptoService)
+      const crypto = injector.get(CryptoService)
       await addStackConfig(elevated, 'stack-a', {
         SECRET: { source: 'custom', customValue: 'plain-secret', isSensitive: true },
       })
@@ -87,7 +87,7 @@ describe('encryptExistingSecrets', () => {
 
   it('should encrypt unencrypted sensitive custom values in service configs', () =>
     withTestInjector(async ({ injector, elevated }) => {
-      const crypto = injector.getInstance(CryptoService)
+      const crypto = injector.get(CryptoService)
       await addServiceConfig(elevated, 'svc-1', {
         DB_PASSWORD: { source: 'custom', customValue: 'my-db-password', isSensitive: true },
       })
@@ -101,7 +101,7 @@ describe('encryptExistingSecrets', () => {
 
   it('should skip already-encrypted values', () =>
     withTestInjector(async ({ injector, elevated }) => {
-      const crypto = injector.getInstance(CryptoService)
+      const crypto = injector.get(CryptoService)
       const encrypted = crypto.encrypt('already-done')
       await addStackConfig(elevated, 'stack-b', {
         SECRET: { source: 'custom', customValue: encrypted, isSensitive: true },
@@ -154,7 +154,7 @@ describe('encryptExistingSecrets', () => {
 
   it('should encrypt only the sensitive values in a mixed record', () =>
     withTestInjector(async ({ injector, elevated }) => {
-      const crypto = injector.getInstance(CryptoService)
+      const crypto = injector.get(CryptoService)
       await addStackConfig(elevated, 'stack-f', {
         SECRET: { source: 'custom', customValue: 'should-encrypt', isSensitive: true },
         PUBLIC: { source: 'custom', customValue: 'should-stay' },
@@ -172,7 +172,7 @@ describe('encryptExistingSecrets', () => {
 
   it('should be safe to run repeatedly (idempotent)', () =>
     withTestInjector(async ({ injector, elevated }) => {
-      const crypto = injector.getInstance(CryptoService)
+      const crypto = injector.get(CryptoService)
       await addStackConfig(elevated, 'stack-g', {
         SECRET: { source: 'custom', customValue: 'run-twice', isSensitive: true },
       })
@@ -190,7 +190,7 @@ describe('encryptExistingSecrets', () => {
 
   it('should encrypt across both stack and service configs in a single call', () =>
     withTestInjector(async ({ injector, elevated }) => {
-      const crypto = injector.getInstance(CryptoService)
+      const crypto = injector.get(CryptoService)
       await addStackConfig(elevated, 'stack-h', {
         STACK_SECRET: { source: 'custom', customValue: 'stack-val', isSensitive: true },
       })

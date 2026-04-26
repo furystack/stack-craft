@@ -1,7 +1,7 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { addStore } from '../../../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
 import {
   GitHubRepository,
@@ -20,6 +20,7 @@ import { describe, expect, it } from 'vitest'
 
 import { ExportStackAction } from './export-stack-action.js'
 import { ImportStackAction } from './import-stack-action.js'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
 class AutoIncrementStore<T extends { id: number }> extends InMemoryStore<T, 'id'> {
   private nextId = 1

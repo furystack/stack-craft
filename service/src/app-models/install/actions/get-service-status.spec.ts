@@ -1,7 +1,9 @@
-import { addStore, InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { UserDataSet } from '../../data-store/tokens.js'
+import { getDataSetFor } from '@furystack/repository'
+import { InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { addStore } from '../../../test-shims.js'
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { PasswordCredential, PasswordResetToken, usePasswordPolicy } from '@furystack/security'
 import { usingAsync } from '@furystack/utils'
 import type { InstallState } from 'common'
@@ -9,6 +11,7 @@ import { User } from 'common'
 import { describe, expect, it } from 'vitest'
 
 import { GetServiceStatus } from './get-service-status.js'
+import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
 const setupInjector = () => {
   const injector = new Injector()
@@ -43,7 +46,7 @@ describe('GetServiceStatus', () => {
   it('should return "installed" when users exist', () =>
     usingAsync(setupInjector(), async (injector) => {
       const elevated = useSystemIdentityContext({ injector })
-      await getRepository(elevated).getDataSetFor(User, 'username').add(elevated, { username: 'admin', roles: [] })
+      await getDataSetFor(elevated, UserDataSet).add(elevated, { username: 'admin', roles: [] })
       await elevated[Symbol.asyncDispose]()
 
       const result = await GetServiceStatus(createMockActionContext({ injector }))

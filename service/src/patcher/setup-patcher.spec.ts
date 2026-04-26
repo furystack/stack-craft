@@ -1,30 +1,16 @@
-import { addStore, InMemoryStore } from '@furystack/core'
-import { Injector } from '@furystack/inject'
+import { InMemoryStore, useSystemIdentityContext } from '@furystack/core'
+import { createInjector, type Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { getRepository } from '@furystack/repository'
 import { usingAsync } from '@furystack/utils'
 import { PatchRun, ServiceStatus } from 'common'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Patch } from './patch.js'
 
-const { mockUseSequelize, mockCheckOrphan, mockRunPatch, mockPatchList } = vi.hoisted(() => ({
-  mockUseSequelize: vi.fn(),
+const { mockCheckOrphan, mockRunPatch, mockPatchList } = vi.hoisted(() => ({
   mockCheckOrphan: vi.fn(),
   mockRunPatch: vi.fn(),
   mockPatchList: [] as Patch[],
-}))
-
-vi.mock('@furystack/sequelize-store', () => ({
-  useSequelize: mockUseSequelize,
-}))
-
-vi.mock('../config.js', () => ({
-  authorizedDataSet: {},
-}))
-
-vi.mock('../app-models/data-store/db-options.js', () => ({
-  getDbOptions: () => ({}),
 }))
 
 vi.mock('./check-for-orphaned-patch.js', () => ({
@@ -41,13 +27,16 @@ vi.mock('./0000-patch-list.js', () => ({
   },
 }))
 
-const { setupPatcher } = await import('./setup-patcher.js')
+const { setupPatcher, PatchRunStoreToken } = await import('./setup-patcher.js')
+const { ServiceStatusStore } = await import('../app-models/data-store/tokens.js')
 
-const primeInjector = (injector: Injector) => {
+const primeInjector = (injector: Injector): void => {
   useLogging(injector, VerboseConsoleLogger)
-  addStore(injector, new InMemoryStore({ model: PatchRun, primaryKey: 'id' }))
-  addStore(injector, new InMemoryStore({ model: ServiceStatus, primaryKey: 'serviceId' }))
-  getRepository(injector).createDataSet(ServiceStatus, 'serviceId', {})
+  injector.bind(PatchRunStoreToken, () => new InMemoryStore({ model: PatchRun, primaryKey: 'id' as const }))
+  injector.bind(ServiceStatusStore, () => new InMemoryStore({ model: ServiceStatus, primaryKey: 'serviceId' as const }))
+  // Force eager resolution so the elevated context inside setupPatcher does
+  // not have to bind the store at the wrong scope.
+  useSystemIdentityContext({ injector })
 }
 
 const makePatch = (id: string): Patch => ({
@@ -58,27 +47,14 @@ const makePatch = (id: string): Patch => ({
 })
 
 beforeEach(() => {
-  mockUseSequelize.mockReset()
   mockCheckOrphan.mockReset()
   mockRunPatch.mockReset()
   mockPatchList.length = 0
 })
 
 describe('setupPatcher', () => {
-  it('calls useSequelize once to register the PatchRun model', () =>
-    usingAsync(new Injector(), async (injector) => {
-      primeInjector(injector)
-      mockCheckOrphan.mockResolvedValue(undefined)
-
-      await setupPatcher(injector)
-
-      expect(mockUseSequelize).toHaveBeenCalledTimes(1)
-      const [firstCall] = mockUseSequelize.mock.calls
-      expect(firstCall?.[0]).toMatchObject({ model: PatchRun, primaryKey: 'id' })
-    }))
-
   it('checks for orphaned patches before running any patch', () =>
-    usingAsync(new Injector(), async (injector) => {
+    usingAsync(createInjector(), async (injector) => {
       primeInjector(injector)
       const callOrder: string[] = []
       mockCheckOrphan.mockImplementation(async () => {
@@ -95,7 +71,7 @@ describe('setupPatcher', () => {
     }))
 
   it('iterates patches in declaration order', () =>
-    usingAsync(new Injector(), async (injector) => {
+    usingAsync(createInjector(), async (injector) => {
       primeInjector(injector)
       const runOrder: string[] = []
       mockCheckOrphan.mockResolvedValue(undefined)
@@ -111,7 +87,7 @@ describe('setupPatcher', () => {
     }))
 
   it('propagates errors from a failing patch and stops further iteration', () =>
-    usingAsync(new Injector(), async (injector) => {
+    usingAsync(createInjector(), async (injector) => {
       primeInjector(injector)
       mockCheckOrphan.mockResolvedValue(undefined)
       mockRunPatch
@@ -127,7 +103,7 @@ describe('setupPatcher', () => {
     }))
 
   it('is a no-op when the patch list is empty', () =>
-    usingAsync(new Injector(), async (injector) => {
+    usingAsync(createInjector(), async (injector) => {
       primeInjector(injector)
       mockCheckOrphan.mockResolvedValue(undefined)
 

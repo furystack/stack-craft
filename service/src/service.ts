@@ -1,7 +1,7 @@
 import { useSystemIdentityContext } from '@furystack/core'
 import { getLogger } from '@furystack/logging'
 import { usingAsync } from '@furystack/utils'
-import { ServerManager, useStaticFiles } from '@furystack/rest-service'
+import { HttpServerPoolToken, useStaticFiles } from '@furystack/rest-service'
 import { injector } from './config.js'
 import { attachShutdownHandler } from './shutdown-handler.js'
 import { getHost } from './get-host.js'
@@ -34,9 +34,9 @@ const setupRestApis = async () => {
   await setupLogStore(injector)
   await setupPatcher(injector)
 
-  injector.getInstance(ExternalGitChangeListener).start()
+  injector.get(ExternalGitChangeListener).start()
 
-  const processManager = injector.getInstance(ProcessManager)
+  const processManager = injector.get(ProcessManager)
   await processManager.reconcileStaleStates()
 
   await usingAsync(useSystemIdentityContext({ injector }), async (elevated) => {
@@ -52,7 +52,7 @@ const setupRestApis = async () => {
   await setupTokensRestApi(injector)
   await setupSystemRestApi(injector)
 
-  const wsService = injector.getInstance(WebsocketService)
+  const wsService = injector.get(WebsocketService)
   await wsService.init(injector)
 
   setupEntitySync(injector)
@@ -62,10 +62,9 @@ const setupRestApis = async () => {
   setupMcp(injector)
 
   const logMiddleware = useRequestLogger(injector)
-  const serverManager = injector.getInstance(ServerManager)
-  for (const [, record] of serverManager.servers) {
-    record.server.on('request', (req, res) => logMiddleware(req, res, () => {}))
-  }
+  const pool = injector.get(HttpServerPoolToken)
+  const record = await pool.acquire({ port, hostName: host })
+  record.server.on('request', (req, res) => logMiddleware(req, res, () => {}))
 }
 
 setupRestApis()

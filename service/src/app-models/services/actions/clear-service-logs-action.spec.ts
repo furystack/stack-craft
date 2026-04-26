@@ -4,6 +4,7 @@ import { LogStorageService } from '../../../services/log-storage-service.js'
 import { createMockActionContext, withTestInjector } from '../../../test-helpers.js'
 
 import { ClearServiceLogsAction } from './clear-service-logs-action.js'
+import '../../../test-shims.js'
 
 describe('ClearServiceLogsAction', () => {
   it('should call clearLogs with the service id', async () => {
