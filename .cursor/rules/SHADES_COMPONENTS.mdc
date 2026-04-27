@@ -1,436 +1,198 @@
 ---
 name: Shades Components
-description: Frontend component patterns using @furystack/shades and common-components
+description: Frontend Shade component patterns with @furystack/shades and @furystack/shades-common-components
 globs:
   - 'frontend/**/*.tsx'
   - 'frontend/**/*.ts'
 alwaysApply: false
 ---
 
-# Shades Component Guidelines
+# Shades Components
 
-## Component Structure
+`@furystack/eslint-plugin` enforces most of these — generate compliant code from the start.
 
-### Basic Component with Shade
-
-Use the `Shade` function to create components:
+## Anatomy
 
 ```typescript
-import { createComponent, Shade } from '@furystack/shades';
+import { Shade } from '@furystack/shades'
 
-type MyComponentProps = {
-  title: string;
-  onAction?: () => void;
-};
+type GreetingProps = {
+  name: string
+  onGreet?: () => void
+}
 
-export const MyComponent = Shade<MyComponentProps>({
-  customElementName: 'my-component',
-  render: ({ props, injector }) => {
-    return (
-      <div>
-        <h1>{props.title}</h1>
-        {props.onAction && <button onclick={props.onAction}>Action</button>}
-      </div>
-    );
+export const Greeting = Shade<GreetingProps>({
+  customElementName: 'app-greeting',
+  css: {
+    padding: '8px 16px',
+    '&:hover': { backgroundColor: cssVariableTheme.background.paper },
   },
-});
+  render: ({ props, useState }) => {
+    const [count, setCount] = useState('count', 0)
+    return (
+      <button onclick={() => { setCount(count + 1); props.onGreet?.() }}>
+        Hello {props.name} ({count})
+      </button>
+    )
+  },
+})
 ```
 
-### Shadow DOM Naming
+- `customElementName`: kebab-case, unique, namespaced.
+- Props: `type`, PascalCase, `Props` suffix.
+- Pull only the render hooks you actually use from the destructured arg.
 
-Always provide a unique `shadowDomName` in kebab-case:
+## Render hooks
+
+| Need | Hook |
+|---|---|
+| Local state | `useState('key', initial)` |
+| Subscribe to a service `ObservableValue` | `useObservable('key', observable)` |
+| Own a long-lived disposable | `useDisposable('key', () => factoryFn())` |
+| Direct DOM access (focus / scroll / animate) | `useRef<HTMLElement>('key')` |
+| Set host attributes / styles | `useHostProps({ ... })` |
+| Resolve a service | `injector.get(ServiceToken)` |
+
+## Removed APIs (forbidden)
+
+- `element` in render args → use `useHostProps` / `useRef`
+- `onAttach` / `onDetach` in `ShadeOptions` → use `useDisposable`
+
+## DI in render
+
+Use `injector.get(ServiceToken)` to resolve services. StackCraft uses **functional DI** — services are `defineService` tokens, not classes.
 
 ```typescript
-// ✅ Good - unique, descriptive kebab-case names
-customElementName: 'shade-app-layout'
-customElementName: 'shade-login'
-customElementName: 'theme-switch'
-customElementName: 'github-logo'
-
-// ❌ Avoid - generic or poorly named
-customElementName: 'my-component'
-customElementName: 'div'
-customElementName: 'Component1'
-```
-
-## Render Function Parameters
-
-### Available Parameters
-
-The render function receives several useful parameters:
-
-```typescript
-render: ({ props, injector, children, element, useState, useObservable, useDisposable }) => {
-  // props - Component props
-  // injector - DI container for accessing services
-  // children - Child elements passed to the component
-  // element - The actual DOM element
-  // useState - Hook for local state
-  // useObservable - Hook for subscribing to ObservableValue
-  // useDisposable - Hook for managing disposable resources
+render: ({ injector }) => {
+  const session = injector.get(SessionService)
+  const notys = injector.get(NotyService)
+  // ...
 }
 ```
 
-## Using Services with Injector
+`injector.getInstance()` is the legacy decorator-era API and is removed.
 
-### Access Services via Injector
+## State management
 
-Get service instances using the injector:
+### Local state — `useState` over manual `ObservableValue`
 
-```typescript
-export const MyComponent = Shade({
-  customElementName: 'my-component',
-  render: ({ injector }) => {
-    const themeProvider = injector.getInstance(ThemeProviderService);
-    const sessionService = injector.getInstance(SessionService);
+`prefer-use-state` lint rule enforces. Reserve `useDisposable` + `ObservableValue` for state that crosses component boundaries via a service (not just parent → child — for that, pass plain props).
 
-    return (
-      <div style={{ backgroundColor: themeProvider.theme.background.default }}>
-        {/* Component content */}
-      </div>
-    );
-  },
-});
-```
-
-## State Management
-
-### Local State with useState
-
-Use `useState` for component-local state:
+### Service-owned state — `useObservable`
 
 ```typescript
-export const Counter = Shade({
-  customElementName: 'app-counter',
-  render: ({ useState }) => {
-    const [count, setCount] = useState<number>('count', 0);
-
-    return (
-      <div>
-        <span>Count: {count}</span>
-        <button onclick={() => setCount(count + 1)}>Increment</button>
-      </div>
-    );
-  },
-});
-```
-
-### Observable State with useObservable
-
-Subscribe to `ObservableValue` from services:
-
-```typescript
-export const UserStatus = Shade({
-  customElementName: 'user-status',
-  render: ({ injector, useObservable }) => {
-    const sessionService = injector.getInstance(SessionService);
-
-    // Subscribe to observable values
-    const [isOperationInProgress] = useObservable(
-      'isOperationInProgress',
-      sessionService.isOperationInProgress
-    );
-    const [currentUser] = useObservable('currentUser', sessionService.currentUser);
-    const [state] = useObservable('state', sessionService.state);
-
-    if (isOperationInProgress) {
-      return <div>Loading...</div>;
-    }
-
-    return (
-      <div>
-        {currentUser ? `Welcome, ${currentUser.username}` : 'Not logged in'}
-      </div>
-    );
-  },
-});
-```
-
-## Resource Disposal
-
-### Using useDisposable
-
-Properly manage subscriptions and resources:
-
-```typescript
-export const ThemeSwitch = Shade({
-  customElementName: 'theme-switch',
-  render: ({ injector, useState, useDisposable }) => {
-    const themeProvider = injector.getInstance(ThemeProviderService);
-    const [theme, setTheme] = useState<'light' | 'dark'>('theme', 'dark');
-
-    // Subscribe to theme changes with automatic cleanup
-    useDisposable('traceThemeChange', () =>
-      themeProvider.subscribe('themeChanged', (newTheme) => {
-        setTheme(newTheme.name === 'dark' ? 'dark' : 'light');
-      }),
-    );
-
-    return <button>{theme === 'dark' ? '☀️' : '🌜'}</button>;
-  },
-});
-```
-
-## Common Components
-
-### Using shades-common-components
-
-Import and use common components from `@furystack/shades-common-components`:
-
-```typescript
-import {
-  Button,
-  Form,
-  Input,
-  Paper,
-  ThemeProviderService,
-  NotyService,
-} from '@furystack/shades-common-components';
-
-export const LoginForm = Shade({
-  customElementName: 'login-form',
-  render: ({ injector }) => {
-    const sessionService = injector.getInstance(SessionService);
-
-    return (
-      <Paper elevation={3}>
-        <Form<{ username: string; password: string }>
-          validate={(data) => data.username?.length > 0 && data.password?.length > 0}
-          onSubmit={({ username, password }) => {
-            void sessionService.login(username, password);
-          }}
-        >
-          <Input labelTitle="Username" name="username" required type="text" />
-          <Input labelTitle="Password" name="password" required type="password" />
-          <Button type="submit">Login</Button>
-        </Form>
-      </Paper>
-    );
-  },
-});
-```
-
-## Form Handling
-
-### Always use `Form<T>` from `@furystack/shades-common-components`
-
-Never use raw `<form>` HTML elements. The `Form<T>` component provides type-safe form data collection, two-tier validation (input + form level), and integration with all form field components (`Input`, `Select`, `Checkbox`, etc.).
-
-### Pattern: Typed Form Payload
-
-Every form needs:
-
-1. A **payload type** describing the form data shape
-2. A **type-guard `validate` function** that narrows `unknown` to the payload type
-3. A `Form<T>` component with `validate` and `onSubmit` props
-
-```typescript
-import { Form, Input, Button } from '@furystack/shades-common-components';
-
-type CreateStackPayload = {
-  name: string;
-  displayName: string;
-  description: string;
-  mainDirectory: string;
-};
-
-const isCreateStackPayload = (data: unknown): data is CreateStackPayload => {
-  const d = data as CreateStackPayload;
-  return d.name?.length > 0 && d.displayName?.length > 0 && d.mainDirectory?.length > 0;
-};
-
-// In render:
-<Form<CreateStackPayload>
-  validate={isCreateStackPayload}
-  onSubmit={(data) => {
-    // `data` is fully typed as CreateStackPayload
-    void handleSubmit(data);
-  }}
-  style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
->
-  <Input name="name" labelTitle="Name" variant="outlined" required />
-  <Input name="displayName" labelTitle="Display Name" variant="outlined" required />
-  <Input name="description" labelTitle="Description" variant="outlined" />
-  <Input name="mainDirectory" labelTitle="Main Directory" variant="outlined" required />
-  <Button type="submit" variant="contained">Create</Button>
-</Form>
-```
-
-### Use `Checkbox` component instead of raw `<input type="checkbox">`
-
-```typescript
-import { Checkbox } from '@furystack/shades-common-components';
-
-// ✅ Good - uses Checkbox component, integrates with Form<T>
-<Checkbox name="autoFetchEnabled" labelTitle="Auto-fetch" checked={initialValue} />
-
-// ❌ Avoid - raw checkbox, no FormService integration
-<label>
-  <input type="checkbox" name="autoFetchEnabled" checked={initialValue} />
-  Auto-fetch
-</label>
-```
-
-### Forbidden Patterns
-
-Never use these patterns for form data handling:
-
-```typescript
-// ❌ FORBIDDEN - raw <form> tag
-<form onsubmit={(ev) => { ... }}>
-
-// ❌ FORBIDDEN - FormData extraction from DOM
-const formData = new FormData(ev.target as HTMLFormElement);
-const data = Object.fromEntries(formData.entries()) as Record<string, string>;
-
-// ❌ FORBIDDEN - useRef to imperatively read form data
-const formRef = useRef<HTMLFormElement>('myForm');
-const data = new FormData(formRef.current);
-
-// ❌ FORBIDDEN - direct DOM value access for form fields
-oninput={(ev) => setValue((ev.target as HTMLInputElement).value)}
-```
-
-### Form Field Components
-
-Use these components from `@furystack/shades-common-components` inside `Form<T>`:
-
-- `Input` - Text, number, email, password fields
-- `Select` - Single/multi select dropdowns
-- `Checkbox` - Boolean checkboxes
-- `TextArea` - Multi-line text input
-- `Switch` - Toggle switches
-- `Radio` / `RadioGroup` - Radio button groups
-
-All form field components automatically register with the parent `Form<T>` via the `FormService` and participate in validation.
-
-## Theming
-
-### Access Theme Properties
-
-Use `ThemeProviderService` for consistent theming:
-
-```typescript
-export const ThemedComponent = Shade({
-  customElementName: 'themed-component',
-  render: ({ injector }) => {
-    const theme = injector.getInstance(ThemeProviderService).theme;
-
-    return (
-      <div
-        style={{
-          backgroundColor: theme.background.default,
-          color: theme.text.primary,
-          padding: theme.spacing?.(2) ?? '16px',
-        }}
-      >
-        Themed content
-      </div>
-    );
-  },
-});
-```
-
-### Theme Switching
-
-Allow users to switch between themes:
-
-```typescript
-import { defaultDarkTheme, defaultLightTheme } from '@furystack/shades-common-components'
-
-const toggleTheme = (themeProvider: ThemeProviderService, currentTheme: 'light' | 'dark') => {
-  themeProvider.setAssignedTheme(currentTheme === 'dark' ? defaultLightTheme : defaultDarkTheme)
+render: ({ injector, useObservable }) => {
+  const session = injector.get(SessionService)
+  const [user] = useObservable('user', session.currentUser)
+  const [isBusy] = useObservable('isBusy', session.isOperationInProgress)
+  if (isBusy) return <div>Loading...</div>
+  return <div>{user?.username ?? 'Anonymous'}</div>
 }
 ```
 
-## Page Components
+`no-getvalue-without-useobservable` enforces — do not call `.getValue()` in render to read observable state.
 
-### Organizing Pages
-
-Place page components in `frontend/src/pages/`:
+### No manual `.subscribe()` in render
 
 ```typescript
-// frontend/src/pages/dashboard.tsx
-import { createComponent, Shade } from '@furystack/shades';
+// ❌ enforced by no-manual-subscribe-in-render
+themeProvider.subscribe('themeChanged', (t) => setTheme(t))
 
-export const Dashboard = Shade({
-  customElementName: 'page-dashboard',
-  render: ({ injector }) => {
-    return (
-      <div>
-        <h1>Dashboard</h1>
-        {/* Page content */}
-      </div>
-    );
+// ✅ wire through useDisposable
+useDisposable('theme', () =>
+  themeProvider.subscribe('themeChanged', (t) => setTheme(t)),
+)
+```
+
+## Refs
+
+Refs are null on first sync render. Defer access via `queueMicrotask`. Don't create refs you never read from. For `classList.add` toggling, prefer `useState` + declarative JSX.
+
+```typescript
+// ❌ ref used only for classList
+const ref = useRef<HTMLDivElement>('backdrop')
+requestAnimationFrame(() => ref.current?.classList.add('visible'))
+
+// ✅ declarative
+const [isVisible, setIsVisible] = useState('isVisible', false)
+requestAnimationFrame(() => setIsVisible(true))
+return <div className={`backdrop${isVisible ? ' visible' : ''}`}>...</div>
+```
+
+## Styling — `css` over `style` for component styles
+
+Use the `css` property for defaults + pseudo-selectors. Use `style` only for per-instance dynamic values from props.
+
+```typescript
+const Button = Shade({
+  customElementName: 'app-button',
+  css: {
+    padding: '12px 24px',
+    backgroundColor: 'blue',
+    '&:hover': { backgroundColor: 'darkblue' },
+    '&:disabled': { opacity: '0.5', cursor: 'not-allowed' },
   },
-});
+  render: ({ props }) => <button>{props.children}</button>,
+})
 ```
 
-### Page Routing
+`no-css-state-hooks` forbids `useState` for hover / focus / active — use `&:hover` etc. in `css`.
 
-Export pages from an index file:
+### Theme variables — type-safe
 
 ```typescript
-// frontend/src/pages/index.ts
-export * from './dashboard.js'
-export * from './login.js'
+import { cssVariableTheme } from '@furystack/shades-common-components'
+
+css: {
+  color: cssVariableTheme.text.primary,
+  backgroundColor: cssVariableTheme.background.paper,
+  borderColor: cssVariableTheme.palette.primary.main,
+}
 ```
 
-## Application Entry Point
+### Anti-patterns to avoid
 
-### Initializing the Shades App
+- Static styles in `useHostProps({ style })` — put them in `css`.
+- Attribute-driven styles toggled in JS — write a CSS rule on the data attribute instead.
 
-Set up the application in the entry point:
+## Module-level JSX is forbidden
+
+`no-module-level-jsx` enforces. JSX returns a VNode; reusing the same instance across mounts breaks reconciliation. Use factory functions.
+
+## VNode reconciliation is positional
+
+No keys. List reorders patch/replace from the change point. Wrap each list item in a Shade component to isolate inner-DOM churn.
 
 ```typescript
-// frontend/src/index.tsx
-import { Injector } from '@furystack/inject';
-import { getLogger, useLogging, VerboseConsoleLogger } from '@furystack/logging';
-import { createComponent, initializeShadeRoot } from '@furystack/shades';
-import { defaultDarkTheme, ThemeProviderService } from '@furystack/shades-common-components';
-import { Layout } from './components/layout.js';
-import { SessionService } from './services/session.js';
+// ❌ raw <li> reorders churn the DOM
+{items.map(item => <li>{item.name}</li>)}
 
-const shadeInjector = new Injector();
-
-// Set up logging
-useLogging(shadeInjector, VerboseConsoleLogger);
-
-// Initialize services
-shadeInjector.getInstance(SessionService);
-
-// Set default theme
-shadeInjector.getInstance(ThemeProviderService).setAssignedTheme(defaultDarkTheme);
-
-// Initialize the app
-const rootElement = document.getElementById('root') as HTMLDivElement;
-initializeShadeRoot({
-  injector: shadeInjector,
-  rootElement,
-  jsxElement: <Layout />,
-});
+// ✅ component boundary
+{items.map(item => <ListItem item={item} />)}
 ```
 
-## Summary
+## Microtask batching
 
-**Key Principles:**
+State changes within one sync execution coalesce into a single render. Tests must `await flushUpdates()` before asserting DOM state.
 
-1. **Use Shade function** - Create components with `Shade<PropsType>({ ... })`
-2. **Unique shadowDomName** - Every component needs a unique kebab-case name
-3. **Access services via injector** - Use `injector.getInstance(Service)`
-4. **useState for local state** - Simple component state
-5. **useObservable for reactive state** - Subscribe to service observables
-6. **useDisposable for cleanup** - Manage subscriptions properly
-7. **Use common components** - Leverage `@furystack/shades-common-components`
-8. **Consistent theming** - Use `ThemeProviderService` for styles
-9. **Use `Form<T>` for all forms** - Never use raw `<form>` tags, `FormData`, or `useRef` for form handling
+## Common components
 
-**Component Checklist:**
+`@furystack/shades-common-components` ships building blocks: `AppBar`, `Button`, `Form`, `Input`, `Paper`, `Typography`, `DrawerToggleButton`, `NestedRouteLink`, `NotyService`, `ThemeProviderService`, etc. Prefer them over hand-rolled equivalents — they handle theming, accessibility, and composition correctly.
 
-- [ ] Props type defined (if any)
-- [ ] Unique `shadowDomName` in kebab-case
-- [ ] Services accessed via `injector.getInstance()`
-- [ ] Observable subscriptions use `useObservable`
-- [ ] Manual subscriptions cleaned up with `useDisposable`
-- [ ] Theme values from `ThemeProviderService`
-- [ ] Forms use `Form<T>` with typed payload and validate function
+## Routing
+
+Use `NestedRouteLink` and `LocationService` for navigation, not direct `window.location` or hash manipulation. The `prefer-location-service` and `prefer-nested-route-link` lint rules enforce this.
+
+## App entry point
+
+```typescript
+import { createInjector } from '@furystack/inject'
+import { initializeShadeRoot } from '@furystack/shades'
+import { ThemeProviderService, defaultDarkTheme } from '@furystack/shades-common-components'
+
+const injector = createInjector()
+injector.get(ThemeProviderService).setAssignedTheme(defaultDarkTheme)
+
+const rootElement = document.getElementById('root') as HTMLDivElement
+initializeShadeRoot({ injector, rootElement, jsxElement: <Layout /> })
+```
