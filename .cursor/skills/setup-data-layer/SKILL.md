@@ -25,13 +25,13 @@ Re-export from `common/src/models/index.ts` and `common/src/index.ts`.
 
 ## Step 2 — Pick a backend
 
-| Backend | Use case | Helper |
-|---|---|---|
-| `InMemoryStore` | Tests, ephemeral data, sessions | `defineStore` + `new InMemoryStore({...})` |
-| `defineFileSystemStore` | Local persistence (small datasets, dev) | one-liner |
-| `defineMongoDbStore` | Document data, larger scale | one-liner with `client`, `db`, `collection` |
-| `defineSequelizeStore` | Relational | one-liner with `sequelizeModel`, `initModel?` |
-| `defineRedisStore` | Cache-shaped persistence | one-liner with `client` |
+| Backend                 | Use case                                | Helper                                        |
+| ----------------------- | --------------------------------------- | --------------------------------------------- |
+| `InMemoryStore`         | Tests, ephemeral data, sessions         | `defineStore` + `new InMemoryStore({...})`    |
+| `defineFileSystemStore` | Local persistence (small datasets, dev) | one-liner                                     |
+| `defineMongoDbStore`    | Document data, larger scale             | one-liner with `client`, `db`, `collection`   |
+| `defineSequelizeStore`  | Relational                              | one-liner with `sequelizeModel`, `initModel?` |
+| `defineRedisStore`      | Cache-shaped persistence                | one-liner with `client`                       |
 
 If the backend needs to be authored from scratch, run the `implement-store-adapter` skill first (or read `LIBRARY_DEVELOPMENT.mdc` Stores section).
 
@@ -80,10 +80,12 @@ import { authorizedDataSet } from './authorization/authorized-only.js'
 
 export const UserDataSet: DataSetToken<User, 'username'> = defineDataSet({
   name: 'app/UserDataSet',
-  store: UserStore,                       // can be a framework token or a local store token
+  store: UserStore, // can be a framework token or a local store token
   settings: {
-    ...authorizedDataSet,                  // role checks
-    onEntityAdded: ({ injector, entity }) => { /* side effects */ },
+    ...authorizedDataSet, // role checks
+    onEntityAdded: ({ injector, entity }) => {
+      /* side effects */
+    },
     authorizeUpdate: async ({ entity, injector }) => ({
       isAllowed: entity.username !== 'system',
       message: 'Cannot update the system user',

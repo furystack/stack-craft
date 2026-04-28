@@ -61,6 +61,7 @@ For each flagged file:
 **`<path>`** — <severity emoji> <severity> (<N> triggers)
 
 Triggers:
+
 - <signal>: <observed value> (threshold <X>)
 - <signal>: <observed value> (threshold <X>)
 

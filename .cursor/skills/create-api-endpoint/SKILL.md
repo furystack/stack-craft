@@ -11,9 +11,9 @@ Add a REST endpoint end-to-end. Touches `common/`, `service/`, possibly `fronten
 
 ## Step 0 — Decide branch
 
-| Branch | When |
-|---|---|
-| **Custom action** | Bespoke logic, projection, search, command-style endpoint |
+| Branch                  | When                                                          |
+| ----------------------- | ------------------------------------------------------------- |
+| **Custom action**       | Bespoke logic, projection, search, command-style endpoint     |
 | **DataSet-backed CRUD** | Standard create / list / get / update / delete over an entity |
 
 If unsure, ask the user. The branches share Steps 1–3 then diverge.
@@ -51,11 +51,11 @@ This refreshes `common/schemas/*.json`. Verify the new endpoint type appears as 
 
 ## Step 3 — Decide validation + auth
 
-| Wrapper | Purpose | Layering |
-|---|---|---|
-| `Validate({ schema, schemaName })(...)` | JSON-schema-validate `query`, `url`, `body` before the handler runs | innermost |
-| `Authenticate()(...)` | reject unauthenticated requests | outer |
-| Built-in framework action (`GetCurrentUser`, `LogoutAction`, etc.) | no wrapper needed; built-in handles its own validation/auth | use directly |
+| Wrapper                                                            | Purpose                                                             | Layering     |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------- | ------------ |
+| `Validate({ schema, schemaName })(...)`                            | JSON-schema-validate `query`, `url`, `body` before the handler runs | innermost    |
+| `Authenticate()(...)`                                              | reject unauthenticated requests                                     | outer        |
+| Built-in framework action (`GetCurrentUser`, `LogoutAction`, etc.) | no wrapper needed; built-in handles its own validation/auth         | use directly |
 
 The `furystack/rest-action-validate-wrapper` lint rule requires `Validate(...)` for any custom action that consumes `query`, `url`, or `body`. Skipping it requires an `eslint-disable` comment with a justification.
 
