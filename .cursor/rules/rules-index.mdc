@@ -1,10 +1,21 @@
 ---
 alwaysApply: true
 ---
-This file contains a list of helpful information and context that the agent can reference when working in this codebase. Each entry provides specific guidance or rules for different aspects of the project. You can read these files using the readFile tool if the users prompt seems related.
 
-- [Code formatting, naming conventions, and file organization](./CODE_STYLE.md)
-- [TypeScript type safety and strict typing guidelines](./TYPESCRIPT_GUIDELINES.md)
-- [Shades component patterns and frontend development](./SHADES_COMPONENTS.md)
-- [REST service patterns and backend development](./REST_SERVICE.md)
-- [Testing guidelines for Vitest and Playwright](./TESTING_GUIDELINES.md)
+Index of repository rules. Read the linked file when its topic is relevant to the user's prompt.
+
+- [Naming, formatting, imports, file/code organization](./CODE_STYLE.mdc) — auto-applied to all `.ts` / `.tsx`
+- [Type safety, no `any`, generics, type guards, discriminated unions](./TYPESCRIPT_GUIDELINES.mdc) — auto-applied to all `.ts` / `.tsx`
+- [Complexity thresholds for Shade components, services, REST actions](./COMPLEXITY.mdc) — auto-applied; used in reviews and during implementation
+- [Frontend Shade component patterns](./SHADES_COMPONENTS.mdc) — auto-applied in `frontend/`
+- [Backend REST patterns — per-module API contracts, validation, auth, stores, DataSets](./REST_SERVICE.mdc) — auto-applied in `service/` and `common/`
+- [Vitest unit + Playwright E2E patterns](./TESTING_GUIDELINES.mdc) — auto-applied to specs
+
+Skills (on-demand workflows):
+
+- `create-api-endpoint` — add a REST endpoint end-to-end (custom action or DataSet-backed CRUD)
+- `setup-data-layer` — wire a new entity (model + store + DataSet + entity sync)
+- `create-shade-component` — author a Shade component with proper hooks, styling, tests
+- `write-tests` — author Vitest unit / integration / Playwright E2E tests
+- `fill-changelog` — fill changelog entries for the current branch
+- `review-changes` — full code review with reviewer subagents
