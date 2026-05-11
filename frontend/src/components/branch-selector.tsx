@@ -240,8 +240,9 @@ export const BranchSelector = Shade<BranchSelectorProps>({
           url: { id: serviceId },
         })
         setBranches({ local: result.result.local, remote: result.result.remote })
-      } catch {
-        noty.emit('onNotyAdded', { title: 'Error', body: 'Failed to load branches', type: 'error' })
+      } catch (error: unknown) {
+        const reason = error instanceof Error ? error.message : 'Unknown error'
+        noty.emit('onNotyAdded', { title: 'Failed to load branches', body: reason, type: 'error' })
       } finally {
         setIsLoading(false)
       }

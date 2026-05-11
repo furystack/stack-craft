@@ -7,7 +7,10 @@ import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { RequestError } from '@furystack/rest'
 import { usingAsync } from '@furystack/utils'
 import { GitHubRepository, ServiceDefinition, ServiceStatus, StackConfig } from 'common'
-import { describe, expect, it, vi } from 'vitest'
+import { mkdirSync, mkdtempSync, rmSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { GitService } from '../../../services/git-service.js'
 import { ServiceBranchesAction } from './service-branches-action.js'
@@ -123,6 +126,73 @@ describe('ServiceBranchesAction', () => {
       expect(body.currentBranch).toBe('main')
       expect(body.local).toEqual(['main', 'dev'])
       expect(body.remote).toEqual(['origin/main'])
+    })
+  })
+
+  describe('when status is "cloning"', () => {
+    let tempDir: string
+
+    beforeEach(() => {
+      tempDir = mkdtempSync(join(tmpdir(), 'branches-action-'))
+    })
+
+    afterEach(() => {
+      rmSync(tempDir, { recursive: true, force: true })
+    })
+
+    const seedClonedService = async (injector: Injector) => {
+      const repo = getRepository(injector)
+      await repo.getDataSetFor(StackConfig, 'stackName').add(injector, {
+        stackName: 'stack-1',
+        mainDirectory: tempDir,
+        environmentVariables: {},
+        createdAt: '',
+        updatedAt: '',
+      })
+      await repo.getDataSetFor(ServiceDefinition, 'id').add(injector, {
+        id: 'svc-1',
+        stackName: 'stack-1',
+        displayName: 'Test',
+        description: '',
+        runCommand: 'npm start',
+        files: [],
+        createdAt: '',
+        updatedAt: '',
+      })
+      await repo.getDataSetFor(ServiceStatus, 'serviceId').add(injector, {
+        serviceId: 'svc-1',
+        cloneStatus: 'cloning',
+        installStatus: 'not-installed',
+        buildStatus: 'not-built',
+        runStatus: 'stopped',
+        updatedAt: '',
+      })
+    }
+
+    it('should return branches during a pull when the .git directory already exists', async () => {
+      const { injector } = createSetup()
+      await usingAsync(injector, async () => {
+        await seedClonedService(injector)
+        mkdirSync(join(tempDir, '.git'))
+
+        const ctx = createMockActionContext({ injector, urlParams: { id: 'svc-1' } })
+        const result = await ServiceBranchesAction(ctx)
+        const body = result.chunk
+
+        expect(body.currentBranch).toBe('main')
+        expect(body.local).toEqual(['main', 'dev'])
+        expect(body.remote).toEqual(['origin/main'])
+      })
+    })
+
+    it('should still throw 400 during the initial clone when no .git directory exists yet', async () => {
+      const { injector } = createSetup()
+      await usingAsync(injector, async () => {
+        await seedClonedService(injector)
+
+        const ctx = createMockActionContext({ injector, urlParams: { id: 'svc-1' } })
+        await expect(ServiceBranchesAction(ctx)).rejects.toThrow('Repository is not cloned yet')
+      })
     })
   })
 })
