@@ -15,7 +15,6 @@ import {
   ServiceStatus,
 } from 'common'
 import servicesApiSchema from 'common/schemas/services-api.json' with { type: 'json' }
-import { randomUUID } from 'crypto'
 
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getHost } from '../../get-host.js'
@@ -29,6 +28,7 @@ import {
   maskSensitiveEnvValues,
 } from '../../utils/env-encryption-helpers.js'
 import { ClearServiceLogsAction } from './actions/clear-service-logs-action.js'
+import { CreateServiceAction } from './actions/create-service-action.js'
 import { ServiceBranchesAction } from './actions/service-branches-action.js'
 import { ServiceCheckoutAction } from './actions/service-checkout-action.js'
 import { ServiceDeleteBranchAction } from './actions/service-delete-branch-action.js'
@@ -80,24 +80,6 @@ const resolveRelationsForServices = async (
     }
   }
   return relationsMap
-}
-
-const setServiceLinks = async (
-  injector: Injector,
-  serviceId: string,
-  prerequisiteIds: string[],
-  prerequisiteServiceIds: string[],
-) => {
-  const repo = getRepository(injector)
-  const prereqDs = repo.getDataSetFor(ServicePrerequisiteLink, 'id')
-  const depDs = repo.getDataSetFor(ServiceDependencyLink, 'id')
-
-  for (const prereqId of prerequisiteIds) {
-    await prereqDs.add(injector, { id: `${serviceId}::${prereqId}`, serviceId, prerequisiteId: prereqId })
-  }
-  for (const depId of prerequisiteServiceIds) {
-    await depDs.add(injector, { id: `${serviceId}::${depId}`, serviceId, dependsOnServiceId: depId })
-  }
 }
 
 const replaceServiceLinks = async (
@@ -214,61 +196,7 @@ export const setupServicesRestApi = async (injector: Injector) => {
         ),
       },
       POST: {
-        '/services': Validate({ schema: servicesApiSchema, schemaName: 'PostServiceEndpoint' })(
-          async ({ injector: i, getBody }) => {
-            const body = await getBody()
-            const repo = getRepository(i)
-            const crypto = i.get(CryptoService)
-            const now = new Date().toISOString()
-            const id = body.id ?? randomUUID()
-
-            const prerequisiteIds = body.prerequisiteIds ?? []
-            const prerequisiteServiceIds = body.prerequisiteServiceIds ?? []
-
-            const def = {
-              id,
-              stackName: body.stackName,
-              displayName: body.displayName,
-              description: body.description ?? '',
-              workingDirectory: body.workingDirectory,
-              repositoryId: body.repositoryId,
-              installCommand: body.installCommand,
-              buildCommand: body.buildCommand,
-              runCommand: body.runCommand,
-              files: body.files ?? [],
-              createdAt: now,
-              updatedAt: now,
-            }
-
-            const config = {
-              serviceId: id,
-              autoFetchEnabled: body.autoFetchEnabled ?? false,
-              autoFetchIntervalMinutes: body.autoFetchIntervalMinutes ?? 60,
-              autoRestartOnFetch: body.autoRestartOnFetch ?? false,
-              environmentVariableOverrides: encryptEnvValues(crypto, body.environmentVariableOverrides ?? {}),
-              localFiles: encryptLocalFiles(crypto, body.localFiles ?? []),
-              createdAt: now,
-              updatedAt: now,
-            }
-
-            const status = {
-              serviceId: id,
-              cloneStatus: 'not-cloned' as const,
-              installStatus: 'not-installed' as const,
-              buildStatus: 'not-built' as const,
-              runStatus: 'stopped' as const,
-              updatedAt: now,
-            }
-
-            await repo.getDataSetFor(ServiceDefinition, 'id').add(i, def)
-            await repo.getDataSetFor(ServiceConfig, 'serviceId').add(i, config)
-            await repo.getDataSetFor(ServiceStatus, 'serviceId').add(i, status)
-            await setServiceLinks(i, id, prerequisiteIds, prerequisiteServiceIds)
-
-            const relations = { prerequisiteIds, prerequisiteServiceIds }
-            return JsonResult(mergeServiceViewMasked(def, config, status, undefined, crypto, relations))
-          },
-        ),
+        '/services': Validate({ schema: servicesApiSchema, schemaName: 'PostServiceEndpoint' })(CreateServiceAction),
         '/services/:id/start': Validate({ schema: servicesApiSchema, schemaName: 'ServiceActionEndpoint' })(
           ServiceLifecycleAction('start'),
         ),
