@@ -1,4 +1,6 @@
 import { RequestError } from '@furystack/rest'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { Injector } from '@furystack/inject'
@@ -13,7 +15,7 @@ const seedClonedService = async (elevated: Injector) => {
   const repo = getRepository(elevated)
   await repo.getDataSetFor((await import('common')).StackConfig, 'stackName').add(elevated, {
     stackName: 'stack-1',
-    mainDirectory: '/tmp/stacks',
+    mainDirectory: join(tmpdir(), 'stacks'),
     environmentVariables: {},
     createdAt: '',
     updatedAt: '',

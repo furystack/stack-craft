@@ -1,5 +1,7 @@
 import type { Injector } from '@furystack/inject'
 import { ServiceConfig, ServiceDefinition, ServiceStatus, StackConfig } from 'common'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { describe, expect, it, vi } from 'vitest'
 
 import { withTestInjector } from '../test-helpers.js'
@@ -44,7 +46,7 @@ const seedData = async (
   const repo = getRepository(elevated)
   await repo.getDataSetFor(StackConfig, 'stackName').add(elevated, {
     stackName: 'test-stack',
-    mainDirectory: '/tmp/stacks/test',
+    mainDirectory: join(tmpdir(), 'stacks', 'test'),
     environmentVariables: {},
     createdAt: ts,
     updatedAt: ts,

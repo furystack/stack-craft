@@ -1,5 +1,7 @@
 import { PrerequisiteCheckResultDataSet, PrerequisiteDataSet, StackConfigDataSet } from '../data-store/tokens.js'
 import { getDataSetFor } from '@furystack/repository'
+import { tmpdir } from 'os'
+import { join } from 'path'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { withTestInjector } from '../../test-helpers.js'
@@ -131,7 +133,7 @@ describe('evaluatePrerequisites', () => {
       const ts = new Date().toISOString()
       await getDataSetFor(elevated, StackConfigDataSet).add(elevated, {
         stackName: 'my-stack',
-        mainDirectory: '/tmp/stack',
+        mainDirectory: join(tmpdir(), 'stack'),
         environmentVariables: {
           MY_VAR: { source: 'custom', customValue: 'secret' },
         },

@@ -16,6 +16,8 @@ import {
   StackDefinition,
 } from 'common'
 import { randomBytes } from 'crypto'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { describe, expect, it } from 'vitest'
 
 import { ExportStackAction } from './export-stack-action.js'
@@ -261,7 +263,7 @@ describe('Import/Export Stack Actions', () => {
             },
           ],
           config: {
-            mainDirectory: '/tmp/imported',
+            mainDirectory: join(tmpdir(), 'imported'),
           },
         }
 
@@ -276,7 +278,7 @@ describe('Import/Export Stack Actions', () => {
 
         const stackConfigs = await stackConfigStore.find({})
         expect(stackConfigs).toHaveLength(1)
-        expect(stackConfigs[0]?.mainDirectory).toBe('/tmp/imported')
+        expect(stackConfigs[0]?.mainDirectory).toBe(join(tmpdir(), 'imported'))
 
         const serviceDefs = await serviceDefStore.find({})
         expect(serviceDefs).toHaveLength(1)
@@ -323,7 +325,7 @@ describe('Import/Export Stack Actions', () => {
           repositories: [],
           prerequisites: [],
           config: {
-            mainDirectory: '/tmp/reset',
+            mainDirectory: join(tmpdir(), 'reset'),
           },
         }
 
@@ -373,7 +375,7 @@ describe('Import/Export Stack Actions', () => {
           repositories: [],
           prerequisites: [],
           config: {
-            mainDirectory: '/tmp/config-test',
+            mainDirectory: join(tmpdir(), 'config-test'),
             services: {
               'cfg-svc-1': {
                 autoFetchEnabled: true,
@@ -441,7 +443,7 @@ describe('Import/Export Stack Actions', () => {
           repositories: [],
           prerequisites: [],
           config: {
-            mainDirectory: '/tmp/multi',
+            mainDirectory: join(tmpdir(), 'multi'),
           },
         }
 
@@ -490,7 +492,7 @@ describe('Import/Export Stack Actions', () => {
           services: [],
           repositories: [],
           prerequisites: [],
-          config: { mainDirectory: '/tmp/dup' },
+          config: { mainDirectory: join(tmpdir(), 'dup') },
         }
 
         const elevated = useSystemIdentityContext({ injector })
@@ -555,7 +557,7 @@ describe('Import/Export Stack Actions', () => {
           ],
           repositories: [],
           prerequisites: [],
-          config: { mainDirectory: '/tmp/conflict' },
+          config: { mainDirectory: join(tmpdir(), 'conflict') },
         }
 
         const elevated = useSystemIdentityContext({ injector })
@@ -603,7 +605,7 @@ describe('Import/Export Stack Actions', () => {
             },
           ],
           prerequisites: [],
-          config: { mainDirectory: '/tmp/repo-conflict' },
+          config: { mainDirectory: join(tmpdir(), 'repo-conflict') },
         }
 
         const elevated = useSystemIdentityContext({ injector })
@@ -689,7 +691,7 @@ describe('Import/Export Stack Actions', () => {
               installationHelp: '',
             },
           ],
-          config: { mainDirectory: '/tmp/multi-conflict' },
+          config: { mainDirectory: join(tmpdir(), 'multi-conflict') },
         }
 
         const elevated = useSystemIdentityContext({ injector })
@@ -733,7 +735,7 @@ describe('Import/Export Stack Actions', () => {
           repositories: [],
           prerequisites: [],
           config: {
-            mainDirectory: '/tmp/env-test',
+            mainDirectory: join(tmpdir(), 'env-test'),
             environmentVariables: {
               DATABASE_URL: { source: 'custom' as const, customValue: 'postgres://localhost/db' },
               API_KEY: { source: 'inherit' as const },

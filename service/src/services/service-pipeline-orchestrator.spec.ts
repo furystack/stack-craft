@@ -2,6 +2,8 @@ import { ServiceDependencyLinkDataSet, ServiceStatusDataSet } from '../app-model
 import { getDataSetFor } from '@furystack/repository'
 import type { Injector } from '@furystack/inject'
 import { ServiceDefinition, ServiceStatus, StackConfig } from 'common'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { describe, expect, it, vi } from 'vitest'
 import { withTestInjector } from '../test-helpers.js'
 import { GitOperationsService } from './git-operations-service.js'
@@ -50,7 +52,7 @@ const seedService = async (elevated: Injector, overrides: Partial<ServiceDefinit
   if (existing.length === 0) {
     await repo.getDataSetFor(StackConfig, 'stackName').add(elevated, {
       stackName: 'test-stack',
-      mainDirectory: '/tmp/stacks/test',
+      mainDirectory: join(tmpdir(), 'stacks', 'test'),
       environmentVariables: {},
       createdAt: ts,
       updatedAt: ts,

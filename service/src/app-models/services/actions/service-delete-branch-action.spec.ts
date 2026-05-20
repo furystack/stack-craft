@@ -1,12 +1,16 @@
 import { ServiceDefinitionDataSet, ServiceStatusDataSet } from '../../data-store/tokens.js'
 import { getDataSetFor } from '@furystack/repository'
 import type { ServiceStatus } from 'common'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { describe, expect, it, vi } from 'vitest'
 import { GitHeadWatcher } from '../../../services/git-head-watcher.js'
 import { GitService } from '../../../services/git-service.js'
 import { createMockActionContext, withTestInjector } from '../../../test-helpers.js'
 import { ServiceDeleteBranchAction } from './service-delete-branch-action.js'
 import '../../../test-shims.js'
+
+const REPO_DIR = join(tmpdir(), 'repo')
 const seed = async (
   elevated: Parameters<Parameters<typeof withTestInjector>[0]>[0]['elevated'],
   status: Partial<ServiceStatus> = {},
@@ -43,9 +47,11 @@ const mockGit = (overrides: Partial<GitService> = {}) =>
     ...overrides,
   }) as unknown as GitService
 
-vi.mock('../../../utils/resolve-service-cwd.js', () => ({
-  resolveServiceCwd: vi.fn().mockResolvedValue('/tmp/repo'),
-}))
+vi.mock('../../../utils/resolve-service-cwd.js', async () => {
+  const osMod = await import('os')
+  const pathMod = await import('path')
+  return { resolveServiceCwd: vi.fn().mockResolvedValue(pathMod.join(osMod.tmpdir(), 'repo')) }
+})
 
 describe('ServiceDeleteBranchAction', () => {
   it('deletes a local branch that is not currently checked out', () =>
@@ -64,7 +70,7 @@ describe('ServiceDeleteBranchAction', () => {
       })
       const result = await ServiceDeleteBranchAction(ctx)
       expect(result.chunk).toMatchObject({ success: true, deleted: 'feature/old' })
-      expect(git.deleteLocalBranch).toHaveBeenCalledWith('/tmp/repo', 'feature/old', false)
+      expect(git.deleteLocalBranch).toHaveBeenCalledWith(REPO_DIR, 'feature/old', false)
       expect(git.checkout).not.toHaveBeenCalled()
     }))
 
@@ -84,8 +90,8 @@ describe('ServiceDeleteBranchAction', () => {
         body: { branch: 'feature/gone', force: true },
       })
       const result = await ServiceDeleteBranchAction(ctx)
-      expect(git.checkout).toHaveBeenCalledWith('/tmp/repo', 'main')
-      expect(git.deleteLocalBranch).toHaveBeenCalledWith('/tmp/repo', 'feature/gone', true)
+      expect(git.checkout).toHaveBeenCalledWith(REPO_DIR, 'main')
+      expect(git.deleteLocalBranch).toHaveBeenCalledWith(REPO_DIR, 'feature/gone', true)
       expect(result.chunk).toMatchObject({ success: true, deleted: 'feature/gone', switchedTo: 'main' })
     }))
 
@@ -137,7 +143,7 @@ describe('ServiceDeleteBranchAction', () => {
         body: { branch: 'feature/gone', switchTo: 'develop' },
       })
       await ServiceDeleteBranchAction(ctx)
-      expect(git.checkout).toHaveBeenCalledWith('/tmp/repo', 'develop')
+      expect(git.checkout).toHaveBeenCalledWith(REPO_DIR, 'develop')
     }))
 
   it('throws when service does not exist', () =>

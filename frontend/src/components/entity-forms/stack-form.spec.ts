@@ -1,8 +1,11 @@
+import { tmpdir } from 'os'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('../app-routes.js', () => ({}))
 
 import { isStackFormPayload } from './stack-form.js'
+
+const TMP = tmpdir()
 
 describe('isStackFormPayload', () => {
   const validPayload = {
@@ -17,7 +20,7 @@ describe('isStackFormPayload', () => {
   })
 
   it('should accept payload without description (not validated)', () => {
-    expect(isStackFormPayload({ name: 'x', displayName: 'X', mainDirectory: '/tmp' })).toBe(true)
+    expect(isStackFormPayload({ name: 'x', displayName: 'X', mainDirectory: TMP })).toBe(true)
   })
 
   it('should throw on null (no null guard)', () => {
@@ -29,7 +32,7 @@ describe('isStackFormPayload', () => {
   })
 
   it('should reject when name is missing', () => {
-    expect(isStackFormPayload({ displayName: 'X', mainDirectory: '/tmp' })).toBe(false)
+    expect(isStackFormPayload({ displayName: 'X', mainDirectory: TMP })).toBe(false)
   })
 
   it('should reject when name is empty', () => {
@@ -37,7 +40,7 @@ describe('isStackFormPayload', () => {
   })
 
   it('should reject when displayName is missing', () => {
-    expect(isStackFormPayload({ name: 'x', mainDirectory: '/tmp' })).toBe(false)
+    expect(isStackFormPayload({ name: 'x', mainDirectory: TMP })).toBe(false)
   })
 
   it('should reject when displayName is empty', () => {

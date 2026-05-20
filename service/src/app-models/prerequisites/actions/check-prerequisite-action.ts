@@ -57,7 +57,12 @@ const checkNode = async (config: { minimumVersion: string }): Promise<CheckResul
 }
 
 const checkYarn = async (config: { minimumVersion: string }): Promise<CheckResult> => {
-  const { stdout } = await execFileAsync('yarn', ['--version'], { timeout: COMMAND_TIMEOUT })
+  // Yarn ships as `yarn.cmd` / `yarn.ps1` shims on Windows, which `execFile` cannot resolve directly.
+  // Route through cmd.exe so PATHEXT applies. POSIX uses execFile directly to avoid an extra fork.
+  const isWindows = process.platform === 'win32'
+  const { stdout } = isWindows
+    ? await execFileAsync('cmd.exe', ['/c', 'yarn', '--version'], { timeout: COMMAND_TIMEOUT })
+    : await execFileAsync('yarn', ['--version'], { timeout: COMMAND_TIMEOUT })
   const version = extractVersion(stdout.trim())
   if (!version) {
     return { satisfied: false, output: `Could not parse Yarn version from: ${stdout.trim()}` }

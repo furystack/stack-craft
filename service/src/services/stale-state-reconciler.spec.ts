@@ -2,6 +2,8 @@ import { ServiceDefinitionDataSet, ServiceStatusDataSet } from '../app-models/da
 import { getDataSetFor } from '@furystack/repository'
 import type { Injector } from '@furystack/inject'
 import type { ServiceDefinition, ServiceStatus } from 'common'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { describe, expect, it, vi } from 'vitest'
 
 import { withTestInjector } from '../test-helpers.js'
@@ -11,9 +13,14 @@ import { GitWatcher } from './git-watcher.js'
 import { ServiceStatusManager } from './service-status-manager.js'
 import { StaleStateReconciler } from './stale-state-reconciler.js'
 import '../test-shims.js'
-vi.mock('../utils/resolve-service-cwd.js', () => ({
-  resolveServiceCwd: vi.fn().mockResolvedValue('/tmp/fake-cwd'),
-}))
+
+const FAKE_CWD = join(tmpdir(), 'fake-cwd')
+
+vi.mock('../utils/resolve-service-cwd.js', async () => {
+  const { tmpdir: getTmpdir } = await import('os')
+  const { join: joinPath } = await import('path')
+  return { resolveServiceCwd: vi.fn().mockResolvedValue(joinPath(getTmpdir(), 'fake-cwd')) }
+})
 
 const setupMocks = (injector: Injector) => {
   const mockStatusManager = { updateServiceStatus: vi.fn().mockResolvedValue(undefined) }
@@ -190,7 +197,7 @@ describe('StaleStateReconciler', () => {
       await reconciler.reconcileStaleStates()
 
       expect(vi.mocked(resolveServiceCwd)).toHaveBeenCalled()
-      expect(mockGitHeadWatcher.watch).toHaveBeenCalledWith('svc-cloned', '/tmp/fake-cwd')
+      expect(mockGitHeadWatcher.watch).toHaveBeenCalledWith('svc-cloned', FAKE_CWD)
       expect(mockGitWatcher.startWatching).toHaveBeenCalledWith('svc-cloned')
     }))
 

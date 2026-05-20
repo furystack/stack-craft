@@ -247,7 +247,7 @@ describe('ProcessRunner', () => {
         Object.defineProperty(process, 'platform', { value: originalPlatform, writable: true })
       }))
 
-    it('should use taskkill on Windows', () =>
+    it('should use taskkill without /F on Windows for graceful signals', () =>
       withRunnerContext(async ({ runner }) => {
         const originalPlatform = process.platform
         Object.defineProperty(process, 'platform', { value: 'win32', writable: true })
@@ -256,6 +256,22 @@ describe('ProcessRunner', () => {
         const child = { pid: 999, kill: vi.fn() } as unknown as ChildProcess
 
         const result = runner.killProcessGroup(child, 'SIGTERM')
+
+        expect(result).toBe(true)
+        expect(spawnSync).toHaveBeenCalledWith('taskkill', ['/pid', '999', '/T'], { stdio: 'ignore' })
+
+        Object.defineProperty(process, 'platform', { value: originalPlatform, writable: true })
+      }))
+
+    it('should use taskkill with /F on Windows for SIGKILL', () =>
+      withRunnerContext(async ({ runner }) => {
+        const originalPlatform = process.platform
+        Object.defineProperty(process, 'platform', { value: 'win32', writable: true })
+
+        const { spawnSync } = await import('child_process')
+        const child = { pid: 999, kill: vi.fn() } as unknown as ChildProcess
+
+        const result = runner.killProcessGroup(child, 'SIGKILL')
 
         expect(result).toBe(true)
         expect(spawnSync).toHaveBeenCalledWith('taskkill', ['/pid', '999', '/T', '/F'], { stdio: 'ignore' })
