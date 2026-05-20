@@ -2,6 +2,7 @@ import { defineService, type Token } from '@furystack/inject'
 import { type ChildProcess, spawn, spawnSync } from 'child_process'
 
 import { LogStorageService } from './log-storage-service.js'
+import type { ServiceLifecycleManager } from './service-lifecycle-manager.js'
 
 export type ManagedProcess = {
   serviceId: string
@@ -117,8 +118,7 @@ export class ProcessRunnerImpl {
    * On Windows, `taskkill /T` (without `/F`) is used for non-`SIGKILL` signals so
    * console apps that handle CTRL-C / WM_CLOSE get a chance to flush state.
    * `/F` is reserved for `SIGKILL` to mirror the POSIX semantics that callers
-   * (e.g. {@link import('./service-lifecycle-manager.js').ServiceLifecycleManager})
-   * rely on for the graceful-then-force escalation.
+   * (e.g. {@link ServiceLifecycleManager}) rely on for the graceful-then-force escalation.
    */
   public killProcessGroup(child: ChildProcess, signal: NodeJS.Signals): boolean {
     if (child.pid == null) return false

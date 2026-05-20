@@ -90,6 +90,36 @@ describe('CheckPrerequisiteAction', () => {
         const result = await runCheck('yarn', { minimumVersion: '4.0.0' })
         expect(result.satisfied).toBe(false)
       })
+
+      it('should invoke `yarn --version` directly on POSIX', async () => {
+        const originalPlatform = process.platform
+        Object.defineProperty(process, 'platform', { value: 'linux', writable: true })
+        try {
+          execFileMock.mockResolvedValue({ stdout: '4.6.0\n', stderr: '' })
+          await runCheck('yarn', { minimumVersion: '4.0.0' })
+          expect(execFileMock).toHaveBeenCalledWith('yarn', ['--version'], expect.objectContaining({ timeout: 30_000 }))
+        } finally {
+          Object.defineProperty(process, 'platform', { value: originalPlatform, writable: true })
+        }
+      })
+
+      // Yarn ships as `yarn.cmd` / `yarn.ps1` on Windows; routing through `cmd.exe`
+      // is the load-bearing fix that lets PATHEXT resolve the shim. Guard against regression.
+      it('should route through cmd.exe on Windows to resolve the yarn shim', async () => {
+        const originalPlatform = process.platform
+        Object.defineProperty(process, 'platform', { value: 'win32', writable: true })
+        try {
+          execFileMock.mockResolvedValue({ stdout: '4.6.0\n', stderr: '' })
+          await runCheck('yarn', { minimumVersion: '4.0.0' })
+          expect(execFileMock).toHaveBeenCalledWith(
+            'cmd.exe',
+            ['/c', 'yarn', '--version'],
+            expect.objectContaining({ timeout: 30_000 }),
+          )
+        } finally {
+          Object.defineProperty(process, 'platform', { value: originalPlatform, writable: true })
+        }
+      })
     })
 
     describe('git', () => {

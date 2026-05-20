@@ -1,3 +1,4 @@
 releases:
+  frontend: patch
   service: patch
   stack-craft: patch
