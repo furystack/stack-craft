@@ -19,18 +19,36 @@ export const CreatePrerequisiteAction: RequestAction<PostPrerequisiteEndpoint> =
   const checkResultDs = repository.getDataSetFor(PrerequisiteCheckResult, 'prerequisiteId')
 
   const body = await readPostBody<WithOptionalId<PrerequisiteWritableFields, 'id'>>(request)
+
+  if (body.id !== undefined) {
+    const existing = await prereqDs.get(injector, body.id)
+    if (existing) {
+      throw new RequestError(`A prerequisite with id "${body.id}" already exists. Choose a different id.`, 409)
+    }
+  }
+
   const { created } = await prereqDs.add(injector, body)
   if (!created?.length) {
     throw new RequestError('Prerequisite not created', 500)
   }
 
   const newPrereq = created[0]
-  await checkResultDs.add(injector, {
-    prerequisiteId: newPrereq.id,
-    status: 'unchecked',
-    output: '',
-    checkedAt: '',
-  })
+  try {
+    await checkResultDs.add(injector, {
+      prerequisiteId: newPrereq.id,
+      status: 'unchecked',
+      output: '',
+      checkedAt: '',
+    })
+  } catch (error) {
+    await prereqDs.remove(injector, newPrereq.id).catch(() => undefined)
+    throw error instanceof RequestError
+      ? error
+      : new RequestError(
+          `Failed to create prerequisite: ${error instanceof Error ? error.message : 'unknown error'}`,
+          500,
+        )
+  }
 
   return JsonResult(newPrereq, 201)
 }

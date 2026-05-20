@@ -458,6 +458,124 @@ describe('Import/Export Stack Actions', () => {
       })
     })
 
+    it('should reject import when a stack with the same name already exists', async () => {
+      const { injector, stackDefStore, serviceDefStore } = createSetup()
+      await usingAsync(injector, async () => {
+        const ts = now()
+        await stackDefStore.add({
+          name: 'duplicate-stack',
+          displayName: 'Original',
+          description: 'Original description',
+          createdAt: ts,
+          updatedAt: ts,
+        })
+        await serviceDefStore.add({
+          id: 'original-svc',
+          stackName: 'duplicate-stack',
+          displayName: 'Original Service',
+          description: '',
+          workingDirectory: 'svc',
+          runCommand: 'echo original',
+          files: [],
+          createdAt: ts,
+          updatedAt: ts,
+        })
+
+        const importBody = {
+          stack: {
+            name: 'duplicate-stack',
+            displayName: 'Imported',
+            description: 'Imported description',
+          },
+          services: [],
+          repositories: [],
+          prerequisites: [],
+          config: { mainDirectory: '/tmp/dup' },
+        }
+
+        const elevated = useSystemIdentityContext({ injector })
+        await expect(
+          ImportStackAction(createMockActionContext({ injector: elevated, body: importBody })),
+        ).rejects.toMatchObject({
+          message: expect.stringContaining('"duplicate-stack" already exists'),
+          responseCode: 409,
+        })
+
+        const stackDefs = await stackDefStore.find({})
+        expect(stackDefs).toHaveLength(1)
+        expect(stackDefs[0]?.displayName).toBe('Original')
+
+        const serviceDefs = await serviceDefStore.find({})
+        expect(serviceDefs).toHaveLength(1)
+        expect(serviceDefs[0]?.id).toBe('original-svc')
+      })
+    })
+
+    it('should reject import when a service id already exists in another stack', async () => {
+      const { injector, stackDefStore, serviceDefStore } = createSetup()
+      await usingAsync(injector, async () => {
+        const ts = now()
+        await stackDefStore.add({
+          name: 'existing-stack',
+          displayName: 'Existing',
+          description: '',
+          createdAt: ts,
+          updatedAt: ts,
+        })
+        await serviceDefStore.add({
+          id: 'shared-svc-id',
+          stackName: 'existing-stack',
+          displayName: 'Existing Service',
+          description: '',
+          workingDirectory: 'svc',
+          runCommand: 'echo existing',
+          files: [],
+          createdAt: ts,
+          updatedAt: ts,
+        })
+
+        const importBody = {
+          stack: {
+            name: 'new-stack',
+            displayName: 'New Stack',
+            description: '',
+          },
+          services: [
+            {
+              id: 'shared-svc-id',
+              stackName: 'new-stack',
+              displayName: 'New Service',
+              description: '',
+              workingDirectory: 'svc',
+              runCommand: 'echo new',
+              prerequisiteIds: [],
+              prerequisiteServiceIds: [],
+              files: [],
+            },
+          ],
+          repositories: [],
+          prerequisites: [],
+          config: { mainDirectory: '/tmp/conflict' },
+        }
+
+        const elevated = useSystemIdentityContext({ injector })
+        await expect(
+          ImportStackAction(createMockActionContext({ injector: elevated, body: importBody })),
+        ).rejects.toMatchObject({
+          message: expect.stringContaining('shared-svc-id'),
+          responseCode: 409,
+        })
+
+        const stackDefs = await stackDefStore.find({})
+        expect(stackDefs).toHaveLength(1)
+        expect(stackDefs[0]?.name).toBe('existing-stack')
+
+        const serviceDefs = await serviceDefStore.find({})
+        expect(serviceDefs).toHaveLength(1)
+        expect(serviceDefs[0]?.displayName).toBe('Existing Service')
+      })
+    })
+
     it('should persist environment variable config during import', async () => {
       const { injector, stackConfigStore, serviceConfigStore } = createSetup()
       await usingAsync(injector, async () => {

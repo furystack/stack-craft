@@ -220,8 +220,20 @@ export const setupServicesRestApi = async (injector: Injector) => {
             const repo = getRepository(i)
             const crypto = i.get(CryptoService)
             const now = new Date().toISOString()
-            const id = body.id ?? randomUUID()
+            const svcDefDs = repo.getDataSetFor(ServiceDefinition, 'id')
+            const svcConfigDs = repo.getDataSetFor(ServiceConfig, 'serviceId')
+            const svcStatusDs = repo.getDataSetFor(ServiceStatus, 'serviceId')
+            const prereqLinkDs = repo.getDataSetFor(ServicePrerequisiteLink, 'id')
+            const depLinkDs = repo.getDataSetFor(ServiceDependencyLink, 'id')
 
+            if (body.id !== undefined) {
+              const existing = await svcDefDs.get(i, body.id)
+              if (existing) {
+                throw new RequestError(`A service with id "${body.id}" already exists. Choose a different id.`, 409)
+              }
+            }
+
+            const id = body.id ?? randomUUID()
             const prerequisiteIds = body.prerequisiteIds ?? []
             const prerequisiteServiceIds = body.prerequisiteServiceIds ?? []
 
@@ -260,10 +272,43 @@ export const setupServicesRestApi = async (injector: Injector) => {
               updatedAt: now,
             }
 
-            await repo.getDataSetFor(ServiceDefinition, 'id').add(i, def)
-            await repo.getDataSetFor(ServiceConfig, 'serviceId').add(i, config)
-            await repo.getDataSetFor(ServiceStatus, 'serviceId').add(i, status)
-            await setServiceLinks(i, id, prerequisiteIds, prerequisiteServiceIds)
+            let defAdded = false
+            let configAdded = false
+            let statusAdded = false
+            try {
+              await svcDefDs.add(i, def)
+              defAdded = true
+              await svcConfigDs.add(i, config)
+              configAdded = true
+              await svcStatusDs.add(i, status)
+              statusAdded = true
+              await setServiceLinks(i, id, prerequisiteIds, prerequisiteServiceIds)
+            } catch (error) {
+              const rollbackLogger = getLogger(i).withScope('CreateService')
+              const removePrereqLinks = async () => {
+                const links = await prereqLinkDs.find(i, { filter: { serviceId: { $eq: id } } }).catch(() => [])
+                if (links.length > 0) await prereqLinkDs.remove(i, ...links.map((l) => l.id)).catch(() => undefined)
+              }
+              const removeDepLinks = async () => {
+                const links = await depLinkDs.find(i, { filter: { serviceId: { $eq: id } } }).catch(() => [])
+                if (links.length > 0) await depLinkDs.remove(i, ...links.map((l) => l.id)).catch(() => undefined)
+              }
+              await removePrereqLinks()
+              await removeDepLinks()
+              if (statusAdded) await svcStatusDs.remove(i, id).catch(() => undefined)
+              if (configAdded) await svcConfigDs.remove(i, id).catch(() => undefined)
+              if (defAdded) await svcDefDs.remove(i, id).catch(() => undefined)
+              await rollbackLogger.warning({
+                message: `Service creation rolled back for "${id}"`,
+                data: { error },
+              })
+              throw error instanceof RequestError
+                ? error
+                : new RequestError(
+                    `Failed to create service: ${error instanceof Error ? error.message : 'unknown error'}`,
+                    500,
+                  )
+            }
 
             const relations = { prerequisiteIds, prerequisiteServiceIds }
             return JsonResult(mergeServiceViewMasked(def, config, status, undefined, crypto, relations))

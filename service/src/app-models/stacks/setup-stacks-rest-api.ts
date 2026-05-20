@@ -102,6 +102,15 @@ export const setupStacksRestApi = async (injector: Injector) => {
             const repo = getRepository(i)
             const crypto = i.get(CryptoService)
             const now = new Date().toISOString()
+            const stackDefDs = repo.getDataSetFor(StackDefinition, 'name')
+
+            if (body.name !== undefined) {
+              const existing = await stackDefDs.get(i, body.name)
+              if (existing) {
+                throw new RequestError(`A stack named "${body.name}" already exists. Choose a different name.`, 409)
+              }
+            }
+
             const name = body.name ?? randomUUID()
             const def = {
               name,
@@ -117,8 +126,18 @@ export const setupStacksRestApi = async (injector: Injector) => {
               createdAt: now,
               updatedAt: now,
             }
-            await repo.getDataSetFor(StackDefinition, 'name').add(i, def)
-            await repo.getDataSetFor(StackConfig, 'stackName').add(i, config)
+            await stackDefDs.add(i, def)
+            try {
+              await repo.getDataSetFor(StackConfig, 'stackName').add(i, config)
+            } catch (error) {
+              await stackDefDs.remove(i, name).catch(() => undefined)
+              throw error instanceof RequestError
+                ? error
+                : new RequestError(
+                    `Failed to create stack "${name}": ${error instanceof Error ? error.message : 'unknown error'}`,
+                    500,
+                  )
+            }
             return JsonResult({ ...def, ...config })
           },
         ),
