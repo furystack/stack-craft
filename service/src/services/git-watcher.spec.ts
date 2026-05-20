@@ -13,9 +13,13 @@ import { GitWatcher } from './git-watcher.js'
 import '../test-shims.js'
 const FETCH_CHECK_INTERVAL_MS = 5 * 60 * 1000
 
-vi.mock('../utils/resolve-service-cwd.js', () => ({
-  resolveServiceCwd: vi.fn().mockResolvedValue('/tmp/repo'),
-}))
+vi.mock('../utils/resolve-service-cwd.js', async () => {
+  const { tmpdir } = await import('os')
+  const { join } = await import('path')
+  return {
+    resolveServiceCwd: vi.fn().mockResolvedValue(join(tmpdir(), 'repo')),
+  }
+})
 
 const addServiceDefinition = async (elevated: Injector, overrides: Partial<ServiceDefinition> = {}) => {
   await getDataSetFor(elevated, ServiceDefinitionDataSet).add(elevated, {

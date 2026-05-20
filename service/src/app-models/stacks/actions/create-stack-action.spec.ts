@@ -1,5 +1,7 @@
 import { getDataSetFor } from '@furystack/repository'
 import { randomBytes } from 'crypto'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { StackConfigDataSet, StackDefinitionDataSet } from '../../data-store/tokens.js'
@@ -8,11 +10,13 @@ import { CreateStackAction } from './create-stack-action.js'
 
 type CreateStackBody = Parameters<typeof CreateStackAction>[0] extends { getBody: () => Promise<infer B> } ? B : never
 
+const STACK_DIR = join(tmpdir(), 'my-stack')
+
 const baseBody: CreateStackBody = {
   name: 'my-stack',
   displayName: 'My Stack',
   description: 'Example',
-  mainDirectory: '/tmp/my-stack',
+  mainDirectory: STACK_DIR,
   environmentVariables: {},
 }
 
@@ -36,7 +40,7 @@ describe('CreateStackAction', () => {
 
       const configs = await getDataSetFor(elevated, StackConfigDataSet).find(elevated, {})
       expect(configs).toHaveLength(1)
-      expect(configs[0]?.mainDirectory).toBe('/tmp/my-stack')
+      expect(configs[0]?.mainDirectory).toBe(STACK_DIR)
     })
   })
 

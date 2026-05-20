@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test'
+import { tmpdir } from 'os'
+import { join } from 'path'
 
 import {
   addRepository,
@@ -15,7 +17,7 @@ test('App Flow', async ({ page, browserName }) => {
 
   const stackName = `e2e-test-stack-${uuid}`
   const displayName = `E2E Test Stack - ${browserName} - ${uuid}`
-  const workingDirectory = `/tmp/e2e-test-stack-${uuid}`
+  const workingDirectory = join(tmpdir(), `e2e-test-stack-${uuid}`)
 
   await page.goto('/')
   await login(page)
@@ -26,7 +28,7 @@ test('App Flow', async ({ page, browserName }) => {
         name: stackName,
         displayName,
         description: 'Created by E2E test',
-        mainDirectory: '/tmp/e2e-test',
+        mainDirectory: join(tmpdir(), 'e2e-test'),
       })
     })
 

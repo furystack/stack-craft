@@ -5,6 +5,7 @@ import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
 import { usingAsync } from '@furystack/utils'
 import { Prerequisite, ServiceConfig, ServiceDefinition, ServicePrerequisiteLink, StackConfig } from 'common'
 import { randomBytes } from 'crypto'
+import { tmpdir } from 'os'
 import { describe, expect, it } from 'vitest'
 
 import { CryptoService } from '../utils/crypto-service.js'
@@ -136,7 +137,7 @@ describe('ServiceEnvResolver', () => {
         )
         await stackConfigStore.add({
           stackName: 'stack-b',
-          mainDirectory: '/tmp',
+          mainDirectory: tmpdir(),
           environmentVariables: {
             [varName]: { source: 'inherit' },
           },
@@ -174,7 +175,7 @@ describe('ServiceEnvResolver', () => {
       )
       await stackConfigStore.add({
         stackName: 'stack-c',
-        mainDirectory: '/tmp',
+        mainDirectory: tmpdir(),
         environmentVariables: {
           MY_CUSTOM_VAR: { source: 'custom', customValue: 'plain-secret' },
         },
@@ -208,7 +209,7 @@ describe('ServiceEnvResolver', () => {
       )
       await stackConfigStore.add({
         stackName: 'stack-d',
-        mainDirectory: '/tmp',
+        mainDirectory: tmpdir(),
         environmentVariables: {
           MY_ENCRYPTED_VAR: { source: 'custom', customValue: encrypted },
         },
@@ -240,7 +241,7 @@ describe('ServiceEnvResolver', () => {
         )
         await stackConfigStore.add({
           stackName: 'stack-e',
-          mainDirectory: '/tmp',
+          mainDirectory: tmpdir(),
           environmentVariables: {
             OVERRIDDEN_VAR: { source: 'custom', customValue: 'stack-default' },
           },
@@ -287,7 +288,7 @@ describe('ServiceEnvResolver', () => {
       )
       await stackConfigStore.add({
         stackName: 'stack-f',
-        mainDirectory: '/tmp',
+        mainDirectory: tmpdir(),
         environmentVariables: {
           [varName]: { source: 'inherit' },
         },
@@ -305,7 +306,7 @@ describe('ServiceEnvResolver', () => {
       await svcDefStore.add(makeServiceDefinition({ id: 'svc-7', stackName: 'stack-g' }))
       await stackConfigStore.add({
         stackName: 'stack-g',
-        mainDirectory: '/tmp',
+        mainDirectory: tmpdir(),
         environmentVariables: {
           FREE_FORM_VAR: { source: 'custom', customValue: 'stack-free-form' },
         },
@@ -333,7 +334,7 @@ describe('ServiceEnvResolver', () => {
       await svcDefStore.add(makeServiceDefinition({ id: 'svc-8', stackName: 'stack-h' }))
       await stackConfigStore.add({
         stackName: 'stack-h',
-        mainDirectory: '/tmp',
+        mainDirectory: tmpdir(),
         environmentVariables: {},
         createdAt: ts,
         updatedAt: ts,
@@ -370,7 +371,7 @@ describe('ServiceEnvResolver', () => {
         )
         await stackConfigStore.add({
           stackName: 'stack-i',
-          mainDirectory: '/tmp',
+          mainDirectory: tmpdir(),
           environmentVariables: {
             PREREQ_VAR: { source: 'custom', customValue: 'from-prereq' },
             FREE_VAR: { source: 'custom', customValue: 'from-free-form' },
@@ -403,7 +404,7 @@ describe('ServiceEnvResolver', () => {
       await svcDefStore.add(makeServiceDefinition({ id: 'svc-10', stackName: 'stack-j' }))
       await stackConfigStore.add({
         stackName: 'stack-j',
-        mainDirectory: '/tmp',
+        mainDirectory: tmpdir(),
         environmentVariables: {
           SHARED_FREE: { source: 'custom', customValue: 'stack-value' },
         },

@@ -113,12 +113,19 @@ export class ProcessRunnerImpl {
   /**
    * Kills a managed process and all its children by targeting the process group.
    * Falls back to killing just the shell process if the group kill fails.
+   *
+   * On Windows, `taskkill /T` (without `/F`) is used for non-`SIGKILL` signals so
+   * console apps that handle CTRL-C / WM_CLOSE get a chance to flush state.
+   * `/F` is reserved for `SIGKILL` to mirror the POSIX semantics that callers
+   * (e.g. {@link import('./service-lifecycle-manager.js').ServiceLifecycleManager})
+   * rely on for the graceful-then-force escalation.
    */
   public killProcessGroup(child: ChildProcess, signal: NodeJS.Signals): boolean {
     if (child.pid == null) return false
     try {
       if (process.platform === 'win32') {
-        spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
+        const args = signal === 'SIGKILL' ? ['/pid', String(child.pid), '/T', '/F'] : ['/pid', String(child.pid), '/T']
+        spawnSync('taskkill', args, { stdio: 'ignore' })
       } else {
         process.kill(-child.pid, signal)
       }

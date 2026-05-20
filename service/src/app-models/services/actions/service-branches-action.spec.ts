@@ -93,7 +93,7 @@ describe('ServiceBranchesAction', () => {
       const repo = getRepository(injector)
       await repo.getDataSetFor(StackConfig, 'stackName').add(injector, {
         stackName: 'stack-1',
-        mainDirectory: '/tmp/stacks',
+        mainDirectory: join(tmpdir(), 'stacks'),
         environmentVariables: {},
         createdAt: '',
         updatedAt: '',

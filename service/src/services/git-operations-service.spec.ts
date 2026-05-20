@@ -1,6 +1,8 @@
 import type { Injector } from '@furystack/inject'
 import { GitHubRepository, ServiceConfig, ServiceDefinition, ServiceStatus, StackConfig } from 'common'
 import type fs from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { describe, expect, it, vi } from 'vitest'
 import { withTestInjector } from '../test-helpers.js'
 import { CryptoService } from '../utils/crypto-service.js'
@@ -30,6 +32,7 @@ const existsSyncMock = vi.mocked(existsSync)
 const readdirSyncMock = vi.mocked(readdirSync)
 
 const ts = new Date().toISOString()
+const TEST_STACK_DIR = join(tmpdir(), 'stacks', 'test')
 
 const setupMocks = (injector: Injector) => {
   const mockStatusManager = { updateServiceStatus: vi.fn().mockResolvedValue(undefined) }
@@ -66,7 +69,7 @@ const seedServiceData = async (
   const repo = getRepository(elevated)
   await repo.getDataSetFor(StackConfig, 'stackName').add(elevated, {
     stackName: 'test-stack',
-    mainDirectory: '/tmp/stacks/test',
+    mainDirectory: TEST_STACK_DIR,
     environmentVariables: {},
     createdAt: ts,
     updatedAt: ts,
@@ -127,7 +130,7 @@ describe('GitOperationsService', () => {
         expect(result).toEqual({ cloned: true, pulled: false, updated: true })
         expect(mockGitService.clone).toHaveBeenCalledWith(
           'https://github.com/furystack/stack-craft.git',
-          expect.stringContaining('/tmp/stacks/test'),
+          expect.stringContaining(TEST_STACK_DIR),
         )
         expect(mockStatusManager.updateServiceStatus).toHaveBeenCalledWith(
           'svc-1',

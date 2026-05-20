@@ -6,6 +6,7 @@ import { usingAsync } from '@furystack/utils'
 import { Prerequisite, PrerequisiteCheckResult, StackConfig } from 'common'
 import type { PrerequisiteType } from 'common'
 import { randomBytes } from 'crypto'
+import { tmpdir } from 'os'
 import { describe, expect, it, vi } from 'vitest'
 
 import { runCheck, CheckPrerequisiteAction } from './check-prerequisite-action.js'
@@ -264,7 +265,7 @@ describe('CheckPrerequisiteAction', () => {
         })
         await stackConfigStore.add({
           stackName: 'test-stack',
-          mainDirectory: '/tmp',
+          mainDirectory: tmpdir(),
           environmentVariables: {
             STACK_CONFIGURED_VAR_12345: { source: 'custom', customValue: 'configured-value' },
           },

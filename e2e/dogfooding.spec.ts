@@ -1,4 +1,6 @@
 import { randomBytes } from 'crypto'
+import { tmpdir } from 'os'
+import { join } from 'path'
 
 import { expect, test } from '@playwright/test'
 
@@ -48,7 +50,7 @@ It is used to test the following features:
 
   const dogfoodingPort = await getAvailablePort()
   const mcpPort = await getAvailablePort()
-  const workingDirectory = `/tmp/e2e-dog-fooding-time-${uuid}`
+  const workingDirectory = join(tmpdir(), `e2e-dog-fooding-time-${uuid}`)
 
   await page.goto('/')
   await login(page)
@@ -59,7 +61,7 @@ It is used to test the following features:
         name: stackName,
         displayName,
         description,
-        mainDirectory: '/tmp/e2e-test',
+        mainDirectory: join(tmpdir(), 'e2e-test'),
       })
     })
 

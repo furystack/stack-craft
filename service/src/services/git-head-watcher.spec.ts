@@ -1,11 +1,17 @@
 import { ServiceGitStatusDataSet } from '../app-models/data-store/tokens.js'
 import { getDataSetFor } from '@furystack/repository'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { withTestInjector } from '../test-helpers.js'
 import { GitHeadWatcher } from './git-head-watcher.js'
 import { GitService } from './git-service.js'
 import '../test-shims.js'
+
+const REPO_DIR = join(tmpdir(), 'repo')
+const REPO_DIR_A = join(tmpdir(), 'a')
+const REPO_DIR_B = join(tmpdir(), 'b')
 const { mockExistsSync, mockChokidarWatch, watcherFactory } = vi.hoisted(() => {
   const createWatcher = () => {
     const handlers = new Map<string, Array<(...args: unknown[]) => void>>()
@@ -60,7 +66,7 @@ describe('GitHeadWatcher', () => {
       injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
 
       const headWatcher = injector.get(GitHeadWatcher)
-      await headWatcher.watch('svc-1', '/tmp/repo')
+      await headWatcher.watch('svc-1', REPO_DIR)
 
       expect(mockChokidarWatch).not.toHaveBeenCalled()
       expect(mockGit.getCurrentBranch).not.toHaveBeenCalled()
@@ -77,9 +83,9 @@ describe('GitHeadWatcher', () => {
       injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
 
       const headWatcher = injector.get(GitHeadWatcher)
-      await headWatcher.watch('svc-create', '/tmp/repo')
+      await headWatcher.watch('svc-create', REPO_DIR)
 
-      expect(mockGit.getCurrentBranch).toHaveBeenCalledWith('/tmp/repo')
+      expect(mockGit.getCurrentBranch).toHaveBeenCalledWith(REPO_DIR)
       const rows = await getDataSetFor(elevated, ServiceGitStatusDataSet).find(elevated, {
         filter: { serviceId: { $eq: 'svc-create' } },
       })
@@ -98,7 +104,7 @@ describe('GitHeadWatcher', () => {
       injector.setExplicitInstance(mockGit as unknown as GitService, GitService)
 
       const headWatcher = injector.get(GitHeadWatcher)
-      await headWatcher.watch('svc-upd', '/tmp/repo')
+      await headWatcher.watch('svc-upd', REPO_DIR)
 
       const rows = await ds.find(elevated, { filter: { serviceId: { $eq: 'svc-upd' } } })
       expect(rows).toHaveLength(1)
@@ -120,8 +126,8 @@ describe('GitHeadWatcher', () => {
       const events: unknown[] = []
       headWatcher.on('externalChange', (payload) => events.push(payload))
 
-      await headWatcher.watch('svc-switch', '/tmp/repo')
-      createdWatcher.trigger('change', '/tmp/repo/.git/HEAD')
+      await headWatcher.watch('svc-switch', REPO_DIR)
+      createdWatcher.trigger('change', join(REPO_DIR, '.git', 'HEAD'))
       await vi.waitFor(() => expect(events).toHaveLength(1), { timeout: 500 })
 
       expect(events[0]).toMatchObject({
@@ -147,8 +153,8 @@ describe('GitHeadWatcher', () => {
       const events: unknown[] = []
       headWatcher.on('externalChange', (payload) => events.push(payload))
 
-      await headWatcher.watch('svc-pull', '/tmp/repo')
-      createdWatcher.trigger('change', '/tmp/repo/.git/refs/heads/main')
+      await headWatcher.watch('svc-pull', REPO_DIR)
+      createdWatcher.trigger('change', join(REPO_DIR, '.git', 'refs', 'heads', 'main'))
       await vi.waitFor(() => expect(events).toHaveLength(1), { timeout: 500 })
 
       expect(events[0]).toMatchObject({ serviceId: 'svc-pull', kind: 'pull-detected' })
@@ -164,7 +170,7 @@ describe('GitHeadWatcher', () => {
       mockChokidarWatch.mockReturnValueOnce(createdWatcher)
 
       const headWatcher = injector.get(GitHeadWatcher)
-      await headWatcher.watch('svc-unwatch', '/tmp/repo')
+      await headWatcher.watch('svc-unwatch', REPO_DIR)
       headWatcher.unwatch('svc-unwatch')
 
       expect(createdWatcher.close).toHaveBeenCalledTimes(1)
@@ -190,8 +196,8 @@ describe('GitHeadWatcher', () => {
       mockChokidarWatch.mockReturnValueOnce(a).mockReturnValueOnce(b)
 
       const headWatcher = injector.get(GitHeadWatcher)
-      await headWatcher.watch('svc-a', '/tmp/a')
-      await headWatcher.watch('svc-b', '/tmp/b')
+      await headWatcher.watch('svc-a', REPO_DIR_A)
+      await headWatcher.watch('svc-b', REPO_DIR_B)
       await headWatcher[Symbol.asyncDispose]()
 
       expect(a.close).toHaveBeenCalledTimes(1)
