@@ -576,6 +576,138 @@ describe('Import/Export Stack Actions', () => {
       })
     })
 
+    it('should reject import when a repository id already exists', async () => {
+      const { injector, repoStore } = createSetup()
+      await usingAsync(injector, async () => {
+        const ts = now()
+        await repoStore.add({
+          id: 'shared-repo-id',
+          stackName: 'other-stack',
+          url: 'https://github.com/existing/repo',
+          displayName: 'Existing Repo',
+          description: '',
+          createdAt: ts,
+          updatedAt: ts,
+        })
+
+        const importBody = {
+          stack: { name: 'new-stack', displayName: 'New Stack', description: '' },
+          services: [],
+          repositories: [
+            {
+              id: 'shared-repo-id',
+              stackName: 'new-stack',
+              url: 'https://github.com/new/repo',
+              displayName: 'New Repo',
+              description: '',
+            },
+          ],
+          prerequisites: [],
+          config: { mainDirectory: '/tmp/repo-conflict' },
+        }
+
+        const elevated = useSystemIdentityContext({ injector })
+        await expect(
+          ImportStackAction(createMockActionContext({ injector: elevated, body: importBody })),
+        ).rejects.toMatchObject({
+          message: expect.stringContaining('repository(ies) [shared-repo-id]'),
+          responseCode: 409,
+        })
+
+        const repos = await repoStore.find({})
+        expect(repos).toHaveLength(1)
+        expect(repos[0]?.url).toBe('https://github.com/existing/repo')
+      })
+    })
+
+    it('should reject import when a prerequisite id already exists and list every conflicting id in the message', async () => {
+      const { injector, repoStore, prereqStore, serviceDefStore } = createSetup()
+      await usingAsync(injector, async () => {
+        const ts = now()
+        await prereqStore.add({
+          id: 'shared-prereq-id',
+          stackName: 'other-stack',
+          name: 'Existing Prereq',
+          type: 'custom-script',
+          config: { script: 'echo existing' },
+          installationHelp: '',
+          createdAt: ts,
+          updatedAt: ts,
+        })
+        await repoStore.add({
+          id: 'shared-repo-id',
+          stackName: 'other-stack',
+          url: 'https://github.com/existing/repo',
+          displayName: 'Existing Repo',
+          description: '',
+          createdAt: ts,
+          updatedAt: ts,
+        })
+        await serviceDefStore.add({
+          id: 'shared-svc-id',
+          stackName: 'other-stack',
+          displayName: 'Existing Service',
+          description: '',
+          workingDirectory: 'svc',
+          runCommand: 'echo existing',
+          files: [],
+          createdAt: ts,
+          updatedAt: ts,
+        })
+
+        const importBody = {
+          stack: { name: 'new-stack', displayName: 'New Stack', description: '' },
+          services: [
+            {
+              id: 'shared-svc-id',
+              stackName: 'new-stack',
+              displayName: 'New Service',
+              description: '',
+              workingDirectory: 'svc',
+              runCommand: 'echo new',
+              prerequisiteIds: [],
+              prerequisiteServiceIds: [],
+              files: [],
+            },
+          ],
+          repositories: [
+            {
+              id: 'shared-repo-id',
+              stackName: 'new-stack',
+              url: 'https://github.com/new/repo',
+              displayName: 'New Repo',
+              description: '',
+            },
+          ],
+          prerequisites: [
+            {
+              id: 'shared-prereq-id',
+              stackName: 'new-stack',
+              name: 'New Prereq',
+              type: 'custom-script' as const,
+              config: { script: 'echo new' },
+              installationHelp: '',
+            },
+          ],
+          config: { mainDirectory: '/tmp/multi-conflict' },
+        }
+
+        const elevated = useSystemIdentityContext({ injector })
+        await expect(
+          ImportStackAction(createMockActionContext({ injector: elevated, body: importBody })),
+        ).rejects.toMatchObject({
+          message: expect.stringMatching(
+            /service\(s\) \[shared-svc-id\].*repository\(ies\) \[shared-repo-id\].*prerequisite\(s\) \[shared-prereq-id\]/,
+          ),
+          responseCode: 409,
+        })
+
+        expect(await prereqStore.find({})).toHaveLength(1)
+        expect(await repoStore.find({})).toHaveLength(1)
+        expect(await serviceDefStore.find({})).toHaveLength(1)
+      })
+    })
+
     it('should persist environment variable config during import', async () => {
       const { injector, stackConfigStore, serviceConfigStore } = createSetup()
       await usingAsync(injector, async () => {

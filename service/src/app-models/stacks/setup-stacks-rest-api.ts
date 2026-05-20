@@ -14,7 +14,6 @@ import {
   StackDefinition,
 } from 'common'
 import stacksApiSchema from 'common/schemas/stacks-api.json' with { type: 'json' }
-import { randomUUID } from 'crypto'
 
 import { getCurrentUser } from '@furystack/core'
 
@@ -24,6 +23,7 @@ import { getPort } from '../../get-port.js'
 import { ProcessManager } from '../../services/process-manager.js'
 import { CryptoService, SENSITIVE_VALUE_MASK } from '../../utils/crypto-service.js'
 import { encryptEnvValues, maskSensitiveEnvValues } from '../../utils/env-encryption-helpers.js'
+import { CreateStackAction } from './actions/create-stack-action.js'
 import { ExportStackAction } from './actions/export-stack-action.js'
 import { ImportStackAction } from './actions/import-stack-action.js'
 import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
@@ -96,51 +96,7 @@ export const setupStacksRestApi = async (injector: Injector) => {
         ),
       },
       POST: {
-        '/stacks': Validate({ schema: stacksApiSchema, schemaName: 'PostStackEndpoint' })(
-          async ({ injector: i, getBody }) => {
-            const body = await getBody()
-            const repo = getRepository(i)
-            const crypto = i.get(CryptoService)
-            const now = new Date().toISOString()
-            const stackDefDs = repo.getDataSetFor(StackDefinition, 'name')
-
-            if (body.name !== undefined) {
-              const existing = await stackDefDs.get(i, body.name)
-              if (existing) {
-                throw new RequestError(`A stack named "${body.name}" already exists. Choose a different name.`, 409)
-              }
-            }
-
-            const name = body.name ?? randomUUID()
-            const def = {
-              name,
-              displayName: body.displayName,
-              description: body.description ?? '',
-              createdAt: now,
-              updatedAt: now,
-            }
-            const config = {
-              stackName: name,
-              mainDirectory: body.mainDirectory,
-              environmentVariables: encryptEnvValues(crypto, body.environmentVariables ?? {}),
-              createdAt: now,
-              updatedAt: now,
-            }
-            await stackDefDs.add(i, def)
-            try {
-              await repo.getDataSetFor(StackConfig, 'stackName').add(i, config)
-            } catch (error) {
-              await stackDefDs.remove(i, name).catch(() => undefined)
-              throw error instanceof RequestError
-                ? error
-                : new RequestError(
-                    `Failed to create stack "${name}": ${error instanceof Error ? error.message : 'unknown error'}`,
-                    500,
-                  )
-            }
-            return JsonResult({ ...def, ...config })
-          },
-        ),
+        '/stacks': Validate({ schema: stacksApiSchema, schemaName: 'PostStackEndpoint' })(CreateStackAction),
         '/stacks/import': Validate({ schema: stacksApiSchema, schemaName: 'ImportStackEndpoint' })(ImportStackAction),
         '/stacks/:id/setup': Validate({ schema: stacksApiSchema, schemaName: 'StackSetupEndpoint' })(
           async ({ injector: i, getUrlParams }) => {
