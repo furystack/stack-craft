@@ -233,7 +233,6 @@ describe('Import/Export Stack Actions', () => {
           services: [
             {
               id: 'imp-svc-1',
-              stackName: 'imported-stack',
               displayName: 'Imported Service',
               description: '',
               workingDirectory: 'svc',
@@ -246,7 +245,6 @@ describe('Import/Export Stack Actions', () => {
           repositories: [
             {
               id: 'imp-repo-1',
-              stackName: 'imported-stack',
               url: 'https://github.com/test/imported',
               displayName: 'Imported Repo',
               description: '',
@@ -255,7 +253,6 @@ describe('Import/Export Stack Actions', () => {
           prerequisites: [
             {
               id: 'imp-prereq-1',
-              stackName: 'imported-stack',
               name: 'Git',
               type: 'git' as const,
               config: {},
@@ -312,7 +309,6 @@ describe('Import/Export Stack Actions', () => {
           services: [
             {
               id: 'reset-svc',
-              stackName: 'reset-test',
               displayName: 'Reset Service',
               description: '',
               workingDirectory: 'svc',
@@ -351,7 +347,6 @@ describe('Import/Export Stack Actions', () => {
           services: [
             {
               id: 'cfg-svc-1',
-              stackName: 'config-test',
               displayName: 'Configured Service',
               description: '',
               workingDirectory: 'svc',
@@ -362,7 +357,6 @@ describe('Import/Export Stack Actions', () => {
             },
             {
               id: 'cfg-svc-2',
-              stackName: 'config-test',
               displayName: 'Default Service',
               description: '',
               workingDirectory: 'svc2',
@@ -419,7 +413,6 @@ describe('Import/Export Stack Actions', () => {
           services: [
             {
               id: 'multi-svc-1',
-              stackName: 'multi-svc-test',
               displayName: 'Service One',
               description: '',
               workingDirectory: 'svc1',
@@ -430,7 +423,6 @@ describe('Import/Export Stack Actions', () => {
             },
             {
               id: 'multi-svc-2',
-              stackName: 'multi-svc-test',
               displayName: 'Service Two',
               description: '',
               workingDirectory: 'svc2',
@@ -545,7 +537,6 @@ describe('Import/Export Stack Actions', () => {
           services: [
             {
               id: 'shared-svc-id',
-              stackName: 'new-stack',
               displayName: 'New Service',
               description: '',
               workingDirectory: 'svc',
@@ -598,7 +589,6 @@ describe('Import/Export Stack Actions', () => {
           repositories: [
             {
               id: 'shared-repo-id',
-              stackName: 'new-stack',
               url: 'https://github.com/new/repo',
               displayName: 'New Repo',
               description: '',
@@ -662,7 +652,6 @@ describe('Import/Export Stack Actions', () => {
           services: [
             {
               id: 'shared-svc-id',
-              stackName: 'new-stack',
               displayName: 'New Service',
               description: '',
               workingDirectory: 'svc',
@@ -675,7 +664,6 @@ describe('Import/Export Stack Actions', () => {
           repositories: [
             {
               id: 'shared-repo-id',
-              stackName: 'new-stack',
               url: 'https://github.com/new/repo',
               displayName: 'New Repo',
               description: '',
@@ -684,7 +672,6 @@ describe('Import/Export Stack Actions', () => {
           prerequisites: [
             {
               id: 'shared-prereq-id',
-              stackName: 'new-stack',
               name: 'New Prereq',
               type: 'custom-script' as const,
               config: { script: 'echo new' },
@@ -710,6 +697,150 @@ describe('Import/Export Stack Actions', () => {
       })
     })
 
+    it('should accept duplicate import when regenerateIds is true by assigning fresh UUIDs', async () => {
+      const { injector, stackDefStore, serviceDefStore, repoStore, prereqStore, serviceConfigStore } = createSetup()
+      await usingAsync(injector, async () => {
+        const importBody = {
+          stack: {
+            name: 'source-stack',
+            displayName: 'Source Stack',
+            description: '',
+          },
+          services: [
+            {
+              id: 'orig-svc-a',
+              displayName: 'Svc A',
+              description: '',
+              workingDirectory: 'a',
+              runCommand: 'echo a',
+              prerequisiteIds: ['orig-prereq-1'],
+              prerequisiteServiceIds: ['orig-svc-b'],
+              files: [],
+            },
+            {
+              id: 'orig-svc-b',
+              displayName: 'Svc B',
+              description: '',
+              workingDirectory: 'b',
+              runCommand: 'echo b',
+              prerequisiteIds: [],
+              prerequisiteServiceIds: [],
+              files: [],
+            },
+          ],
+          repositories: [
+            {
+              id: 'orig-repo-1',
+              url: 'https://github.com/test/repo',
+              displayName: 'Repo',
+              description: '',
+            },
+          ],
+          prerequisites: [
+            {
+              id: 'orig-prereq-1',
+              name: 'Node',
+              type: 'node' as const,
+              config: { minimumVersion: '18' },
+              installationHelp: '',
+            },
+          ],
+          config: {
+            mainDirectory: join(tmpdir(), 'source'),
+            services: {
+              'orig-svc-a': { autoFetchEnabled: true, autoFetchIntervalMinutes: 5 },
+            },
+          },
+        }
+
+        const elevated = useSystemIdentityContext({ injector })
+        await ImportStackAction(createMockActionContext({ injector: elevated, body: importBody }))
+
+        const duplicateBody = {
+          ...importBody,
+          stack: { ...importBody.stack, name: 'duplicate-stack', displayName: 'Duplicate Stack' },
+          config: { ...importBody.config, mainDirectory: join(tmpdir(), 'duplicate') },
+          regenerateIds: true,
+        }
+        const result = await ImportStackAction(createMockActionContext({ injector: elevated, body: duplicateBody }))
+        expect((result.chunk as { success: boolean }).success).toBe(true)
+
+        const stackDefs = await stackDefStore.find({})
+        expect(stackDefs.map((s) => s.name).sort()).toEqual(['duplicate-stack', 'source-stack'])
+
+        const serviceDefs = await serviceDefStore.find({})
+        const duplicateSvcs = serviceDefs.filter((s) => s.stackName === 'duplicate-stack')
+        expect(duplicateSvcs).toHaveLength(2)
+        for (const svc of duplicateSvcs) {
+          expect(['orig-svc-a', 'orig-svc-b']).not.toContain(svc.id)
+        }
+
+        const repos = await repoStore.find({})
+        const duplicateRepos = repos.filter((r) => r.stackName === 'duplicate-stack')
+        expect(duplicateRepos).toHaveLength(1)
+        expect(duplicateRepos[0]?.id).not.toBe('orig-repo-1')
+
+        const prereqs = await prereqStore.find({})
+        const duplicatePrereqs = prereqs.filter((p) => p.stackName === 'duplicate-stack')
+        expect(duplicatePrereqs).toHaveLength(1)
+        expect(duplicatePrereqs[0]?.id).not.toBe('orig-prereq-1')
+
+        const svcA = duplicateSvcs.find((s) => s.displayName === 'Svc A')
+        const svcB = duplicateSvcs.find((s) => s.displayName === 'Svc B')
+        const svcConfigs = await serviceConfigStore.find({})
+        const duplicateSvcConfigs = svcConfigs.filter((c) => svcA?.id === c.serviceId || svcB?.id === c.serviceId)
+        expect(duplicateSvcConfigs).toHaveLength(2)
+        const remappedConfig = duplicateSvcConfigs.find((c) => c.serviceId === svcA?.id)
+        expect(remappedConfig?.autoFetchEnabled).toBe(true)
+        expect(remappedConfig?.autoFetchIntervalMinutes).toBe(5)
+      })
+    })
+
+    it('should mention the regenerateIds option in the conflict error message', async () => {
+      const { injector, serviceDefStore } = createSetup()
+      await usingAsync(injector, async () => {
+        const ts = now()
+        await serviceDefStore.add({
+          id: 'collide-svc',
+          stackName: 'existing-stack',
+          displayName: 'Existing',
+          description: '',
+          workingDirectory: 'svc',
+          runCommand: 'echo',
+          files: [],
+          createdAt: ts,
+          updatedAt: ts,
+        })
+
+        const importBody = {
+          stack: { name: 'new-stack', displayName: 'New', description: '' },
+          services: [
+            {
+              id: 'collide-svc',
+              displayName: 'New',
+              description: '',
+              workingDirectory: 'svc',
+              runCommand: 'echo',
+              prerequisiteIds: [],
+              prerequisiteServiceIds: [],
+              files: [],
+            },
+          ],
+          repositories: [],
+          prerequisites: [],
+          config: { mainDirectory: join(tmpdir(), 'collide') },
+        }
+
+        const elevated = useSystemIdentityContext({ injector })
+        await expect(
+          ImportStackAction(createMockActionContext({ injector: elevated, body: importBody })),
+        ).rejects.toMatchObject({
+          message: expect.stringContaining('regenerateIds'),
+          responseCode: 409,
+        })
+      })
+    })
+
     it('should persist environment variable config during import', async () => {
       const { injector, stackConfigStore, serviceConfigStore } = createSetup()
       await usingAsync(injector, async () => {
@@ -722,7 +853,6 @@ describe('Import/Export Stack Actions', () => {
           services: [
             {
               id: 'env-svc-1',
-              stackName: 'env-vars-stack',
               displayName: 'Env Service',
               description: '',
               workingDirectory: 'svc',

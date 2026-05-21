@@ -12,6 +12,7 @@ import {
   PageContainer,
   PageHeader,
   Paper,
+  Switch,
 } from '@furystack/shades-common-components'
 import type { EnvironmentVariableValue, ExportStackResult } from 'common'
 import stacksApiSchema from 'common/schemas/stacks-api.json' with { type: 'json' }
@@ -29,6 +30,7 @@ type ParsedExport = ExportStackResult
 type ImportConfigPayload = {
   mainDirectory: string
   autoSetup?: string
+  regenerateIds?: string
   [key: `envSource_${string}`]: string
   [key: `envValue_${string}`]: string
 }
@@ -129,6 +131,7 @@ export const ImportStack = Shade({
               mainDirectory: formData.mainDirectory,
               ...(Object.keys(environmentVariables).length > 0 ? { environmentVariables } : {}),
             },
+            ...(formData.regenerateIds === 'on' ? { regenerateIds: true } : {}),
           },
         })
         injector.get(NotyService).emit('onNotyAdded', {
@@ -229,6 +232,14 @@ export const ImportStack = Shade({
                   required
                   getHelperText={() => 'Absolute path to the root directory for this stack on your machine'}
                 />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <Switch name="regenerateIds" labelTitle="Import as duplicate (generate new IDs)" checked={false} />
+                  <span style={{ fontSize: '12px', opacity: '0.7', marginLeft: '28px' }}>
+                    Enable when importing a copy of a stack that already exists on this machine. Services, repositories
+                    and prerequisites get fresh IDs so they don't collide with the source stack.
+                  </span>
+                </div>
 
                 {envVars.length > 0 && !envLoading ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

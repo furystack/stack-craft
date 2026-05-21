@@ -20,6 +20,7 @@ import {
 import { CryptoService } from '../../../utils/crypto-service.js'
 import { encryptEnvValues, encryptLocalFiles } from '../../../utils/env-encryption-helpers.js'
 import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
+import { regenerateImportIds } from './regenerate-import-ids.js'
 
 // Pre-flight check: surface conflicts BEFORE any mutation so the destructive
 // rollback path is never entered for an avoidable collision (which would
@@ -56,7 +57,7 @@ const assertNoImportConflicts = async (injector: Injector, body: ImportStackEndp
   if (conflictingPrereqIds.length > 0) parts.push(`prerequisite(s) [${conflictingPrereqIds.join(', ')}]`)
   if (parts.length > 0) {
     throw new RequestError(
-      `Cannot import "${stackName}": the following entity IDs already exist: ${parts.join('; ')}. Each entity must have a unique ID.`,
+      `Cannot import "${stackName}": the following entity IDs already exist: ${parts.join('; ')}. Each entity must have a unique ID. To import this stack as a duplicate with fresh IDs, set "regenerateIds": true on the request (or enable "Import as duplicate" in the UI).`,
       409,
     )
   }
@@ -64,13 +65,16 @@ const assertNoImportConflicts = async (injector: Injector, body: ImportStackEndp
 
 export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ injector, getBody }) => {
   const logger = getLogger(injector).withScope('ImportStack')
-  const body = await getBody()
+  const rawBody = await getBody()
+  const body = rawBody.regenerateIds ? regenerateImportIds(rawBody) : rawBody
   const repository = getRepository(injector)
 
   const now = new Date().toISOString()
   const stackName = body.stack.name
 
-  await logger.information({ message: `Importing stack: ${stackName}` })
+  await logger.information({
+    message: `Importing stack: ${stackName}${rawBody.regenerateIds ? ' (with regenerated entity IDs)' : ''}`,
+  })
 
   await assertNoImportConflicts(injector, body)
 

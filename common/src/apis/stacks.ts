@@ -23,12 +23,17 @@ export type PostStackEndpoint = { result: StackView; body: WithOptionalId<StackW
 export type PatchStackEndpoint = PatchEndpoint<StackWritableFields, 'name'>
 
 type ShareableStackDefinition = Omit<StackDefinition, 'createdAt' | 'updatedAt'>
-type ShareableServiceDefinition = Omit<ServiceDefinition, 'createdAt' | 'updatedAt'> & {
+/**
+ * Child entities omit `stackName` from the wire format — it is always equal to the top-level
+ * `stack.name` and is reattached at import time. Keeping it on the wire bloated every export
+ * by N+M+P repetitions of the same string with no informational value.
+ */
+type ShareableServiceDefinition = Omit<ServiceDefinition, 'createdAt' | 'updatedAt' | 'stackName'> & {
   prerequisiteIds: string[]
   prerequisiteServiceIds: string[]
 }
-type ShareableGitHubRepository = Omit<GitHubRepository, 'createdAt' | 'updatedAt'>
-type ShareablePrerequisite = Omit<Prerequisite, 'createdAt' | 'updatedAt'>
+type ShareableGitHubRepository = Omit<GitHubRepository, 'createdAt' | 'updatedAt' | 'stackName'>
+type ShareablePrerequisite = Omit<Prerequisite, 'createdAt' | 'updatedAt' | 'stackName'>
 
 /** A warning about a potential secret detected during stack export */
 export type SecretWarning = {
@@ -72,6 +77,14 @@ export type ImportStackEndpoint = {
         }
       >
     }
+    /**
+     * When true, the server assigns fresh UUIDs to every service, repository, and prerequisite
+     * before insertion. Use this to duplicate an existing stack on the same machine — set a new
+     * stack name and enable this flag so the entity IDs do not collide with the source stack.
+     * Inter-entity references (`prerequisiteIds`, `prerequisiteServiceIds`, and the
+     * `config.services` map) are remapped to the new IDs.
+     */
+    regenerateIds?: boolean
   }
 }
 
