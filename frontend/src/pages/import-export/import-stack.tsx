@@ -15,7 +15,6 @@ import {
   Switch,
 } from '@furystack/shades-common-components'
 import type { EnvironmentVariableValue, ExportStackResult } from 'common'
-import stacksApiSchema from 'common/schemas/stacks-api.json' with { type: 'json' }
 
 import { stackCraftNavigate, StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { LazyMonacoEditor } from '../../components/lazy-monaco-editor.js'
@@ -24,6 +23,7 @@ import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js
 import { SystemApiClient } from '../../services/api-clients/system-api-client.js'
 import type { EnvVarEntry } from './env-var-config-row.js'
 import { EnvVarConfigRow } from './env-var-config-row.js'
+import { stackExportSchema } from './stack-export-schema.js'
 
 type ParsedExport = ExportStackResult
 
@@ -38,13 +38,6 @@ type ImportConfigPayload = {
 export const isImportConfigPayload = (data: unknown): data is ImportConfigPayload => {
   const d = data as ImportConfigPayload
   return d.mainDirectory?.length > 0
-}
-
-const { $schema, ...importSchema } = stacksApiSchema
-
-const finalImportSchema = {
-  $ref: '#/definitions/ExportStackResult',
-  ...importSchema,
 }
 
 export const ImportStack = Shade({
@@ -171,7 +164,7 @@ export const ImportStack = Shade({
                 <LazyMonacoEditor
                   value={jsonInput}
                   language="json"
-                  schemaInfo={{ schemaName: 'ExportStackResult', jsonSchema: finalImportSchema }}
+                  schemaInfo={{ schemaName: 'ExportStackResult', jsonSchema: stackExportSchema }}
                   onValueChange={(value) => setJsonInput(value)}
                 />
               </div>
