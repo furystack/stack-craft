@@ -212,8 +212,15 @@ class GitOperationsServiceImpl {
       const variables = await this.envResolver.resolveServiceEnvVars(svc.id)
       const applied = applyServiceFiles(cwd, merged, undefined, variables)
       void this.logger.information({
-        message: `Applied ${applied.length} file(s) for ${svc.displayName}: ${applied.join(', ')}`,
+        message: `Applied ${applied.length} file(s) for ${svc.displayName}: ${applied.map((a) => a.relativePath).join(', ')}`,
       })
+      const filesWithUnresolved = applied.filter((a) => a.unresolved.length > 0)
+      if (filesWithUnresolved.length > 0) {
+        const summary = filesWithUnresolved.map((a) => `${a.relativePath}: ${a.unresolved.join(', ')}`).join(' | ')
+        void this.logger.warning({
+          message: `Unresolved template placeholders for ${svc.displayName} — ${summary}. Add the missing variables to the stack environment to interpolate them on next apply.`,
+        })
+      }
     } catch (error) {
       void this.logger.warning({
         message: `Failed to apply files for ${svc.displayName}: ${(error as Error).message}`,

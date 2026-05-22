@@ -664,7 +664,7 @@
       },
       "required": ["body", "url", "result"],
       "additionalProperties": false,
-      "description": "Endpoint model for updating entities"
+      "description": "PATCH-by-id endpoint contract. `TWritableData` defaults to `Partial<T>`."
     },
     "ServiceActionEndpoint": {
       "type": "object",
@@ -696,6 +696,23 @@
       "required": ["url", "result"],
       "additionalProperties": false,
       "description": "Triggers a lifecycle action (start, stop, restart, install, build, pull, setup, update) on a service"
+    },
+    "AppliedServiceFile": {
+      "type": "object",
+      "properties": {
+        "relativePath": {
+          "type": "string"
+        },
+        "unresolved": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["relativePath", "unresolved"],
+      "additionalProperties": false,
+      "description": "Per-file outcome of an apply operation. `unresolved` lists every distinct `{{NAME}}` placeholder that remained in the written content because no matching key was present in the resolved environment variables. The file is still written verbatim; the list lets callers warn the user about the missing variables instead of silently leaving placeholders behind."
     },
     "ApplyServiceFilesEndpoint": {
       "type": "object",
@@ -731,7 +748,7 @@
             "applied": {
               "type": "array",
               "items": {
-                "type": "string"
+                "$ref": "#/definitions/AppliedServiceFile"
               }
             }
           },
@@ -1432,18 +1449,16 @@
       },
       "required": ["query", "result"],
       "additionalProperties": false,
-      "description": "Rest endpoint model for getting / querying collections"
+      "description": "GET-collection endpoint contract."
     },
     "FindOptions<ServiceView,(\"id\"|\"stackName\"|\"displayName\"|\"description\"|\"workingDirectory\"|\"repositoryId\"|\"installCommand\"|\"buildCommand\"|\"runCommand\"|\"files\"|\"createdAt\"|\"updatedAt\"|\"serviceId\"|\"autoFetchEnabled\"|\"autoFetchIntervalMinutes\"|\"autoRestartOnFetch\"|\"environmentVariableOverrides\"|\"localFiles\"|\"cloneStatus\"|\"installStatus\"|\"buildStatus\"|\"runStatus\"|\"lastClonedAt\"|\"lastInstalledAt\"|\"lastBuiltAt\"|\"lastStartedAt\"|\"lastFetchedAt\"|\"currentBranch\"|\"commitsBehind\"|\"upstreamStatus\"|\"worktreeStatus\"|\"lastPullError\"|\"warningsDismissed\"|\"prerequisiteIds\"|\"prerequisiteServiceIds\")[]>": {
       "type": "object",
       "properties": {
         "top": {
-          "type": "number",
-          "description": "Limits the hits"
+          "type": "number"
         },
         "skip": {
-          "type": "number",
-          "description": "Skips the first N hit"
+          "type": "number"
         },
         "order": {
           "type": "object",
@@ -1589,8 +1604,7 @@
               "enum": ["ASC", "DESC"]
             }
           },
-          "additionalProperties": false,
-          "description": "Sets up an order by a field and a direction"
+          "additionalProperties": false
         },
         "select": {
           "type": "array",
@@ -1633,16 +1647,14 @@
               "prerequisiteIds",
               "prerequisiteServiceIds"
             ]
-          },
-          "description": "The result set will be limited to these fields"
+          }
         },
         "filter": {
-          "$ref": "#/definitions/FilterType%3CServiceView%3E",
-          "description": "The fields should match this filter"
+          "$ref": "#/definitions/FilterType%3CServiceView%3E"
         }
       },
       "additionalProperties": false,
-      "description": "Type for default filtering model"
+      "description": "Find query — `top` / `skip` / `order` / `select` / `filter`. Order keys are applied in object-iteration order (primary first, then secondary)."
     },
     "FilterType<ServiceView>": {
       "type": "object",
@@ -3492,20 +3504,18 @@
       "type": "object",
       "properties": {
         "count": {
-          "type": "number",
-          "description": "The Total count of entities"
+          "type": "number"
         },
         "entries": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/ServiceView"
-          },
-          "description": "List of the selected entities"
+          }
         }
       },
       "required": ["count", "entries"],
       "additionalProperties": false,
-      "description": "Response Model for GetCollection"
+      "description": "Collection result. `count` is the **total** matching entity count (ignores `top` / `skip`); `entries` is the page returned for this query."
     },
     "GetEntityEndpoint<ServiceView,\"id\">": {
       "type": "object",
@@ -3554,8 +3564,7 @@
                   "prerequisiteIds",
                   "prerequisiteServiceIds"
                 ]
-              },
-              "description": "The list of fields to select"
+              }
             }
           },
           "additionalProperties": false
@@ -3565,7 +3574,7 @@
           "properties": {
             "id": {
               "type": "string",
-              "description": "The entity's unique identifier"
+              "description": "UUID primary key"
             }
           },
           "required": ["id"],
@@ -3577,7 +3586,7 @@
       },
       "required": ["query", "url", "result"],
       "additionalProperties": false,
-      "description": "Endpoint model for getting a single entity"
+      "description": "GET-by-id endpoint contract. `select` narrows the projected fields."
     },
     "DeleteEndpoint<ServiceDefinition,\"id\">": {
       "type": "object",
@@ -3599,7 +3608,7 @@
       },
       "required": ["url", "result"],
       "additionalProperties": false,
-      "description": "Endpoint model for deleting entities"
+      "description": "DELETE-by-id endpoint contract."
     }
   }
 }

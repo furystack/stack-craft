@@ -5,6 +5,14 @@
 
 - Added optional `regenerateIds` flag to the `POST /stacks/import` request body (`ImportStackEndpoint`). When set to `true`, the server assigns fresh UUIDs to every service, repository, and prerequisite during import and remaps cross-entity references (`prerequisiteIds`, `prerequisiteServiceIds`, and the `config.services` map). Use this to duplicate a stack on the same machine without ID collisions with the source stack.
 
+## 🐛 Bug Fixes
+
+### `ApplyServiceFilesEndpoint` result shape carries unresolved template placeholders
+
+`ApplyServiceFilesEndpoint.result.applied` is now `AppliedServiceFile[]` (each entry `{ relativePath: string; unresolved: string[] }`) instead of the previous opaque `string[]`. The new `unresolved` array lists every distinct `{{NAME}}` placeholder that remained in the written file because no matching key was present in the resolved environment — the file is still written verbatim, but consumers can now warn the user about the name mismatch instead of leaving placeholders behind without feedback.
+
+**Impact:** existing API consumers that read `result.applied` as a string list of relative paths must switch to `result.applied.map((a) => a.relativePath)`. The JSON schema in `common/schemas/services-api.json` is regenerated to match the new shape.
+
 ## 💥 Breaking Changes
 
 ### Stack Export Format No Longer Includes `stackName` on Child Entities

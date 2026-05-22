@@ -2,6 +2,7 @@ import { type Injector, defineService, type Token } from '@furystack/inject'
 import { ServiceConfig } from 'common'
 
 import { useSystemIdentityContext } from '@furystack/core'
+import type { AppliedServiceFile } from '../utils/apply-service-files.js'
 import { applyServiceFiles, mergeServiceFiles } from '../utils/apply-service-files.js'
 import { CryptoService } from '../utils/crypto-service.js'
 import { NotFoundError } from '../utils/domain-error.js'
@@ -30,9 +31,11 @@ class ServiceFileManagerImpl {
   /**
    * Manually applies shared files for a service to disk.
    * @param relativePath - If provided, only the file matching this path is applied
-   * @returns The list of relative paths that were written
+   * @returns One entry per written file with the relative path and any
+   *   `{{NAME}}` placeholders that could not be resolved against the
+   *   service's effective environment variables.
    */
-  public async applyFiles(serviceId: string, relativePath?: string): Promise<string[]> {
+  public async applyFiles(serviceId: string, relativePath?: string): Promise<AppliedServiceFile[]> {
     const elevated = this.getElevatedInjector()
     const crypto = elevated.get(CryptoService)
     const repository = getRepository(elevated)

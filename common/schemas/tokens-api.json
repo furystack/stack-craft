@@ -289,18 +289,16 @@
       },
       "required": ["query", "result"],
       "additionalProperties": false,
-      "description": "Rest endpoint model for getting / querying collections"
+      "description": "GET-collection endpoint contract."
     },
     "FindOptions<PublicApiToken,(\"id\"|\"username\"|\"name\"|\"lastUsedAt\"|\"createdAt\")[]>": {
       "type": "object",
       "properties": {
         "top": {
-          "type": "number",
-          "description": "Limits the hits"
+          "type": "number"
         },
         "skip": {
-          "type": "number",
-          "description": "Skips the first N hit"
+          "type": "number"
         },
         "order": {
           "type": "object",
@@ -326,24 +324,21 @@
               "enum": ["ASC", "DESC"]
             }
           },
-          "additionalProperties": false,
-          "description": "Sets up an order by a field and a direction"
+          "additionalProperties": false
         },
         "select": {
           "type": "array",
           "items": {
             "type": "string",
             "enum": ["id", "username", "name", "lastUsedAt", "createdAt"]
-          },
-          "description": "The result set will be limited to these fields"
+          }
         },
         "filter": {
-          "$ref": "#/definitions/FilterType%3CPublicApiToken%3E",
-          "description": "The fields should match this filter"
+          "$ref": "#/definitions/FilterType%3CPublicApiToken%3E"
         }
       },
       "additionalProperties": false,
-      "description": "Type for default filtering model"
+      "description": "Find query — `top` / `skip` / `order` / `select` / `filter`. Order keys are applied in object-iteration order (primary first, then secondary)."
     },
     "FilterType<PublicApiToken>": {
       "type": "object",
@@ -635,20 +630,18 @@
       "type": "object",
       "properties": {
         "count": {
-          "type": "number",
-          "description": "The Total count of entities"
+          "type": "number"
         },
         "entries": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/PublicApiToken"
-          },
-          "description": "List of the selected entities"
+          }
         }
       },
       "required": ["count", "entries"],
       "additionalProperties": false,
-      "description": "Response Model for GetCollection"
+      "description": "Collection result. `count` is the **total** matching entity count (ignores `top` / `skip`); `entries` is the page returned for this query."
     },
     "DeleteEndpoint<ApiToken,\"id\">": {
       "type": "object",
@@ -669,7 +662,7 @@
       },
       "required": ["url", "result"],
       "additionalProperties": false,
-      "description": "Endpoint model for deleting entities"
+      "description": "DELETE-by-id endpoint contract."
     }
   }
 }
