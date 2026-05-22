@@ -17,3 +17,9 @@
 - Tools or scripts that constructed an import payload programmatically and set `stackName` on child entities need to drop that field.
 
 **Migration:** strip the `stackName` field from every entry under `services[]`, `repositories[]`, and `prerequisites[]` in any saved export JSON. The top-level `stack.name` already carries the value.
+
+## ⬆️ Dependencies
+
+- Bumped `@furystack/core` from `^17.0.0` to `^17.1.0` (minor). Pulls in additive type exports; no source changes in `common`.
+- Bumped `@furystack/rest` from `^10.0.0` to `^10.0.1` (patch).
+- Bumped dev `@types/node` from `^25.6.0` to `^25.9.1` and `vitest` from `^4.1.5` to `^4.1.7` (patch). Dev-tooling only.
