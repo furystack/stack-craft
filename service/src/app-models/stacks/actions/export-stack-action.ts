@@ -53,6 +53,15 @@ export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ in
     ...rest
   }: T) => rest
 
+  // `stackName` is the same as `stack.name` for every child entity in this payload — emit it
+  // once at the top level and reattach on import. See `ShareableServiceDefinition` etc.
+  const stripChild = <T extends { createdAt?: string; updatedAt?: string; stackName?: string }>({
+    createdAt: _c,
+    updatedAt: _u,
+    stackName: _s,
+    ...rest
+  }: T) => rest
+
   const stripNullish = <T extends Record<string, unknown>>(obj: T): T =>
     Object.fromEntries(Object.entries(obj).filter(([, v]) => v != null)) as T
 
@@ -68,12 +77,12 @@ export const ExportStackAction: RequestAction<ExportStackEndpoint> = async ({ in
   return JsonResult({
     stack: stripNullish(stripTimestamps(stack)),
     services: services.map((svc) => ({
-      ...stripNullish(stripTimestamps(svc)),
+      ...stripNullish(stripChild(svc)),
       prerequisiteIds: prereqLinksByService.get(svc.id) ?? [],
       prerequisiteServiceIds: depLinksByService.get(svc.id) ?? [],
     })),
-    repositories: repositories.map((r) => stripNullish(stripTimestamps(r))),
-    prerequisites: prerequisites.map((p) => stripNullish(stripTimestamps(p))),
+    repositories: repositories.map((r) => stripNullish(stripChild(r))),
+    prerequisites: prerequisites.map((p) => stripNullish(stripChild(p))),
     ...(warnings.length > 0 ? { warnings } : {}),
   })
 }

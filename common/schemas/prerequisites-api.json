@@ -270,7 +270,7 @@
       },
       "required": ["body", "url", "result"],
       "additionalProperties": false,
-      "description": "Endpoint model for updating entities"
+      "description": "PATCH-by-id endpoint contract. `TWritableData` defaults to `Partial<T>`."
     },
     "CheckPrerequisiteEndpoint": {
       "type": "object",
@@ -524,18 +524,16 @@
       },
       "required": ["query", "result"],
       "additionalProperties": false,
-      "description": "Rest endpoint model for getting / querying collections"
+      "description": "GET-collection endpoint contract."
     },
     "FindOptions<Prerequisite,(\"id\"|\"stackName\"|\"name\"|\"type\"|\"config\"|\"installationHelp\"|\"createdAt\"|\"updatedAt\")[]>": {
       "type": "object",
       "properties": {
         "top": {
-          "type": "number",
-          "description": "Limits the hits"
+          "type": "number"
         },
         "skip": {
-          "type": "number",
-          "description": "Skips the first N hit"
+          "type": "number"
         },
         "order": {
           "type": "object",
@@ -573,24 +571,21 @@
               "enum": ["ASC", "DESC"]
             }
           },
-          "additionalProperties": false,
-          "description": "Sets up an order by a field and a direction"
+          "additionalProperties": false
         },
         "select": {
           "type": "array",
           "items": {
             "type": "string",
             "enum": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"]
-          },
-          "description": "The result set will be limited to these fields"
+          }
         },
         "filter": {
-          "$ref": "#/definitions/FilterType%3CPrerequisite%3E",
-          "description": "The fields should match this filter"
+          "$ref": "#/definitions/FilterType%3CPrerequisite%3E"
         }
       },
       "additionalProperties": false,
-      "description": "Type for default filtering model"
+      "description": "Find query — `top` / `skip` / `order` / `select` / `filter`. Order keys are applied in object-iteration order (primary first, then secondary)."
     },
     "FilterType<Prerequisite>": {
       "type": "object",
@@ -1068,20 +1063,18 @@
       "type": "object",
       "properties": {
         "count": {
-          "type": "number",
-          "description": "The Total count of entities"
+          "type": "number"
         },
         "entries": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/Prerequisite"
-          },
-          "description": "List of the selected entities"
+          }
         }
       },
       "required": ["count", "entries"],
       "additionalProperties": false,
-      "description": "Response Model for GetCollection"
+      "description": "Collection result. `count` is the **total** matching entity count (ignores `top` / `skip`); `entries` is the page returned for this query."
     },
     "GetEntityEndpoint<Prerequisite,\"id\">": {
       "type": "object",
@@ -1094,8 +1087,7 @@
               "items": {
                 "type": "string",
                 "enum": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"]
-              },
-              "description": "The list of fields to select"
+              }
             }
           },
           "additionalProperties": false
@@ -1105,7 +1097,7 @@
           "properties": {
             "id": {
               "type": "string",
-              "description": "The entity's unique identifier"
+              "description": "UUID primary key"
             }
           },
           "required": ["id"],
@@ -1117,7 +1109,7 @@
       },
       "required": ["query", "url", "result"],
       "additionalProperties": false,
-      "description": "Endpoint model for getting a single entity"
+      "description": "GET-by-id endpoint contract. `select` narrows the projected fields."
     },
     "DeleteEndpoint<Prerequisite,\"id\">": {
       "type": "object",
@@ -1139,7 +1131,7 @@
       },
       "required": ["url", "result"],
       "additionalProperties": false,
-      "description": "Endpoint model for deleting entities"
+      "description": "DELETE-by-id endpoint contract."
     }
   }
 }

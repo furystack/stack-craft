@@ -154,7 +154,14 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
       try {
         const applied = await injector.get(ProcessManager).applyFiles(serviceId)
         if (applied.length === 0) return textResult('No shared files to apply')
-        return textResult(`Applied ${applied.length} file(s): ${applied.join(', ')}`)
+        const paths = applied.map((a) => a.relativePath).join(', ')
+        const unresolvedLines = applied
+          .filter((a) => a.unresolved.length > 0)
+          .map((a) => `  - ${a.relativePath}: ${a.unresolved.join(', ')}`)
+        if (unresolvedLines.length === 0) return textResult(`Applied ${applied.length} file(s): ${paths}`)
+        return textResult(
+          `Applied ${applied.length} file(s): ${paths}\nUnresolved template placeholders (add them to the stack environment to interpolate on next apply):\n${unresolvedLines.join('\n')}`,
+        )
       } catch (error) {
         return errorResult(`Failed to apply files: ${(error as Error).message}`)
       }
@@ -175,7 +182,12 @@ export const registerServiceFileTools = (mcp: McpServer, injector: Injector, ele
       try {
         const applied = await injector.get(ProcessManager).applyFiles(serviceId, relativePath)
         if (applied.length === 0) return errorResult(`File not found: ${relativePath}`)
-        return textResult(`Applied: ${applied.join(', ')}`)
+        const paths = applied.map((a) => a.relativePath).join(', ')
+        const unresolved = applied.flatMap((a) => a.unresolved)
+        if (unresolved.length === 0) return textResult(`Applied: ${paths}`)
+        return textResult(
+          `Applied: ${paths}\nUnresolved template placeholders: ${unresolved.join(', ')}. Add them to the stack environment to interpolate on next apply.`,
+        )
       } catch (error) {
         return errorResult(`Failed to apply file: ${(error as Error).message}`)
       }

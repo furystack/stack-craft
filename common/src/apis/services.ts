@@ -25,11 +25,23 @@ export type PatchServiceEndpoint = PatchEndpoint<ServiceWritableFields, 'id'>
 /** Triggers a lifecycle action (start, stop, restart, install, build, pull, setup, update) on a service */
 export type ServiceActionEndpoint = { url: { id: string }; result: { success: boolean; serviceId: string } }
 
+/**
+ * Per-file outcome of an apply operation. `unresolved` lists every distinct
+ * `{{NAME}}` placeholder that remained in the written content because no
+ * matching key was present in the resolved environment variables. The file
+ * is still written verbatim; the list lets callers warn the user about the
+ * missing variables instead of silently leaving placeholders behind.
+ */
+export type AppliedServiceFile = {
+  relativePath: string
+  unresolved: string[]
+}
+
 /** Writes shared and local service files to disk, optionally for a single file */
 export type ApplyServiceFilesEndpoint = {
   url: { id: string }
   body: { relativePath?: string }
-  result: { success: boolean; serviceId: string; applied: string[] }
+  result: { success: boolean; serviceId: string; applied: AppliedServiceFile[] }
 }
 
 /** Retrieves recent log entries for a service, optionally filtered by process UID or search text */

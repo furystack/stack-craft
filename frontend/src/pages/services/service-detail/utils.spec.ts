@@ -221,8 +221,12 @@ describe('service-detail utils', () => {
   })
 
   describe('applyServiceFiles', () => {
+    const applyResult = (applied: Array<{ relativePath: string; unresolved: string[] }>, serviceId = 'svc-1') => ({
+      result: { success: true, serviceId, applied },
+    })
+
     it('should POST to apply all files when no relativePath is given', async () => {
-      mocks.servicesApi.call.mockResolvedValueOnce({})
+      mocks.servicesApi.call.mockResolvedValueOnce(applyResult([{ relativePath: '.env', unresolved: [] }]))
       const setProgress = vi.fn()
 
       await applyServiceFiles(injector, 'svc-1', setProgress)
@@ -243,7 +247,7 @@ describe('service-detail utils', () => {
     })
 
     it('should POST with relativePath when specified', async () => {
-      mocks.servicesApi.call.mockResolvedValueOnce({})
+      mocks.servicesApi.call.mockResolvedValueOnce(applyResult([{ relativePath: '.env', unresolved: [] }]))
       const setProgress = vi.fn()
 
       await applyServiceFiles(injector, 'svc-1', setProgress, '.env')
@@ -258,6 +262,40 @@ describe('service-detail utils', () => {
         'onNotyAdded',
         expect.objectContaining({ body: '.env was written to disk.' }),
       )
+    })
+
+    it('should emit a warning Noty when placeholders remain unresolved', async () => {
+      mocks.servicesApi.call.mockResolvedValueOnce(
+        applyResult([{ relativePath: '.env', unresolved: ['POSTGRES_USER', 'POSTGRES_PASSWORD'] }]),
+      )
+      const setProgress = vi.fn()
+
+      await applyServiceFiles(injector, 'svc-1', setProgress, '.env')
+
+      expect(mocks.noty.emit).toHaveBeenCalledWith('onNotyAdded', expect.objectContaining({ type: 'success' }))
+      expect(mocks.noty.emit).toHaveBeenCalledWith(
+        'onNotyAdded',
+        expect.objectContaining({
+          type: 'warning',
+          title: 'Unresolved template placeholders',
+          body: expect.stringContaining('.env: POSTGRES_USER, POSTGRES_PASSWORD'),
+        }),
+      )
+    })
+
+    it('should not emit a warning when nothing is unresolved', async () => {
+      mocks.servicesApi.call.mockResolvedValueOnce(
+        applyResult([
+          { relativePath: '.env', unresolved: [] },
+          { relativePath: 'config.json', unresolved: [] },
+        ]),
+      )
+      const setProgress = vi.fn()
+
+      await applyServiceFiles(injector, 'svc-1', setProgress)
+
+      const warningCalls = mocks.noty.emit.mock.calls.filter((call) => (call[1] as { type: string }).type === 'warning')
+      expect(warningCalls).toHaveLength(0)
     })
 
     it('should show error notification on failure', async () => {
