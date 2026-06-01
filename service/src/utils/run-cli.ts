@@ -9,6 +9,12 @@ export type RunCliOptions = {
    * `GIT_ASKPASS` that the host might have pre-configured).
    */
   env?: Record<string, string | undefined>
+  /**
+   * When supplied, an `abort` event triggers the same two-stage process-group
+   * kill that the timeout uses. Wired to `Semaphore.execute`'s task signal so
+   * in-flight ops cancel cleanly when the injector disposes.
+   */
+  signal?: AbortSignal
 }
 
 export type RunCliResult = {
@@ -91,6 +97,7 @@ export const runCli = (command: string, args: readonly string[], options: RunCli
     let stdout = ''
     let stderr = ''
     let timedOut = false
+    let aborted = false
     let killTimer: ReturnType<typeof setTimeout> | null = null
 
     child.stdout?.on('data', (chunk: Buffer) => {
@@ -100,19 +107,36 @@ export const runCli = (command: string, args: readonly string[], options: RunCli
       stderr += chunk.toString()
     })
 
+    const startKillSequence = (): void => {
+      if (child.pid == null) return
+      killProcessGroup(child.pid, 'SIGTERM')
+      killTimer = setTimeout(() => {
+        if (child.pid != null) killProcessGroup(child.pid, 'SIGKILL')
+      }, SIGKILL_GRACE_MS)
+    }
+
     const timeoutTimer = setTimeout(() => {
       timedOut = true
-      if (child.pid != null) {
-        killProcessGroup(child.pid, 'SIGTERM')
-        killTimer = setTimeout(() => {
-          if (child.pid != null) killProcessGroup(child.pid, 'SIGKILL')
-        }, SIGKILL_GRACE_MS)
-      }
+      startKillSequence()
     }, options.timeoutMs)
+
+    const onAbort = (): void => {
+      aborted = true
+      startKillSequence()
+    }
+
+    if (options.signal) {
+      if (options.signal.aborted) {
+        onAbort()
+      } else {
+        options.signal.addEventListener('abort', onAbort, { once: true })
+      }
+    }
 
     const cleanup = (): void => {
       clearTimeout(timeoutTimer)
       if (killTimer) clearTimeout(killTimer)
+      options.signal?.removeEventListener('abort', onAbort)
     }
 
     child.once('error', (error) => {
@@ -125,6 +149,12 @@ export const runCli = (command: string, args: readonly string[], options: RunCli
       const cwdPart = options.cwd ? ` in ${options.cwd}` : ''
       const stderrPart = stderr.trim() ? `\nstderr: ${stderr.trim()}` : ''
       const commandLine = [command, ...args].join(' ')
+
+      if (aborted) {
+        const reason = options.signal?.reason
+        reject(reason instanceof Error ? reason : new Error(`${commandLine}${cwdPart} aborted${stderrPart}`))
+        return
+      }
 
       if (timedOut) {
         reject(new Error(`${commandLine}${cwdPart} timed out after ${options.timeoutMs}ms${stderrPart}`))

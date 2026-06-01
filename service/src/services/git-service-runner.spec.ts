@@ -1,11 +1,12 @@
 import { Injector } from '@furystack/inject'
 import { useLogging, VerboseConsoleLogger } from '@furystack/logging'
-import { usingAsync } from '@furystack/utils'
+import { Semaphore, usingAsync } from '@furystack/utils'
 import { EventEmitter } from 'events'
 import { PassThrough } from 'stream'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
 import { GitService } from './git-service.js'
+import { GitOperationLimit } from './operation-limits.js'
 
 vi.mock('child_process', () => ({
   spawn: vi.fn(),
@@ -226,5 +227,51 @@ describe('GitService runner', () => {
         expect(message).toContain('/repo')
         expect(message).toContain('error: pathspec "develop" did not match')
       }))
+  })
+
+  describe('GitOperationLimit', () => {
+    it('serializes calls beyond the configured concurrency', async () => {
+      await usingAsync(new Injector(), async (injector) => {
+        useLogging(injector, VerboseConsoleLogger)
+        const limit = new Semaphore(2)
+        injector.bind(GitOperationLimit, () => limit)
+        const git = injector.get(GitService)
+
+        const children = [createFakeChild(101), createFakeChild(102), createFakeChild(103)]
+        for (const child of children) {
+          spawnMock.mockReturnValueOnce(child as unknown as ReturnType<typeof childProcess.spawn>)
+        }
+
+        const promises = ['/a', '/b', '/c'].map((cwd) => git.fetch(cwd))
+
+        await awaitListenersAttached(children[0])
+        await awaitListenersAttached(children[1])
+
+        // With a Semaphore(2), the third call must wait — only two children spawned.
+        expect(spawnMock).toHaveBeenCalledTimes(2)
+        expect(limit.runningCount.getValue()).toBe(2)
+        expect(limit.pendingCount.getValue()).toBe(1)
+
+        // Drain slot 1; queued task should now spawn the third child.
+        children[0].stdout.end()
+        children[0].stderr.end()
+        children[0].emit('close', 0, null)
+        await promises[0]
+        await awaitListenersAttached(children[2])
+
+        expect(spawnMock).toHaveBeenCalledTimes(3)
+
+        children[1].stdout.end()
+        children[1].stderr.end()
+        children[1].emit('close', 0, null)
+        children[2].stdout.end()
+        children[2].stderr.end()
+        children[2].emit('close', 0, null)
+        await Promise.all(promises)
+
+        expect(limit.runningCount.getValue()).toBe(0)
+        expect(limit.pendingCount.getValue()).toBe(0)
+      })
+    })
   })
 })

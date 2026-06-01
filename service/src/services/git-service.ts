@@ -1,7 +1,9 @@
 import { defineService, type Token, type Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
+import type { Semaphore } from '@furystack/utils'
 
 import { runCli, type RunCliResult } from '../utils/run-cli.js'
+import { GitOperationLimit } from './operation-limits.js'
 
 const TIMEOUTS = {
   CLONE_MS: 5 * 60 * 1000,
@@ -32,40 +34,54 @@ const GIT_ENV: Record<string, string | undefined> = {
   GIT_SSH_COMMAND: 'ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new',
 }
 
-const runGit = (args: readonly string[], options: { cwd?: string; timeoutMs: number }): Promise<RunCliResult> =>
-  runCli('git', args, { ...options, env: GIT_ENV })
+const runGit = (
+  args: readonly string[],
+  options: { cwd?: string; timeoutMs: number; signal?: AbortSignal },
+): Promise<RunCliResult> => runCli('git', args, { ...options, env: GIT_ENV })
 
 /** Low-level wrapper around git CLI operations (clone, fetch, pull, checkout, branch listing) */
 class GitServiceImpl {
   private logger!: ReturnType<ReturnType<typeof getLogger>['withScope']>
+  private limit: Semaphore
 
   constructor(injector: Injector) {
     this.logger = getLogger(injector).withScope('GitService')
+    this.limit = injector.get(GitOperationLimit)
+  }
+
+  /**
+   * Routes the underlying `runCli` call through {@link GitOperationLimit} so
+   * concurrent git invocations stay under the configured ceiling. The semaphore
+   * forwards an `AbortSignal` that fires on injector dispose; `runCli` honours
+   * it by killing the process group, so in-flight ops don't leak past shutdown.
+   */
+  private guarded(args: readonly string[], options: { cwd?: string; timeoutMs: number }): Promise<RunCliResult> {
+    return this.limit.execute(({ signal }) => runGit(args, { ...options, signal }))
   }
 
   public async clone(url: string, directory: string): Promise<void> {
     await this.logger.information({ message: `Cloning ${url} into ${directory}` })
-    await runGit(['clone', url, directory], { timeoutMs: TIMEOUTS.CLONE_MS })
+    await this.guarded(['clone', url, directory], { timeoutMs: TIMEOUTS.CLONE_MS })
   }
 
   public async fetch(directory: string): Promise<void> {
     await this.logger.verbose({ message: `Fetching in ${directory}` })
-    await runGit(['fetch', '--all', '--prune'], { cwd: directory, timeoutMs: TIMEOUTS.FETCH_MS })
+    await this.guarded(['fetch', '--all', '--prune'], { cwd: directory, timeoutMs: TIMEOUTS.FETCH_MS })
   }
 
   public async pull(directory: string): Promise<{ updated: boolean }> {
     await this.logger.information({ message: `Pulling in ${directory}` })
-    const { stdout } = await runGit(['pull'], { cwd: directory, timeoutMs: TIMEOUTS.PULL_MS })
+    const { stdout } = await this.guarded(['pull'], { cwd: directory, timeoutMs: TIMEOUTS.PULL_MS })
     const updated = !stdout.includes('Already up to date')
     return { updated }
   }
 
   public async getBranches(directory: string): Promise<{ local: string[]; remote: string[] }> {
-    const { stdout: localOut } = await runGit(['branch', '--format=%(refname:short)'], {
+    const { stdout: localOut } = await this.guarded(['branch', '--format=%(refname:short)'], {
       cwd: directory,
       timeoutMs: TIMEOUTS.CHEAP_READ_MS,
     })
-    const { stdout: remoteOut } = await runGit(['branch', '-r', '--format=%(refname:short)'], {
+    const { stdout: remoteOut } = await this.guarded(['branch', '-r', '--format=%(refname:short)'], {
       cwd: directory,
       timeoutMs: TIMEOUTS.CHEAP_READ_MS,
     })
@@ -83,7 +99,7 @@ class GitServiceImpl {
   }
 
   public async getCurrentBranch(directory: string): Promise<string> {
-    const { stdout } = await runGit(['branch', '--show-current'], {
+    const { stdout } = await this.guarded(['branch', '--show-current'], {
       cwd: directory,
       timeoutMs: TIMEOUTS.CHEAP_READ_MS,
     })
@@ -92,7 +108,7 @@ class GitServiceImpl {
 
   public async getCommitsBehind(directory: string, branch: string): Promise<number> {
     try {
-      const { stdout } = await runGit(['rev-list', '--count', `HEAD..origin/${branch}`], {
+      const { stdout } = await this.guarded(['rev-list', '--count', `HEAD..origin/${branch}`], {
         cwd: directory,
         timeoutMs: TIMEOUTS.CHEAP_READ_MS,
       })
@@ -104,13 +120,13 @@ class GitServiceImpl {
 
   public async checkout(directory: string, branch: string): Promise<void> {
     await this.logger.information({ message: `Checking out ${branch} in ${directory}` })
-    await runGit(['checkout', branch], { cwd: directory, timeoutMs: TIMEOUTS.CHECKOUT_MS })
+    await this.guarded(['checkout', branch], { cwd: directory, timeoutMs: TIMEOUTS.CHECKOUT_MS })
   }
 
   /** Deletes a local branch. Uses `-D` (force) when `force` is true, otherwise `-d` (safe). */
   public async deleteLocalBranch(directory: string, branch: string, force = false): Promise<void> {
     await this.logger.information({ message: `Deleting local branch ${branch} in ${directory}` })
-    await runGit(['branch', force ? '-D' : '-d', branch], {
+    await this.guarded(['branch', force ? '-D' : '-d', branch], {
       cwd: directory,
       timeoutMs: TIMEOUTS.CHEAP_READ_MS,
     })
@@ -119,7 +135,7 @@ class GitServiceImpl {
   /** Returns true if `origin/<branch>` has a resolvable ref locally (i.e. the branch exists on the remote after a fetch). */
   public async hasRemoteBranch(directory: string, branch: string): Promise<boolean> {
     try {
-      await runGit(['show-ref', '--verify', '--quiet', `refs/remotes/origin/${branch}`], {
+      await this.guarded(['show-ref', '--verify', '--quiet', `refs/remotes/origin/${branch}`], {
         cwd: directory,
         timeoutMs: TIMEOUTS.REF_LOOKUP_MS,
       })
@@ -135,7 +151,7 @@ class GitServiceImpl {
    */
   public async getDefaultBranch(directory: string): Promise<string | undefined> {
     try {
-      const { stdout } = await runGit(['symbolic-ref', '--short', '--quiet', 'refs/remotes/origin/HEAD'], {
+      const { stdout } = await this.guarded(['symbolic-ref', '--short', '--quiet', 'refs/remotes/origin/HEAD'], {
         cwd: directory,
         timeoutMs: TIMEOUTS.REF_LOOKUP_MS,
       })
@@ -148,7 +164,7 @@ class GitServiceImpl {
 
   /** Runs `git status --porcelain` and classifies the working tree. */
   public async getWorktreeStatus(directory: string): Promise<'clean' | 'dirty' | 'conflicts'> {
-    const { stdout } = await runGit(['status', '--porcelain'], {
+    const { stdout } = await this.guarded(['status', '--porcelain'], {
       cwd: directory,
       timeoutMs: TIMEOUTS.CHEAP_READ_MS,
     })
@@ -164,7 +180,7 @@ class GitServiceImpl {
   /** Returns the SHA that a given ref points to (e.g. `HEAD`, `refs/heads/main`). Returns undefined if unresolvable. */
   public async revParse(directory: string, ref: string): Promise<string | undefined> {
     try {
-      const { stdout } = await runGit(['rev-parse', '--quiet', '--verify', ref], {
+      const { stdout } = await this.guarded(['rev-parse', '--quiet', '--verify', ref], {
         cwd: directory,
         timeoutMs: TIMEOUTS.REF_LOOKUP_MS,
       })
@@ -179,11 +195,11 @@ class GitServiceImpl {
    * Resolves on success, rejects with an error containing stderr context on failure or timeout.
    *
    * Use this for repository accessibility checks (validate-repo flows, pre-clone probing). Goes
-   * through the same env hardening (GIT_TERMINAL_PROMPT=0, BatchMode ssh) as every other git call,
-   * so missing credentials fail fast instead of hanging on a prompt.
+   * through the same env hardening (GIT_TERMINAL_PROMPT=0, BatchMode ssh) and shares the
+   * {@link GitOperationLimit} pool with the rest of the git CLI calls.
    */
   public async lsRemote(url: string): Promise<void> {
-    await runGit(['ls-remote', '--exit-code', url], { timeoutMs: TIMEOUTS.LS_REMOTE_MS })
+    await this.guarded(['ls-remote', '--exit-code', url], { timeoutMs: TIMEOUTS.LS_REMOTE_MS })
   }
 }
 
