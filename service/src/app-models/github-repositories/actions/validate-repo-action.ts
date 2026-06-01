@@ -5,9 +5,7 @@ import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { ValidateRepoEndpoint } from 'common'
 
-import { execFile } from 'child_process'
-import { promisify } from 'util'
-const execFileAsync = promisify(execFile)
+import { GitService } from '../../../services/git-service.js'
 
 export const ValidateRepoAction: RequestAction<ValidateRepoEndpoint> = async ({ injector, getUrlParams }) => {
   const logger = getLogger(injector).withScope('ValidateRepo')
@@ -22,7 +20,7 @@ export const ValidateRepoAction: RequestAction<ValidateRepoEndpoint> = async ({ 
   }
 
   try {
-    await execFileAsync('git', ['ls-remote', '--exit-code', repo.url], { timeout: 15000 })
+    await injector.get(GitService).lsRemote(repo.url)
     await logger.information({ message: `Repository validated: ${repo.url}` })
     return JsonResult({ accessible: true })
   } catch (error) {
