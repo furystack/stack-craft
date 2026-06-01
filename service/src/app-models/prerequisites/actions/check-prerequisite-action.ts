@@ -3,17 +3,23 @@ import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
 import type { CheckPrerequisiteEndpoint, EnvironmentVariableValue, PrerequisiteConfig, PrerequisiteType } from 'common'
 import { Prerequisite, PrerequisiteCheckResult, StackConfig } from 'common'
-import { execFile } from 'child_process'
-import { promisify } from 'util'
 
 import { CryptoService } from '../../../utils/crypto-service.js'
 import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
-
-const execFileAsync = promisify(execFile)
+import { runCli } from '../../../utils/run-cli.js'
 
 const COMMAND_TIMEOUT = 30_000
 
 type CheckResult = { satisfied: boolean; output: string }
+
+/**
+ * `gh` honors these env vars to suppress its interactive prompts and the
+ * "newer version available" notifier that occasionally talks to the network.
+ */
+const GH_ENV: Record<string, string | undefined> = {
+  GH_PROMPT_DISABLED: '1',
+  GH_NO_UPDATE_NOTIFIER: '1',
+}
 
 /**
  * Compares two semver-like version strings (e.g. "18.2.0" >= "18.0.0").
@@ -42,7 +48,7 @@ const extractVersion = (output: string): string | null => {
 }
 
 const checkNode = async (config: { minimumVersion: string }): Promise<CheckResult> => {
-  const { stdout } = await execFileAsync('node', ['--version'], { timeout: COMMAND_TIMEOUT })
+  const { stdout } = await runCli('node', ['--version'], { timeoutMs: COMMAND_TIMEOUT })
   const version = extractVersion(stdout.trim())
   if (!version) {
     return { satisfied: false, output: `Could not parse Node.js version from: ${stdout.trim()}` }
@@ -57,12 +63,13 @@ const checkNode = async (config: { minimumVersion: string }): Promise<CheckResul
 }
 
 const checkYarn = async (config: { minimumVersion: string }): Promise<CheckResult> => {
-  // Yarn ships as `yarn.cmd` / `yarn.ps1` shims on Windows, which `execFile` cannot resolve directly.
-  // Route through cmd.exe so PATHEXT applies. POSIX uses execFile directly to avoid an extra fork.
+  // Yarn ships as `yarn.cmd` / `yarn.ps1` shims on Windows, which `spawn` cannot
+  // resolve directly without `shell: true`. Route through cmd.exe so PATHEXT
+  // applies. POSIX uses runCli directly to avoid an extra fork.
   const isWindows = process.platform === 'win32'
   const { stdout } = isWindows
-    ? await execFileAsync('cmd.exe', ['/c', 'yarn', '--version'], { timeout: COMMAND_TIMEOUT })
-    : await execFileAsync('yarn', ['--version'], { timeout: COMMAND_TIMEOUT })
+    ? await runCli('cmd.exe', ['/c', 'yarn', '--version'], { timeoutMs: COMMAND_TIMEOUT })
+    : await runCli('yarn', ['--version'], { timeoutMs: COMMAND_TIMEOUT })
   const version = extractVersion(stdout.trim())
   if (!version) {
     return { satisfied: false, output: `Could not parse Yarn version from: ${stdout.trim()}` }
@@ -75,7 +82,7 @@ const checkYarn = async (config: { minimumVersion: string }): Promise<CheckResul
 }
 
 const checkDotnetSdk = async (config: { version: string }): Promise<CheckResult> => {
-  const { stdout } = await execFileAsync('dotnet', ['--list-sdks'], { timeout: COMMAND_TIMEOUT })
+  const { stdout } = await runCli('dotnet', ['--list-sdks'], { timeoutMs: COMMAND_TIMEOUT })
   const lines = stdout.trim().split('\n')
   const isSatisfied = lines.some((line) => line.startsWith(config.version))
   return {
@@ -87,7 +94,7 @@ const checkDotnetSdk = async (config: { version: string }): Promise<CheckResult>
 }
 
 const checkDotnetRuntime = async (config: { version: string }): Promise<CheckResult> => {
-  const { stdout } = await execFileAsync('dotnet', ['--list-runtimes'], { timeout: COMMAND_TIMEOUT })
+  const { stdout } = await runCli('dotnet', ['--list-runtimes'], { timeoutMs: COMMAND_TIMEOUT })
   const lines = stdout.trim().split('\n')
   const isSatisfied = lines.some((line) => line.includes(config.version))
   return {
@@ -99,7 +106,7 @@ const checkDotnetRuntime = async (config: { version: string }): Promise<CheckRes
 }
 
 const checkNugetFeed = async (config: { feedUrl: string; feedName?: string }): Promise<CheckResult> => {
-  const { stdout } = await execFileAsync('dotnet', ['nuget', 'list', 'source'], { timeout: COMMAND_TIMEOUT })
+  const { stdout } = await runCli('dotnet', ['nuget', 'list', 'source'], { timeoutMs: COMMAND_TIMEOUT })
   const isSatisfied = stdout.includes(config.feedUrl)
   return {
     satisfied: isSatisfied,
@@ -110,12 +117,15 @@ const checkNugetFeed = async (config: { feedUrl: string; feedName?: string }): P
 }
 
 const checkGit = async (): Promise<CheckResult> => {
-  const { stdout } = await execFileAsync('git', ['--version'], { timeout: COMMAND_TIMEOUT })
+  const { stdout } = await runCli('git', ['--version'], { timeoutMs: COMMAND_TIMEOUT })
   return { satisfied: true, output: stdout.trim() }
 }
 
 const checkGithubCli = async (): Promise<CheckResult> => {
-  const { stdout, stderr } = await execFileAsync('gh', ['auth', 'status'], { timeout: COMMAND_TIMEOUT })
+  const { stdout, stderr } = await runCli('gh', ['auth', 'status'], {
+    timeoutMs: COMMAND_TIMEOUT,
+    env: GH_ENV,
+  })
   const output = (stdout || stderr).trim()
   return { satisfied: true, output }
 }
@@ -156,7 +166,9 @@ const checkCustomScript = async (config: { script: string }): Promise<CheckResul
   const isWindows = process.platform === 'win32'
   const shell = isWindows ? 'cmd.exe' : '/bin/sh'
   const shellFlag = isWindows ? '/c' : '-c'
-  const { stdout, stderr } = await execFileAsync(shell, [shellFlag, config.script], { timeout: COMMAND_TIMEOUT })
+  // No env hardening here — user scripts are expected to honour the host env.
+  // The process-group kill in runCli still bounds the runtime if the script hangs.
+  const { stdout, stderr } = await runCli(shell, [shellFlag, config.script], { timeoutMs: COMMAND_TIMEOUT })
   return { satisfied: true, output: (stdout || stderr).trim() }
 }
 

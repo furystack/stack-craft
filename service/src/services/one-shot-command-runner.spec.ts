@@ -25,9 +25,13 @@ import {
 import { tmpdir } from 'os'
 import { describe, expect, it, vi } from 'vitest'
 
+import { Semaphore } from '@furystack/utils'
+
 import { GitHeadWatcher } from './git-head-watcher.js'
 import { LogStorageService } from './log-storage-service.js'
 import { OneShotCommandRunner } from './one-shot-command-runner.js'
+import { BuildOperationLimit, InstallOperationLimit } from './operation-limits.js'
+import { ProcessRunner } from './process-runner.js'
 import type { TriggerContext } from './trigger-context.js'
 import { legacyRepository as getRepository } from '../utils/legacy-repository.js'
 
@@ -132,9 +136,11 @@ const withContext = async (
     runner: OneShotCommandRunner
     mockLogStorage: { addEntry: ReturnType<typeof vi.fn> }
   }) => Promise<void>,
+  options: { setup?: (injector: Injector) => void } = {},
 ) => {
   const injector = new Injector()
   const { mockLogStorage } = await setupInjector(injector)
+  options.setup?.(injector)
   await seedService(injector)
   const runner = injector.get(OneShotCommandRunner)
   try {
@@ -147,6 +153,13 @@ const withContext = async (
     } catch {
       // Singleton disposal may already have disposed child injectors
     }
+  }
+}
+
+const killAllRunningProcesses = (injector: Injector): void => {
+  const processRunner = injector.get(ProcessRunner)
+  for (const managed of processRunner.processes.values()) {
+    processRunner.killProcessGroup(managed.process, 'SIGKILL')
   }
 }
 
@@ -224,10 +237,107 @@ describe('OneShotCommandRunner', () => {
       await expect(runner.buildService('busy-svc', testTrigger)).rejects.toThrow('already has a')
 
       // Clean up: the install process is still running, kill it via the process runner
-      const { ProcessRunner: PR } = await import('./process-runner.js')
-      const processRunner = injector.get(PR)
+      const processRunner = injector.get(ProcessRunner)
       const managed = processRunner.processes.get('busy-svc')
       if (managed) processRunner.killProcessGroup(managed.process, 'SIGKILL')
       await installPromise.catch(() => {})
     }))
+
+  describe('semaphore-based concurrency limits', () => {
+    const waitFor = async (predicate: () => boolean, timeoutMs = 5_000): Promise<void> => {
+      const start = Date.now()
+      while (!predicate()) {
+        if (Date.now() - start > timeoutMs) throw new Error('waitFor timed out')
+        await new Promise((r) => setTimeout(r, 10))
+      }
+    }
+
+    it('queues install calls beyond InstallOperationLimit and runs them sequentially', async () => {
+      const installLimit = new Semaphore(1)
+      await withContext(
+        async ({ injector, runner }) => {
+          await seedService(injector, { id: 'install-a', installCommand: 'sleep 0.3' })
+          await seedService(injector, { id: 'install-b', installCommand: 'sleep 0.3' })
+
+          const promiseA = runner.installService('install-a', testTrigger)
+          const promiseB = runner.installService('install-b', testTrigger)
+
+          await waitFor(() => installLimit.runningCount.getValue() === 1)
+
+          const processRunner = injector.get(ProcessRunner)
+          // Only the running install is in `processes`; queued one is still
+          // in `pendingOperations` (it'll move to `processes` once it spawns).
+          expect(installLimit.runningCount.getValue()).toBe(1)
+          expect(installLimit.pendingCount.getValue()).toBe(1)
+          expect(processRunner.processes.size).toBe(1)
+          expect(processRunner.pendingOperations.size).toBe(1)
+
+          await Promise.all([promiseA, promiseB])
+
+          expect(installLimit.runningCount.getValue()).toBe(0)
+          expect(installLimit.pendingCount.getValue()).toBe(0)
+          expect(installLimit.completedCount.getValue()).toBe(2)
+        },
+        { setup: (injector) => injector.bind(InstallOperationLimit, () => installLimit) },
+      )
+    }, 10_000)
+
+    it('queues build calls beyond BuildOperationLimit and runs them sequentially', async () => {
+      const buildLimit = new Semaphore(1)
+      await withContext(
+        async ({ injector, runner }) => {
+          await seedService(injector, { id: 'build-a', buildCommand: 'sleep 0.3' })
+          await seedService(injector, { id: 'build-b', buildCommand: 'sleep 0.3' })
+
+          const promiseA = runner.buildService('build-a', testTrigger)
+          const promiseB = runner.buildService('build-b', testTrigger)
+
+          await waitFor(() => buildLimit.runningCount.getValue() === 1)
+
+          expect(buildLimit.runningCount.getValue()).toBe(1)
+          expect(buildLimit.pendingCount.getValue()).toBe(1)
+          expect(injector.get(ProcessRunner).processes.size).toBe(1)
+
+          await Promise.all([promiseA, promiseB])
+
+          expect(buildLimit.runningCount.getValue()).toBe(0)
+          expect(buildLimit.completedCount.getValue()).toBe(2)
+        },
+        { setup: (injector) => injector.bind(BuildOperationLimit, () => buildLimit) },
+      )
+    }, 10_000)
+
+    it('install and build pools are independent (one install + one build run together)', async () => {
+      const installLimit = new Semaphore(1)
+      const buildLimit = new Semaphore(1)
+      await withContext(
+        async ({ injector, runner }) => {
+          await seedService(injector, {
+            id: 'mixed-a',
+            installCommand: 'sleep 30',
+            buildCommand: 'sleep 30',
+          })
+          await seedService(injector, {
+            id: 'mixed-b',
+            installCommand: 'sleep 30',
+            buildCommand: 'sleep 30',
+          })
+
+          const installPromise = runner.installService('mixed-a', testTrigger)
+          const buildPromise = runner.buildService('mixed-b', testTrigger)
+
+          await waitFor(() => installLimit.runningCount.getValue() === 1 && buildLimit.runningCount.getValue() === 1)
+
+          killAllRunningProcesses(injector)
+          await Promise.allSettled([installPromise, buildPromise])
+        },
+        {
+          setup: (injector) => {
+            injector.bind(InstallOperationLimit, () => installLimit)
+            injector.bind(BuildOperationLimit, () => buildLimit)
+          },
+        },
+      )
+    })
+  })
 })
