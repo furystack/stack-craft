@@ -94,6 +94,19 @@ describe('ProcessRunner', () => {
         process.env = original
       }))
 
+    it('should forward WATCHDOG_GRACE_MS so supervisor overrides take effect', () =>
+      withRunnerContext(async () => {
+        const original = process.env
+        process.env = { WATCHDOG_GRACE_MS: '250', SECRET_KEY: 'nope' }
+
+        const env = ProcessRunnerImpl.getSafeEnv()
+
+        expect(env.WATCHDOG_GRACE_MS).toBe('250')
+        expect(env).not.toHaveProperty('SECRET_KEY')
+
+        process.env = original
+      }))
+
     it('should handle case-insensitive matching for safe keys', () =>
       withRunnerContext(async () => {
         const original = process.env
@@ -304,24 +317,28 @@ describe('ProcessRunner', () => {
   })
 
   describe('spawnCommand', () => {
-    it('should call spawn with correct shell arguments', () =>
+    it('should wrap the user command in the node supervisor on POSIX', () =>
       withRunnerContext(async ({ runner }) => {
         const originalPlatform = process.platform
         Object.defineProperty(process, 'platform', { value: 'linux', writable: true })
 
         const { spawn } = await import('child_process')
+        vi.mocked(spawn).mockClear()
         const mockChild = { pid: 1, stdout: null, stderr: null } as unknown as ChildProcess
         vi.mocked(spawn).mockReturnValue(mockChild)
 
         const result = runner.spawnCommand('echo hello', '/tmp')
 
         expect(result).toBe(mockChild)
-        expect(spawn).toHaveBeenCalledWith('/bin/sh', ['-c', 'echo hello'], {
-          cwd: '/tmp',
-          stdio: ['ignore', 'pipe', 'pipe'],
-          env: expect.objectContaining({}),
-          detached: true,
-        })
+        expect(spawn).toHaveBeenCalledWith(
+          process.execPath,
+          [expect.stringMatching(/process-supervisor\.(ts|js)$/), '/bin/sh', '-c', 'echo hello'],
+          expect.objectContaining({
+            cwd: '/tmp',
+            stdio: ['pipe', 'pipe', 'pipe'],
+            detached: true,
+          }),
+        )
 
         Object.defineProperty(process, 'platform', { value: originalPlatform, writable: true })
       }))
@@ -332,14 +349,15 @@ describe('ProcessRunner', () => {
         Object.defineProperty(process, 'platform', { value: 'linux', writable: true })
 
         const { spawn } = await import('child_process')
+        vi.mocked(spawn).mockClear()
         const mockChild = { pid: 1, stdout: null, stderr: null } as unknown as ChildProcess
         vi.mocked(spawn).mockReturnValue(mockChild)
 
         runner.spawnCommand('echo hello', '/tmp', { MY_VAR: 'test' })
 
         expect(spawn).toHaveBeenCalledWith(
-          '/bin/sh',
-          ['-c', 'echo hello'],
+          process.execPath,
+          [expect.stringMatching(/process-supervisor\.(ts|js)$/), '/bin/sh', '-c', 'echo hello'],
           expect.objectContaining({
             env: expect.objectContaining({ MY_VAR: 'test' }),
           }),
@@ -348,20 +366,21 @@ describe('ProcessRunner', () => {
         Object.defineProperty(process, 'platform', { value: originalPlatform, writable: true })
       }))
 
-    it('should use cmd.exe on Windows', () =>
+    it('should hand the supervisor cmd.exe on Windows', () =>
       withRunnerContext(async ({ runner }) => {
         const originalPlatform = process.platform
         Object.defineProperty(process, 'platform', { value: 'win32', writable: true })
 
         const { spawn } = await import('child_process')
+        vi.mocked(spawn).mockClear()
         const mockChild = { pid: 1, stdout: null, stderr: null } as unknown as ChildProcess
         vi.mocked(spawn).mockReturnValue(mockChild)
 
         runner.spawnCommand('echo hello', 'C:\\temp')
 
         expect(spawn).toHaveBeenCalledWith(
-          'cmd.exe',
-          ['/c', 'echo hello'],
+          process.execPath,
+          [expect.stringMatching(/process-supervisor\.(ts|js)$/), 'cmd.exe', '/c', 'echo hello'],
           expect.objectContaining({ cwd: 'C:\\temp' }),
         )
 
