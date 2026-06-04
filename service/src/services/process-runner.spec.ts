@@ -332,7 +332,7 @@ describe('ProcessRunner', () => {
         expect(result).toBe(mockChild)
         expect(spawn).toHaveBeenCalledWith(
           process.execPath,
-          ['-e', expect.stringContaining('spawn(shell, [shellFlag, command]'), '--', '/bin/sh', '-c', 'echo hello'],
+          [expect.stringMatching(/process-supervisor\.(ts|js)$/), '/bin/sh', '-c', 'echo hello'],
           expect.objectContaining({
             cwd: '/tmp',
             stdio: ['pipe', 'pipe', 'pipe'],
@@ -357,7 +357,7 @@ describe('ProcessRunner', () => {
 
         expect(spawn).toHaveBeenCalledWith(
           process.execPath,
-          ['-e', expect.any(String), '--', '/bin/sh', '-c', 'echo hello'],
+          [expect.stringMatching(/process-supervisor\.(ts|js)$/), '/bin/sh', '-c', 'echo hello'],
           expect.objectContaining({
             env: expect.objectContaining({ MY_VAR: 'test' }),
           }),
@@ -380,7 +380,7 @@ describe('ProcessRunner', () => {
 
         expect(spawn).toHaveBeenCalledWith(
           process.execPath,
-          ['-e', expect.any(String), '--', 'cmd.exe', '/c', 'echo hello'],
+          [expect.stringMatching(/process-supervisor\.(ts|js)$/), 'cmd.exe', '/c', 'echo hello'],
           expect.objectContaining({ cwd: 'C:\\temp' }),
         )
 

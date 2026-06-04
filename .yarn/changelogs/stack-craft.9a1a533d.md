@@ -37,10 +37,12 @@ appear before simple list items within each section.
 <!-- PLACEHOLDER: Describe test changes (test:) -->
 
 ## 📦 Build
-<!-- PLACEHOLDER: Describe build system changes (build:) -->
+
+- Raise the minimum Node version to `>=24.0.0` so the process-supervisor module can be spawned directly (native TypeScript type-stripping in dev/test).
 
 ## 👷 CI
-<!-- PLACEHOLDER: Describe CI configuration changes (ci:) -->
+
+- Pin the CI Node matrix and Azure pipeline to Node 24.x to match the new engines floor.
 
 ## ⬆️ Dependencies
 <!-- PLACEHOLDER: Describe dependency updates (deps:) -->

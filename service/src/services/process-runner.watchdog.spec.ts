@@ -25,9 +25,13 @@ const waitFor = async (predicate: () => boolean, timeoutMs: number): Promise<boo
 
 const noopLogStorage = { addEntry: async () => undefined } as unknown as LogStorageService
 
+// The supervisor is spawned as a `.ts` file under vitest, so the real-spawn path
+// needs a Node that strips types natively (>= 24, the project's engines floor).
+const hasNativeTypeScript = Boolean((process.features as { typescript?: unknown }).typescript)
+
 // POSIX-only: the watchdog reaps via process-group signals. The Windows path
 // uses taskkill and cannot be exercised on the Linux CI runner.
-describe.skipIf(process.platform === 'win32')('ProcessRunner watchdog (integration)', () => {
+describe.skipIf(process.platform === 'win32' || !hasNativeTypeScript)('ProcessRunner watchdog (integration)', () => {
   it('reaps the child tree when the parent (stdin) goes away', async () => {
     const original = process.env.WATCHDOG_GRACE_MS
     process.env.WATCHDOG_GRACE_MS = '200'
