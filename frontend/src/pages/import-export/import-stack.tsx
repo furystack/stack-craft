@@ -135,11 +135,14 @@ export const ImportStack = Shade({
         const hasAutoSetup = formData.autoSetup === 'on'
         if (hasAutoSetup && (parsed.services?.length ?? 0) > 0) {
           stackCraftNavigate(injector, {
-            path: '/stacks/:stackName/setup',
+            path: '/stacks/:stackName/services',
             params: { stackName: parsed.stack.name },
           })
         } else {
-          stackCraftNavigate(injector, { path: '/stacks/:stackName', params: { stackName: parsed.stack.name } })
+          stackCraftNavigate(injector, {
+            path: '/stacks/:stackName/services',
+            params: { stackName: parsed.stack.name },
+          })
         }
       } catch (error) {
         injector.get(NotyService).emit('onNotyAdded', {

@@ -1,5 +1,5 @@
 import type { FindOptions } from '@furystack/core'
-import { createComponent, LocationService, Shade } from '@furystack/shades'
+import { createComponent, Shade } from '@furystack/shades'
 import {
   Button,
   type CollectionService,
@@ -16,7 +16,7 @@ import type { ServiceView } from 'common'
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
 import { applyClientFindOptions } from '../utils/apply-client-find-options.js'
 import { getPrimaryAction } from '../utils/service-pipeline.js'
-import { StackCraftNestedRouteLink } from './app-routes.js'
+import { stackCraftNavigate, StackCraftNestedRouteLink } from './app-routes.js'
 import { BranchSelector } from './branch-selector.js'
 import { MiniPipelineDots } from './mini-pipeline-dots.js'
 import { PrerequisiteSummaryChip } from './prerequisite-summary-chip.js'
@@ -32,12 +32,24 @@ type ServiceColumn = 'selection' | 'displayName' | 'pipeline' | 'branch' | 'acti
 export const ServiceTable = Shade<ServiceTableProps>({
   customElementName: 'shade-service-table',
   render: (options) => {
-    const { props, injector, useState } = options
-    const api = injector.get(ServicesApiClient)
-    const noty = injector.get(NotyService)
+    const { props, injector, useState, useDisposable } = options
     const { collectionService } = props
 
+    useDisposable(
+      'service-table-row-dblclick',
+      () =>
+        collectionService.subscribe('onRowDoubleClick', (entry) => {
+          stackCraftNavigate(injector, {
+            path: '/stacks/:stackName/services/:serviceId',
+            params: { stackName: entry.stackName, serviceId: entry.id },
+          })
+        }),
+      [collectionService],
+    )
+
     const callServiceAction = (serviceId: string, action: string, actionLabel: string) => {
+      const api = injector.get(ServicesApiClient)
+      const noty = injector.get(NotyService)
       void api
         .call({
           method: 'POST',
@@ -113,7 +125,13 @@ export const ServiceTable = Shade<ServiceTableProps>({
           selection: (entry) => <SelectionCell entry={entry} service={collectionService} />,
           displayName: (entry) => (
             <span>
-              <strong>{entry.displayName}</strong>
+              <StackCraftNestedRouteLink
+                path="/stacks/:stackName/services/:serviceId"
+                params={{ stackName: entry.stackName, serviceId: entry.id }}
+                style={{ color: 'inherit', textDecoration: 'none' }}
+              >
+                <strong>{entry.displayName}</strong>
+              </StackCraftNestedRouteLink>
               {entry.description ? (
                 <div style={{ fontSize: cssVariableTheme.typography.fontSize.sm, opacity: '0.6', marginTop: '2px' }}>
                   <MarkdownDisplay content={entry.description} />
@@ -136,6 +154,7 @@ export const ServiceTable = Shade<ServiceTableProps>({
                 cloneStatus={entry.cloneStatus}
                 upstreamStatus={entry.upstreamStatus}
                 lastPullError={entry.lastPullError}
+                commitsBehind={entry.commitsBehind}
               />
             </div>
           ),
@@ -147,7 +166,6 @@ export const ServiceTable = Shade<ServiceTableProps>({
                 style={{ display: 'flex', gap: '2px', alignItems: 'center' }}
                 onclick={(e: MouseEvent) => e.stopPropagation()}
               >
-                {/* Context-aware primary action */}
                 {primary.apiAction ? (
                   <Button
                     variant="text"
@@ -159,56 +177,6 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     startIcon={primary.icon || <Icon icon={icons.play} size="small" />}
                   />
                 ) : null}
-                {/* Restart (when running) */}
-                {entry.runStatus === 'running' ? (
-                  <Button
-                    variant="text"
-                    size="small"
-                    color="warning"
-                    title="Restart"
-                    aria-label="Restart"
-                    onclick={() => callServiceAction(entry.id, 'restart', 'Restart')}
-                    startIcon={<Icon icon={icons.refresh} size="small" />}
-                  />
-                ) : null}
-                {/* Update (pull + install + build + restart if running) */}
-                {entry.repositoryId && entry.cloneStatus === 'cloned' ? (
-                  <div style={{ position: 'relative', display: 'inline-flex' }}>
-                    <Button
-                      variant="text"
-                      size="small"
-                      title="Update: pull, install, build, and restart if running"
-                      aria-label="Update"
-                      onclick={() => callServiceAction(entry.id, 'update', 'Update')}
-                      startIcon={<Icon icon={icons.download} size="small" />}
-                    />
-                    {entry.commitsBehind ? (
-                      <span
-                        style={{
-                          position: 'absolute',
-                          top: '-2px',
-                          right: '-2px',
-                          minWidth: '16px',
-                          height: '16px',
-                          borderRadius: '8px',
-                          backgroundColor: cssVariableTheme.palette.primary.main,
-                          color: cssVariableTheme.palette.primary.mainContrast,
-                          fontSize: '10px',
-                          fontWeight: 'bold',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '0 4px',
-                          lineHeight: '1',
-                          pointerEvents: 'none',
-                        }}
-                      >
-                        {entry.commitsBehind}
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
-                {/* Logs */}
                 <StackCraftNestedRouteLink
                   path="/stacks/:stackName/services/:serviceId"
                   params={{ stackName: entry.stackName, serviceId: entry.id }}
@@ -222,7 +190,6 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     startIcon={<Icon icon={icons.fileText} size="small" />}
                   />
                 </StackCraftNestedRouteLink>
-                {/* Details */}
                 <StackCraftNestedRouteLink
                   path="/stacks/:stackName/services/:serviceId"
                   params={{ stackName: entry.stackName, serviceId: entry.id }}
@@ -232,22 +199,9 @@ export const ServiceTable = Shade<ServiceTableProps>({
                     size="small"
                     title="Details"
                     aria-label="Details"
-                    startIcon={<Icon icon={icons.eye} size="small" />}
+                    startIcon={<Icon icon={icons.chevronRight} size="small" />}
                   />
                 </StackCraftNestedRouteLink>
-                {/* Edit */}
-                <Button
-                  variant="text"
-                  size="small"
-                  title="Edit"
-                  aria-label="Edit"
-                  onclick={() =>
-                    injector
-                      .get(LocationService)
-                      .navigate(`/stacks/${entry.stackName}/services/${entry.id}#configuration`)
-                  }
-                  startIcon={<Icon icon={icons.edit} size="small" />}
-                />
               </div>
             )
           },

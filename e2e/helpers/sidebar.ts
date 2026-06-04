@@ -1,13 +1,10 @@
 import type { Page } from '@playwright/test'
 
-export const navigateViaSidebar = async (
-  page: Page,
-  stackDisplayName: string,
-  link: 'Overview' | 'Services' | 'Repositories' | 'Prerequisites',
-) => {
+export type StackSidebarLink = 'Services' | 'Repositories' | 'Prerequisites'
+
+export const navigateViaSidebar = async (page: Page, stackDisplayName: string, link: StackSidebarLink) => {
   const stackSidebar = page.locator('shade-accordion-item').filter({ hasText: stackDisplayName })
 
-  // Expand the accordion if it's collapsed
   const isExpanded = await stackSidebar.getAttribute('data-expanded')
   if (isExpanded === null) {
     await stackSidebar.locator('.accordion-header').click()

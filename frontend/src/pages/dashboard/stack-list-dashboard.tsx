@@ -1,20 +1,7 @@
 import { useCollectionSync } from '../../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
 
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  Chip,
-  cssVariableTheme,
-  Icon,
-  icons,
-  MarkdownDisplay,
-  NotyService,
-  PageContainer,
-  PageHeader,
-} from '@furystack/shades-common-components'
+import { Button, Icon, icons, PageContainer, PageHeader } from '@furystack/shades-common-components'
 import type { ServiceView, StackDefinition } from 'common'
 import {
   mergeServiceView,
@@ -27,8 +14,8 @@ import {
 } from 'common'
 
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
-import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
-import { isServiceReady } from '../../utils/is-service-ready.js'
+import { runBulkServiceAction } from '../../utils/bulk-service-actions.js'
+import { StackCard } from './stack-card.js'
 
 type StackListDashboardProps = {
   stacks: StackDefinition[]
@@ -98,73 +85,13 @@ export const StackListDashboard = Shade<StackListDashboardProps>({
     const [isStoppingAll, setIsStoppingAll] = useState('globalIsStoppingAll', false)
     const [isUpdatingAll, setIsUpdatingAll] = useState('globalIsUpdatingAll', false)
 
-    const api = injector.get(ServicesApiClient)
-    const noty = injector.get(NotyService)
-
-    const triggerGlobalStartAll = async () => {
-      setIsStartingAll(true)
-      const failures: string[] = []
-      for (const svc of allServices) {
-        if (isServiceReady(svc) && svc.runStatus === 'stopped') {
-          try {
-            await api.call({ method: 'POST', action: '/services/:id/start', url: { id: svc.id } })
-          } catch {
-            failures.push(svc.displayName)
-          }
-        }
+    const runGlobalAction = async (action: 'start' | 'stop' | 'update', setLoading: (v: boolean) => void) => {
+      setLoading(true)
+      try {
+        await runBulkServiceAction(injector, allServices, action)
+      } finally {
+        setLoading(false)
       }
-      if (failures.length > 0) {
-        noty.emit('onNotyAdded', {
-          title: 'Start failed',
-          body: `Failed for: ${failures.join(', ')}`,
-          type: 'error',
-        })
-      }
-      setIsStartingAll(false)
-    }
-
-    const triggerGlobalStopAll = async () => {
-      setIsStoppingAll(true)
-      const failures: string[] = []
-      for (const svc of allServices) {
-        if (svc.runStatus === 'running') {
-          try {
-            await api.call({ method: 'POST', action: '/services/:id/stop', url: { id: svc.id } })
-          } catch {
-            failures.push(svc.displayName)
-          }
-        }
-      }
-      if (failures.length > 0) {
-        noty.emit('onNotyAdded', {
-          title: 'Stop failed',
-          body: `Failed for: ${failures.join(', ')}`,
-          type: 'error',
-        })
-      }
-      setIsStoppingAll(false)
-    }
-
-    const triggerGlobalUpdateAll = async () => {
-      setIsUpdatingAll(true)
-      const failures: string[] = []
-      for (const svc of allServices) {
-        if (svc.repositoryId && svc.cloneStatus === 'cloned') {
-          try {
-            await api.call({ method: 'POST', action: '/services/:id/update', url: { id: svc.id } })
-          } catch {
-            failures.push(svc.displayName)
-          }
-        }
-      }
-      if (failures.length > 0) {
-        noty.emit('onNotyAdded', {
-          title: 'Update failed',
-          body: `Failed for: ${failures.join(', ')}`,
-          type: 'error',
-        })
-      }
-      setIsUpdatingAll(false)
     }
 
     return (
@@ -187,7 +114,7 @@ export const StackListDashboard = Shade<StackListDashboardProps>({
                     color="success"
                     disabled={globalStoppedCount === 0 && globalErrorCount === 0}
                     loading={isStartingAll}
-                    onclick={() => void triggerGlobalStartAll()}
+                    onclick={() => void runGlobalAction('start', setIsStartingAll)}
                     startIcon={<Icon icon={icons.play} size="small" />}
                   >
                     Start All
@@ -197,7 +124,7 @@ export const StackListDashboard = Shade<StackListDashboardProps>({
                     size="small"
                     disabled={globalRunningCount === 0}
                     loading={isStoppingAll}
-                    onclick={() => void triggerGlobalStopAll()}
+                    onclick={() => void runGlobalAction('stop', setIsStoppingAll)}
                     startIcon={<Icon icon={icons.stopCircle} size="small" />}
                   >
                     Stop All
@@ -207,7 +134,7 @@ export const StackListDashboard = Shade<StackListDashboardProps>({
                     size="small"
                     disabled={globalClonedCount === 0}
                     loading={isUpdatingAll}
-                    onclick={() => void triggerGlobalUpdateAll()}
+                    onclick={() => void runGlobalAction('update', setIsUpdatingAll)}
                     startIcon={<Icon icon={icons.download} size="small" />}
                   >
                     Update All
@@ -234,115 +161,14 @@ export const StackListDashboard = Shade<StackListDashboardProps>({
             gap: '16px',
           }}
         >
-          {stacks.map((stack) => {
-            const stackServices = servicesByStack.get(stack.name) ?? []
-            const stackPrereqs = prereqsByStack.get(stack.name) ?? []
-
-            const running = stackServices.filter((s) => s.runStatus === 'running').length
-            const stopped = stackServices.filter((s) => s.runStatus === 'stopped').length
-            const errored = stackServices.filter((s) => s.runStatus === 'error').length
-            const starting = stackServices.filter((s) => s.runStatus === 'starting').length
-            const stopping = stackServices.filter((s) => s.runStatus === 'stopping').length
-
-            const satisfied = stackPrereqs.filter((p) => allCheckMap.get(p.id)?.status === 'satisfied').length
-            const failed = stackPrereqs.filter((p) => allCheckMap.get(p.id)?.status === 'failed').length
-            const unchecked = stackPrereqs.length - satisfied - failed
-
-            return (
-              <StackCraftNestedRouteLink
-                path="/stacks/:stackName"
-                params={{ stackName: stack.name }}
-                style={{ textDecoration: 'none', color: 'inherit' }}
-              >
-                <Card variant="outlined" clickable style={{ height: '100%' }}>
-                  <CardHeader
-                    title={stack.displayName}
-                    avatar={<Icon icon={icons.layers} />}
-                    action={<Icon icon={icons.chevronRight} size="small" />}
-                  />
-                  <CardContent>
-                    {stackServices.length > 0 ? (
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                        <Chip variant="outlined" size="small" color="secondary">
-                          {stackServices.length} service{stackServices.length !== 1 ? 's' : ''}
-                        </Chip>
-                        {running > 0 ? (
-                          <Chip variant="outlined" size="small" color="success">
-                            {running} running
-                          </Chip>
-                        ) : null}
-                        {starting > 0 ? (
-                          <Chip variant="outlined" size="small" color="warning">
-                            {starting} starting
-                          </Chip>
-                        ) : null}
-                        {stopping > 0 ? (
-                          <Chip variant="outlined" size="small" color="warning">
-                            {stopping} stopping
-                          </Chip>
-                        ) : null}
-                        {stopped > 0 ? (
-                          <Chip variant="outlined" size="small" color="secondary">
-                            {stopped} stopped
-                          </Chip>
-                        ) : null}
-                        {errored > 0 ? (
-                          <Chip variant="outlined" size="small" color="error">
-                            {errored} error
-                          </Chip>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          fontSize: cssVariableTheme.typography.fontSize.sm,
-                          color: cssVariableTheme.text.secondary,
-                          marginBottom: '8px',
-                        }}
-                      >
-                        No services yet
-                      </div>
-                    )}
-                    {stackPrereqs.length > 0 ? (
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                        {satisfied > 0 ? (
-                          <Chip variant="outlined" size="small" color="success">
-                            {satisfied} satisfied
-                          </Chip>
-                        ) : null}
-                        {failed > 0 ? (
-                          <Chip variant="outlined" size="small" color="error">
-                            {failed} failed
-                          </Chip>
-                        ) : null}
-                        {unchecked > 0 ? (
-                          <Chip variant="outlined" size="small" color="secondary">
-                            {unchecked} unchecked
-                          </Chip>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {stack.description ? (
-                      <div
-                        style={{
-                          marginTop: '8px',
-                          fontSize: cssVariableTheme.typography.fontSize.sm,
-                          color: cssVariableTheme.text.secondary,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          webkitLineClamp: '2',
-                          webkitBoxOrient: 'vertical',
-                        }}
-                      >
-                        <MarkdownDisplay content={stack.description} />
-                      </div>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              </StackCraftNestedRouteLink>
-            )
-          })}
+          {stacks.map((stack) => (
+            <StackCard
+              stack={stack}
+              stackServices={servicesByStack.get(stack.name) ?? []}
+              stackPrereqs={prereqsByStack.get(stack.name) ?? []}
+              checkResultMap={allCheckMap}
+            />
+          ))}
         </div>
       </PageContainer>
     )

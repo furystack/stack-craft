@@ -1,13 +1,14 @@
 import { useCollectionSync } from '../../services/entity-sync.js'
 import type { Injector } from '@furystack/inject'
 import { createComponent, LocationService, Shade } from '@furystack/shades'
-import { Accordion, AccordionItem, cssVariableTheme, Divider, Icon, icons } from '@furystack/shades-common-components'
-import type { StackView } from 'common'
-import { StackDefinition } from 'common'
+import { Accordion, cssVariableTheme, Divider, Icon, icons } from '@furystack/shades-common-components'
+import type { ServiceView, StackView } from 'common'
+import { mergeServiceView, ServiceConfig, ServiceDefinition, ServiceStatus, StackDefinition } from 'common'
 import { match } from 'path-to-regexp'
 
 import type { StaticAppRoutePath } from '../app-routes.js'
 import { StackCraftNestedRouteLink } from '../app-routes.js'
+import { SidebarStackItem } from './sidebar-stack-item.js'
 
 /**
  * Per-instance scratch for the location subscription merges.
@@ -15,71 +16,6 @@ import { StackCraftNestedRouteLink } from '../app-routes.js'
  * latest remount-phase map via this mutable container instead of a stale closure.
  */
 type RemountScratch = { map: Record<string, 0 | 1> }
-
-type SidebarStackLinkProps = {
-  stackName: string
-  subPath?: string
-  label: string
-  icon: typeof icons.home
-  currentUrl: string
-}
-
-const SidebarStackLink = Shade<SidebarStackLinkProps>({
-  customElementName: 'shade-sidebar-stack-link',
-  css: {
-    display: 'block',
-    '& a': {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '7px 12px 7px 40px',
-      textDecoration: 'none',
-      color: 'inherit',
-      fontSize: '0.84rem',
-      borderRadius: cssVariableTheme.shape.borderRadius.sm,
-      borderLeft: '3px solid transparent',
-      margin: '1px 8px 1px 0',
-      transition: `background ${cssVariableTheme.transitions.duration.fast} ease, border-color ${cssVariableTheme.transitions.duration.fast} ease, color ${cssVariableTheme.transitions.duration.fast} ease`,
-    },
-    '& a:hover': {
-      background: cssVariableTheme.action.hoverBackground,
-    },
-    '& a[data-active]': {
-      color: cssVariableTheme.palette.primary.main,
-      fontWeight: cssVariableTheme.typography.fontWeight.semibold,
-      background: cssVariableTheme.action.hoverBackground,
-      borderLeftColor: cssVariableTheme.palette.primary.main,
-    },
-    '& .link-label': {
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
-      minWidth: '0',
-    },
-  },
-  render: ({ props }) => {
-    const compiledHref = `/stacks/${props.stackName}${props.subPath ? `/${props.subPath}` : ''}`
-    const isActive = props.subPath
-      ? props.currentUrl.startsWith(compiledHref)
-      : !!match(compiledHref, { end: true })(props.currentUrl)
-
-    const href = props.subPath
-      ? (`/stacks/:stackName/${props.subPath}` as '/stacks/:stackName/services')
-      : '/stacks/:stackName'
-
-    return (
-      <StackCraftNestedRouteLink
-        path={href}
-        params={{ stackName: props.stackName }}
-        title={props.label}
-        {...(isActive ? { 'data-active': '' } : {})}
-      >
-        <Icon icon={props.icon} size={14} style={{ flexShrink: '0' }} />
-        <span className="link-label">{props.label}</span>
-      </StackCraftNestedRouteLink>
-    )
-  },
-})
 
 type SidebarItemProps = {
   href: StaticAppRoutePath
@@ -164,10 +100,6 @@ export const Sidebar = Shade<{ injector?: Injector }>({
     '& .sidebar-stacks-accordion': {
       margin: '0 8px 4px',
     },
-    '& .sidebar-stack-accordion-links': {
-      margin: '0 -12px 0 -8px',
-      paddingBottom: '4px',
-    },
   },
   render: (options) => {
     const { injector, useObservable, useState, useDisposable } = options
@@ -177,6 +109,28 @@ export const Sidebar = Shade<{ injector?: Injector }>({
     const stacks = (
       stacksState.status === 'synced' || stacksState.status === 'cached' ? stacksState.data.entries : []
     ) as StackView[]
+
+    const defsState = useCollectionSync(options, ServiceDefinition, {})
+    const defs = defsState.status === 'synced' || defsState.status === 'cached' ? defsState.data.entries : []
+
+    const statusesState = useCollectionSync(options, ServiceStatus, {})
+    const statuses =
+      statusesState.status === 'synced' || statusesState.status === 'cached' ? statusesState.data.entries : []
+
+    const configsState = useCollectionSync(options, ServiceConfig, {})
+    const configs =
+      configsState.status === 'synced' || configsState.status === 'cached' ? configsState.data.entries : []
+
+    const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
+    const configMap = new Map(configs.map((c) => [c.serviceId, c]))
+
+    const servicesByStack = new Map<string, ServiceView[]>()
+    for (const def of defs) {
+      const svc = mergeServiceView(def, configMap.get(def.id), statusMap.get(def.id))
+      const list = servicesByStack.get(def.stackName) ?? []
+      list.push(svc)
+      servicesByStack.set(def.stackName, list)
+    }
 
     const stackIds = stacks.map((s) => s.name).join('\0')
 
@@ -224,58 +178,14 @@ export const Sidebar = Shade<{ injector?: Injector }>({
         <div className="sidebar-section-label">Stacks</div>
         {stacks.length > 0 ? (
           <Accordion className="sidebar-stacks-accordion" variant="outlined" navSection="sidebar-stacks">
-            {stacks.map((stack) => {
-              const stackPrefix = `/stacks/${stack.name}`
-              const isCategoryActive = currentUrl === stackPrefix || currentUrl.startsWith(`${stackPrefix}/`)
-              const showAccordion = (remountPhaseByStack[stack.name] ?? 0) === 0
-
-              return showAccordion ? (
-                <AccordionItem
-                  defaultExpanded={isCategoryActive}
-                  icon={<Icon icon={icons.layers} size={16} style={{ flexShrink: '0' }} />}
-                  title={stack.displayName}
-                >
-                  <div className="sidebar-stack-accordion-links">
-                    <SidebarStackLink
-                      stackName={stack.name}
-                      icon={icons.layers}
-                      label="Overview"
-                      currentUrl={currentUrl}
-                    />
-                    <SidebarStackLink
-                      stackName={stack.name}
-                      subPath="services"
-                      icon={icons.code}
-                      label="Services"
-                      currentUrl={currentUrl}
-                    />
-                    <SidebarStackLink
-                      stackName={stack.name}
-                      subPath="repositories"
-                      icon={icons.link}
-                      label="Repositories"
-                      currentUrl={currentUrl}
-                    />
-                    <SidebarStackLink
-                      stackName={stack.name}
-                      subPath="prerequisites"
-                      icon={icons.check}
-                      label="Prerequisites"
-                      currentUrl={currentUrl}
-                    />
-                    <SidebarStackLink
-                      stackName={stack.name}
-                      subPath="setup"
-                      icon={icons.settings}
-                      label="Setup"
-                      currentUrl={currentUrl}
-                    />
-                  </div>
-                </AccordionItem>
-              ) : (
-                <span style={{ display: 'none' }} aria-hidden="true" />
-              )
-            })}
+            {stacks.map((stack) => (
+              <SidebarStackItem
+                stack={stack}
+                stackServices={servicesByStack.get(stack.name) ?? []}
+                currentUrl={currentUrl}
+                showAccordion={(remountPhaseByStack[stack.name] ?? 0) === 0}
+              />
+            ))}
           </Accordion>
         ) : null}
         <SidebarItem href="/stacks/create" icon={icons.plus} label="Create Stack" currentUrl={currentUrl} />
