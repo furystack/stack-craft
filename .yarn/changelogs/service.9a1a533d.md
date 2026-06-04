@@ -24,12 +24,13 @@ appear before simple list items within each section.
 
 ### Supervised service processes survive abrupt parent termination
 
-Managed services launched by `ProcessRunner.spawnCommand()` now run inside a small Node supervisor (started via `node -e`) instead of a bare shell. The supervisor polls the parent stack-craft process and, when the parent disappears without a graceful stop (`kill -9`, IDE force-stop, abrupt WSL exit, or a crash), tears down the entire child process tree.
+Managed services launched by `ProcessRunner.spawnCommand()` now run inside a small Node supervisor (started via `node -e`) instead of a bare shell. The supervisor watches the parent stack-craft process and, when the parent disappears without a graceful stop (`kill -9`, IDE force-stop, abrupt WSL exit, or a crash), tears down the entire child process tree.
 
+- Parent death is detected via EOF on the supervisor's stdin pipe (the parent holds the write end and never writes to it). This fires the instant the parent dies and is immune to PID reuse, unlike polling `process.kill(parentPid, 0)`.
 - On POSIX, the supervisor is the process-group leader and escalates SIGTERM → SIGKILL across the group, mirroring `ServiceLifecycleManager.shutdownAll()`.
 - On Windows, it uses `taskkill /T` (then `/F`) to walk and kill the descendant tree, since process groups are unavailable.
 - SIGTERM/SIGINT/SIGHUP from the parent are forwarded into the same kill cascade, so `killProcessGroup()` keeps working unchanged.
-- Grace and poll intervals are configurable via the `WATCHDOG_GRACE_MS` and `WATCHDOG_POLL_MS` environment variables (defaults: 5000 ms and 1000 ms).
+- The grace period before the SIGKILL escalation is configurable via the `WATCHDOG_GRACE_MS` environment variable (default: 5000 ms).
 
 This prevents orphaned service processes from lingering when stack-craft itself goes away unexpectedly.
 
@@ -47,7 +48,8 @@ This prevents orphaned service processes from lingering when stack-craft itself 
 
 ## 🧪 Tests
 
-- Updated `process-runner` spec coverage to assert that user commands are wrapped in the Node supervisor (parent pid + shell invocation) on both POSIX and Windows.
+- Updated `process-runner` spec coverage to assert that user commands are wrapped in the Node supervisor (shell invocation + stdin/pipe wiring) on both POSIX and Windows.
+- Added a POSIX integration spec that spawns a real supervised process tree, drops the parent (closes stdin), and asserts the descendant is reaped.
 
 ## 📦 Build
 <!-- PLACEHOLDER: Describe build system changes (build:) -->

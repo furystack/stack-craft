@@ -94,6 +94,19 @@ describe('ProcessRunner', () => {
         process.env = original
       }))
 
+    it('should forward WATCHDOG_GRACE_MS so supervisor overrides take effect', () =>
+      withRunnerContext(async () => {
+        const original = process.env
+        process.env = { WATCHDOG_GRACE_MS: '250', SECRET_KEY: 'nope' }
+
+        const env = ProcessRunnerImpl.getSafeEnv()
+
+        expect(env.WATCHDOG_GRACE_MS).toBe('250')
+        expect(env).not.toHaveProperty('SECRET_KEY')
+
+        process.env = original
+      }))
+
     it('should handle case-insensitive matching for safe keys', () =>
       withRunnerContext(async () => {
         const original = process.env
@@ -319,18 +332,10 @@ describe('ProcessRunner', () => {
         expect(result).toBe(mockChild)
         expect(spawn).toHaveBeenCalledWith(
           process.execPath,
-          [
-            '-e',
-            expect.stringContaining('spawn(shell, [shellFlag, command]'),
-            '--',
-            String(process.pid),
-            '/bin/sh',
-            '-c',
-            'echo hello',
-          ],
+          ['-e', expect.stringContaining('spawn(shell, [shellFlag, command]'), '--', '/bin/sh', '-c', 'echo hello'],
           expect.objectContaining({
             cwd: '/tmp',
-            stdio: ['ignore', 'pipe', 'pipe'],
+            stdio: ['pipe', 'pipe', 'pipe'],
             detached: true,
           }),
         )
@@ -352,7 +357,7 @@ describe('ProcessRunner', () => {
 
         expect(spawn).toHaveBeenCalledWith(
           process.execPath,
-          ['-e', expect.any(String), '--', String(process.pid), '/bin/sh', '-c', 'echo hello'],
+          ['-e', expect.any(String), '--', '/bin/sh', '-c', 'echo hello'],
           expect.objectContaining({
             env: expect.objectContaining({ MY_VAR: 'test' }),
           }),
@@ -375,7 +380,7 @@ describe('ProcessRunner', () => {
 
         expect(spawn).toHaveBeenCalledWith(
           process.execPath,
-          ['-e', expect.any(String), '--', String(process.pid), 'cmd.exe', '/c', 'echo hello'],
+          ['-e', expect.any(String), '--', 'cmd.exe', '/c', 'echo hello'],
           expect.objectContaining({ cwd: 'C:\\temp' }),
         )
 

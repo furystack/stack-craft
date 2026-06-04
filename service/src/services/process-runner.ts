@@ -4,7 +4,6 @@ import { type ChildProcess, spawn, spawnSync } from 'child_process'
 import { LogStorageService } from './log-storage-service.js'
 import type { ServiceLifecycleManager } from './service-lifecycle-manager.js'
 
-const DEFAULT_WATCHDOG_POLL_MS = 1000
 const DEFAULT_WATCHDOG_GRACE_MS = 5000
 
 /**
@@ -17,14 +16,20 @@ const DEFAULT_WATCHDOG_GRACE_MS = 5000
  * to `dist/` — works identically under `tsc`, `vitest`, and production runs.
  *
  * Behavior:
- *   - Spawns the user shell as a child with `stdio: 'inherit'`. The supervisor
- *     was started detached by {@link ProcessRunnerImpl.spawnCommand}, so on
- *     POSIX the supervisor PID is the process-group leader; the shell and its
- *     descendants share that group.
- *   - Polls `process.kill(parentPid, 0)` once per `WATCHDOG_POLL_MS`. When it
- *     throws (parent gone), sends SIGTERM to the entire group, waits
- *     `WATCHDOG_GRACE_MS`, then SIGKILL. Mirrors the SIGTERM→SIGKILL escalation
- *     {@link ServiceLifecycleManager.shutdownAll} performs from the parent side.
+ *   - Spawns the user shell as a child with `stdio: ['ignore', 'inherit',
+ *     'inherit']`. The supervisor was started detached by
+ *     {@link ProcessRunnerImpl.spawnCommand}, so on POSIX the supervisor PID is
+ *     the process-group leader and the shell and its descendants share that
+ *     group. The shell inherits the supervisor's stdout/stderr (the pipes back
+ *     to stack-craft) so log capture is unaffected, while the supervisor keeps
+ *     its own stdin for parent-death detection.
+ *   - Detects parent death via EOF on its own stdin. The parent holds the write
+ *     end of that pipe and never writes to it; when the parent disappears the OS
+ *     closes the end and the supervisor observes `end`/`close`. This is immune to
+ *     PID reuse, unlike polling `process.kill(parentPid, 0)`. On detection it
+ *     sends SIGTERM to the whole group, waits `WATCHDOG_GRACE_MS`, then SIGKILL —
+ *     mirroring the escalation {@link ServiceLifecycleManager.shutdownAll} does
+ *     from the parent side.
  *   - On Windows there are no process groups, so it uses `taskkill /T` against
  *     the child's pid (walks the descendant tree) and escalates to `/F`.
  *   - Forwards SIGTERM/SIGINT/SIGHUP from the parent into the same kill cascade
@@ -34,19 +39,17 @@ const DEFAULT_WATCHDOG_GRACE_MS = 5000
 const SUPERVISOR_SCRIPT = `'use strict'
 const { spawn, spawnSync } = require('child_process')
 
-// node -e CODE doesn't add a script placeholder to argv, so user args start at
-// index 1 (right after the node binary path).
-const [parentPidStr, shell, shellFlag, command] = process.argv.slice(1)
-const parentPid = Number.parseInt(parentPidStr, 10)
-const pollIntervalMs = Number.parseInt(process.env.WATCHDOG_POLL_MS, 10) || ${DEFAULT_WATCHDOG_POLL_MS}
+// node -e CODE -- <shell> <shellFlag> <command>
+// node -e doesn't add a script placeholder to argv, so user args start at index 1.
+const [shell, shellFlag, command] = process.argv.slice(1)
 const graceMs = Number.parseInt(process.env.WATCHDOG_GRACE_MS, 10) || ${DEFAULT_WATCHDOG_GRACE_MS}
 
-if (!Number.isFinite(parentPid) || !shell || !shellFlag || command == null) {
+if (!shell || !shellFlag || command == null) {
   console.error('process-supervisor: missing arguments')
   process.exit(2)
 }
 
-const child = spawn(shell, [shellFlag, command], { stdio: 'inherit' })
+const child = spawn(shell, [shellFlag, command], { stdio: ['ignore', 'inherit', 'inherit'] })
 
 let cleaningUp = false
 
@@ -60,6 +63,11 @@ const killTree = (force) => {
     return
   }
   try {
+    // Targets the supervisor's own process group, so this process is signalled
+    // too. SIGTERM is caught below and ignored once cleaningUp, so the supervisor
+    // survives long enough to mirror the child's exit. The grace SIGKILL is
+    // uncatchable and takes the supervisor down with the group if the child
+    // outlives SIGTERM.
     process.kill(-process.pid, force ? 'SIGKILL' : 'SIGTERM')
   } catch {
     if (child.pid != null) {
@@ -68,20 +76,21 @@ const killTree = (force) => {
   }
 }
 
-const startEscalation = () => {
+const cleanup = () => {
   if (cleaningUp) return
   cleaningUp = true
   killTree(false)
   setTimeout(() => killTree(true), graceMs).unref()
 }
 
-const interval = setInterval(() => {
-  try { process.kill(parentPid, 0) }
-  catch { startEscalation() }
-}, pollIntervalMs)
+// Parent-death detection: the parent owns the write end of our stdin and never
+// writes; when it dies the OS closes that end and we get EOF here.
+process.stdin.on('end', cleanup)
+process.stdin.on('close', cleanup)
+process.stdin.on('error', cleanup)
+process.stdin.resume()
 
 child.on('exit', (code) => {
-  clearInterval(interval)
   // Exit immediately whether the child died naturally or as part of the
   // kill cascade. The unref'd grace SIGKILL timer doesn't keep us alive.
   // ServiceLifecycleManager treats non-zero exits as graceful when stopping=true,
@@ -89,16 +98,10 @@ child.on('exit', (code) => {
   process.exit(code != null ? code : 1)
 })
 
-const onSignal = () => {
-  if (cleaningUp) return
-  cleaningUp = true
-  killTree(false)
-  setTimeout(() => killTree(true), graceMs).unref()
-}
-
-process.on('SIGTERM', onSignal)
-process.on('SIGINT', onSignal)
-process.on('SIGHUP', onSignal)
+// Forward graceful signals from the parent into the same kill cascade.
+process.on('SIGTERM', cleanup)
+process.on('SIGINT', cleanup)
+process.on('SIGHUP', cleanup)
 `
 
 export type ManagedProcess = {
@@ -143,6 +146,8 @@ const SAFE_ENV_KEYS = new Set([
   'TMPDIR',
   'TMP',
   'TEMP',
+  // Supervisor tuning — forwarded so WATCHDOG_GRACE_MS overrides reach node -e.
+  'WATCHDOG_GRACE_MS',
   // Windows-specific
   'USERPROFILE',
   'APPDATA',
@@ -197,22 +202,31 @@ export class ProcessRunnerImpl {
 
   /**
    * Spawns the user command inside a tiny Node supervisor (see
-   * {@link SUPERVISOR_SCRIPT}). The supervisor polls the parent stack-craft pid
-   * and tears the child tree down if stack-craft dies before it can issue a
-   * graceful stop — handles `kill -9`, IDE force-stop, abrupt WSL exits, and
-   * any other path that bypasses {@link ServiceLifecycleManager.shutdownAll}.
+   * {@link SUPERVISOR_SCRIPT}). The supervisor watches the parent stack-craft
+   * process via its stdin pipe and tears the child tree down if stack-craft dies
+   * before it can issue a graceful stop — handles `kill -9`, IDE force-stop,
+   * abrupt WSL exits, and any other path that bypasses
+   * {@link ServiceLifecycleManager.shutdownAll}.
    */
   public spawnCommand(command: string, cwd: string, extraEnv?: Record<string, string>): ChildProcess {
     const isWindows = process.platform === 'win32'
     const shell = isWindows ? 'cmd.exe' : '/bin/sh'
     const shellFlag = isWindows ? '/c' : '-c'
 
-    return spawn(process.execPath, ['-e', SUPERVISOR_SCRIPT, '--', String(process.pid), shell, shellFlag, command], {
+    const child = spawn(process.execPath, ['-e', SUPERVISOR_SCRIPT, '--', shell, shellFlag, command], {
       cwd,
-      stdio: ['ignore', 'pipe', 'pipe'],
+      // stdin is a pipe the supervisor watches for EOF (parent-death signal);
+      // stdout/stderr carry the child's output back for log capture.
+      stdio: ['pipe', 'pipe', 'pipe'],
       env: { ...ProcessRunnerImpl.getSafeEnv(), ...extraEnv },
       detached: true,
     })
+
+    // The supervisor watches this stdin pipe for EOF as its parent-death signal,
+    // so leave the write end open. Swallow EPIPE so it can't crash us at teardown.
+    child.stdin?.on('error', () => {})
+
+    return child
   }
 
   /**
