@@ -1,20 +1,7 @@
 import { useCollectionSync } from '../../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
 
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  Chip,
-  cssVariableTheme,
-  Icon,
-  icons,
-  MarkdownDisplay,
-  NotyService,
-  PageContainer,
-  PageHeader,
-} from '@furystack/shades-common-components'
+import { Button, Icon, icons, NotyService, PageContainer, PageHeader } from '@furystack/shades-common-components'
 import type { ServiceView, StackDefinition } from 'common'
 import {
   mergeServiceView,
@@ -29,6 +16,7 @@ import {
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
 import { isServiceReady } from '../../utils/is-service-ready.js'
+import { StackCard } from './stack-card.js'
 
 type StackListDashboardProps = {
   stacks: StackDefinition[]
@@ -234,115 +222,14 @@ export const StackListDashboard = Shade<StackListDashboardProps>({
             gap: '16px',
           }}
         >
-          {stacks.map((stack) => {
-            const stackServices = servicesByStack.get(stack.name) ?? []
-            const stackPrereqs = prereqsByStack.get(stack.name) ?? []
-
-            const running = stackServices.filter((s) => s.runStatus === 'running').length
-            const stopped = stackServices.filter((s) => s.runStatus === 'stopped').length
-            const errored = stackServices.filter((s) => s.runStatus === 'error').length
-            const starting = stackServices.filter((s) => s.runStatus === 'starting').length
-            const stopping = stackServices.filter((s) => s.runStatus === 'stopping').length
-
-            const satisfied = stackPrereqs.filter((p) => allCheckMap.get(p.id)?.status === 'satisfied').length
-            const failed = stackPrereqs.filter((p) => allCheckMap.get(p.id)?.status === 'failed').length
-            const unchecked = stackPrereqs.length - satisfied - failed
-
-            return (
-              <StackCraftNestedRouteLink
-                path="/stacks/:stackName"
-                params={{ stackName: stack.name }}
-                style={{ textDecoration: 'none', color: 'inherit' }}
-              >
-                <Card variant="outlined" clickable style={{ height: '100%' }}>
-                  <CardHeader
-                    title={stack.displayName}
-                    avatar={<Icon icon={icons.layers} />}
-                    action={<Icon icon={icons.chevronRight} size="small" />}
-                  />
-                  <CardContent>
-                    {stackServices.length > 0 ? (
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                        <Chip variant="outlined" size="small" color="secondary">
-                          {stackServices.length} service{stackServices.length !== 1 ? 's' : ''}
-                        </Chip>
-                        {running > 0 ? (
-                          <Chip variant="outlined" size="small" color="success">
-                            {running} running
-                          </Chip>
-                        ) : null}
-                        {starting > 0 ? (
-                          <Chip variant="outlined" size="small" color="warning">
-                            {starting} starting
-                          </Chip>
-                        ) : null}
-                        {stopping > 0 ? (
-                          <Chip variant="outlined" size="small" color="warning">
-                            {stopping} stopping
-                          </Chip>
-                        ) : null}
-                        {stopped > 0 ? (
-                          <Chip variant="outlined" size="small" color="secondary">
-                            {stopped} stopped
-                          </Chip>
-                        ) : null}
-                        {errored > 0 ? (
-                          <Chip variant="outlined" size="small" color="error">
-                            {errored} error
-                          </Chip>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          fontSize: cssVariableTheme.typography.fontSize.sm,
-                          color: cssVariableTheme.text.secondary,
-                          marginBottom: '8px',
-                        }}
-                      >
-                        No services yet
-                      </div>
-                    )}
-                    {stackPrereqs.length > 0 ? (
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                        {satisfied > 0 ? (
-                          <Chip variant="outlined" size="small" color="success">
-                            {satisfied} satisfied
-                          </Chip>
-                        ) : null}
-                        {failed > 0 ? (
-                          <Chip variant="outlined" size="small" color="error">
-                            {failed} failed
-                          </Chip>
-                        ) : null}
-                        {unchecked > 0 ? (
-                          <Chip variant="outlined" size="small" color="secondary">
-                            {unchecked} unchecked
-                          </Chip>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {stack.description ? (
-                      <div
-                        style={{
-                          marginTop: '8px',
-                          fontSize: cssVariableTheme.typography.fontSize.sm,
-                          color: cssVariableTheme.text.secondary,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          webkitLineClamp: '2',
-                          webkitBoxOrient: 'vertical',
-                        }}
-                      >
-                        <MarkdownDisplay content={stack.description} />
-                      </div>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              </StackCraftNestedRouteLink>
-            )
-          })}
+          {stacks.map((stack) => (
+            <StackCard
+              stack={stack}
+              stackServices={servicesByStack.get(stack.name) ?? []}
+              stackPrereqs={prereqsByStack.get(stack.name) ?? []}
+              checkResultMap={allCheckMap}
+            />
+          ))}
         </div>
       </PageContainer>
     )
