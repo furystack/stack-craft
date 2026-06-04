@@ -45,6 +45,13 @@ test('Navigation restructure', async ({ page, browserName }) => {
       await expect(page.locator('shade-export-stack')).toBeVisible()
     })
 
+    await test.step('Stack actions menu runs Set Up All', async () => {
+      await page.goto(`/stacks/${stackName}/services`)
+      await openStackActionsMenu(page)
+      await page.getByRole('menuitem', { name: 'Set Up All' }).click()
+      await expect(page.locator('shade-services-list')).toBeVisible()
+    })
+
     await test.step('Dashboard card actions do not navigate away', async () => {
       await page.locator('shade-sidebar-item a', { hasText: 'Dashboard' }).click()
       await expect(page.locator('stack-list-dashboard')).toBeVisible()

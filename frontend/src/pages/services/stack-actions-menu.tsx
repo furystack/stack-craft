@@ -1,10 +1,9 @@
 import { createComponent, Shade } from '@furystack/shades'
 
 import type { MenuEntry } from '@furystack/shades-common-components'
-import { Button, Dropdown, Icon, icons, NotyService } from '@furystack/shades-common-components'
+import { Button, Dropdown, Icon, icons } from '@furystack/shades-common-components'
 
-import { stackCraftNavigate } from '../../components/app-routes.js'
-import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
+import { runStackMenuAction, type StackMenuActionKey } from './run-stack-menu-action.js'
 
 type StackActionsMenuProps = {
   stackName: string
@@ -35,38 +34,12 @@ export const StackActionsMenu = Shade<StackActionsMenuProps>({
     ]
 
     const handleSelect = (key: string) => {
-      if (key === 'edit') {
-        stackCraftNavigate(injector, {
-          path: '/stacks/:stackName/edit',
-          params: { stackName: props.stackName },
-        })
-        return
-      }
-      if (key === 'export') {
-        stackCraftNavigate(injector, {
-          path: '/stacks/:stackName/export',
-          params: { stackName: props.stackName },
-        })
-        return
-      }
       if (key === 'setup-all') {
         setIsSetupRunning(true)
-        void injector
-          .get(StacksApiClient)
-          .call({
-            method: 'POST',
-            action: '/stacks/:id/setup',
-            url: { id: props.stackName },
-          })
-          .catch((error: unknown) => {
-            injector.get(NotyService).emit('onNotyAdded', {
-              title: 'Batch setup failed',
-              body: error instanceof Error ? error.message : 'Setup error',
-              type: 'error',
-            })
-          })
-          .finally(() => setIsSetupRunning(false))
+        void runStackMenuAction(injector, props.stackName, key).finally(() => setIsSetupRunning(false))
+        return
       }
+      void runStackMenuAction(injector, props.stackName, key as StackMenuActionKey)
     }
 
     return (

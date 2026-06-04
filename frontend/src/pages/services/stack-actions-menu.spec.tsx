@@ -6,10 +6,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js'
 import { StackActionsMenu } from './stack-actions-menu.js'
 
-const stackCraftNavigate = vi.fn()
+const mocks = vi.hoisted(() => ({
+  stackCraftNavigate: vi.fn(),
+}))
 
 vi.mock('../../components/app-routes.js', () => ({
-  stackCraftNavigate,
+  stackCraftNavigate: mocks.stackCraftNavigate,
 }))
 
 describe('StackActionsMenu', () => {
@@ -17,7 +19,7 @@ describe('StackActionsMenu', () => {
 
   afterEach(() => {
     root?.remove()
-    stackCraftNavigate.mockClear()
+    mocks.stackCraftNavigate.mockClear()
   })
 
   it('should expose stack actions via the menu trigger', async () => {

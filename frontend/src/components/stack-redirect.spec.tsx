@@ -3,10 +3,12 @@ import { createComponent, flushUpdates, initializeShadeRoot } from '@furystack/s
 import { defaultDarkTheme, ThemeProviderService } from '@furystack/shades-common-components'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const stackCraftReplace = vi.fn()
+const mocks = vi.hoisted(() => ({
+  stackCraftReplace: vi.fn(),
+}))
 
-vi.mock('../app-routes.js', () => ({
-  stackCraftReplace,
+vi.mock('./app-routes.js', () => ({
+  stackCraftReplace: mocks.stackCraftReplace,
 }))
 
 import { StackRedirect } from './stack-redirect.js'
@@ -16,7 +18,7 @@ describe('StackRedirect', () => {
 
   afterEach(() => {
     root?.remove()
-    stackCraftReplace.mockClear()
+    mocks.stackCraftReplace.mockClear()
   })
 
   it('should replace location with the stack services route on mount', async () => {
@@ -34,7 +36,7 @@ describe('StackRedirect', () => {
 
     await flushUpdates()
 
-    expect(stackCraftReplace).toHaveBeenCalledWith(injector, {
+    expect(mocks.stackCraftReplace).toHaveBeenCalledWith(injector, {
       path: '/stacks/:stackName/services',
       params: { stackName: 'my-stack' },
     })

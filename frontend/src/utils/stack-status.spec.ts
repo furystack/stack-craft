@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ServiceView } from 'common'
 
-import { getStackRunSummary, getStackStatusPaletteKey } from './stack-status.js'
+import { getStackRunSummary, getStackStatusPaletteKey, formatStackRunSummaryTooltip } from './stack-status.js'
 
 const baseService: ServiceView = {
   id: 'svc-1',
@@ -90,5 +90,17 @@ describe('getStackStatusPaletteKey', () => {
     expect(getStackStatusPaletteKey('running')).toBe('success')
     expect(getStackStatusPaletteKey('stopped')).toBe('secondary')
     expect(getStackStatusPaletteKey('empty')).toBe('secondary')
+  })
+})
+
+describe('formatStackRunSummaryTooltip', () => {
+  it('should describe transitional counts in the tooltip', () => {
+    const summary = getStackRunSummary([
+      { ...baseService, id: 'a', runStatus: 'running' },
+      { ...baseService, id: 'b', runStatus: 'starting' },
+      { ...baseService, id: 'c', runStatus: 'stopped' },
+    ])
+
+    expect(formatStackRunSummaryTooltip(summary)).toBe('1 running, 1 starting/stopping, 1 stopped')
   })
 })

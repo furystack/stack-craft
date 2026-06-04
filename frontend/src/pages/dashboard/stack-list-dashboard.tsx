@@ -1,7 +1,7 @@
 import { useCollectionSync } from '../../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
 
-import { Button, Icon, icons, NotyService, PageContainer, PageHeader } from '@furystack/shades-common-components'
+import { Button, Icon, icons, PageContainer, PageHeader } from '@furystack/shades-common-components'
 import type { ServiceView, StackDefinition } from 'common'
 import {
   mergeServiceView,
@@ -14,8 +14,7 @@ import {
 } from 'common'
 
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
-import { ServicesApiClient } from '../../services/api-clients/services-api-client.js'
-import { isServiceReady } from '../../utils/is-service-ready.js'
+import { runBulkServiceAction } from '../../utils/bulk-service-actions.js'
 import { StackCard } from './stack-card.js'
 
 type StackListDashboardProps = {
@@ -86,73 +85,13 @@ export const StackListDashboard = Shade<StackListDashboardProps>({
     const [isStoppingAll, setIsStoppingAll] = useState('globalIsStoppingAll', false)
     const [isUpdatingAll, setIsUpdatingAll] = useState('globalIsUpdatingAll', false)
 
-    const api = injector.get(ServicesApiClient)
-    const noty = injector.get(NotyService)
-
-    const triggerGlobalStartAll = async () => {
-      setIsStartingAll(true)
-      const failures: string[] = []
-      for (const svc of allServices) {
-        if (isServiceReady(svc) && svc.runStatus === 'stopped') {
-          try {
-            await api.call({ method: 'POST', action: '/services/:id/start', url: { id: svc.id } })
-          } catch {
-            failures.push(svc.displayName)
-          }
-        }
+    const runGlobalAction = async (action: 'start' | 'stop' | 'update', setLoading: (v: boolean) => void) => {
+      setLoading(true)
+      try {
+        await runBulkServiceAction(injector, allServices, action)
+      } finally {
+        setLoading(false)
       }
-      if (failures.length > 0) {
-        noty.emit('onNotyAdded', {
-          title: 'Start failed',
-          body: `Failed for: ${failures.join(', ')}`,
-          type: 'error',
-        })
-      }
-      setIsStartingAll(false)
-    }
-
-    const triggerGlobalStopAll = async () => {
-      setIsStoppingAll(true)
-      const failures: string[] = []
-      for (const svc of allServices) {
-        if (svc.runStatus === 'running') {
-          try {
-            await api.call({ method: 'POST', action: '/services/:id/stop', url: { id: svc.id } })
-          } catch {
-            failures.push(svc.displayName)
-          }
-        }
-      }
-      if (failures.length > 0) {
-        noty.emit('onNotyAdded', {
-          title: 'Stop failed',
-          body: `Failed for: ${failures.join(', ')}`,
-          type: 'error',
-        })
-      }
-      setIsStoppingAll(false)
-    }
-
-    const triggerGlobalUpdateAll = async () => {
-      setIsUpdatingAll(true)
-      const failures: string[] = []
-      for (const svc of allServices) {
-        if (svc.repositoryId && svc.cloneStatus === 'cloned') {
-          try {
-            await api.call({ method: 'POST', action: '/services/:id/update', url: { id: svc.id } })
-          } catch {
-            failures.push(svc.displayName)
-          }
-        }
-      }
-      if (failures.length > 0) {
-        noty.emit('onNotyAdded', {
-          title: 'Update failed',
-          body: `Failed for: ${failures.join(', ')}`,
-          type: 'error',
-        })
-      }
-      setIsUpdatingAll(false)
     }
 
     return (
@@ -175,7 +114,7 @@ export const StackListDashboard = Shade<StackListDashboardProps>({
                     color="success"
                     disabled={globalStoppedCount === 0 && globalErrorCount === 0}
                     loading={isStartingAll}
-                    onclick={() => void triggerGlobalStartAll()}
+                    onclick={() => void runGlobalAction('start', setIsStartingAll)}
                     startIcon={<Icon icon={icons.play} size="small" />}
                   >
                     Start All
@@ -185,7 +124,7 @@ export const StackListDashboard = Shade<StackListDashboardProps>({
                     size="small"
                     disabled={globalRunningCount === 0}
                     loading={isStoppingAll}
-                    onclick={() => void triggerGlobalStopAll()}
+                    onclick={() => void runGlobalAction('stop', setIsStoppingAll)}
                     startIcon={<Icon icon={icons.stopCircle} size="small" />}
                   >
                     Stop All
@@ -195,7 +134,7 @@ export const StackListDashboard = Shade<StackListDashboardProps>({
                     size="small"
                     disabled={globalClonedCount === 0}
                     loading={isUpdatingAll}
-                    onclick={() => void triggerGlobalUpdateAll()}
+                    onclick={() => void runGlobalAction('update', setIsUpdatingAll)}
                     startIcon={<Icon icon={icons.download} size="small" />}
                   >
                     Update All

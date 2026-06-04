@@ -33,8 +33,6 @@ export const ServiceTable = Shade<ServiceTableProps>({
   customElementName: 'shade-service-table',
   render: (options) => {
     const { props, injector, useState, useDisposable } = options
-    const api = injector.get(ServicesApiClient)
-    const noty = injector.get(NotyService)
     const { collectionService } = props
 
     useDisposable(
@@ -50,6 +48,8 @@ export const ServiceTable = Shade<ServiceTableProps>({
     )
 
     const callServiceAction = (serviceId: string, action: string, actionLabel: string) => {
+      const api = injector.get(ServicesApiClient)
+      const noty = injector.get(NotyService)
       void api
         .call({
           method: 'POST',

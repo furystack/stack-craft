@@ -54,3 +54,26 @@ export const getStackStatusPaletteKey = (status: StackRunSummaryStatus): keyof P
       return 'secondary'
   }
 }
+
+/** Human-readable tooltip for sidebar / dashboard status indicators. */
+export const formatStackRunSummaryTooltip = (summary: StackRunSummary): string => {
+  if (summary.total === 0) {
+    return 'No services'
+  }
+
+  const parts: string[] = []
+  if (summary.running > 0) {
+    parts.push(`${summary.running} running`)
+  }
+  if (summary.transitional > 0) {
+    parts.push(`${summary.transitional} starting/stopping`)
+  }
+  if (summary.stopped > 0) {
+    parts.push(`${summary.stopped} stopped`)
+  }
+  if (summary.error > 0) {
+    parts.push(`${summary.error} error`)
+  }
+
+  return parts.join(', ')
+}

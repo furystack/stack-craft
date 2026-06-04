@@ -4,7 +4,7 @@ import type { ServiceView, StackView } from 'common'
 import { match } from 'path-to-regexp'
 
 import { StackCraftNestedRouteLink } from '../app-routes.js'
-import { getStackRunSummary, getStackStatusPaletteKey } from '../../utils/stack-status.js'
+import { formatStackRunSummaryTooltip, getStackRunSummary, getStackStatusPaletteKey } from '../../utils/stack-status.js'
 
 type SidebarStackLinkProps = {
   stackName: string
@@ -95,12 +95,6 @@ export const SidebarStackItem = Shade<SidebarStackItemProps>({
       borderRadius: '50%',
       flexShrink: '0',
     },
-    '& .accordion-title-row': {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      minWidth: '0',
-    },
     '& .sidebar-stack-accordion-links': {
       margin: '0 -12px 0 -8px',
       paddingBottom: '4px',
@@ -124,11 +118,7 @@ export const SidebarStackItem = Shade<SidebarStackItemProps>({
           <span
             className="stack-status-dot"
             data-testid="stack-status-dot"
-            title={
-              runSummary.total === 0
-                ? 'No services'
-                : `${runSummary.running} running, ${runSummary.stopped} stopped, ${runSummary.error} error`
-            }
+            title={formatStackRunSummaryTooltip(runSummary)}
             style={{ backgroundColor: cssVariableTheme.palette[dotColor].main }}
           />
         }

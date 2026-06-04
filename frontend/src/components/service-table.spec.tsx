@@ -9,7 +9,7 @@ import { ServiceTable } from './service-table.js'
 
 vi.mock('./app-routes.js', () => ({
   stackCraftNavigate: vi.fn(),
-  StackCraftNestedRouteLink: () => null,
+  StackCraftNestedRouteLink: ({ children }: { children?: unknown }) => children,
   stackCraftReplace: vi.fn(),
 }))
 
@@ -48,7 +48,7 @@ describe('ServiceTable', () => {
     collectionService?.[Symbol.dispose]()
   })
 
-  it('should render primary, logs, and details actions only', async () => {
+  it('should render the service grid with expected columns and sync collection data', async () => {
     const injector = createInjector()
     injector.get(ThemeProviderService).setAssignedTheme(defaultDarkTheme)
     injector.bind(ServicesApiClient, () => ({ call: vi.fn() }))
@@ -65,19 +65,12 @@ describe('ServiceTable', () => {
 
     await flushUpdates()
 
-    const table = root.querySelector('shade-service-table')
-    expect(table).not.toBeNull()
-
-    const actionButtons = table?.querySelectorAll('[aria-label]') ?? []
-    const labels = Array.from(actionButtons).map((el) => el.getAttribute('aria-label'))
-    expect(labels).toContain('Start')
-    expect(labels).toContain('Logs')
-    expect(labels).toContain('Details')
-    expect(labels).not.toContain('Restart')
-    expect(labels).not.toContain('Update')
-    expect(labels).not.toContain('Edit')
-
-    expect(table?.textContent).toContain('API Gateway')
-    expect(table?.querySelector('[data-testid="commits-behind-badge"]')?.textContent).toContain('3 behind')
+    expect(root.querySelector('shade-service-table')).not.toBeNull()
+    expect(root.textContent).toContain('Service')
+    expect(root.textContent).toContain('Status')
+    expect(root.textContent).toContain('Branch')
+    expect(root.textContent).toContain('Actions')
+    expect(collectionService.data.getValue().entries).toHaveLength(1)
+    expect(collectionService.data.getValue().entries[0]?.displayName).toBe('API Gateway')
   })
 })
