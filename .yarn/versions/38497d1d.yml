@@ -1,0 +1,5 @@
+releases:
+  service: patch
+
+declined:
+  - stack-craft

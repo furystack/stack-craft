@@ -2,27 +2,25 @@ import { GitHubRepositoryDataSet } from '../../data-store/tokens.js'
 import { getDataSetFor } from '@furystack/repository'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { GitService } from '../../../services/git-service.js'
 import { createMockActionContext, withTestInjector } from '../../../test-helpers.js'
 import { ValidateRepoAction } from './validate-repo-action.js'
-const execFileMock = vi.hoisted(() =>
-  vi.fn<(cmd: string, args: string[], options: { timeout: number }) => Promise<{ stdout: string; stderr: string }>>(),
-)
 
-vi.mock('child_process', () => ({
-  execFile: (...args: unknown[]) => execFileMock(...(args as [string, string[], { timeout: number }])),
-}))
+const lsRemoteMock = vi.fn<(url: string) => Promise<void>>()
 
-vi.mock('util', () => ({
-  promisify: () => execFileMock,
-}))
+const bindGitServiceStub = (injector: { bind: (token: typeof GitService, factory: () => GitService) => void }) => {
+  injector.bind(GitService, () => ({ lsRemote: lsRemoteMock }) as unknown as GitService)
+}
 
 describe('ValidateRepoAction', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    lsRemoteMock.mockReset()
   })
 
   it('should return accessible: true when git ls-remote succeeds', async () => {
     await withTestInjector(async ({ elevated }) => {
+      bindGitServiceStub(elevated)
       const ts = new Date().toISOString()
       await getDataSetFor(elevated, GitHubRepositoryDataSet).add(elevated, {
         id: 'repo-1',
@@ -34,7 +32,7 @@ describe('ValidateRepoAction', () => {
         updatedAt: ts,
       })
 
-      execFileMock.mockResolvedValue({ stdout: 'abc123\tHEAD\n', stderr: '' })
+      lsRemoteMock.mockResolvedValue(undefined)
 
       const result = await ValidateRepoAction(
         createMockActionContext({ injector: elevated, urlParams: { id: 'repo-1' } }),
@@ -42,18 +40,13 @@ describe('ValidateRepoAction', () => {
 
       const body = result.chunk as { accessible: boolean }
       expect(body.accessible).toBe(true)
-      expect(execFileMock).toHaveBeenCalledWith(
-        'git',
-        ['ls-remote', '--exit-code', 'https://github.com/user/repo.git'],
-        {
-          timeout: 15000,
-        },
-      )
+      expect(lsRemoteMock).toHaveBeenCalledWith('https://github.com/user/repo.git')
     })
   })
 
   it('should return accessible: false when git ls-remote fails', async () => {
     await withTestInjector(async ({ elevated }) => {
+      bindGitServiceStub(elevated)
       const ts = new Date().toISOString()
       await getDataSetFor(elevated, GitHubRepositoryDataSet).add(elevated, {
         id: 'repo-2',
@@ -65,7 +58,7 @@ describe('ValidateRepoAction', () => {
         updatedAt: ts,
       })
 
-      execFileMock.mockRejectedValue(new Error('Repository not found'))
+      lsRemoteMock.mockRejectedValue(new Error('Repository not found'))
 
       const result = await ValidateRepoAction(
         createMockActionContext({ injector: elevated, urlParams: { id: 'repo-2' } }),
@@ -79,6 +72,7 @@ describe('ValidateRepoAction', () => {
 
   it('should throw 404 when repository does not exist', async () => {
     await withTestInjector(async ({ elevated }) => {
+      bindGitServiceStub(elevated)
       await expect(
         ValidateRepoAction(createMockActionContext({ injector: elevated, urlParams: { id: 'nonexistent' } })),
       ).rejects.toThrow('Repository not found')

@@ -6,21 +6,27 @@ import { usingAsync } from '@furystack/utils'
 import { Prerequisite, PrerequisiteCheckResult, StackConfig } from 'common'
 import type { PrerequisiteType } from 'common'
 import { randomBytes } from 'crypto'
+import { tmpdir } from 'os'
 import { describe, expect, it, vi } from 'vitest'
 
 import { runCheck, CheckPrerequisiteAction } from './check-prerequisite-action.js'
 import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
 
-const execFileMock = vi.hoisted(() =>
-  vi.fn<(cmd: string, args: string[], options: { timeout: number }) => Promise<{ stdout: string; stderr: string }>>(),
+const runCliMock = vi.hoisted(() =>
+  vi.fn<
+    (
+      cmd: string,
+      args: readonly string[],
+      options: { timeoutMs: number; env?: Record<string, string | undefined> },
+    ) => Promise<{ stdout: string; stderr: string }>
+  >(),
 )
 
-vi.mock('child_process', () => ({
-  execFile: (...args: unknown[]) => execFileMock(...(args as [string, string[], { timeout: number }])),
-}))
-
-vi.mock('util', () => ({
-  promisify: () => execFileMock,
+vi.mock('../../../utils/run-cli.js', () => ({
+  runCli: (...args: unknown[]) =>
+    runCliMock(
+      ...(args as [string, readonly string[], { timeoutMs: number; env?: Record<string, string | undefined> }]),
+    ),
 }))
 
 const createMockActionContext = (options: { injector: Injector; urlParams?: Record<string, string> }) => ({
@@ -57,20 +63,20 @@ describe('CheckPrerequisiteAction', () => {
   describe('runCheck', () => {
     describe('node', () => {
       it('should return satisfied when version meets minimum', async () => {
-        execFileMock.mockResolvedValue({ stdout: 'v20.11.0\n', stderr: '' })
+        runCliMock.mockResolvedValue({ stdout: 'v20.11.0\n', stderr: '' })
         const result = await runCheck('node', { minimumVersion: '18.0.0' })
         expect(result.satisfied).toBe(true)
         expect(result.output).toContain('20.11.0')
       })
 
       it('should return not satisfied when version is below minimum', async () => {
-        execFileMock.mockResolvedValue({ stdout: 'v16.20.0\n', stderr: '' })
+        runCliMock.mockResolvedValue({ stdout: 'v16.20.0\n', stderr: '' })
         const result = await runCheck('node', { minimumVersion: '18.0.0' })
         expect(result.satisfied).toBe(false)
       })
 
       it('should return not satisfied when version cannot be parsed', async () => {
-        execFileMock.mockResolvedValue({ stdout: 'unknown\n', stderr: '' })
+        runCliMock.mockResolvedValue({ stdout: 'unknown\n', stderr: '' })
         const result = await runCheck('node', { minimumVersion: '18.0.0' })
         expect(result.satisfied).toBe(false)
         expect(result.output).toContain('Could not parse')
@@ -79,21 +85,51 @@ describe('CheckPrerequisiteAction', () => {
 
     describe('yarn', () => {
       it('should return satisfied when version meets minimum', async () => {
-        execFileMock.mockResolvedValue({ stdout: '4.6.0\n', stderr: '' })
+        runCliMock.mockResolvedValue({ stdout: '4.6.0\n', stderr: '' })
         const result = await runCheck('yarn', { minimumVersion: '4.0.0' })
         expect(result.satisfied).toBe(true)
       })
 
       it('should return not satisfied when version is below minimum', async () => {
-        execFileMock.mockResolvedValue({ stdout: '1.22.0\n', stderr: '' })
+        runCliMock.mockResolvedValue({ stdout: '1.22.0\n', stderr: '' })
         const result = await runCheck('yarn', { minimumVersion: '4.0.0' })
         expect(result.satisfied).toBe(false)
+      })
+
+      it('should invoke `yarn --version` directly on POSIX', async () => {
+        const originalPlatform = process.platform
+        Object.defineProperty(process, 'platform', { value: 'linux', writable: true })
+        try {
+          runCliMock.mockResolvedValue({ stdout: '4.6.0\n', stderr: '' })
+          await runCheck('yarn', { minimumVersion: '4.0.0' })
+          expect(runCliMock).toHaveBeenCalledWith('yarn', ['--version'], expect.objectContaining({ timeoutMs: 30_000 }))
+        } finally {
+          Object.defineProperty(process, 'platform', { value: originalPlatform, writable: true })
+        }
+      })
+
+      // Yarn ships as `yarn.cmd` / `yarn.ps1` on Windows; routing through `cmd.exe`
+      // is the load-bearing fix that lets PATHEXT resolve the shim. Guard against regression.
+      it('should route through cmd.exe on Windows to resolve the yarn shim', async () => {
+        const originalPlatform = process.platform
+        Object.defineProperty(process, 'platform', { value: 'win32', writable: true })
+        try {
+          runCliMock.mockResolvedValue({ stdout: '4.6.0\n', stderr: '' })
+          await runCheck('yarn', { minimumVersion: '4.0.0' })
+          expect(runCliMock).toHaveBeenCalledWith(
+            'cmd.exe',
+            ['/c', 'yarn', '--version'],
+            expect.objectContaining({ timeoutMs: 30_000 }),
+          )
+        } finally {
+          Object.defineProperty(process, 'platform', { value: originalPlatform, writable: true })
+        }
       })
     })
 
     describe('git', () => {
       it('should return satisfied when git is available', async () => {
-        execFileMock.mockResolvedValue({ stdout: 'git version 2.43.0\n', stderr: '' })
+        runCliMock.mockResolvedValue({ stdout: 'git version 2.43.0\n', stderr: '' })
         const result = await runCheck('git', {})
         expect(result.satisfied).toBe(true)
         expect(result.output).toContain('git version')
@@ -172,7 +208,7 @@ describe('CheckPrerequisiteAction', () => {
 
     describe('custom-script', () => {
       it('should return satisfied when script succeeds', async () => {
-        execFileMock.mockResolvedValue({ stdout: 'OK\n', stderr: '' })
+        runCliMock.mockResolvedValue({ stdout: 'OK\n', stderr: '' })
         const result = await runCheck('custom-script', { script: 'echo OK' })
         expect(result.satisfied).toBe(true)
         expect(result.output).toBe('OK')
@@ -181,7 +217,7 @@ describe('CheckPrerequisiteAction', () => {
 
     describe('dotnet-sdk', () => {
       it('should return satisfied when SDK version is installed', async () => {
-        execFileMock.mockResolvedValue({
+        runCliMock.mockResolvedValue({
           stdout: '8.0.100 [/usr/share/dotnet/sdk]\n9.0.100 [/usr/share/dotnet/sdk]\n',
           stderr: '',
         })
@@ -190,7 +226,7 @@ describe('CheckPrerequisiteAction', () => {
       })
 
       it('should return not satisfied when SDK version is not installed', async () => {
-        execFileMock.mockResolvedValue({
+        runCliMock.mockResolvedValue({
           stdout: '8.0.100 [/usr/share/dotnet/sdk]\n',
           stderr: '',
         })
@@ -224,7 +260,7 @@ describe('CheckPrerequisiteAction', () => {
           updatedAt: ts,
         })
 
-        execFileMock.mockResolvedValue({ stdout: 'v20.11.0\n', stderr: '' })
+        runCliMock.mockResolvedValue({ stdout: 'v20.11.0\n', stderr: '' })
 
         const elevated = useSystemIdentityContext({ injector })
         const result = await CheckPrerequisiteAction(
@@ -264,7 +300,7 @@ describe('CheckPrerequisiteAction', () => {
         })
         await stackConfigStore.add({
           stackName: 'test-stack',
-          mainDirectory: '/tmp',
+          mainDirectory: tmpdir(),
           environmentVariables: {
             STACK_CONFIGURED_VAR_12345: { source: 'custom', customValue: 'configured-value' },
           },
@@ -298,7 +334,7 @@ describe('CheckPrerequisiteAction', () => {
           updatedAt: ts,
         })
 
-        execFileMock.mockRejectedValue(new Error('Command not found'))
+        runCliMock.mockRejectedValue(new Error('Command not found'))
 
         const elevated = useSystemIdentityContext({ injector })
         const result = await CheckPrerequisiteAction(

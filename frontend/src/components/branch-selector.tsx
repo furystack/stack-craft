@@ -10,6 +10,7 @@ type BranchSelectorProps = {
   cloneStatus: CloneStatus
   upstreamStatus?: UpstreamStatus
   lastPullError?: string
+  commitsBehind?: number
 }
 
 /**
@@ -205,6 +206,16 @@ export const BranchSelector = Shade<BranchSelectorProps>({
       opacity: '0.5',
       flexShrink: '0',
     },
+    '& .commits-behind-badge': {
+      fontSize: '10px',
+      fontWeight: '600',
+      padding: '1px 5px',
+      borderRadius: '8px',
+      backgroundColor: 'var(--shades-theme-palette-primary-main)',
+      color: 'var(--shades-theme-palette-primary-mainContrast)',
+      flexShrink: '0',
+      lineHeight: '1.2',
+    },
     '& .branch-spinner': {
       display: 'inline-block',
       width: '10px',
@@ -218,7 +229,7 @@ export const BranchSelector = Shade<BranchSelectorProps>({
   },
   render: ({ props, injector, useState, useDisposable, useRef }) => {
     const triggerRef = useRef<HTMLButtonElement>('triggerRef')
-    const { serviceId, currentBranch, cloneStatus, upstreamStatus, lastPullError } = props
+    const { serviceId, currentBranch, cloneStatus, upstreamStatus, lastPullError, commitsBehind } = props
 
     const [branches, setBranches] = useState<{ local: string[]; remote: string[] } | null>('branches', null)
     const [isLoading, setIsLoading] = useState('isLoading', false)
@@ -240,8 +251,9 @@ export const BranchSelector = Shade<BranchSelectorProps>({
           url: { id: serviceId },
         })
         setBranches({ local: result.result.local, remote: result.result.remote })
-      } catch {
-        noty.emit('onNotyAdded', { title: 'Error', body: 'Failed to load branches', type: 'error' })
+      } catch (error: unknown) {
+        const reason = error instanceof Error ? error.message : 'Unknown error'
+        noty.emit('onNotyAdded', { title: 'Failed to load branches', body: reason, type: 'error' })
       } finally {
         setIsLoading(false)
       }
@@ -331,20 +343,27 @@ export const BranchSelector = Shade<BranchSelectorProps>({
 
     return (
       <>
-        <button
-          ref={triggerRef}
-          type="button"
-          className="branch-trigger"
-          onclick={handleOpen}
-          disabled={disabled}
-          title={title}
-          {...(disabled ? { 'data-disabled': '' } : {})}
-          {...(isUpstreamGone ? { 'data-upstream-gone': '' } : {})}
-        >
-          {isPulling || isCheckingOut ? <span className="branch-spinner" aria-hidden="true" /> : null}
-          {label}
-          <span className="branch-arrow">&#9660;</span>
-        </button>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            ref={triggerRef}
+            type="button"
+            className="branch-trigger"
+            onclick={handleOpen}
+            disabled={disabled}
+            title={title}
+            {...(disabled ? { 'data-disabled': '' } : {})}
+            {...(isUpstreamGone ? { 'data-upstream-gone': '' } : {})}
+          >
+            {isPulling || isCheckingOut ? <span className="branch-spinner" aria-hidden="true" /> : null}
+            {label}
+            <span className="branch-arrow">&#9660;</span>
+          </button>
+          {commitsBehind ? (
+            <span className="commits-behind-badge" data-testid="commits-behind-badge" title="Commits behind upstream">
+              {commitsBehind} behind
+            </span>
+          ) : null}
+        </span>
         <style>{`
           @keyframes shade-branch-spin {
             from { transform: rotate(0deg); }

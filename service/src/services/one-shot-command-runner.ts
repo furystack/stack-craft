@@ -1,5 +1,6 @@
 import type { ChildProcess } from 'child_process'
 import { type Injector, defineService, type Token } from '@furystack/inject'
+import type { Semaphore } from '@furystack/utils'
 import type { ServiceStateEvent } from 'common'
 import { randomUUID } from 'crypto'
 
@@ -7,6 +8,7 @@ import { useSystemIdentityContext } from '@furystack/core'
 import { ConflictError, ValidationError } from '../utils/domain-error.js'
 import { getServiceOrThrow } from '../utils/get-service-or-throw.js'
 import { resolveServiceCwd } from '../utils/resolve-service-cwd.js'
+import { BuildOperationLimit, InstallOperationLimit } from './operation-limits.js'
 import { attachProcessIO } from './process-io-attacher.js'
 import { ProcessRunner } from './process-runner.js'
 import { ServiceEnvResolver } from './service-env-resolver.js'
@@ -15,12 +17,18 @@ import type { TriggerContext } from './trigger-context.js'
 
 /** Executes one-shot commands (install, build) for services and tracks their status */
 class OneShotCommandRunnerImpl {
+  private installLimit: Semaphore
+  private buildLimit: Semaphore
+
   constructor(
     private readonly runner: ProcessRunner,
     private readonly envResolver: ServiceEnvResolver,
     private readonly statusManager: ServiceStatusManager,
     public readonly injector: Injector,
-  ) {}
+  ) {
+    this.installLimit = injector.get(InstallOperationLimit)
+    this.buildLimit = injector.get(BuildOperationLimit)
+  }
 
   private elevatedInjector?: Injector
 
@@ -63,8 +71,34 @@ class OneShotCommandRunnerImpl {
       )
     }
 
+    // Marked pending the moment the request is accepted, so concurrent triggers
+    // for the same service hit the conflict guard above even while we're queued
+    // behind the per-type semaphore. The flag flips off once the child has
+    // spawned (see `spawnAndAwait`) — at that point `processes` covers the
+    // running case.
     this.runner.pendingOperations.add(serviceId)
 
+    const limit = purpose === 'install' ? this.installLimit : this.buildLimit
+    try {
+      await limit.execute(() => this.spawnAndAwait(serviceId, command, cwd, purpose, trigger))
+    } catch (error) {
+      // Catch leftover pendingOperations entries when the semaphore rejects
+      // before `spawnAndAwait` runs (e.g. semaphore disposed) or when
+      // `spawnAndAwait` throws before reaching its own cleanup.
+      if (this.runner.pendingOperations.has(serviceId)) {
+        this.runner.pendingOperations.delete(serviceId)
+      }
+      throw error
+    }
+  }
+
+  private async spawnAndAwait(
+    serviceId: string,
+    command: string,
+    cwd: string,
+    purpose: 'install' | 'build',
+    trigger: TriggerContext,
+  ): Promise<void> {
     const progressEvent: ServiceStateEvent = purpose === 'install' ? 'install-started' : 'build-started'
     const doneEvent: ServiceStateEvent = purpose === 'install' ? 'install-completed' : 'build-completed'
     const failedEvent: ServiceStateEvent = purpose === 'install' ? 'install-failed' : 'build-failed'

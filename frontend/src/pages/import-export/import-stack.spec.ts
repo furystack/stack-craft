@@ -1,3 +1,5 @@
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../components/app-routes.js', () => ({}))
@@ -12,7 +14,7 @@ describe('isImportConfigPayload', () => {
   it('should accept payload with additional env fields', () => {
     expect(
       isImportConfigPayload({
-        mainDirectory: '/tmp/stack',
+        mainDirectory: join(tmpdir(), 'stack'),
         autoSetup: 'on',
         envSource_GITHUB_TOKEN: 'inherit',
         envValue_GITHUB_TOKEN: '',

@@ -29,6 +29,16 @@ import { encryptExistingSecrets } from './utils/encrypt-existing-secrets.js'
 const host = getHost()
 const port = getPort()
 
+const logStartupError = (scope: string, error: unknown): void => {
+  getLogger(injector)
+    .withScope(scope)
+    .error({
+      message: `Background startup task failed: ${error instanceof Error ? error.message : String(error)}`,
+      data: { error },
+    })
+    .catch(() => console.error(`Background startup task failed (logger unavailable) [${scope}]`, error))
+}
+
 const setupRestApis = async () => {
   await setupDataStore(injector)
   await setupLogStore(injector)
@@ -36,21 +46,26 @@ const setupRestApis = async () => {
 
   injector.get(ExternalGitChangeListener).start()
 
+  // Stale-state cleanup and secret re-encryption don't gate REST availability — run them
+  // in the background so HTTP can start accepting requests sooner.
   const processManager = injector.get(ProcessManager)
-  await processManager.reconcileStaleStates()
+  void processManager.reconcileStaleStates().catch((error) => logStartupError('StaleStateReconciler', error))
 
-  await usingAsync(useSystemIdentityContext({ injector }), async (elevated) => {
+  void usingAsync(useSystemIdentityContext({ injector }), async (elevated) => {
     await encryptExistingSecrets(elevated)
-  })
+  }).catch((error) => logStartupError('EncryptExistingSecrets', error))
 
-  await setupInstallRestApi(injector)
-  await setupIdentityRestApi(injector)
-  await setupStacksRestApi(injector)
-  await setupServicesRestApi(injector)
-  await setupGitHubReposRestApi(injector)
-  await setupPrerequisitesRestApi(injector)
-  await setupTokensRestApi(injector)
-  await setupSystemRestApi(injector)
+  // Each module registers its own route group independently, so they can be set up concurrently.
+  await Promise.all([
+    setupInstallRestApi(injector),
+    setupIdentityRestApi(injector),
+    setupStacksRestApi(injector),
+    setupServicesRestApi(injector),
+    setupGitHubReposRestApi(injector),
+    setupPrerequisitesRestApi(injector),
+    setupTokensRestApi(injector),
+    setupSystemRestApi(injector),
+  ])
 
   const wsService = injector.get(WebsocketService)
   await wsService.init(injector)

@@ -5,7 +5,6 @@ import {
   createGetCollectionEndpoint,
   createGetEntityEndpoint,
   createPatchEndpoint,
-  createPostEndpoint,
   useRestService,
   Validate,
 } from '@furystack/rest-service'
@@ -16,6 +15,7 @@ import { GitHubRepositoryDataSet } from '../data-store/tokens.js'
 import { getCorsOptions } from '../../get-cors-options.js'
 import { getHost } from '../../get-host.js'
 import { getPort } from '../../get-port.js'
+import { CreateGitHubRepoAction } from './actions/create-github-repo-action.js'
 import { ValidateRepoAction } from './actions/validate-repo-action.js'
 
 export const setupGitHubReposRestApi = async (injector: Injector) => {
@@ -40,7 +40,7 @@ export const setupGitHubReposRestApi = async (injector: Injector) => {
         '/github-repositories': Validate({
           schema: githubReposApiSchema,
           schemaName: 'PostGitHubRepoEndpoint',
-        })(createPostEndpoint(GitHubRepositoryDataSet)),
+        })(CreateGitHubRepoAction),
         '/github-repositories/:id/validate': Validate({
           schema: githubReposApiSchema,
           schemaName: 'ValidateRepoEndpoint',

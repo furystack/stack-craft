@@ -11,7 +11,10 @@ import {
 } from '@furystack/shades-common-components'
 import type { ServiceView } from 'common'
 import {
+  detectSecretsInServiceDefinition,
+  GitHubRepository,
   mergeServiceView,
+  Prerequisite,
   ServiceConfig,
   ServiceDefinition,
   ServiceDependencyLink,
@@ -22,9 +25,12 @@ import {
 
 import { StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { BulkActionBar } from '../../components/bulk-action-bar.js'
+import { SecretWarningsCard } from '../../components/secret-warnings-card.js'
 import { ServiceFilters } from '../../components/service-filters.js'
 import { ServiceTable } from '../../components/service-table.js'
 import { getServiceSummaryStatus } from '../../utils/service-pipeline.js'
+import { ServicesEmptyState } from './services-empty-state.js'
+import { StackActionsMenu } from './stack-actions-menu.js'
 
 type ServicesListProps = {
   stackName: string
@@ -64,6 +70,17 @@ export const ServicesList = Shade<ServicesListProps>({
     const depLinksState = useCollectionSync(options, ServiceDependencyLink, {})
     const depLinks =
       depLinksState.status === 'synced' || depLinksState.status === 'cached' ? depLinksState.data.entries : []
+
+    const reposState = useCollectionSync(options, GitHubRepository, {
+      filter: { stackName: { $eq: props.stackName } },
+    })
+    const repos = reposState.status === 'synced' || reposState.status === 'cached' ? reposState.data.entries : []
+
+    const prereqsState = useCollectionSync(options, Prerequisite, {
+      filter: { stackName: { $eq: props.stackName } },
+    })
+    const prereqs =
+      prereqsState.status === 'synced' || prereqsState.status === 'cached' ? prereqsState.data.entries : []
 
     const statusMap = new Map(statuses.map((s) => [s.serviceId, s]))
     const configMap = new Map(configs.map((c) => [c.serviceId, c]))
@@ -107,6 +124,23 @@ export const ServicesList = Shade<ServicesListProps>({
       setStatusFilter('')
     }
 
+    const warningGroups = defs
+      .map((def) => {
+        const warnings = detectSecretsInServiceDefinition({
+          files: def.files,
+          runCommand: def.runCommand,
+          installCommand: def.installCommand,
+          buildCommand: def.buildCommand,
+        })
+        return {
+          serviceId: def.id,
+          serviceName: def.displayName,
+          stackName: props.stackName,
+          warnings,
+        }
+      })
+      .filter((g) => g.warnings.length > 0)
+
     if (isLoading) {
       return (
         <PageContainer>
@@ -133,7 +167,8 @@ export const ServicesList = Shade<ServicesListProps>({
                   onStatusFilterChange={setStatusFilter}
                 />
               ) : null}
-              <BulkActionBar collectionService={collectionService} />
+              {services.length > 0 ? <BulkActionBar collectionService={collectionService} /> : null}
+              <StackActionsMenu stackName={props.stackName} />
               <StackCraftNestedRouteLink
                 path="/stacks/:stackName/services/wizard"
                 params={{ stackName: props.stackName }}
@@ -145,20 +180,9 @@ export const ServicesList = Shade<ServicesListProps>({
             </div>
           }
         />
+        {warningGroups.length > 0 ? <SecretWarningsCard warningGroups={warningGroups} /> : null}
         {services.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px', opacity: '0.7' }}>
-            No services in this stack yet.
-            <div style={{ marginTop: '12px' }}>
-              <StackCraftNestedRouteLink
-                path="/stacks/:stackName/services/wizard"
-                params={{ stackName: props.stackName }}
-              >
-                <Button variant="outlined" size="small" startIcon={<Icon icon={icons.plus} size="small" />}>
-                  Create Service
-                </Button>
-              </StackCraftNestedRouteLink>
-            </div>
-          </div>
+          <ServicesEmptyState stackName={props.stackName} repoCount={repos.length} prereqCount={prereqs.length} />
         ) : filteredServices.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px', opacity: '0.7' }}>
             No matching services.

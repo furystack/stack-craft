@@ -30,7 +30,7 @@ export const CreateStack = Shade({
         })
 
         stackCraftNavigate(injector, {
-          path: '/stacks/:stackName',
+          path: '/stacks/:stackName/services',
           params: { stackName: createdStack.result.name },
         })
       } catch (error) {

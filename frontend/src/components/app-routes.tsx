@@ -18,8 +18,8 @@ import { ServicesList } from '../pages/services/services-list.js'
 import { UserSettings } from '../pages/settings/user-settings.js'
 import { CreateStack } from '../pages/stacks/create-stack.js'
 import { EditStack } from '../pages/stacks/edit-stack.js'
-import { StackSetup } from '../pages/stacks/stack-setup.js'
 import { CreateServiceWizard } from '../pages/wizards/create-service-wizard/index.js'
+import { StackRedirect } from './stack-redirect.js'
 
 export const appRoutes = {
   '/': {
@@ -36,7 +36,7 @@ export const appRoutes = {
   },
   '/stacks/:stackName': {
     component: ({ match }: { match: MatchResult<{ stackName: string }> }) => (
-      <Dashboard stackName={match.params.stackName} />
+      <StackRedirect stackName={match.params.stackName} />
     ),
   },
   '/stacks/:stackName/edit': {
@@ -51,7 +51,7 @@ export const appRoutes = {
   },
   '/stacks/:stackName/setup': {
     component: ({ match }: { match: MatchResult<{ stackName: string }> }) => (
-      <StackSetup stackName={match.params.stackName} />
+      <StackRedirect stackName={match.params.stackName} />
     ),
   },
   '/stacks/:stackName/services': {

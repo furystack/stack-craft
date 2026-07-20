@@ -4,6 +4,7 @@ import { Button, ButtonGroup, Icon, icons, NotyService } from '@furystack/shades
 import type { ServiceView } from 'common'
 
 import { ServicesApiClient } from '../services/api-clients/services-api-client.js'
+import { bulkApplyFiles } from './bulk-actions.js'
 
 type BulkActionBarProps = {
   collectionService: CollectionService<ServiceView>
@@ -25,8 +26,13 @@ export const BulkActionBar = Shade<BulkActionBarProps>({
 
     const bulkAction = async (action: 'start' | 'stop' | 'restart' | 'setup' | 'update') => {
       setIsBulkLoading(true)
+      const targets = selection.filter((svc) => {
+        if (action === 'start') return svc.runStatus !== 'running'
+        if (action === 'stop') return svc.runStatus === 'running'
+        return true
+      })
       const failures: string[] = []
-      for (const svc of selection) {
+      for (const svc of targets) {
         try {
           await api.call({
             method: 'POST',
@@ -45,6 +51,15 @@ export const BulkActionBar = Shade<BulkActionBarProps>({
         })
       }
       setIsBulkLoading(false)
+    }
+
+    const handleBulkApplyFiles = async () => {
+      setIsBulkLoading(true)
+      try {
+        await bulkApplyFiles(injector, noty, selection)
+      } finally {
+        setIsBulkLoading(false)
+      }
     }
 
     return (
@@ -98,6 +113,15 @@ export const BulkActionBar = Shade<BulkActionBarProps>({
           startIcon={<Icon icon={icons.download} size="small" />}
         >
           Update
+        </Button>
+        <Button
+          size="small"
+          loading={isBulkLoading}
+          title="Re-write all shared and local files to disk for the selected services (e.g. after editing stack environment variables)"
+          onclick={() => void handleBulkApplyFiles()}
+          startIcon={<Icon icon={icons.fileText} size="small" />}
+        >
+          Apply Files
         </Button>
       </ButtonGroup>
     )

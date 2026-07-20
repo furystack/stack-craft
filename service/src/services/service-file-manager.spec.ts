@@ -1,5 +1,7 @@
 import type { Injector } from '@furystack/inject'
 import { ServiceConfig, ServiceDefinition, ServiceStatus, StackConfig } from 'common'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { describe, expect, it, vi } from 'vitest'
 
 import { withTestInjector } from '../test-helpers.js'
@@ -14,7 +16,7 @@ vi.mock('../utils/apply-service-files.js', async (importOriginal) => {
   const actual = await importOriginal<typeof applyServiceFiles>()
   return {
     ...actual,
-    applyServiceFiles: vi.fn().mockReturnValue(['.env']),
+    applyServiceFiles: vi.fn().mockReturnValue([{ relativePath: '.env', unresolved: [] }]),
   }
 })
 
@@ -44,7 +46,7 @@ const seedData = async (
   const repo = getRepository(elevated)
   await repo.getDataSetFor(StackConfig, 'stackName').add(elevated, {
     stackName: 'test-stack',
-    mainDirectory: '/tmp/stacks/test',
+    mainDirectory: join(tmpdir(), 'stacks', 'test'),
     environmentVariables: {},
     createdAt: ts,
     updatedAt: ts,
@@ -90,7 +92,20 @@ describe('ServiceFileManager', () => {
       expect(mockedApply).toHaveBeenCalledWith(expect.any(String), expect.any(Array), undefined, {
         DB_HOST: 'localhost',
       })
-      expect(result).toEqual(['.env'])
+      expect(result).toEqual([{ relativePath: '.env', unresolved: [] }])
+    }))
+
+  it('should propagate unresolved placeholders from the apply util', () =>
+    withTestInjector(async ({ injector, elevated }) => {
+      setupMocks(injector)
+      await seedData(elevated)
+
+      mockedApply.mockReturnValueOnce([{ relativePath: '.env', unresolved: ['POSTGRES_USER', 'POSTGRES_PASSWORD'] }])
+
+      const manager = injector.get(ServiceFileManager)
+      const result = await manager.applyFiles('svc-1')
+
+      expect(result).toEqual([{ relativePath: '.env', unresolved: ['POSTGRES_USER', 'POSTGRES_PASSWORD'] }])
     }))
 
   it('should apply a single file when relativePath is given', () =>

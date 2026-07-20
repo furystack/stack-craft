@@ -128,12 +128,10 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
           })
           injector.get(NotyService).emit('onNotyAdded', {
             title: 'Prerequisite created',
-            body: `Environment variable requirement "${variableName}" was added and linked to this service.`,
+            body: `Environment variable requirement "${variableName}" was added and linked to this service. Configure its value in the row below.`,
             type: 'success',
           })
-        }
-
-        if (source) {
+        } else if (source) {
           setEditState({
             ...editState,
             [variableName]: {
@@ -428,22 +426,24 @@ export const ServiceEnvOverrides = Shade<ServiceEnvOverridesProps>({
                 setAddFormState({ ...addFormState, isSensitive: (ev.target as HTMLInputElement).checked })
               }
             />
-            <Select
-              variant="outlined"
-              labelTitle="Source"
-              value={addFormState.source}
-              options={[
-                { value: 'inherit', label: 'Inherit from system' },
-                { value: 'custom', label: 'Custom value' },
-              ]}
-              onchange={(ev) =>
-                setAddFormState({
-                  ...addFormState,
-                  source: (ev.target as HTMLSelectElement).value as 'inherit' | 'custom',
-                })
-              }
-            />
-            {addFormState.source === 'custom' ? (
+            {addFormState.mode === 'custom' ? (
+              <Select
+                variant="outlined"
+                labelTitle="Source"
+                value={addFormState.source}
+                options={[
+                  { value: 'inherit', label: 'Inherit from system' },
+                  { value: 'custom', label: 'Custom value' },
+                ]}
+                onchange={(ev) =>
+                  setAddFormState({
+                    ...addFormState,
+                    source: (ev.target as HTMLSelectElement).value as 'inherit' | 'custom',
+                  })
+                }
+              />
+            ) : null}
+            {addFormState.mode === 'custom' && addFormState.source === 'custom' ? (
               <Input
                 variant="outlined"
                 labelTitle="Value"

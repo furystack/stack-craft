@@ -1,15 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Injector } from '@furystack/inject'
 import { GitHubRepository } from 'common'
-import { execFile } from 'child_process'
 import { randomUUID } from 'crypto'
-import { promisify } from 'util'
 import { z } from 'zod'
 
 import { errorResult, textResult } from './mcp-helpers.js'
+import { GitService } from '../../services/git-service.js'
 import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
-
-const execFileAsync = promisify(execFile)
 
 export const registerRepositoryTools = (mcp: McpServer, _injector: Injector, elevated: Injector) => {
   const repository = getRepository(elevated)
@@ -145,7 +142,7 @@ export const registerRepositoryTools = (mcp: McpServer, _injector: Injector, ele
       if (!repo) return errorResult(`Repository not found: ${repositoryId}`)
 
       try {
-        await execFileAsync('git', ['ls-remote', '--exit-code', repo.url], { timeout: 15000 })
+        await elevated.get(GitService).lsRemote(repo.url)
         return textResult(`Repository ${repo.displayName} (${repo.url}) is accessible`)
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'

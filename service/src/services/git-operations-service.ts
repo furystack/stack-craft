@@ -166,7 +166,11 @@ class GitOperationsServiceImpl {
     await this.logger.information({ message: `Pulling in ${cwd}` })
     const { updated } = await git.pull(cwd)
     await this.statusManager.updateServiceStatus(serviceId, { cloneStatus: 'cloned' }, 'clone-completed', trigger)
-    await this.upsertGitStatusPatch(serviceId, { lastPullError: undefined })
+    // After a successful pull the local branch is in sync with origin, so commitsBehind is 0.
+    // The chokidar-based GitHeadWatcher is re-attached after this and would miss the writes
+    // that just happened (ignoreInitial: true), and GitWatcher only re-checks every 5 minutes,
+    // so the badge would otherwise stay stale until the next periodic fetch.
+    await this.upsertGitStatusPatch(serviceId, { lastPullError: undefined, commitsBehind: 0 })
     await this.gitHeadWatcher.watch(serviceId, cwd)
     void this.gitWatcher.startWatching(serviceId)
     await this.applySharedFiles(svc, cwd)
@@ -208,8 +212,15 @@ class GitOperationsServiceImpl {
       const variables = await this.envResolver.resolveServiceEnvVars(svc.id)
       const applied = applyServiceFiles(cwd, merged, undefined, variables)
       void this.logger.information({
-        message: `Applied ${applied.length} file(s) for ${svc.displayName}: ${applied.join(', ')}`,
+        message: `Applied ${applied.length} file(s) for ${svc.displayName}: ${applied.map((a) => a.relativePath).join(', ')}`,
       })
+      const filesWithUnresolved = applied.filter((a) => a.unresolved.length > 0)
+      if (filesWithUnresolved.length > 0) {
+        const summary = filesWithUnresolved.map((a) => `${a.relativePath}: ${a.unresolved.join(', ')}`).join(' | ')
+        void this.logger.warning({
+          message: `Unresolved template placeholders for ${svc.displayName} — ${summary}. Add the missing variables to the stack environment to interpolate them on next apply.`,
+        })
+      }
     } catch (error) {
       void this.logger.warning({
         message: `Failed to apply files for ${svc.displayName}: ${(error as Error).message}`,

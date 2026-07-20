@@ -1,5 +1,6 @@
 import { defineService, type Token } from '@furystack/inject'
 
+import type { AppliedServiceFile } from '../utils/apply-service-files.js'
 import { GitOperationsService } from './git-operations-service.js'
 import { OneShotCommandRunner } from './one-shot-command-runner.js'
 import { ServiceEnvResolver } from './service-env-resolver.js'
@@ -53,7 +54,7 @@ class ProcessManagerImpl {
     return this.gitOps.cloneOrPullService(serviceId, trigger)
   }
 
-  public async applyFiles(serviceId: string, relativePath?: string): Promise<string[]> {
+  public async applyFiles(serviceId: string, relativePath?: string): Promise<AppliedServiceFile[]> {
     return this.fileManager.applyFiles(serviceId, relativePath)
   }
 

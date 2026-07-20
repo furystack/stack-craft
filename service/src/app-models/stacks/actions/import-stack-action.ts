@@ -1,3 +1,4 @@
+import type { Injector } from '@furystack/inject'
 import { getLogger } from '@furystack/logging'
 import { RequestError } from '@furystack/rest'
 import { JsonResult, type RequestAction } from '@furystack/rest-service'
@@ -19,16 +20,63 @@ import {
 import { CryptoService } from '../../../utils/crypto-service.js'
 import { encryptEnvValues, encryptLocalFiles } from '../../../utils/env-encryption-helpers.js'
 import { legacyRepository as getRepository } from '../../../utils/legacy-repository.js'
+import { regenerateImportIds } from './regenerate-import-ids.js'
+
+// Pre-flight check: surface conflicts BEFORE any mutation so the destructive
+// rollback path is never entered for an avoidable collision (which would
+// otherwise delete the existing records that share the colliding ids/name).
+const assertNoImportConflicts = async (injector: Injector, body: ImportStackEndpoint['body']): Promise<void> => {
+  const repository = getRepository(injector)
+  const stackDefDs = repository.getDataSetFor(StackDefinition, 'name')
+  const svcDefDs = repository.getDataSetFor(ServiceDefinition, 'id')
+  const repoDs = repository.getDataSetFor(GitHubRepository, 'id')
+  const prereqDs = repository.getDataSetFor(Prerequisite, 'id')
+
+  const stackName = body.stack.name
+  const existingStack = await stackDefDs.get(injector, stackName)
+  if (existingStack) {
+    throw new RequestError(
+      `A stack named "${stackName}" already exists. Rename or delete the existing stack before importing.`,
+      409,
+    )
+  }
+
+  const [svcHits, repoHits, prereqHits] = await Promise.all([
+    Promise.all(body.services.map(async (s) => ((await svcDefDs.get(injector, s.id)) ? s.id : null))),
+    Promise.all(body.repositories.map(async (r) => ((await repoDs.get(injector, r.id)) ? r.id : null))),
+    Promise.all(body.prerequisites.map(async (p) => ((await prereqDs.get(injector, p.id)) ? p.id : null))),
+  ])
+
+  const conflictingServiceIds = svcHits.filter((id): id is string => id !== null)
+  const conflictingRepoIds = repoHits.filter((id): id is string => id !== null)
+  const conflictingPrereqIds = prereqHits.filter((id): id is string => id !== null)
+
+  const parts: string[] = []
+  if (conflictingServiceIds.length > 0) parts.push(`service(s) [${conflictingServiceIds.join(', ')}]`)
+  if (conflictingRepoIds.length > 0) parts.push(`repository(ies) [${conflictingRepoIds.join(', ')}]`)
+  if (conflictingPrereqIds.length > 0) parts.push(`prerequisite(s) [${conflictingPrereqIds.join(', ')}]`)
+  if (parts.length > 0) {
+    throw new RequestError(
+      `Cannot import "${stackName}": the following entity IDs already exist: ${parts.join('; ')}. Each entity must have a unique ID. To import this stack as a duplicate with fresh IDs, set "regenerateIds": true on the request (or enable "Import as duplicate" in the UI).`,
+      409,
+    )
+  }
+}
 
 export const ImportStackAction: RequestAction<ImportStackEndpoint> = async ({ injector, getBody }) => {
   const logger = getLogger(injector).withScope('ImportStack')
-  const body = await getBody()
+  const rawBody = await getBody()
+  const body = rawBody.regenerateIds ? regenerateImportIds(rawBody) : rawBody
   const repository = getRepository(injector)
 
   const now = new Date().toISOString()
   const stackName = body.stack.name
 
-  await logger.information({ message: `Importing stack: ${stackName}` })
+  await logger.information({
+    message: `Importing stack: ${stackName}${rawBody.regenerateIds ? ' (with regenerated entity IDs)' : ''}`,
+  })
+
+  await assertNoImportConflicts(injector, body)
 
   const stackDefDs = repository.getDataSetFor(StackDefinition, 'name')
   const stackConfigDs = repository.getDataSetFor(StackConfig, 'stackName')

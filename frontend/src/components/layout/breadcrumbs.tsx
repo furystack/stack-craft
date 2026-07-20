@@ -26,7 +26,7 @@ const parseBreadcrumbs = (
 
   segments.push({
     label: stackName,
-    href: '/stacks/:stackName',
+    href: '/stacks/:stackName/services',
     params: { stackName },
   })
 
@@ -71,8 +71,6 @@ const parseBreadcrumbs = (
     segments.push({ label: 'Edit' })
   } else if (subSection === 'export') {
     segments.push({ label: 'Export' })
-  } else if (subSection === 'setup') {
-    segments.push({ label: 'Setup' })
   }
 
   return { segments, stackName, serviceId, repositoryId }

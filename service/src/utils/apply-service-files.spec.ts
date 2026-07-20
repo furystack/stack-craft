@@ -3,7 +3,12 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { applyServiceFiles, interpolateTemplateVars, mergeServiceFiles } from './apply-service-files.js'
+import {
+  applyServiceFiles,
+  collectUnresolvedPlaceholders,
+  interpolateTemplateVars,
+  mergeServiceFiles,
+} from './apply-service-files.js'
 
 describe('interpolateTemplateVars', () => {
   it('should replace a single variable', () => {
@@ -66,16 +71,35 @@ describe('applyServiceFiles with variables', () => {
     const variables = { DATABASE_URL: 'postgres://localhost/db', API_SECRET: 'abc123' }
 
     const applied = applyServiceFiles(tempDir, files, undefined, variables)
-    expect(applied).toEqual(['.env'])
+    expect(applied).toEqual([{ relativePath: '.env', unresolved: [] }])
 
     const content = readFileSync(join(tempDir, '.env'), 'utf-8')
     expect(content).toBe('DB_URL=postgres://localhost/db\nSECRET=abc123')
   })
 
+  it('should report unresolved placeholders without failing the write', () => {
+    const files = [
+      { relativePath: '.env', content: 'DB={{POSTGRES_HOST}}\nU={{POSTGRES_USER}}\nP={{POSTGRES_PASSWORD}}' },
+    ]
+    const variables = { POSTGRES_HOST: 'localhost' }
+
+    const applied = applyServiceFiles(tempDir, files, undefined, variables)
+    expect(applied).toEqual([{ relativePath: '.env', unresolved: ['POSTGRES_USER', 'POSTGRES_PASSWORD'] }])
+    const content = readFileSync(join(tempDir, '.env'), 'utf-8')
+    expect(content).toBe('DB=localhost\nU={{POSTGRES_USER}}\nP={{POSTGRES_PASSWORD}}')
+  })
+
+  it('should deduplicate repeated unresolved placeholders', () => {
+    const files = [{ relativePath: '.env', content: '{{X}} {{Y}} {{X}} {{Y}}' }]
+    const applied = applyServiceFiles(tempDir, files, undefined, {})
+    expect(applied[0].unresolved).toEqual(['X', 'Y'])
+  })
+
   it('should write files without variables when none provided', () => {
     const files = [{ relativePath: 'config.json', content: '{"key": "{{VALUE}}"}' }]
 
-    applyServiceFiles(tempDir, files)
+    const applied = applyServiceFiles(tempDir, files)
+    expect(applied).toEqual([{ relativePath: 'config.json', unresolved: ['VALUE'] }])
     const content = readFileSync(join(tempDir, 'config.json'), 'utf-8')
     expect(content).toBe('{"key": "{{VALUE}}"}')
   })
@@ -83,7 +107,8 @@ describe('applyServiceFiles with variables', () => {
   it('should write files without variables when empty map provided', () => {
     const files = [{ relativePath: 'config.json', content: '{"key": "{{VALUE}}"}' }]
 
-    applyServiceFiles(tempDir, files, undefined, {})
+    const applied = applyServiceFiles(tempDir, files, undefined, {})
+    expect(applied).toEqual([{ relativePath: 'config.json', unresolved: ['VALUE'] }])
     const content = readFileSync(join(tempDir, 'config.json'), 'utf-8')
     expect(content).toBe('{"key": "{{VALUE}}"}')
   })
@@ -108,9 +133,23 @@ describe('applyServiceFiles with variables', () => {
     ]
 
     const applied = applyServiceFiles(tempDir, files, '.env')
-    expect(applied).toEqual(['.env'])
+    expect(applied).toEqual([{ relativePath: '.env', unresolved: [] }])
     expect(existsSync(join(tempDir, '.env'))).toBe(true)
     expect(existsSync(join(tempDir, 'config.json'))).toBe(false)
+  })
+})
+
+describe('collectUnresolvedPlaceholders', () => {
+  it('returns an empty list when every placeholder resolves', () => {
+    expect(collectUnresolvedPlaceholders('A={{X}};B={{Y}}', { X: 'x', Y: 'y' })).toEqual([])
+  })
+
+  it('returns the distinct unresolved names in first-appearance order', () => {
+    expect(collectUnresolvedPlaceholders('{{B}} {{A}} {{B}} {{C}} {{A}}', {})).toEqual(['B', 'A', 'C'])
+  })
+
+  it('treats known names as resolved even when the same template has unknown ones', () => {
+    expect(collectUnresolvedPlaceholders('{{KNOWN}} {{UNKNOWN}}', { KNOWN: 'k' })).toEqual(['UNKNOWN'])
   })
 })
 

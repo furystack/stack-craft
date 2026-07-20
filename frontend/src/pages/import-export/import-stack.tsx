@@ -12,9 +12,9 @@ import {
   PageContainer,
   PageHeader,
   Paper,
+  Switch,
 } from '@furystack/shades-common-components'
 import type { EnvironmentVariableValue, ExportStackResult } from 'common'
-import stacksApiSchema from 'common/schemas/stacks-api.json' with { type: 'json' }
 
 import { stackCraftNavigate, StackCraftNestedRouteLink } from '../../components/app-routes.js'
 import { LazyMonacoEditor } from '../../components/lazy-monaco-editor.js'
@@ -23,12 +23,14 @@ import { StacksApiClient } from '../../services/api-clients/stacks-api-client.js
 import { SystemApiClient } from '../../services/api-clients/system-api-client.js'
 import type { EnvVarEntry } from './env-var-config-row.js'
 import { EnvVarConfigRow } from './env-var-config-row.js'
+import { stackExportSchema } from './stack-export-schema.js'
 
 type ParsedExport = ExportStackResult
 
 type ImportConfigPayload = {
   mainDirectory: string
   autoSetup?: string
+  regenerateIds?: string
   [key: `envSource_${string}`]: string
   [key: `envValue_${string}`]: string
 }
@@ -36,13 +38,6 @@ type ImportConfigPayload = {
 export const isImportConfigPayload = (data: unknown): data is ImportConfigPayload => {
   const d = data as ImportConfigPayload
   return d.mainDirectory?.length > 0
-}
-
-const { $schema, ...importSchema } = stacksApiSchema
-
-const finalImportSchema = {
-  $ref: '#/definitions/ExportStackResult',
-  ...importSchema,
 }
 
 export const ImportStack = Shade({
@@ -129,6 +124,7 @@ export const ImportStack = Shade({
               mainDirectory: formData.mainDirectory,
               ...(Object.keys(environmentVariables).length > 0 ? { environmentVariables } : {}),
             },
+            ...(formData.regenerateIds === 'on' ? { regenerateIds: true } : {}),
           },
         })
         injector.get(NotyService).emit('onNotyAdded', {
@@ -139,11 +135,14 @@ export const ImportStack = Shade({
         const hasAutoSetup = formData.autoSetup === 'on'
         if (hasAutoSetup && (parsed.services?.length ?? 0) > 0) {
           stackCraftNavigate(injector, {
-            path: '/stacks/:stackName/setup',
+            path: '/stacks/:stackName/services',
             params: { stackName: parsed.stack.name },
           })
         } else {
-          stackCraftNavigate(injector, { path: '/stacks/:stackName', params: { stackName: parsed.stack.name } })
+          stackCraftNavigate(injector, {
+            path: '/stacks/:stackName/services',
+            params: { stackName: parsed.stack.name },
+          })
         }
       } catch (error) {
         injector.get(NotyService).emit('onNotyAdded', {
@@ -168,7 +167,7 @@ export const ImportStack = Shade({
                 <LazyMonacoEditor
                   value={jsonInput}
                   language="json"
-                  schemaInfo={{ schemaName: 'ExportStackResult', jsonSchema: finalImportSchema }}
+                  schemaInfo={{ schemaName: 'ExportStackResult', jsonSchema: stackExportSchema }}
                   onValueChange={(value) => setJsonInput(value)}
                 />
               </div>
@@ -229,6 +228,14 @@ export const ImportStack = Shade({
                   required
                   getHelperText={() => 'Absolute path to the root directory for this stack on your machine'}
                 />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <Switch name="regenerateIds" labelTitle="Import as duplicate (generate new IDs)" checked={false} />
+                  <span style={{ fontSize: '12px', opacity: '0.7', marginLeft: '28px' }}>
+                    Enable when importing a copy of a stack that already exists on this machine. Services, repositories
+                    and prerequisites get fresh IDs so they don't collide with the source stack.
+                  </span>
+                </div>
 
                 {envVars.length > 0 && !envLoading ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

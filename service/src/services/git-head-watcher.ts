@@ -65,7 +65,8 @@ class GitHeadWatcherImpl extends EventEmitter<{ externalChange: [GitHeadChangeEv
 
     const branch = await this.readBranch(serviceId, cwd)
     const branchSha = branch ? await this.git.revParse(cwd, `refs/heads/${branch}`) : undefined
-    await this.upsertGitStatus(serviceId, branch)
+    const commitsBehind = branch ? await this.git.getCommitsBehind(cwd, branch).catch(() => undefined) : undefined
+    await this.upsertGitStatus(serviceId, branch, commitsBehind)
 
     try {
       // `packed-refs` is included so changes made after `git gc` (which packs loose refs into

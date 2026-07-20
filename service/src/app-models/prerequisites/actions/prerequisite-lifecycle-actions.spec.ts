@@ -46,6 +46,74 @@ describe('CreatePrerequisiteAction', () => {
     })
   })
 
+  it('should reject with 409 when a prerequisite with the same id already exists', async () => {
+    await withTestInjector(async ({ elevated }) => {
+      const ts = new Date().toISOString()
+      await getDataSetFor(elevated, PrerequisiteDataSet).add(elevated, {
+        id: 'existing-prereq',
+        stackName: 'stack',
+        name: 'Existing',
+        type: 'custom-script',
+        config: { script: 'echo existing' },
+        installationHelp: '',
+        createdAt: ts,
+        updatedAt: ts,
+      })
+
+      mockedReadPostBody.mockResolvedValue({
+        id: 'existing-prereq',
+        stackName: 'stack',
+        name: 'Duplicate',
+        type: 'custom-script' as const,
+        config: { script: 'echo dup' },
+        installationHelp: '',
+      })
+
+      await expect(
+        CreatePrerequisiteAction({
+          ...createMockActionContext({ injector: elevated }),
+          request: {} as never,
+        }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining('"existing-prereq" already exists'),
+        responseCode: 409,
+      })
+
+      const prereqs = await getDataSetFor(elevated, PrerequisiteDataSet).find(elevated, {})
+      expect(prereqs).toHaveLength(1)
+      expect(prereqs[0].name).toBe('Existing')
+    })
+  })
+
+  it('should roll back the prerequisite when seeding the check result fails', async () => {
+    await withTestInjector(async ({ elevated }) => {
+      mockedReadPostBody.mockResolvedValue({
+        id: 'rollback-prereq',
+        stackName: 'stack',
+        name: 'Rollback',
+        type: 'custom-script' as const,
+        config: { script: 'echo rollback' },
+        installationHelp: '',
+      })
+
+      const checkResultDs = getDataSetFor(elevated, PrerequisiteCheckResultDataSet)
+      vi.spyOn(checkResultDs, 'add').mockRejectedValueOnce(new Error('check-result store down'))
+
+      await expect(
+        CreatePrerequisiteAction({
+          ...createMockActionContext({ injector: elevated }),
+          request: {} as never,
+        }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining('check-result store down'),
+        responseCode: 500,
+      })
+
+      const prereqs = await getDataSetFor(elevated, PrerequisiteDataSet).find(elevated, {})
+      expect(prereqs).toHaveLength(0)
+    })
+  })
+
   it('should throw 500 when prerequisite creation returns empty', async () => {
     await withTestInjector(async ({ elevated }) => {
       mockedReadPostBody.mockResolvedValue({

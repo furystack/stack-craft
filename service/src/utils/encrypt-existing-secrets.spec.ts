@@ -3,6 +3,7 @@ import { getDataSetFor } from '@furystack/repository'
 import type { Injector } from '@furystack/inject'
 import type { ServiceConfig, StackConfig } from 'common'
 import { randomBytes } from 'crypto'
+import { tmpdir } from 'os'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { withTestInjector } from '../test-helpers.js'
@@ -33,7 +34,7 @@ describe('encryptExistingSecrets', () => {
   ) => {
     await getDataSetFor(elevated, StackConfigDataSet).add(elevated, {
       stackName,
-      mainDirectory: '/tmp',
+      mainDirectory: tmpdir(),
       environmentVariables,
       createdAt: ts,
       updatedAt: ts,

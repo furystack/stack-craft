@@ -1,5 +1,5 @@
-import { useCollectionSync } from '../services/entity-sync.js'
 import { createComponent, Shade } from '@furystack/shades'
+import { useCollectionSync } from '../services/entity-sync.js'
 
 import {
   Button,
@@ -118,19 +118,19 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
           })
           injector.get(NotyService).emit('onNotyAdded', {
             title: 'Prerequisite created',
-            body: `Environment variable requirement "${variableName}" was added.`,
+            body: `Environment variable requirement "${variableName}" was added. Configure its value in the row below.`,
             type: 'success',
           })
+        } else {
+          setEditState({
+            ...editState,
+            [variableName]: {
+              source,
+              ...(source === 'custom' ? { customValue } : {}),
+              ...(isSensitive ? { isSensitive: true } : {}),
+            },
+          })
         }
-
-        setEditState({
-          ...editState,
-          [variableName]: {
-            source,
-            ...(source === 'custom' ? { customValue } : {}),
-            ...(isSensitive ? { isSensitive: true } : {}),
-          },
-        })
 
         setAddFormState({ ...defaultAddFormState })
         setIsAddFormOpen(false)
@@ -316,10 +316,10 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
                 { value: 'custom', label: 'Custom only (local)' },
                 { value: 'requirement', label: 'Requirement (creates prerequisite)' },
               ]}
-              onchange={(ev) =>
+              onValueChange={(value) =>
                 setAddFormState({
                   ...addFormState,
-                  mode: (ev.target as HTMLSelectElement).value as 'requirement' | 'custom',
+                  mode: value as 'requirement' | 'custom',
                 })
               }
             />
@@ -353,22 +353,24 @@ export const EnvironmentVariablesManager = Shade<EnvironmentVariablesManagerProp
                 setAddFormState({ ...addFormState, isSensitive: (ev.target as HTMLInputElement).checked })
               }
             />
-            <Select
-              variant="outlined"
-              labelTitle="Source"
-              value={addFormState.source}
-              options={[
-                { value: 'inherit', label: 'Inherit from system' },
-                { value: 'custom', label: 'Custom value' },
-              ]}
-              onchange={(ev) =>
-                setAddFormState({
-                  ...addFormState,
-                  source: (ev.target as HTMLSelectElement).value as 'inherit' | 'custom',
-                })
-              }
-            />
-            {addFormState.source === 'custom' ? (
+            {addFormState.mode === 'custom' ? (
+              <Select
+                variant="outlined"
+                labelTitle="Source"
+                value={addFormState.source}
+                options={[
+                  { value: 'inherit', label: 'Inherit from system' },
+                  { value: 'custom', label: 'Custom value' },
+                ]}
+                onchange={(ev) =>
+                  setAddFormState({
+                    ...addFormState,
+                    source: (ev.target as HTMLSelectElement).value as 'inherit' | 'custom',
+                  })
+                }
+              />
+            ) : null}
+            {addFormState.mode === 'custom' && addFormState.source === 'custom' ? (
               <Input
                 variant="outlined"
                 labelTitle="Value"

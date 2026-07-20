@@ -171,7 +171,7 @@ export const applyServiceFiles = async (
   const key = relativePath ? `apply-file-${relativePath}` : 'apply-files-all'
   setActionInProgress(key)
   try {
-    await api.call({
+    const { result } = await api.call({
       method: 'POST',
       action: '/services/:id/apply-files',
       url: { id: serviceId },
@@ -182,6 +182,15 @@ export const applyServiceFiles = async (
       body: relativePath ? `${relativePath} was written to disk.` : 'All shared files were written to disk.',
       type: 'success',
     })
+    const filesWithUnresolved = result.applied.filter((a) => a.unresolved.length > 0)
+    if (filesWithUnresolved.length > 0) {
+      const summary = filesWithUnresolved.map((a) => `${a.relativePath}: ${a.unresolved.join(', ')}`).join(' • ')
+      noty.emit('onNotyAdded', {
+        title: 'Unresolved template placeholders',
+        body: `Add the missing variables to the stack environment to interpolate them on next apply.\n${summary}`,
+        type: 'warning',
+      })
+    }
   } catch (error) {
     noty.emit('onNotyAdded', {
       title: 'Error',

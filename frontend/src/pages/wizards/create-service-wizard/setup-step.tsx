@@ -94,11 +94,14 @@ export const SetupStep = Shade<SetupStepProps>({
                 variant="contained"
                 color="success"
                 onclick={() =>
-                  stackCraftNavigate(injector, { path: '/stacks/:stackName', params: { stackName: props.stackName } })
+                  stackCraftNavigate(injector, {
+                    path: '/stacks/:stackName/services',
+                    params: { stackName: props.stackName },
+                  })
                 }
-                startIcon={<Icon icon={icons.home} size="small" />}
+                startIcon={<Icon icon={icons.code} size="small" />}
               >
-                Go to Dashboard
+                Go to Services
               </Button>
               <StackCraftNestedRouteLink
                 path="/stacks/:stackName/services/:serviceId"
@@ -135,11 +138,14 @@ export const SetupStep = Shade<SetupStepProps>({
               <Button
                 variant="outlined"
                 onclick={() =>
-                  stackCraftNavigate(injector, { path: '/stacks/:stackName', params: { stackName: props.stackName } })
+                  stackCraftNavigate(injector, {
+                    path: '/stacks/:stackName/services',
+                    params: { stackName: props.stackName },
+                  })
                 }
-                startIcon={<Icon icon={icons.home} size="small" />}
+                startIcon={<Icon icon={icons.code} size="small" />}
               >
-                Go to Dashboard
+                Go to Services
               </Button>
             </div>
           </div>
