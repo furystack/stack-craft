@@ -3,12 +3,5 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": [
-    "e2e/**/*.ts",
-    "*.config.ts",
-    "*.config.mts",
-    "*.config.mjs",
-    "frontend/vite.config.ts",
-    "monaco-mfe/vite.config.ts"
-  ]
+  "include": ["e2e/**/*.ts", "*.config.ts", "*.config.mts", "*.config.mjs", "frontend/vite.config.ts"]
 }

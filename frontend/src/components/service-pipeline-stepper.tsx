@@ -112,7 +112,16 @@ export const ServicePipelineStepper = Shade<ServicePipelineStepperProps>({
 
           return (
             <TimelineItem color={color} label={stage.label} dot={dot}>
-              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '4px',
+                  alignItems: 'center',
+                  marginLeft: '1em',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                }}
+              >
                 {actionLabel && props.onAction ? (
                   <div style={{ position: 'relative', display: 'inline-flex' }}>
                     <Button

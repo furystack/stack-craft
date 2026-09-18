@@ -41,7 +41,6 @@ Migrated all routing call sites to the new `NestedRoute` API:
 
 - Bumped `@furystack/shades` from `^13.2.2` to `^14.0.0`
 - Bumped `@furystack/shades-common-components` from `^15.2.0` to `^16.0.0`
-- Bumped `@furystack/shades-mfe` from `^3.0.6` to `^4.0.0`
 - Bumped `@furystack/rest-client-fetch` from `^8.1.7` to `^8.1.8`
 - Bumped `vite` from `^8.0.9` to `^8.0.10`
 - Bumped `vitest` from `^4.1.4` to `^4.1.5`

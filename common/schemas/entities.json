@@ -22,61 +22,6 @@
       "additionalProperties": false,
       "description": "Describes how an environment variable's value is resolved. Used in  {@link  StackConfig  }  for stack-level defaults and in  {@link  ServiceConfig  }  for per-service overrides."
     },
-    "StackConfig": {
-      "type": "object",
-      "properties": {
-        "stackName": {
-          "type": "string",
-          "description": "FK to  {@link  StackDefinition.name  }"
-        },
-        "mainDirectory": {
-          "type": "string",
-          "description": "Absolute path to the root directory for all services in this stack"
-        },
-        "environmentVariables": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/EnvironmentVariableValue"
-          },
-          "description": "Stack-level environment variable values, keyed by variable name"
-        },
-        "createdAt": {
-          "type": "string"
-        },
-        "updatedAt": {
-          "type": "string"
-        }
-      },
-      "required": ["stackName", "mainDirectory", "environmentVariables", "createdAt", "updatedAt"],
-      "additionalProperties": false,
-      "description": "User-specific stack configuration. Contains settings unique to this installation/machine. Not included in exports - set by the user during import/installation."
-    },
-    "StackDefinition": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Unique kebab-case identifier for the stack"
-        },
-        "displayName": {
-          "type": "string",
-          "description": "Human-readable name shown in the UI"
-        },
-        "description": {
-          "type": "string",
-          "description": "Optional description of what this stack does"
-        },
-        "createdAt": {
-          "type": "string"
-        },
-        "updatedAt": {
-          "type": "string"
-        }
-      },
-      "required": ["name", "displayName", "description", "createdAt", "updatedAt"],
-      "additionalProperties": false,
-      "description": "Shareable stack definition. Contains the immutable identity and description of a stack. Included in stack exports and shared between installations."
-    },
     "ServiceFile": {
       "type": "object",
       "properties": {
@@ -319,9 +264,8 @@
       "additionalProperties": false,
       "description": "Runtime status of a service. Managed by the system (ProcessManager, GitWatcher). Never exported. Reset to defaults on import."
     },
-    "StackView": {
+    "StackConfig": {
       "type": "object",
-      "additionalProperties": false,
       "properties": {
         "stackName": {
           "type": "string",
@@ -343,6 +287,58 @@
         },
         "updatedAt": {
           "type": "string"
+        }
+      },
+      "required": ["stackName", "mainDirectory", "environmentVariables", "createdAt", "updatedAt"],
+      "additionalProperties": false,
+      "description": "User-specific stack configuration. Contains settings unique to this installation/machine. Not included in exports - set by the user during import/installation."
+    },
+    "StackDefinition": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique kebab-case identifier for the stack"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this stack does"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The creation date"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date when the entity has been last updated"
+        }
+      },
+      "required": ["name", "displayName", "description", "createdAt", "updatedAt"],
+      "additionalProperties": false,
+      "description": "Shareable stack definition. Contains the immutable identity and description of a stack. Included in stack exports and shared between installations."
+    },
+    "StackView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "mainDirectory": {
+          "type": "string",
+          "description": "Absolute path to the root directory for all services in this stack"
+        },
+        "environmentVariables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Stack-level environment variable values, keyed by variable name"
         },
         "name": {
           "type": "string",
@@ -355,6 +351,14 @@
         "description": {
           "type": "string",
           "description": "Optional description of what this stack does"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The creation date"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date when the entity has been last updated"
         }
       },
       "required": [
@@ -747,111 +751,126 @@
       "required": ["id", "username", "name", "createdAt"],
       "additionalProperties": false
     },
-    "PrerequisiteType": {
-      "type": "string",
-      "enum": [
-        "node",
-        "yarn",
-        "dotnet-sdk",
-        "dotnet-runtime",
-        "nuget-feed",
-        "git",
-        "github-cli",
-        "env-variable",
-        "custom-script"
-      ],
-      "description": "The type of prerequisite that must be satisfied before a stack or service can run."
+    "NodePrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "minimumVersion": {
+          "type": "string"
+        }
+      },
+      "required": ["minimumVersion"],
+      "additionalProperties": false,
+      "description": "Prerequisite configuration for NodeJs"
+    },
+    "YarnPrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "minimumVersion": {
+          "type": "string"
+        }
+      },
+      "required": ["minimumVersion"],
+      "additionalProperties": false,
+      "description": "Prerequisite configuration type for Yarn package manager"
+    },
+    "DotnetSdkPrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": ["version"],
+      "additionalProperties": false,
+      "description": "Prerequisite config for Dotnet SDK"
+    },
+    "DotnetRuntimePrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": ["version"],
+      "additionalProperties": false,
+      "description": "Prerequisite config for Dotnet Runtime"
+    },
+    "NugetFeedPrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "feedUrl": {
+          "type": "string"
+        },
+        "feedName": {
+          "type": "string"
+        }
+      },
+      "required": ["feedUrl"],
+      "additionalProperties": false,
+      "description": "Prerequisite config for NuGet feeds"
+    },
+    "GitPrerequisiteConfig": {
+      "type": "object",
+      "description": "Prerequisite config for GIT"
+    },
+    "GithubCliPrerequisiteConfig": {
+      "type": "object",
+      "description": "Prerequisite config for Github CLI"
+    },
+    "EnvVariablePrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "variableName": {
+          "type": "string"
+        },
+        "isSensitive": {
+          "type": "boolean"
+        }
+      },
+      "required": ["variableName"],
+      "additionalProperties": false,
+      "description": "Prerequisite config for an environment variable"
+    },
+    "CustomScriptPrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "script": {
+          "type": "string"
+        }
+      },
+      "required": ["script"],
+      "additionalProperties": false,
+      "description": "Prerequisite type for executing a custom script"
     },
     "PrerequisiteConfigMap": {
       "type": "object",
       "properties": {
         "node": {
-          "type": "object",
-          "properties": {
-            "minimumVersion": {
-              "type": "string"
-            }
-          },
-          "required": ["minimumVersion"],
-          "additionalProperties": false
+          "$ref": "#/definitions/NodePrerequisiteConfig"
         },
         "yarn": {
-          "type": "object",
-          "properties": {
-            "minimumVersion": {
-              "type": "string"
-            }
-          },
-          "required": ["minimumVersion"],
-          "additionalProperties": false
+          "$ref": "#/definitions/YarnPrerequisiteConfig"
         },
         "dotnet-sdk": {
-          "type": "object",
-          "properties": {
-            "version": {
-              "type": "string"
-            }
-          },
-          "required": ["version"],
-          "additionalProperties": false
+          "$ref": "#/definitions/DotnetSdkPrerequisiteConfig"
         },
         "dotnet-runtime": {
-          "type": "object",
-          "properties": {
-            "version": {
-              "type": "string"
-            }
-          },
-          "required": ["version"],
-          "additionalProperties": false
+          "$ref": "#/definitions/DotnetRuntimePrerequisiteConfig"
         },
         "nuget-feed": {
-          "type": "object",
-          "properties": {
-            "feedUrl": {
-              "type": "string"
-            },
-            "feedName": {
-              "type": "string"
-            }
-          },
-          "required": ["feedUrl"],
-          "additionalProperties": false
+          "$ref": "#/definitions/NugetFeedPrerequisiteConfig"
         },
         "git": {
-          "type": "object",
-          "additionalProperties": {
-            "not": {}
-          }
+          "$ref": "#/definitions/GitPrerequisiteConfig"
         },
         "github-cli": {
-          "type": "object",
-          "additionalProperties": {
-            "not": {}
-          }
+          "$ref": "#/definitions/GithubCliPrerequisiteConfig"
         },
         "env-variable": {
-          "type": "object",
-          "properties": {
-            "variableName": {
-              "type": "string"
-            },
-            "isSensitive": {
-              "type": "boolean"
-            }
-          },
-          "required": ["variableName"],
-          "additionalProperties": false
+          "$ref": "#/definitions/EnvVariablePrerequisiteConfig"
         },
         "custom-script": {
-          "type": "object",
-          "properties": {
-            "script": {
-              "type": "string"
-            }
-          },
-          "required": ["script"],
-          "additionalProperties": false
+          "$ref": "#/definitions/CustomScriptPrerequisiteConfig"
         }
       },
       "required": [
@@ -868,89 +887,49 @@
       "additionalProperties": false,
       "description": "Maps each prerequisite type to its type-specific configuration shape."
     },
+    "PrerequisiteType": {
+      "type": "string",
+      "enum": [
+        "node",
+        "yarn",
+        "dotnet-sdk",
+        "dotnet-runtime",
+        "nuget-feed",
+        "git",
+        "github-cli",
+        "env-variable",
+        "custom-script"
+      ],
+      "description": "The type of prerequisite that must be satisfied before a stack or service can run."
+    },
     "PrerequisiteConfig": {
       "anyOf": [
         {
-          "type": "object",
-          "properties": {
-            "minimumVersion": {
-              "type": "string"
-            }
-          },
-          "required": ["minimumVersion"],
-          "additionalProperties": false
+          "$ref": "#/definitions/NodePrerequisiteConfig"
         },
         {
-          "type": "object",
-          "properties": {
-            "minimumVersion": {
-              "type": "string"
-            }
-          },
-          "required": ["minimumVersion"],
-          "additionalProperties": false
+          "$ref": "#/definitions/YarnPrerequisiteConfig"
         },
         {
-          "type": "object",
-          "properties": {
-            "version": {
-              "type": "string"
-            }
-          },
-          "required": ["version"],
-          "additionalProperties": false
+          "$ref": "#/definitions/DotnetSdkPrerequisiteConfig"
         },
         {
-          "type": "object",
-          "properties": {
-            "version": {
-              "type": "string"
-            }
-          },
-          "required": ["version"],
-          "additionalProperties": false
+          "$ref": "#/definitions/DotnetRuntimePrerequisiteConfig"
         },
         {
-          "type": "object",
-          "properties": {
-            "feedUrl": {
-              "type": "string"
-            },
-            "feedName": {
-              "type": "string"
-            }
-          },
-          "required": ["feedUrl"],
-          "additionalProperties": false
+          "$ref": "#/definitions/NugetFeedPrerequisiteConfig"
         },
         {
-          "type": "object",
-          "additionalProperties": {
-            "not": {}
-          }
+          "$ref": "#/definitions/GitPrerequisiteConfig"
         },
         {
-          "type": "object",
-          "properties": {
-            "variableName": {
-              "type": "string"
-            },
-            "isSensitive": {
-              "type": "boolean"
-            }
-          },
-          "required": ["variableName"],
-          "additionalProperties": false
+          "$ref": "#/definitions/GithubCliPrerequisiteConfig"
         },
         {
-          "type": "object",
-          "properties": {
-            "script": {
-              "type": "string"
-            }
-          },
-          "required": ["script"],
-          "additionalProperties": false
+          "$ref": "#/definitions/EnvVariablePrerequisiteConfig"
+        },
+        {
+          "$ref": "#/definitions/CustomScriptPrerequisiteConfig"
         }
       ],
       "description": "Union of all possible prerequisite config shapes."

@@ -1,5 +1,5 @@
 <!-- version-type: patch -->
-# monaco-mfe
+# stack-craft
 
 ## ⬆️ Dependencies
 - Updated dependencies

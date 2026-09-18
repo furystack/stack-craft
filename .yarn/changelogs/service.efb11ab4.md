@@ -1,5 +1,5 @@
 <!-- version-type: patch -->
-# monaco-mfe
+# service
 
 ## ⬆️ Dependencies
 - Updated dependencies

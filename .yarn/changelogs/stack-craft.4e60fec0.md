@@ -17,7 +17,6 @@ parserOptions: {
     'common/tsconfig.json',
     'service/tsconfig.json',
     'frontend/tsconfig.json',
-    'monaco-mfe/tsconfig.json',
     'tsconfig.lint.json',
   ],
 }

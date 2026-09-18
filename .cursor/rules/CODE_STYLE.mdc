@@ -13,20 +13,20 @@ Prettier + ESLint enforced. Run `yarn prettier` and `yarn lint`. Generate code t
 
 ## Naming
 
-| Kind | Convention | Example |
-|---|---|---|
-| File | kebab-case `.ts` / `.tsx` | `session.ts`, `service-table.tsx` |
-| Spec | co-located, `.spec.ts` / `.spec.tsx` | `session.spec.ts` |
-| E2E spec | `e2e/<flow>.spec.ts` | `e2e/login.spec.ts` |
-| Class / type / component / service token | PascalCase | `ProcessManager`, `StackCraftApi` |
-| Function / variable | camelCase, verb-led | `getCurrentUser`, `validateEmail` |
-| Constant | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT` |
-| Boolean | `is*` / `has*` / `should*` / `can*` prefix | `isAuthenticated` |
-| Event handler (internal) | `handle*` | `handleSubmit` |
-| Event prop callback | `on*` | `onSave` |
-| Type alias | prefer `type` over `interface`. No `I` prefix, no `Type` suffix | `type User = { ... }` |
-| Component props | PascalCase + `Props` suffix | `type ServiceTableProps` |
-| Shade element name | kebab-case, unique, namespaced | `customElementName: 'sc-service-table'` |
+| Kind                                     | Convention                                                      | Example                                 |
+| ---------------------------------------- | --------------------------------------------------------------- | --------------------------------------- |
+| File                                     | kebab-case `.ts` / `.tsx`                                       | `session.ts`, `service-table.tsx`       |
+| Spec                                     | co-located, `.spec.ts` / `.spec.tsx`                            | `session.spec.ts`                       |
+| E2E spec                                 | `e2e/<flow>.spec.ts`                                            | `e2e/login.spec.ts`                     |
+| Class / type / component / service token | PascalCase                                                      | `ProcessManager`, `StackCraftApi`       |
+| Function / variable                      | camelCase, verb-led                                             | `getCurrentUser`, `validateEmail`       |
+| Constant                                 | UPPER_SNAKE_CASE                                                | `MAX_RETRY_COUNT`                       |
+| Boolean                                  | `is*` / `has*` / `should*` / `can*` prefix                      | `isAuthenticated`                       |
+| Event handler (internal)                 | `handle*`                                                       | `handleSubmit`                          |
+| Event prop callback                      | `on*`                                                           | `onSave`                                |
+| Type alias                               | prefer `type` over `interface`. No `I` prefix, no `Type` suffix | `type User = { ... }`                   |
+| Component props                          | PascalCase + `Props` suffix                                     | `type ServiceTableProps`                |
+| Shade element name                       | kebab-case, unique, namespaced                                  | `customElementName: 'sc-service-table'` |
 
 ## Imports
 
@@ -76,7 +76,6 @@ stack-craft/
 │       │   └── setup-<module>-store.ts    # per-module store / DataSet wiring
 │       ├── services/                      # singleton service tokens
 │       └── setup-entity-sync.ts
-├── monaco-mfe/                            # Monaco editor MFE
 └── e2e/                                   # Playwright specs
 ```
 
@@ -95,14 +94,15 @@ type SessionState = 'initializing' | 'unauthenticated' | 'authenticated'
 const DEFAULT_TIMEOUT_MS = 5000
 
 // 4. helpers
-const formatError = (err: unknown): string =>
-  err instanceof Error ? err.message : 'Unknown error'
+const formatError = (err: unknown): string => (err instanceof Error ? err.message : 'Unknown error')
 
 // 5. main export
 export const SessionService = defineService({
   name: 'app/SessionService',
   lifetime: 'singleton',
-  factory: ({ inject, onDispose }) => { /* ... */ },
+  factory: ({ inject, onDispose }) => {
+    /* ... */
+  },
 })
 ```
 
@@ -131,12 +131,14 @@ Multi-line for >2 attrs. Single-line for trivial cases. No nested ternaries — 
 
 ```tsx
 // ✅
-<button type="button" onclick={handleClick} style={{ padding: '8px' }}>
+;<button type="button" onclick={handleClick} style={{ padding: '8px' }}>
   Save
 </button>
 
 // ❌ nested ternary
-{isLoading ? <Loading /> : error ? <Err /> : <Content />}
+{
+  isLoading ? <Loading /> : error ? <Err /> : <Content />
+}
 ```
 
 ## JSDoc

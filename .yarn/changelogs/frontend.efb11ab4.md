@@ -1,5 +1,5 @@
 <!-- version-type: patch -->
-# monaco-mfe
+# frontend
 
 ## ⬆️ Dependencies
 - Updated dependencies

@@ -14,6 +14,13 @@ export class StackDefinition {
   /** Optional description of what this stack does */
   description: string = ''
 
+  /**
+   * The creation date
+   */
   createdAt!: string
+
+  /**
+   * The date when the entity has been last updated
+   */
   updatedAt!: string
 }

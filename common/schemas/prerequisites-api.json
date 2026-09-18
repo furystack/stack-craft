@@ -50,89 +50,125 @@
     "PrerequisiteConfig": {
       "anyOf": [
         {
-          "type": "object",
-          "properties": {
-            "minimumVersion": {
-              "type": "string"
-            }
-          },
-          "required": ["minimumVersion"],
-          "additionalProperties": false
+          "$ref": "#/definitions/NodePrerequisiteConfig"
         },
         {
-          "type": "object",
-          "properties": {
-            "minimumVersion": {
-              "type": "string"
-            }
-          },
-          "required": ["minimumVersion"],
-          "additionalProperties": false
+          "$ref": "#/definitions/YarnPrerequisiteConfig"
         },
         {
-          "type": "object",
-          "properties": {
-            "version": {
-              "type": "string"
-            }
-          },
-          "required": ["version"],
-          "additionalProperties": false
+          "$ref": "#/definitions/DotnetSdkPrerequisiteConfig"
         },
         {
-          "type": "object",
-          "properties": {
-            "version": {
-              "type": "string"
-            }
-          },
-          "required": ["version"],
-          "additionalProperties": false
+          "$ref": "#/definitions/DotnetRuntimePrerequisiteConfig"
         },
         {
-          "type": "object",
-          "properties": {
-            "feedUrl": {
-              "type": "string"
-            },
-            "feedName": {
-              "type": "string"
-            }
-          },
-          "required": ["feedUrl"],
-          "additionalProperties": false
+          "$ref": "#/definitions/NugetFeedPrerequisiteConfig"
         },
         {
-          "type": "object",
-          "additionalProperties": {
-            "not": {}
-          }
+          "$ref": "#/definitions/GitPrerequisiteConfig"
         },
         {
-          "type": "object",
-          "properties": {
-            "variableName": {
-              "type": "string"
-            },
-            "isSensitive": {
-              "type": "boolean"
-            }
-          },
-          "required": ["variableName"],
-          "additionalProperties": false
+          "$ref": "#/definitions/GithubCliPrerequisiteConfig"
         },
         {
-          "type": "object",
-          "properties": {
-            "script": {
-              "type": "string"
-            }
-          },
-          "required": ["script"],
-          "additionalProperties": false
+          "$ref": "#/definitions/EnvVariablePrerequisiteConfig"
+        },
+        {
+          "$ref": "#/definitions/CustomScriptPrerequisiteConfig"
         }
       ],
       "description": "Union of all possible prerequisite config shapes."
+    },
+    "NodePrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "minimumVersion": {
+          "type": "string"
+        }
+      },
+      "required": ["minimumVersion"],
+      "additionalProperties": false,
+      "description": "Prerequisite configuration for NodeJs"
+    },
+    "YarnPrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "minimumVersion": {
+          "type": "string"
+        }
+      },
+      "required": ["minimumVersion"],
+      "additionalProperties": false,
+      "description": "Prerequisite configuration type for Yarn package manager"
+    },
+    "DotnetSdkPrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": ["version"],
+      "additionalProperties": false,
+      "description": "Prerequisite config for Dotnet SDK"
+    },
+    "DotnetRuntimePrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": ["version"],
+      "additionalProperties": false,
+      "description": "Prerequisite config for Dotnet Runtime"
+    },
+    "NugetFeedPrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "feedUrl": {
+          "type": "string"
+        },
+        "feedName": {
+          "type": "string"
+        }
+      },
+      "required": ["feedUrl"],
+      "additionalProperties": false,
+      "description": "Prerequisite config for NuGet feeds"
+    },
+    "GitPrerequisiteConfig": {
+      "type": "object",
+      "description": "Prerequisite config for GIT"
+    },
+    "GithubCliPrerequisiteConfig": {
+      "type": "object",
+      "description": "Prerequisite config for Github CLI"
+    },
+    "EnvVariablePrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "variableName": {
+          "type": "string"
+        },
+        "isSensitive": {
+          "type": "boolean"
+        }
+      },
+      "required": ["variableName"],
+      "additionalProperties": false,
+      "description": "Prerequisite config for an environment variable"
+    },
+    "CustomScriptPrerequisiteConfig": {
+      "type": "object",
+      "properties": {
+        "script": {
+          "type": "string"
+        }
+      },
+      "required": ["script"],
+      "additionalProperties": false,
+      "description": "Prerequisite type for executing a custom script"
     },
     "PostPrerequisiteEndpoint": {
       "type": "object",

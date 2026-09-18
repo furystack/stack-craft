@@ -136,7 +136,11 @@ export const ExportStack = Shade<ExportStackProps>({
                 value={jsonOutput}
                 language="json"
                 readOnly
-                schemaInfo={{ schemaName: 'ExportStackResult', jsonSchema: stackExportSchema }}
+                schemaInfo={{
+                  uri: 'stack-craft://ExportStackResult.json',
+                  jsonSchema: stackExportSchema,
+                  diagnosticOptions: {},
+                }}
               />
             </div>
           )}
