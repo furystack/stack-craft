@@ -1,11 +1,11 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Injector } from '@furystack/inject'
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { Prerequisite } from 'common'
 import { randomUUID } from 'crypto'
 import { z } from 'zod'
 
-import { errorResult, textResult } from './mcp-helpers.js'
 import { legacyRepository as getRepository } from '../../utils/legacy-repository.js'
+import { errorResult, textResult } from './mcp-helpers.js'
 
 export const registerPrerequisiteTools = (mcp: McpServer, _injector: Injector, elevated: Injector) => {
   const repository = getRepository(elevated)
@@ -102,7 +102,7 @@ export const registerPrerequisiteTools = (mcp: McpServer, _injector: Injector, e
           createdAt: now,
           updatedAt: now,
         }
-        await repository.getDataSetFor(Prerequisite, 'id').add(elevated, entry as Prerequisite)
+        await repository.getDataSetFor(Prerequisite, 'id').add(elevated, entry)
         return textResult(JSON.stringify(entry, null, 2))
       } catch (error) {
         return errorResult(`Failed to create prerequisite: ${(error as Error).message}`)
@@ -148,7 +148,7 @@ export const registerPrerequisiteTools = (mcp: McpServer, _injector: Injector, e
         const fields: Partial<Prerequisite> = {}
         if (name !== undefined) fields.name = name
         if (type !== undefined) fields.type = type
-        if (config !== undefined) fields.config = config as Prerequisite['config']
+        if (config !== undefined) fields.config = config
         if (installationHelp !== undefined) fields.installationHelp = installationHelp
 
         if (Object.keys(fields).length > 0) {
