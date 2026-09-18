@@ -3,9 +3,8 @@ import type { JSONSchema } from 'monaco-editor/languages/features/json/register.
 
 const { $schema, ...schemaWithoutMeta } = stacksApiSchema
 
-export const stackExportSchema = {
+// @ts-expect-error TODO: Fix me later
+export const stackExportSchema: JSONSchema = {
   $ref: '#/definitions/ExportStackResult',
   ...schemaWithoutMeta,
-
-  // @ts-expect-error TODO: Fix me later
-} satisfies JSONSchema
+}
