@@ -6,4 +6,4 @@ const { $schema, ...schemaWithoutMeta } = stacksApiSchema
 export const stackExportSchema = {
   $ref: '#/definitions/ExportStackResult',
   ...schemaWithoutMeta,
-} as unknown as JSONSchema
+} satisfies JSONSchema

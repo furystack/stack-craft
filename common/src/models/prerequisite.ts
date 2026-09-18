@@ -26,12 +26,12 @@ export type NugetFeedPrerequisiteConfig = { feedUrl: string; feedName?: string }
 /**
  * Prerequisite config for GIT
  */
-export type GitPrerequisiteConfig = Record<string, never>
+export type GitPrerequisiteConfig = Record<string, any>
 
 /**
  * Prerequisite config for Github CLI
  */
-export type GithubCliPrerequisiteConfig = Record<string, never>
+export type GithubCliPrerequisiteConfig = Record<string, any>
 
 /**
  * Prerequisite config for an environment variable

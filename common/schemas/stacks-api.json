@@ -504,16 +504,10 @@
     },
     "GitPrerequisiteConfig": {
       "type": "object",
-      "additionalProperties": {
-        "not": {}
-      },
       "description": "Prerequisite config for GIT"
     },
     "GithubCliPrerequisiteConfig": {
       "type": "object",
-      "additionalProperties": {
-        "not": {}
-      },
       "description": "Prerequisite config for Github CLI"
     },
     "EnvVariablePrerequisiteConfig": {
