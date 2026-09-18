@@ -116,7 +116,6 @@ export const ServicePipelineStepper = Shade<ServicePipelineStepperProps>({
                 style={{
                   display: 'flex',
                   gap: '4px',
-                  alignItems: 'center',
                   marginLeft: 'calc(50% - 25px)',
                   flexDirection: 'column',
                   justifyContent: 'center',
