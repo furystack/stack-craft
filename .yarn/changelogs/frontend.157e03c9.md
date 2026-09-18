@@ -34,5 +34,5 @@ Bumped together. `SyncVersion.seq` / `ClientSyncMessage.lastSeq` / `SyncCacheEnt
 ### Other bumps
 
 - `@furystack/core` `^17.0.0` → `^17.1.0` (minor).
-- `@furystack/inject` `^13.0.0` → `^13.0.1`, `@furystack/logging` `^9.0.0` → `^9.0.1`, `@furystack/rest-client-fetch` `^9.0.0` → `^9.0.1`, `@furystack/shades` `^15.0.0` → `^15.0.1`, `@furystack/shades-common-components` `^17.0.0` → `^17.0.1`, `@furystack/shades-mfe` `^5.0.0` → `^5.0.1`, `@furystack/utils` `^9.0.0` → `^9.0.1` (patch).
+- `@furystack/inject` `^13.0.0` → `^13.0.1`, `@furystack/logging` `^9.0.0` → `^9.0.1`, `@furystack/rest-client-fetch` `^9.0.0` → `^9.0.1`, `@furystack/shades` `^15.0.0` → `^15.0.1`, `@furystack/shades-common-components` `^17.0.0` → `^17.0.1`, `@furystack/utils` `^9.0.0` → `^9.0.1` (patch).
 - Bumped dev `@types/node` `^25.6.0` → `^25.9.1`, `vite` `^8.0.10` → `^8.0.14`, `vitest` `^4.1.5` → `^4.1.7` (patch).

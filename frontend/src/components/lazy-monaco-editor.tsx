@@ -1,11 +1,8 @@
 import { createComponent, Shade } from '@furystack/shades'
 import { cssVariableTheme, Loader, ThemeProviderService } from '@furystack/shades-common-components'
-import { MicroFrontend } from '@furystack/shades-mfe'
 
 import { ObservableValue } from '@furystack/utils'
 import { createMonacoTheme } from './create-monaco-theme.js'
-
-const MONACO_MFE_URL = '/monaco-mfe/index.js'
 
 /**
  * Must stay in sync with `SchemaInfo` in `monaco-mfe/src/schema.ts`.

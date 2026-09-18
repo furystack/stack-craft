@@ -1,6 +1,5 @@
 releases:
   common: patch
   frontend: patch
-  monaco-mfe: patch
   service: patch
   stack-craft: patch

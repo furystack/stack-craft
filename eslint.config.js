@@ -39,13 +39,7 @@ export default tseslint.config(
     },
     languageOptions: {
       parserOptions: {
-        project: [
-          'common/tsconfig.json',
-          'service/tsconfig.json',
-          'frontend/tsconfig.json',
-          'monaco-mfe/tsconfig.json',
-          'tsconfig.lint.json',
-        ],
+        project: ['common/tsconfig.json', 'service/tsconfig.json', 'frontend/tsconfig.json', 'tsconfig.lint.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },

@@ -31,5 +31,4 @@ Aligned the frontend with `@furystack/inject@^13` and the v7 majors of `core`, `
   - `@furystack/rest-client-fetch` `^8.1.8` → `^9.0.0`
   - `@furystack/shades` `^14.0.0` → `^15.0.0`
   - `@furystack/shades-common-components` `^16.0.0` → `^17.0.0`
-  - `@furystack/shades-mfe` `^4.0.0` → `^5.0.0`
   - `@furystack/utils` `^8.2.5` → `^9.0.0`
