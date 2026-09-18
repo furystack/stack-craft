@@ -22,61 +22,6 @@
       "additionalProperties": false,
       "description": "Describes how an environment variable's value is resolved. Used in  {@link  StackConfig  }  for stack-level defaults and in  {@link  ServiceConfig  }  for per-service overrides."
     },
-    "StackConfig": {
-      "type": "object",
-      "properties": {
-        "stackName": {
-          "type": "string",
-          "description": "FK to  {@link  StackDefinition.name  }"
-        },
-        "mainDirectory": {
-          "type": "string",
-          "description": "Absolute path to the root directory for all services in this stack"
-        },
-        "environmentVariables": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/EnvironmentVariableValue"
-          },
-          "description": "Stack-level environment variable values, keyed by variable name"
-        },
-        "createdAt": {
-          "type": "string"
-        },
-        "updatedAt": {
-          "type": "string"
-        }
-      },
-      "required": ["stackName", "mainDirectory", "environmentVariables", "createdAt", "updatedAt"],
-      "additionalProperties": false,
-      "description": "User-specific stack configuration. Contains settings unique to this installation/machine. Not included in exports - set by the user during import/installation."
-    },
-    "StackDefinition": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Unique kebab-case identifier for the stack"
-        },
-        "displayName": {
-          "type": "string",
-          "description": "Human-readable name shown in the UI"
-        },
-        "description": {
-          "type": "string",
-          "description": "Optional description of what this stack does"
-        },
-        "createdAt": {
-          "type": "string"
-        },
-        "updatedAt": {
-          "type": "string"
-        }
-      },
-      "required": ["name", "displayName", "description", "createdAt", "updatedAt"],
-      "additionalProperties": false,
-      "description": "Shareable stack definition. Contains the immutable identity and description of a stack. Included in stack exports and shared between installations."
-    },
     "ServiceFile": {
       "type": "object",
       "properties": {
@@ -319,9 +264,8 @@
       "additionalProperties": false,
       "description": "Runtime status of a service. Managed by the system (ProcessManager, GitWatcher). Never exported. Reset to defaults on import."
     },
-    "StackView": {
+    "StackConfig": {
       "type": "object",
-      "additionalProperties": false,
       "properties": {
         "stackName": {
           "type": "string",
@@ -343,6 +287,58 @@
         },
         "updatedAt": {
           "type": "string"
+        }
+      },
+      "required": ["stackName", "mainDirectory", "environmentVariables", "createdAt", "updatedAt"],
+      "additionalProperties": false,
+      "description": "User-specific stack configuration. Contains settings unique to this installation/machine. Not included in exports - set by the user during import/installation."
+    },
+    "StackDefinition": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique kebab-case identifier for the stack"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable name shown in the UI"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what this stack does"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The creation date"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date when the entity has been last updated"
+        }
+      },
+      "required": ["name", "displayName", "description", "createdAt", "updatedAt"],
+      "additionalProperties": false,
+      "description": "Shareable stack definition. Contains the immutable identity and description of a stack. Included in stack exports and shared between installations."
+    },
+    "StackView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stackName": {
+          "type": "string",
+          "description": "FK to  {@link  StackDefinition.name  }"
+        },
+        "mainDirectory": {
+          "type": "string",
+          "description": "Absolute path to the root directory for all services in this stack"
+        },
+        "environmentVariables": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EnvironmentVariableValue"
+          },
+          "description": "Stack-level environment variable values, keyed by variable name"
         },
         "name": {
           "type": "string",
@@ -355,6 +351,14 @@
         "description": {
           "type": "string",
           "description": "Optional description of what this stack does"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The creation date"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date when the entity has been last updated"
         }
       },
       "required": [

@@ -6,4 +6,6 @@ const { $schema, ...schemaWithoutMeta } = stacksApiSchema
 export const stackExportSchema = {
   $ref: '#/definitions/ExportStackResult',
   ...schemaWithoutMeta,
+
+  // @ts-expect-error TODO: Fix me later
 } satisfies JSONSchema

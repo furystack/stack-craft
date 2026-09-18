@@ -85,12 +85,6 @@
           },
           "description": "Stack-level environment variable values, keyed by variable name"
         },
-        "createdAt": {
-          "type": "string"
-        },
-        "updatedAt": {
-          "type": "string"
-        },
         "name": {
           "type": "string",
           "description": "Unique kebab-case identifier for the stack"
@@ -102,6 +96,14 @@
         "description": {
           "type": "string",
           "description": "Optional description of what this stack does"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The creation date"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date when the entity has been last updated"
         }
       },
       "required": [
@@ -1326,16 +1328,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The creation date"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The creation date"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The creation date"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The creation date"
                 }
               },
               "additionalProperties": false
@@ -1344,10 +1350,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The creation date"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The creation date"
                 }
               },
               "additionalProperties": false
@@ -1358,13 +1366,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The creation date"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The creation date"
                   }
                 }
               },
@@ -1378,16 +1388,20 @@
               "type": "object",
               "properties": {
                 "$startsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The date when the entity has been last updated"
                 },
                 "$endsWith": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The date when the entity has been last updated"
                 },
                 "$like": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The date when the entity has been last updated"
                 },
                 "$regex": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The date when the entity has been last updated"
                 }
               },
               "additionalProperties": false
@@ -1396,10 +1410,12 @@
               "type": "object",
               "properties": {
                 "$eq": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The date when the entity has been last updated"
                 },
                 "$ne": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "The date when the entity has been last updated"
                 }
               },
               "additionalProperties": false
@@ -1410,13 +1426,15 @@
                 "$in": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The date when the entity has been last updated"
                   }
                 },
                 "$nin": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The date when the entity has been last updated"
                   }
                 }
               },
