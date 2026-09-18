@@ -1,31 +1,67 @@
 /**
- * The type of prerequisite that must be satisfied before a stack or service can run.
+ * Prerequisite configuration for NodeJs
  */
-export type PrerequisiteType =
-  | 'node'
-  | 'yarn'
-  | 'dotnet-sdk'
-  | 'dotnet-runtime'
-  | 'nuget-feed'
-  | 'git'
-  | 'github-cli'
-  | 'env-variable'
-  | 'custom-script'
+export type NodePrerequisiteConfig = { minimumVersion: string }
+
+/**
+ * Prerequisite configuration type for Yarn package manager
+ */
+export type YarnPrerequisiteConfig = { minimumVersion: string }
+
+/**
+ * Prerequisite config for Dotnet SDK
+ */
+export type DotnetSdkPrerequisiteConfig = { version: string }
+
+/**
+ * Prerequisite config for Dotnet Runtime
+ */
+export type DotnetRuntimePrerequisiteConfig = { version: string }
+
+/**
+ * Prerequisite config for NuGet feeds
+ */
+export type NugetFeedPrerequisiteConfig = { feedUrl: string; feedName?: string }
+
+/**
+ * Prerequisite config for GIT
+ */
+export type GitPrerequisiteConfig = Record<string, never>
+
+/**
+ * Prerequisite config for Github CLI
+ */
+export type GithubCliPrerequisiteConfig = Record<string, never>
+
+/**
+ * Prerequisite config for an environment variable
+ */
+export type EnvVariablePrerequisiteConfig = { variableName: string; isSensitive?: boolean }
+
+/**
+ * Prerequisite type for executing a custom script
+ */
+export type CustomScriptPrerequisiteConfig = { script: string }
 
 /**
  * Maps each prerequisite type to its type-specific configuration shape.
  */
 export type PrerequisiteConfigMap = {
-  node: { minimumVersion: string }
-  yarn: { minimumVersion: string }
-  'dotnet-sdk': { version: string }
-  'dotnet-runtime': { version: string }
-  'nuget-feed': { feedUrl: string; feedName?: string }
-  git: Record<string, never>
-  'github-cli': Record<string, never>
-  'env-variable': { variableName: string; isSensitive?: boolean }
-  'custom-script': { script: string }
+  node: NodePrerequisiteConfig
+  yarn: YarnPrerequisiteConfig
+  'dotnet-sdk': DotnetSdkPrerequisiteConfig
+  'dotnet-runtime': DotnetRuntimePrerequisiteConfig
+  'nuget-feed': NugetFeedPrerequisiteConfig
+  git: GitPrerequisiteConfig
+  'github-cli': GithubCliPrerequisiteConfig
+  'env-variable': EnvVariablePrerequisiteConfig
+  'custom-script': CustomScriptPrerequisiteConfig
 }
+
+/**
+ * The type of prerequisite that must be satisfied before a stack or service can run.
+ */
+export type PrerequisiteType = keyof PrerequisiteConfigMap
 
 /**
  * Union of all possible prerequisite config shapes.

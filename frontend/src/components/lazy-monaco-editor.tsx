@@ -1,22 +1,12 @@
-import { createComponent, Shade } from '@furystack/shades'
-import { cssVariableTheme, Loader, ThemeProviderService } from '@furystack/shades-common-components'
-
-import { ObservableValue } from '@furystack/utils'
-import { createMonacoTheme } from './create-monaco-theme.js'
-
-/**
- * Must stay in sync with `SchemaInfo` in `monaco-mfe/src/schema.ts`.
- */
-export type EditorSchemaInfo = {
-  schemaName: string
-  jsonSchema: Record<string, unknown>
-}
+import { createComponent, LazyLoad, Shade } from '@furystack/shades'
+import { cssVariableTheme, Loader } from '@furystack/shades-common-components'
+import type { MonacoEditorProps } from '@furystack/shades-monaco'
 
 type LazyMonacoEditorProps = {
   value?: string
   language: string
   readOnly?: boolean
-  schemaInfo?: EditorSchemaInfo
+  schemaInfo?: MonacoEditorProps['schema']
   onValueChange?: (value: string) => void
   style?: Partial<CSSStyleDeclaration>
 }
@@ -29,25 +19,10 @@ export const LazyMonacoEditor = Shade<LazyMonacoEditorProps>({
     width: '100%',
     position: 'relative',
   },
-  render: ({ props, injector, useObservable, useDisposable }) => {
-    const themeProvider = injector.get(ThemeProviderService)
-
-    const monacoThemeObs = useDisposable(
-      'monacoThemeObs',
-      () => new ObservableValue(createMonacoTheme(themeProvider.getAssignedTheme())),
-    )
-
-    const [monacoTheme] = useObservable('monacoTheme', monacoThemeObs)
-
-    useDisposable('themeChange', () => {
-      return themeProvider.subscribe('themeChanged', (newTheme) => {
-        monacoThemeObs.setValue(createMonacoTheme(newTheme))
-      })
-    })
-
+  render: ({ props }) => {
     return (
-      <MicroFrontend
-        api={{
+      <LazyLoad
+        /*api={{
           value: props.value ?? '',
           language: props.language,
           readOnly: props.readOnly,
@@ -55,8 +30,18 @@ export const LazyMonacoEditor = Shade<LazyMonacoEditorProps>({
           theme: monacoTheme.data,
           schemaInfo: props.schemaInfo,
           onValueChange: props.onValueChange,
+        }}*/
+        component={async () => {
+          const { MonacoEditor } = await import('@furystack/shades-monaco')
+          return (
+            <MonacoEditor
+              value={props.value || ''}
+              options={{}}
+              onValueChange={props.onValueChange}
+              schema={props.schemaInfo}
+            />
+          )
         }}
-        loaderCallback={() => import(/* @vite-ignore */ MONACO_MFE_URL)}
         loader={
           <div
             style={{

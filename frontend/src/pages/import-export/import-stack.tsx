@@ -167,7 +167,11 @@ export const ImportStack = Shade({
                 <LazyMonacoEditor
                   value={jsonInput}
                   language="json"
-                  schemaInfo={{ schemaName: 'ExportStackResult', jsonSchema: stackExportSchema }}
+                  schemaInfo={{
+                    uri: 'stack-craft://ExportStackResult.json',
+                    jsonSchema: stackExportSchema,
+                    diagnosticOptions: {},
+                  }}
                   onValueChange={(value) => setJsonInput(value)}
                 />
               </div>
