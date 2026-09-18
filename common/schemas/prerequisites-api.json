@@ -29,14 +29,7 @@
           "description": "Help text shown when the prerequisite check fails"
         }
       },
-      "required": [
-        "id",
-        "stackName",
-        "name",
-        "type",
-        "config",
-        "installationHelp"
-      ],
+      "required": ["id", "stackName", "name", "type", "config", "installationHelp"],
       "additionalProperties": false
     },
     "PrerequisiteType": {
@@ -93,9 +86,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "minimumVersion"
-      ],
+      "required": ["minimumVersion"],
       "additionalProperties": false,
       "description": "Prerequisite configuration for NodeJs"
     },
@@ -106,9 +97,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "minimumVersion"
-      ],
+      "required": ["minimumVersion"],
       "additionalProperties": false,
       "description": "Prerequisite configuration type for Yarn package manager"
     },
@@ -119,9 +108,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "version"
-      ],
+      "required": ["version"],
       "additionalProperties": false,
       "description": "Prerequisite config for Dotnet SDK"
     },
@@ -132,9 +119,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "version"
-      ],
+      "required": ["version"],
       "additionalProperties": false,
       "description": "Prerequisite config for Dotnet Runtime"
     },
@@ -148,9 +133,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "feedUrl"
-      ],
+      "required": ["feedUrl"],
       "additionalProperties": false,
       "description": "Prerequisite config for NuGet feeds"
     },
@@ -178,9 +161,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "variableName"
-      ],
+      "required": ["variableName"],
       "additionalProperties": false,
       "description": "Prerequisite config for an environment variable"
     },
@@ -191,9 +172,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "script"
-      ],
+      "required": ["script"],
       "additionalProperties": false,
       "description": "Prerequisite type for executing a custom script"
     },
@@ -207,10 +186,7 @@
           "$ref": "#/definitions/WithOptionalId%3CPrerequisiteWritableFields%2C%22id%22%3E"
         }
       },
-      "required": [
-        "result",
-        "body"
-      ],
+      "required": ["result", "body"],
       "additionalProperties": false,
       "description": "Creates a new prerequisite definition"
     },
@@ -248,16 +224,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "id",
-        "stackName",
-        "name",
-        "type",
-        "config",
-        "installationHelp",
-        "createdAt",
-        "updatedAt"
-      ],
+      "required": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"],
       "additionalProperties": false,
       "description": "Shareable prerequisite definition. Describes an external requirement (e.g. Node.js, Git, an env variable) that a stack or service may need to be satisfied before it can run. Included in stack exports and shared between installations."
     },
@@ -290,13 +257,7 @@
           "description": "Help text shown when the prerequisite check fails"
         }
       },
-      "required": [
-        "config",
-        "installationHelp",
-        "name",
-        "stackName",
-        "type"
-      ]
+      "required": ["config", "installationHelp", "name", "stackName", "type"]
     },
     "PatchPrerequisiteEndpoint": {
       "$ref": "#/definitions/PatchEndpoint%3CPrerequisiteWritableFields%2C%22id%22%3E"
@@ -342,20 +303,14 @@
               "description": "UUID primary key"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": [
-        "body",
-        "url",
-        "result"
-      ],
+      "required": ["body", "url", "result"],
       "additionalProperties": false,
       "description": "PATCH-by-id endpoint contract. `TWritableData` defaults to `Partial<T>`."
     },
@@ -369,9 +324,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
@@ -384,17 +337,11 @@
               "type": "string"
             }
           },
-          "required": [
-            "satisfied",
-            "output"
-          ],
+          "required": ["satisfied", "output"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "url",
-        "result"
-      ],
+      "required": ["url", "result"],
       "additionalProperties": false,
       "description": "Executes the prerequisite's check command and returns whether it is satisfied"
     },
@@ -411,10 +358,7 @@
               "$ref": "#/definitions/GetEntityEndpoint%3CPrerequisite%2C%22id%22%3E"
             }
           },
-          "required": [
-            "/prerequisites",
-            "/prerequisites/:id"
-          ],
+          "required": ["/prerequisites", "/prerequisites/:id"],
           "additionalProperties": false
         },
         "POST": {
@@ -427,10 +371,7 @@
               "$ref": "#/definitions/CheckPrerequisiteEndpoint"
             }
           },
-          "required": [
-            "/prerequisites",
-            "/prerequisites/:id/check"
-          ],
+          "required": ["/prerequisites", "/prerequisites/:id/check"],
           "additionalProperties": false
         },
         "PATCH": {
@@ -440,9 +381,7 @@
               "$ref": "#/definitions/PatchPrerequisiteEndpoint"
             }
           },
-          "required": [
-            "/prerequisites/:id"
-          ],
+          "required": ["/prerequisites/:id"],
           "additionalProperties": false
         },
         "PUT": {
@@ -471,9 +410,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -484,9 +421,7 @@
               "$ref": "#/definitions/DeleteEndpoint%3CPrerequisite%2C%22id%22%3E"
             }
           },
-          "required": [
-            "/prerequisites/:id"
-          ],
+          "required": ["/prerequisites/:id"],
           "additionalProperties": false
         },
         "HEAD": {
@@ -515,9 +450,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -547,9 +480,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -579,9 +510,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -611,19 +540,12 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         }
       },
-      "required": [
-        "GET",
-        "POST",
-        "PATCH",
-        "DELETE"
-      ],
+      "required": ["GET", "POST", "PATCH", "DELETE"],
       "additionalProperties": false
     },
     "GetCollectionEndpoint<Prerequisite>": {
@@ -642,10 +564,7 @@
           "$ref": "#/definitions/GetCollectionResult%3CPrerequisite%3E"
         }
       },
-      "required": [
-        "query",
-        "result"
-      ],
+      "required": ["query", "result"],
       "additionalProperties": false,
       "description": "GET-collection endpoint contract."
     },
@@ -663,59 +582,35 @@
           "properties": {
             "id": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "stackName": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "name": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "type": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "config": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "installationHelp": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "createdAt": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "updatedAt": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             }
           },
           "additionalProperties": false
@@ -724,16 +619,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": [
-              "id",
-              "stackName",
-              "name",
-              "type",
-              "config",
-              "installationHelp",
-              "createdAt",
-              "updatedAt"
-            ]
+            "enum": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"]
           }
         },
         "filter": {
@@ -1228,10 +1114,7 @@
           }
         }
       },
-      "required": [
-        "count",
-        "entries"
-      ],
+      "required": ["count", "entries"],
       "additionalProperties": false,
       "description": "Collection result. `count` is the **total** matching entity count (ignores `top` / `skip`); `entries` is the page returned for this query."
     },
@@ -1245,16 +1128,7 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": [
-                  "id",
-                  "stackName",
-                  "name",
-                  "type",
-                  "config",
-                  "installationHelp",
-                  "createdAt",
-                  "updatedAt"
-                ]
+                "enum": ["id", "stackName", "name", "type", "config", "installationHelp", "createdAt", "updatedAt"]
               }
             }
           },
@@ -1268,20 +1142,14 @@
               "description": "UUID primary key"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "$ref": "#/definitions/Prerequisite"
         }
       },
-      "required": [
-        "query",
-        "url",
-        "result"
-      ],
+      "required": ["query", "url", "result"],
       "additionalProperties": false,
       "description": "GET-by-id endpoint contract. `select` narrows the projected fields."
     },
@@ -1296,19 +1164,14 @@
               "description": "UUID primary key"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": [
-        "url",
-        "result"
-      ],
+      "required": ["url", "result"],
       "additionalProperties": false,
       "description": "DELETE-by-id endpoint contract."
     }

@@ -29,23 +29,14 @@
           "description": "Optional description of what this stack does"
         }
       },
-      "required": [
-        "description",
-        "displayName",
-        "environmentVariables",
-        "mainDirectory",
-        "name"
-      ]
+      "required": ["description", "displayName", "environmentVariables", "mainDirectory", "name"]
     },
     "EnvironmentVariableValue": {
       "type": "object",
       "properties": {
         "source": {
           "type": "string",
-          "enum": [
-            "inherit",
-            "custom"
-          ],
+          "enum": ["inherit", "custom"],
           "description": "Whether to inherit the value from the host system or use a custom value"
         },
         "customValue": {
@@ -57,9 +48,7 @@
           "description": "Whether this value contains sensitive data (e.g. passwords, tokens). When true, the value is encrypted at rest and masked in API responses. Overrides the prerequisite-level default when set."
         }
       },
-      "required": [
-        "source"
-      ],
+      "required": ["source"],
       "additionalProperties": false,
       "description": "Describes how an environment variable's value is resolved. Used in  {@link  StackConfig  }  for stack-level defaults and in  {@link  ServiceConfig  }  for per-service overrides."
     },
@@ -73,10 +62,7 @@
           "$ref": "#/definitions/WithOptionalId%3CStackWritableFields%2C%22name%22%3E"
         }
       },
-      "required": [
-        "result",
-        "body"
-      ],
+      "required": ["result", "body"],
       "additionalProperties": false,
       "description": "Creates a new stack with optional configuration"
     },
@@ -158,12 +144,7 @@
           "description": "Stack-level environment variable values, keyed by variable name"
         }
       },
-      "required": [
-        "description",
-        "displayName",
-        "environmentVariables",
-        "mainDirectory"
-      ]
+      "required": ["description", "displayName", "environmentVariables", "mainDirectory"]
     },
     "PatchStackEndpoint": {
       "$ref": "#/definitions/PatchEndpoint%3CStackWritableFields%2C%22name%22%3E"
@@ -208,20 +189,14 @@
               "description": "Unique kebab-case identifier for the stack"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": [
-        "body",
-        "url",
-        "result"
-      ],
+      "required": ["body", "url", "result"],
       "additionalProperties": false,
       "description": "PATCH-by-id endpoint contract. `TWritableData` defaults to `Partial<T>`."
     },
@@ -244,12 +219,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "line",
-        "pattern",
-        "snippet",
-        "source"
-      ],
+      "required": ["line", "pattern", "snippet", "source"],
       "additionalProperties": false,
       "description": "A warning about a potential secret detected during stack export"
     },
@@ -272,11 +242,7 @@
               "description": "Optional description of what this stack does"
             }
           },
-          "required": [
-            "name",
-            "displayName",
-            "description"
-          ],
+          "required": ["name", "displayName", "description"],
           "additionalProperties": false
         },
         "services": {
@@ -371,12 +337,7 @@
                 "description": "Optional description"
               }
             },
-            "required": [
-              "id",
-              "url",
-              "displayName",
-              "description"
-            ],
+            "required": ["id", "url", "displayName", "description"],
             "additionalProperties": false
           }
         },
@@ -406,13 +367,7 @@
                 "description": "Help text shown when the prerequisite check fails"
               }
             },
-            "required": [
-              "id",
-              "name",
-              "type",
-              "config",
-              "installationHelp"
-            ],
+            "required": ["id", "name", "type", "config", "installationHelp"],
             "additionalProperties": false
           }
         },
@@ -423,12 +378,7 @@
           }
         }
       },
-      "required": [
-        "stack",
-        "services",
-        "repositories",
-        "prerequisites"
-      ],
+      "required": ["stack", "services", "repositories", "prerequisites"],
       "additionalProperties": false
     },
     "ServiceFile": {
@@ -443,10 +393,7 @@
           "description": "File content (usually plain text)"
         }
       },
-      "required": [
-        "relativePath",
-        "content"
-      ],
+      "required": ["relativePath", "content"],
       "additionalProperties": false,
       "description": "A file to be placed relative to the service root (e.g. .env, appConfig.local.json)"
     },
@@ -504,9 +451,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "minimumVersion"
-      ],
+      "required": ["minimumVersion"],
       "additionalProperties": false,
       "description": "Prerequisite configuration for NodeJs"
     },
@@ -517,9 +462,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "minimumVersion"
-      ],
+      "required": ["minimumVersion"],
       "additionalProperties": false,
       "description": "Prerequisite configuration type for Yarn package manager"
     },
@@ -530,9 +473,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "version"
-      ],
+      "required": ["version"],
       "additionalProperties": false,
       "description": "Prerequisite config for Dotnet SDK"
     },
@@ -543,9 +484,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "version"
-      ],
+      "required": ["version"],
       "additionalProperties": false,
       "description": "Prerequisite config for Dotnet Runtime"
     },
@@ -559,9 +498,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "feedUrl"
-      ],
+      "required": ["feedUrl"],
       "additionalProperties": false,
       "description": "Prerequisite config for NuGet feeds"
     },
@@ -589,9 +526,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "variableName"
-      ],
+      "required": ["variableName"],
       "additionalProperties": false,
       "description": "Prerequisite config for an environment variable"
     },
@@ -602,9 +537,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "script"
-      ],
+      "required": ["script"],
       "additionalProperties": false,
       "description": "Prerequisite type for executing a custom script"
     },
@@ -618,19 +551,14 @@
               "type": "string"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "$ref": "#/definitions/ExportStackResult"
         }
       },
-      "required": [
-        "url",
-        "result"
-      ],
+      "required": ["url", "result"],
       "additionalProperties": false,
       "description": "Exports a stack and all its associated services, repositories, and prerequisites for sharing"
     },
@@ -650,9 +578,7 @@
               }
             }
           },
-          "required": [
-            "success"
-          ],
+          "required": ["success"],
           "additionalProperties": false
         },
         "body": {
@@ -674,11 +600,7 @@
                   "description": "Optional description of what this stack does"
                 }
               },
-              "required": [
-                "name",
-                "displayName",
-                "description"
-              ],
+              "required": ["name", "displayName", "description"],
               "additionalProperties": false
             },
             "services": {
@@ -773,12 +695,7 @@
                     "description": "Optional description"
                   }
                 },
-                "required": [
-                  "id",
-                  "url",
-                  "displayName",
-                  "description"
-                ],
+                "required": ["id", "url", "displayName", "description"],
                 "additionalProperties": false
               }
             },
@@ -808,13 +725,7 @@
                     "description": "Help text shown when the prerequisite check fails"
                   }
                 },
-                "required": [
-                  "id",
-                  "name",
-                  "type",
-                  "config",
-                  "installationHelp"
-                ],
+                "required": ["id", "name", "type", "config", "installationHelp"],
                 "additionalProperties": false
               }
             },
@@ -864,9 +775,7 @@
                   }
                 }
               },
-              "required": [
-                "mainDirectory"
-              ],
+              "required": ["mainDirectory"],
               "additionalProperties": false
             },
             "regenerateIds": {
@@ -874,20 +783,11 @@
               "description": "When true, the server assigns fresh UUIDs to every service, repository, and prerequisite before insertion. Use this to duplicate an existing stack on the same machine — set a new stack name and enable this flag so the entity IDs do not collide with the source stack. Inter-entity references (`prerequisiteIds`, `prerequisiteServiceIds`, and the `config.services` map) are remapped to the new IDs."
             }
           },
-          "required": [
-            "stack",
-            "services",
-            "repositories",
-            "prerequisites",
-            "config"
-          ],
+          "required": ["stack", "services", "repositories", "prerequisites", "config"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "result",
-        "body"
-      ],
+      "required": ["result", "body"],
       "additionalProperties": false,
       "description": "Imports a previously exported stack, creating all associated entities and applying configuration overrides"
     },
@@ -901,9 +801,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
@@ -913,16 +811,11 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "success"
-          ],
+          "required": ["success"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "url",
-        "result"
-      ],
+      "required": ["url", "result"],
       "additionalProperties": false,
       "description": "Runs the setup pipeline (clone, install, build) for all services in a stack"
     },
@@ -942,11 +835,7 @@
               "$ref": "#/definitions/ExportStackEndpoint"
             }
           },
-          "required": [
-            "/stacks",
-            "/stacks/:id",
-            "/stacks/:id/export"
-          ],
+          "required": ["/stacks", "/stacks/:id", "/stacks/:id/export"],
           "additionalProperties": false
         },
         "POST": {
@@ -962,11 +851,7 @@
               "$ref": "#/definitions/StackSetupEndpoint"
             }
           },
-          "required": [
-            "/stacks",
-            "/stacks/import",
-            "/stacks/:id/setup"
-          ],
+          "required": ["/stacks", "/stacks/import", "/stacks/:id/setup"],
           "additionalProperties": false
         },
         "PATCH": {
@@ -976,9 +861,7 @@
               "$ref": "#/definitions/PatchStackEndpoint"
             }
           },
-          "required": [
-            "/stacks/:id"
-          ],
+          "required": ["/stacks/:id"],
           "additionalProperties": false
         },
         "PUT": {
@@ -1007,9 +890,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -1020,9 +901,7 @@
               "$ref": "#/definitions/DeleteEndpoint%3CStackDefinition%2C%22name%22%3E"
             }
           },
-          "required": [
-            "/stacks/:id"
-          ],
+          "required": ["/stacks/:id"],
           "additionalProperties": false
         },
         "HEAD": {
@@ -1051,9 +930,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -1083,9 +960,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -1115,9 +990,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         },
@@ -1147,19 +1020,12 @@
                 "type": "string"
               }
             },
-            "required": [
-              "result"
-            ],
+            "required": ["result"],
             "additionalProperties": false
           }
         }
       },
-      "required": [
-        "GET",
-        "POST",
-        "PATCH",
-        "DELETE"
-      ],
+      "required": ["GET", "POST", "PATCH", "DELETE"],
       "additionalProperties": false
     },
     "GetCollectionEndpoint<StackView>": {
@@ -1178,10 +1044,7 @@
           "$ref": "#/definitions/GetCollectionResult%3CStackView%3E"
         }
       },
-      "required": [
-        "query",
-        "result"
-      ],
+      "required": ["query", "result"],
       "additionalProperties": false,
       "description": "GET-collection endpoint contract."
     },
@@ -1199,59 +1062,35 @@
           "properties": {
             "name": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "displayName": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "description": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "createdAt": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "updatedAt": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "stackName": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "mainDirectory": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             },
             "environmentVariables": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ]
+              "enum": ["ASC", "DESC"]
             }
           },
           "additionalProperties": false
@@ -1776,10 +1615,7 @@
           }
         }
       },
-      "required": [
-        "count",
-        "entries"
-      ],
+      "required": ["count", "entries"],
       "additionalProperties": false,
       "description": "Collection result. `count` is the **total** matching entity count (ignores `top` / `skip`); `entries` is the page returned for this query."
     },
@@ -1816,20 +1652,14 @@
               "description": "Unique kebab-case identifier for the stack"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "$ref": "#/definitions/StackView"
         }
       },
-      "required": [
-        "query",
-        "url",
-        "result"
-      ],
+      "required": ["query", "url", "result"],
       "additionalProperties": false,
       "description": "GET-by-id endpoint contract. `select` narrows the projected fields."
     },
@@ -1844,19 +1674,14 @@
               "description": "Unique kebab-case identifier for the stack"
             }
           },
-          "required": [
-            "id"
-          ],
+          "required": ["id"],
           "additionalProperties": false
         },
         "result": {
           "type": "object"
         }
       },
-      "required": [
-        "url",
-        "result"
-      ],
+      "required": ["url", "result"],
       "additionalProperties": false,
       "description": "DELETE-by-id endpoint contract."
     }
